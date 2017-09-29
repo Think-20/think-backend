@@ -15,7 +15,7 @@ class User extends Model
     protected $table = 'user';
 
     protected $fillable = [
-        'email', 'password', 'employeeId', 'lastAccess'
+        'email', 'password', 'employee_id', 'lastAccess'
     ];
 
     protected $hidden = [
@@ -66,10 +66,10 @@ class User extends Model
     }
 
     public function employee() {
-        return $this->belongsTo('App\Employee', 'employeeId');
+        return $this->belongsTo('App\Employee', 'employee_id');
     }
 
     public function functionalities() {
-        return $this->belongsToMany('App\Functionality', 'user_functionality', 'userId', 'functionalityId');
+        return $this->belongsToMany('App\Functionality', 'user_functionality', 'user_id', 'functionality_id');
     }
 }

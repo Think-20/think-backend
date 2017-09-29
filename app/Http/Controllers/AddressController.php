@@ -24,7 +24,7 @@ class AddressController extends Controller
                     ->orWhere('id', 'LIKE', $stateId)
                     ->first();
 
-        return City::where('stateId', '=', $state->id)
+        return City::where('state_id', '=', $state->id)
             ->where('name', 'LIKE', $cityName . '%')
             ->orderBy('name', 'asc')
             ->get();

@@ -12,15 +12,15 @@ class ItemCategory extends Model
     protected $table = 'item_category';
 
     protected $fillable = [
-        'description', 'itemCategoryId'
+        'description', 'item_category_id'
     ];
 
     public static function edit(array $data) {
         $id = $data['id'];
         $itemCategory = ItemCategory::find($id);
-        $itemCategory->itemCategoryId = isset($data['itemCategory']['id']) ? $data['itemCategory']['id'] : null;
+        $itemCategory->item_category_id = isset($data['item_category']['id']) ? $data['item_category']['id'] : null;
 
-        if($itemCategory->id == $itemCategory->itemCategoryId) {
+        if($itemCategory->id == $itemCategory->item_category_id) {
             throw new Exception('Não é possível cadastrar uma categoria sendo a própria subcategoria.');
         }
 
@@ -29,7 +29,7 @@ class ItemCategory extends Model
 
     public static function insert(array $data) {
         $itemCategory = new ItemCategory($data);
-        $itemCategory->itemCategoryId = isset($data['itemCategory']['id']) ? $data['itemCategory']['id'] : null;
+        $itemCategory->item_category_id = isset($data['item_category']['id']) ? $data['item_category']['id'] : null;
         $itemCategory->save();
     }
 
@@ -54,6 +54,6 @@ class ItemCategory extends Model
     }
 
     public function itemCategory() {
-        return $this->belongsTo('App\ItemCategory', 'itemCategoryId');
+        return $this->belongsTo('App\ItemCategory', 'item_category_id');
     }
 }

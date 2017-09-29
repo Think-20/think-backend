@@ -3,15 +3,16 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use DB;
 
 class Client extends Model
 {
     protected $table = 'client';
 
     protected $fillable = [
-        'name', 'fantasyName', 'cnpj', 'mainphone', 'secundaryphone', 'site', 'rate', 'note',
-        'street', 'number', 'neighborhood', 'complement', 'cep', 'cityId', 
-        'employeeId', 'clientTypeId', 'clientStatusId'
+        'name', 'fantasy_name', 'cnpj', 'mainphone', 'secundaryphone', 'site', 'rate', 'note',
+        'street', 'number', 'neighborhood', 'complement', 'cep', 'city_id', 
+        'employee_id', 'client_type_id', 'client_status_id'
     ];
 
     public static function list() {
@@ -29,52 +30,70 @@ class Client extends Model
     }
 
     public static function edit(array $data) {
-        $id = $data['id'];
-        $client = Client::find($id);
-        $client->cityId = isset($data['city']['id']) ? $data['city']['id'] : null;
-        $client->employeeId = isset($data['employee']['id']) ? $data['employee']['id'] : null;
-        $client->clientTypeId = isset($data['clientType']['id']) ? $data['clientType']['id'] : null;
-        $client->clientStatusId = isset($data['clientStatus']['id']) ? $data['clientStatus']['id'] : null;
+        DB::beginTransaction();
+        
+        try {
+            $id = $data['id'];
+            $client = Client::find($id);
+            $client->city_id = isset($data['city']['id']) ? $data['city']['id'] : null;
+            $client->employee_id = isset($data['employee']['id']) ? $data['employee']['id'] : null;
+            $client->client_type_id = isset($data['client_type']['id']) ? $data['client_type']['id'] : null;
+            $client->client_status_id = isset($data['client_status']['id']) ? $data['client_status']['id'] : null;
 
-        #Deleta contatos antigos
-        $client->contacts()->delete();
+            $contacts = isset($data['contacts']) ? $data['contacts'] : [];
+            Contact::manageClient($contacts, $client);
 
-        $contacts = isset($data['contacts']) ? $data['contacts'] : [];
-
-        foreach($contacts as $contact) {
-            Contact::insert(array_merge($contact, [
-                'clientId' => $client->id
-            ]));
+            $client->update($data);
+            DB::commit();
+        } catch(\Exception $e) {
+            DB::rollBack();
+            throw new \Exception($e->getMessage());
         }
-
-        return $client->update($data);
     }
 
     public static function insert(array $data) {
-        $client = new Client($data);
-        $client->cityId = isset($data['city']['id']) ? $data['city']['id'] : null;
-        $client->employeeId = isset($data['employee']['id']) ? $data['employee']['id'] : null;
-        $client->clientTypeId = isset($data['clientType']['id']) ? $data['clientType']['id'] : null;
-        $client->clientStatusId = isset($data['clientStatus']['id']) ? $data['clientStatus']['id'] : null;
-        $client->save();
+        DB::beginTransaction();
+        
+        try {
+            $client = new Client($data);
+            $client->city_id = isset($data['city']['id']) ? $data['city']['id'] : null;
+            $client->employee_id = isset($data['employee']['id']) ? $data['employee']['id'] : null;
+            $client->client_type_id = isset($data['client_type']['id']) ? $data['client_type']['id'] : null;
+            $client->client_status_id = isset($data['client_status']['id']) ? $data['client_status']['id'] : null;
+            $client->save();
 
-        $contacts = isset($data['contacts']) ? $data['contacts'] : [];
+            $contacts = isset($data['contacts']) ? $data['contacts'] : [];
+            Contact::manageClient($contacts, $client);
 
-        foreach($contacts as $contact) {
-            Contact::insert(array_merge($contact, [
-                'clientId' => $client->id
-            ]));
+            DB::commit();
+        } catch(\Exception $e) {
+            DB::rollBack();
+            throw new \Exception($e->getMessage());
         }
     }
 
     public static function remove($id) {
-        $client = Client::find($id);
-        $client->contacts()->delete();
-        $client->delete();
+        DB::beginTransaction();
+        
+        try {
+            $client = Client::find($id);
+            $client->contacts()->detach();
+            $client->contacts()->delete();
+            $client->delete();
+            DB::commit();
+        } catch(\Exception $e) {
+            DB::rollBack();
+            throw new \Exception($e->getMessage());
+        }
     }
 
     public static function get(int $id) {
         $client = Client::find($id);
+        
+        if(is_null($client)) {
+            return null;
+        }
+
         $client->city;
         $client->city->state;
         $client->employee;
@@ -86,7 +105,7 @@ class Client extends Model
 
     public static function filter($query) {
         $clients = Client::where('name', 'like', $query . '%')
-            ->orWhere('fantasyName', 'like', $query . '%')
+            ->orWhere('fantasy_name', 'like', $query . '%')
             ->orWhere('cnpj', 'like', $query . '%')
             ->get();
 
@@ -102,7 +121,7 @@ class Client extends Model
     # My clients #
 
     public static function listMyClient() {
-        $clients = Client::where('employeeId', '=', User::logged()->employee->id)
+        $clients = Client::where('employee_id', '=', User::logged()->employee->id)
         ->orderBy('name', 'asc')
         ->get();
 
@@ -116,47 +135,60 @@ class Client extends Model
     }
 
     public static function editMyClient(array $data) {
-        $id = $data['id'];
-        $client = Client::find($id);
+        DB::beginTransaction();
+        
+        try {
+            $id = $data['id'];
+            $client = Client::find($id);
 
-        if($client->employeeId != User::logged()->employee->id) {
-            throw new \Exception('Não é possível editar um cliente que não foi cadastrado por você.');
+            if($client->employee_id != User::logged()->employee->id) {
+                throw new \Exception('Não é possível editar um cliente que não foi cadastrado por você.');
+            }
+
+            $client->city_id = isset($data['city']['id']) ? $data['city']['id'] : null;
+            $client->employee_id = isset($data['employee']['id']) ? $data['employee']['id'] : null;
+            $client->client_type_id = isset($data['client_type']['id']) ? $data['client_type']['id'] : null;
+            $client->client_status_id = isset($data['client_status']['id']) ? $data['client_status']['id'] : null;
+
+            $contacts = isset($data['contacts']) ? $data['contacts'] : [];
+            Contact::manageClient($contacts, $client);
+
+            $client->update($data);
+            DB::commit();
+        } catch(\Exception $e) {
+            DB::rollBack();
+            throw new \Exception($e->getMessage());
         }
-
-        $client->cityId = isset($data['city']['id']) ? $data['city']['id'] : null;
-        $client->employeeId = isset($data['employee']['id']) ? $data['employee']['id'] : null;
-        $client->clientTypeId = isset($data['clientType']['id']) ? $data['clientType']['id'] : null;
-        $client->clientStatusId = isset($data['clientStatus']['id']) ? $data['clientStatus']['id'] : null;
-
-        #Deleta contatos antigos
-        $client->contacts()->delete();
-
-        $contacts = isset($data['contacts']) ? $data['contacts'] : [];
-
-        foreach($contacts as $contact) {
-            Contact::insert(array_merge($contact, [
-                'clientId' => $client->id
-            ]));
-        }
-
-        return $client->update($data);
     }
 
     public static function removeMyClient($id) {
-        $client = Client::find($id);
+        DB::beginTransaction();
+        
+        try {
+            $client = Client::find($id);
 
-        if($client->employeeId != User::logged()->employee->id) {
-            throw new \Exception('Não é possível remover um cliente que não foi cadastrado por você.');
+            if($client->employee_id != User::logged()->employee->id) {
+                throw new \Exception('Não é possível remover um cliente que não foi cadastrado por você.');
+            }
+
+            $client->contacts()->detach();
+            $client->contacts()->delete();
+            $client->delete();
+            DB::commit();
+        } catch(\Exception $e) {
+            DB::rollBack();
+            throw new \Exception($e->getMessage());
         }
-
-        $client->contacts()->delete();
-        $client->delete();
     }
 
     public static function getMyClient(int $id) {
         $client = Client::find($id);
+        
+        if(is_null($client)) {
+            return null;
+        }
 
-        if($client->employeeId != User::logged()->employee->id) {
+        if($client->employee_id != User::logged()->employee->id) {
             throw new \Exception('Não é possível visualizar um cliente que não foi cadastrado por você.');
         }
 
@@ -168,8 +200,8 @@ class Client extends Model
 
     public static function filterMyClient($query) {
         $clients = Client::where('name', 'like', $query . '%')
-            ->where('employeeId', '=', User::logged()->employee->id)
-            ->orWhere('fantasyName', 'like', $query . '%')
+            ->where('employee_id', '=', User::logged()->employee->id)
+            ->orWhere('fantasy_name', 'like', $query . '%')
             ->orWhere('cnpj', 'like', $query . '%')
             ->get();
 
@@ -243,22 +275,22 @@ class Client extends Model
     }
 
     public function city() {
-        return $this->belongsTo('App\City', 'cityId');
+        return $this->belongsTo('App\City', 'city_id');
     }
 
     public function employee() {
-        return $this->belongsTo('App\Employee', 'employeeId');
+        return $this->belongsTo('App\Employee', 'employee_id');
     }
 
     public function type() {
-        return $this->belongsTo('App\ClientType', 'clientTypeId');
+        return $this->belongsTo('App\ClientType', 'client_type_id');
     }
 
     public function status() {
-        return $this->belongsTo('App\ClientStatus', 'clientStatusId');
+        return $this->belongsTo('App\ClientStatus', 'client_status_id');
     }
 
     public function contacts() {
-        return $this->hasMany('App\Contact', 'clientId');
+        return $this->belongsToMany('App\Contact', 'client_contact', 'client_id', 'contact_id');
     }
 }

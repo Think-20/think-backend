@@ -11,12 +11,45 @@ class Contact extends Model
     protected $table = 'contact';
 
     protected $fillable = [
-        'name', 'email', 'department', 'cellphone', 'clientId'
+        'name', 'email', 'department', 'cellphone'
     ];
 
-    public static function insert(array $data) {
+    public static function manageClient(array $contactsDataArray, Client $client) {
+        $oldContacts = $client->contacts;
+        $contactIds = [];
+
+        foreach($contactsDataArray as $contact) {
+            //Exists, update
+            if(isset($contact['id'])) {
+                $contactIds[] = $contact['id'];
+                Contact::edit($contact);
+            } 
+            //Create because not found
+            else {
+                Contact::insert($contact, $client);
+            }
+        }
+
+        Contact::deleteOldIds($oldContacts, $contactIds, $client);
+    }
+
+    public static function deleteOldIds($oldContacts, array $contactIds, Client $client) {
+        foreach($oldContacts as $contact) {
+            if(!in_array($contact->id, $contactIds)) {
+                $client->contacts()->detach($contact);
+                $contact->delete();
+            }
+        }
+    }
+
+    public static function edit($data) {
+        $contact = Contact::find($data['id']);
+        $contact->update($data);
+    }
+
+    public static function insert(array $data, Client $client) {
         $contact = new Contact($data);
-        $contact->save();
+        $client->contacts()->save($contact);
     }
 
     public function getCellphoneAttribute($value) {

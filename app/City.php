@@ -11,10 +11,10 @@ class City extends Model
     protected $table = 'city';
 
     protected $fillable = [
-        'name', 'stateId'
+        'name', 'state_id'
     ];
 
     public function state() {
-        return $this->belongsTo('App\State', 'stateId');
+        return $this->belongsTo('App\State', 'state_id');
     }
 }

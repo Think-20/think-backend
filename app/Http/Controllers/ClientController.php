@@ -38,7 +38,7 @@ class ClientController extends Controller
         $status = false;
 
         try {
-            $client = Client::edit($request->all());
+            Client::edit($request->all());
             $message = 'Cliente alterado com sucesso!';
             $status = true;
         } catch(QueryException $queryException) {

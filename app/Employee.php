@@ -9,7 +9,7 @@ class Employee extends Model
     protected $table = 'employee';
 
     protected $fillable = [
-        'name', 'payment', 'positionId', 'departmentId'
+        'name', 'payment', 'position_id', 'department_id'
     ];
 
     protected $hidden = [
@@ -26,11 +26,11 @@ class Employee extends Model
         $insertClients = Functionality::where('description', '=', 'Cadastrar um cliente')->first();
         $insertMyClients = Functionality::where('description', '=', 'Cadastrar um cliente (atendimento)')->first();
 
-        return Employee::select('employee.id', 'employee.name', 'employee.positionId', 'employee.departmentId')
-        ->join('user', 'user.employeeId', '=', 'employee.id')
-        ->join('user_functionality', 'user_functionality.userId', '=', 'user.id')
-        ->where('user_functionality.functionalityId', '=', $insertClients->id)
-        ->orWhere('user_functionality.functionalityId', '=', $insertMyClients->id)
+        return Employee::select('employee.id', 'employee.name', 'employee.position_id', 'employee.department_id')
+        ->join('user', 'user.employee_id', '=', 'employee.id')
+        ->join('user_functionality', 'user_functionality.user_id', '=', 'user.id')
+        ->where('user_functionality.functionality_id', '=', $insertClients->id)
+        ->orWhere('user_functionality.functionality_id', '=', $insertMyClients->id)
         ->orderBy('name', 'asc')
         ->distinct()
         ->get();
@@ -43,10 +43,10 @@ class Employee extends Model
     }
 
     public function position() {
-        return $this->belongsTo('App\Position', 'positionId');
+        return $this->belongsTo('App\Position', 'position_id');
     }
 
     public function department() {
-        return $this->belongsTo('App\Department', 'departmentId');
+        return $this->belongsTo('App\Department', 'department_id');
     }
 }
