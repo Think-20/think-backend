@@ -4,6 +4,8 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
+use App\Interfaces\Contactable;
+
 class Contact extends Model
 {
     public $timestamps = false;
@@ -14,8 +16,8 @@ class Contact extends Model
         'name', 'email', 'department', 'cellphone'
     ];
 
-    public static function manageClient(array $contactsDataArray, Client $client) {
-        $oldContacts = $client->contacts;
+    public static function manage(array $contactsDataArray, Contactable $contactable) {
+        $oldContacts = $contactable->contacts;
         $contactIds = [];
 
         foreach($contactsDataArray as $contact) {
@@ -26,17 +28,17 @@ class Contact extends Model
             } 
             //Create because not found
             else {
-                Contact::insert($contact, $client);
+                Contact::insert($contact, $contactable);
             }
         }
 
-        Contact::deleteOldIds($oldContacts, $contactIds, $client);
+        Contact::deleteOldIds($oldContacts, $contactIds, $contactable);
     }
 
-    public static function deleteOldIds($oldContacts, array $contactIds, Client $client) {
+    public static function deleteOldIds($oldContacts, array $contactIds, Contactable $contactable) {
         foreach($oldContacts as $contact) {
             if(!in_array($contact->id, $contactIds)) {
-                $client->contacts()->detach($contact);
+                $contactable->contacts()->detach($contact);
                 $contact->delete();
             }
         }
@@ -47,9 +49,9 @@ class Contact extends Model
         $contact->update($data);
     }
 
-    public static function insert(array $data, Client $client) {
+    public static function insert(array $data, Contactable $contactable) {
         $contact = new Contact($data);
-        $client->contacts()->save($contact);
+        $contactable->contacts()->save($contact);
     }
 
     public function getCellphoneAttribute($value) {

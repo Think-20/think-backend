@@ -26,6 +26,9 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/client-types/all', 'ClientTypeController@all');
     Route::get('/client-status/all', 'ClientStatusController@all');
     Route::get('/employees/can-insert-clients', 'EmployeeController@canInsertClients');
+    Route::get('/person-types/all', 'PersonTypeController@all');
+    Route::get('/bank-account-types/all', 'BankAccountTypeController@all');
+    Route::get('/banks/all', 'BankController@all');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {
@@ -45,6 +48,13 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/my-clients/all', 'ClientController@allMyClient');
     Route::get('/my-clients/get/{id}', 'ClientController@getMyClient');
     Route::get('/my-clients/filter/{query}', 'ClientController@filterMyClient');
+
+    Route::post('/provider/save', 'ProviderController@save');
+    Route::put('/provider/edit', 'ProviderController@edit');
+    Route::delete('/provider/remove/{id}', 'ProviderController@remove');
+    Route::get('/providers/all', 'ProviderController@all');
+    Route::get('/providers/get/{id}', 'ProviderController@get');
+    Route::get('/providers/filter/{query}', 'ProviderController@filter');
 
     Route::post('/cost-category/save', 'CostCategoryController@save');
     Route::put('/cost-category/edit', 'CostCategoryController@edit');

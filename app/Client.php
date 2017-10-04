@@ -5,12 +5,14 @@ namespace App;
 use Illuminate\Database\Eloquent\Model;
 use DB;
 
-class Client extends Model
+use App\Interfaces\Contactable;
+
+class Client extends Model implements Contactable
 {
     protected $table = 'client';
 
     protected $fillable = [
-        'name', 'fantasy_name', 'cnpj', 'mainphone', 'secundaryphone', 'site', 'rate', 'note',
+        'name', 'fantasy_name', 'ie', 'cnpj', 'mainphone', 'secundaryphone', 'site', 'rate', 'note',
         'street', 'number', 'neighborhood', 'complement', 'cep', 'city_id', 
         'employee_id', 'client_type_id', 'client_status_id'
     ];
@@ -41,7 +43,7 @@ class Client extends Model
             $client->client_status_id = isset($data['client_status']['id']) ? $data['client_status']['id'] : null;
 
             $contacts = isset($data['contacts']) ? $data['contacts'] : [];
-            Contact::manageClient($contacts, $client);
+            Contact::manage($contacts, $client);
 
             $client->update($data);
             DB::commit();
@@ -63,7 +65,7 @@ class Client extends Model
             $client->save();
 
             $contacts = isset($data['contacts']) ? $data['contacts'] : [];
-            Contact::manageClient($contacts, $client);
+            Contact::manage($contacts, $client);
 
             DB::commit();
         } catch(\Exception $e) {
@@ -151,7 +153,7 @@ class Client extends Model
             $client->client_status_id = isset($data['client_status']['id']) ? $data['client_status']['id'] : null;
 
             $contacts = isset($data['contacts']) ? $data['contacts'] : [];
-            Contact::manageClient($contacts, $client);
+            Contact::manage($contacts, $client);
 
             $client->update($data);
             DB::commit();
