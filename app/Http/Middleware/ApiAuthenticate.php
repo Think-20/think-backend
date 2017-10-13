@@ -28,7 +28,8 @@ class ApiAuthenticate
 
         $currentUser = User::find($userId);
 
-        if(!Request::isJson() || !User::tokenCompare($token, $currentUser)) {
+        #if(!Request::isJson() || !User::tokenCompare($token, $currentUser)) {
+        if(!User::tokenCompare($token, $currentUser)) {
             $content = json_encode(['message' => 'Você não está autenticado. Acesso negado.']);
             return Response::make($content, 403);
         }

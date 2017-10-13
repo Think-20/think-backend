@@ -25,7 +25,7 @@ class ItemController extends Controller
                 $message = 'Um erro ocorreu ao cadastrar no banco de dados.';
             }
         } catch(Exception $e) {
-            $message = 'Um erro desconhecido ocorreu ao cadastrar: ' . $e->getMessage();
+            $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage() . $e->getFile() . $e->getLine();
         }
 
         return Response::make(json_encode([
@@ -35,7 +35,11 @@ class ItemController extends Controller
     }
 
     public static function image(Request $request) {
-        dd($request->all());
+        $file = $request->file('image');
+        $name = md5(time()) . $file->getClientOriginalExtension();
+        $file->move(resource_path('assets/images'), $name);
+
+        return ['name' => $name];
     }
 
     public static function edit(Request $request) {
@@ -52,7 +56,7 @@ class ItemController extends Controller
                 $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
             }
         } catch(Exception $e) {
-            $message = 'Um erro desconhecido ocorreu ao atualizar: ' . $e->getMessage();
+            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
         }
 
         return Response::make(json_encode([

@@ -18,17 +18,45 @@ Route::get('/', function () {
 Route::post('/login', 'UserController@login')->name('login');
 Route::post('/logout', 'UserController@logout')->name('logout');
 
+/*  
+    Construir authenticate request para imagens 
+    http://blog.jsgoupil.com/request-image-files-with-angular-2-and-an-bearer-access-token/
+*/
+Route::get('/assets/images/{filename}', function ($filename)
+{
+    $path = resource_path('assets/images/' . $filename);
+
+    if (!File::exists($path)) {
+        abort(404);
+    }
+
+    $file = File::get($path);
+    $type = File::mimeType($path);
+
+    $response = Response::make($file, 200);
+    $response->header("Content-Type", $type);
+
+    return $response;
+});
+
 Route::group(['middleware' => ['auth.api']], function() {
+
     Route::get('/states/all', 'AddressController@allStates')->name('allStates');
     Route::get('/states/{stateName}', 'AddressController@states')->name('states');
     Route::get('/cities/{stateId}/{cityName}', 'AddressController@cities')->name('cities');
+
     Route::post('/item/image', 'ItemController@image');
+    
     Route::get('/client-types/all', 'ClientTypeController@all');
     Route::get('/client-status/all', 'ClientStatusController@all');
     Route::get('/employees/can-insert-clients', 'EmployeeController@canInsertClients');
+
     Route::get('/person-types/all', 'PersonTypeController@all');
     Route::get('/bank-account-types/all', 'BankAccountTypeController@all');
     Route::get('/banks/all', 'BankController@all');
+    
+    Route::get('/measures/all', 'MeasureController@all');
+    Route::get('/measures/filter/{query}', 'MeasureController@filter');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {
