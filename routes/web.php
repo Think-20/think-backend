@@ -66,6 +66,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/client/save', 'ClientController@save');
     Route::put('/client/edit', 'ClientController@edit');
     Route::delete('/client/remove/{id}', 'ClientController@remove');
+    Route::post('/client/import', 'ClientController@import');
     Route::get('/clients/all', 'ClientController@all');
     Route::get('/clients/get/{id}', 'ClientController@get');
     Route::get('/clients/filter/{query}', 'ClientController@filter');

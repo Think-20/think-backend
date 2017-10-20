@@ -51,7 +51,28 @@ class Contact extends Model
 
     public static function insert(array $data, Contactable $contactable) {
         $contact = new Contact($data);
+        $contact->save();
         $contactable->contacts()->save($contact);
+        return $contact;
+    }
+
+    public static function extractFromArray($row) {
+        /*
+            Importação de cliente
+
+            0 => "Nome"    1 => "Razão Social"    2 => "Site"    3 => "Tipo"    4 => "Status"    
+            5 => "Score"    6 => "Cnpj"    7 => "Inscrição Estadual"    
+            8 => "Telefone Principal"    9 => "Telefone Secundario"    10 => "Contato"    
+            11 => "E-mail"    12 => "Departamento"    13 => "Celular"    14 => "Observação"    
+            15 => "CEP"    16 => "Logradouro"    17 => "Numero"    18 => "Complemento"    19 => "Estado"    
+            20 => "Cidade"    21 => "Bairro"
+        */
+        return [
+            'name' => $row[10], 
+            'email' => $row[11], 
+            'department' => $row[12], 
+            'cellphone' => $row[13]
+        ];
     }
 
     public function getCellphoneAttribute($value) {

@@ -88,6 +88,27 @@ class ClientController extends Controller
         return Client::filter($query);
     }
 
+    public static function import(Request $request) {
+        $status = false;
+        $informations = [];
+
+        try {
+            $informations = Client::import($request->file('file'));
+            $message = 'Clientes importados com sucesso!';
+            $status = true;
+        } catch(QueryException $queryException) {
+            $message = 'Um erro ocorreu ao importar no banco de dados. ' . $queryException->getMessage();
+        } catch(Exception $e) {
+            $message = 'Um erro ocorreu ao importar: ' . $e->getMessage() . $e->getFile() . $e->getLine();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+            'informations' => $informations
+         ]), 200);
+    }
+
     public static function saveMyClient(Request $request) {
         $status = false;
 

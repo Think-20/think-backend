@@ -3,8 +3,11 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\UploadedFile;
+use PHPExcel_IOFactory;
 use DB;
 
+use App\Validators\Validator;
 use App\Interfaces\Contactable;
 
 class Client extends Model implements Contactable
@@ -16,6 +19,18 @@ class Client extends Model implements Contactable
         'street', 'number', 'neighborhood', 'complement', 'cep', 'city_id', 
         'employee_id', 'client_type_id', 'client_status_id'
     ];
+
+    public function checkCnpj() {
+        $duplicateClient = Client::where('cnpj', '=', $this->cnpj)
+        ->where('id', '<>', $this->id)
+        ->get();
+
+        if($duplicateClient->count() > 0) {
+            throw new \Exception('O CNPJ já está cadastrado.');
+        }
+
+        return true;
+    }
 
     public static function list() {
         $clients = Client::select()
@@ -37,6 +52,7 @@ class Client extends Model implements Contactable
         try {
             $id = $data['id'];
             $client = Client::find($id);
+            $client->checkCnpj();
             $client->city_id = isset($data['city']['id']) ? $data['city']['id'] : null;
             $client->employee_id = isset($data['employee']['id']) ? $data['employee']['id'] : null;
             $client->client_type_id = isset($data['client_type']['id']) ? $data['client_type']['id'] : null;
@@ -58,6 +74,7 @@ class Client extends Model implements Contactable
         
         try {
             $client = new Client($data);
+            $client->checkCnpj();
             $client->city_id = isset($data['city']['id']) ? $data['city']['id'] : null;
             $client->employee_id = isset($data['employee']['id']) ? $data['employee']['id'] : null;
             $client->client_type_id = isset($data['client_type']['id']) ? $data['client_type']['id'] : null;
@@ -68,6 +85,7 @@ class Client extends Model implements Contactable
             Contact::manage($contacts, $client);
 
             DB::commit();
+            return $client;
         } catch(\Exception $e) {
             DB::rollBack();
             throw new \Exception($e->getMessage());
@@ -79,8 +97,11 @@ class Client extends Model implements Contactable
         
         try {
             $client = Client::find($id);
+            $contacts = $client->contacts;
             $client->contacts()->detach();
-            $client->contacts()->delete();
+            foreach($contacts as $contact) {
+                $contact->delete();
+            }
             $client->delete();
             DB::commit();
         } catch(\Exception $e) {
@@ -120,8 +141,104 @@ class Client extends Model implements Contactable
         return $clients;
     }
 
-    # My clients #
+    public static function byName($name) {
+        $client = Client::where('fantasy_name', '=', $name)->get();
 
+        if($client->count() == 0) {
+            throw new \Exception('O cliente de nome ' . $name . ' não existe.');
+        } 
+
+        return $client->first();
+    }
+
+    public static function searchClient($array, $pos) {
+        for($i = $pos; $i > 0; $i--) {
+            if(isset($array[$i]) && $array[$i][0] != '') {
+                return $array[$i][0];
+            }
+        }
+    }
+
+    public static function import(UploadedFile $uploadedFile) {
+        $informations = [];
+        $phpExcel = PHPExcel_IOFactory::load($uploadedFile->getPathname());
+        $dataSheet = $phpExcel->getSheet(0)->toArray();
+        $client = null;
+        unset($dataSheet[0]);
+
+        DB::beginTransaction();
+        foreach($dataSheet as $key => $row) {
+            $message = null;
+
+            try {
+                if(!empty($row[0])) {
+                    $dataClient = Client::extractFromArray($row);
+                    $client = Client::insert($dataClient);
+
+                    $dataContact = Contact::extractFromArray($row);
+                    $contacts = array_merge($client->contacts->toArray(), [$dataContact]);
+                    Contact::manage($contacts, $client);
+                    $message = 'Cliente ' . $row[0] . ' cadastrado com sucesso.';
+                } else {
+                    $dataContact = Contact::extractFromArray($row);
+                    $name = Client::searchClient($dataSheet, $key);
+                    $client = Client::byName($name);
+                    $contacts = array_merge($client->contacts->toArray(), [$dataContact]);
+                    Contact::manage($contacts, $client);
+                    $message = 'Contato ' . $contacts[0]['name'] . ' cadastrado com sucesso.';
+                }
+                $informations[] = [
+                    'message' => $message,
+                    'status' => true
+                ];
+            } catch(\Exception $e) {
+                DB::rollBack();
+                $informations[] = [
+                    'message' => 'Erro ao cadastrar o cliente ' . $row[0] . ': ' . $e->getMessage(),
+                    'status' => false
+                ];
+            }
+            DB::commit();
+        }
+
+        return $informations;
+    }
+
+    public static function extractFromArray($row) {
+        /*
+            Importação de cliente
+
+            0 => "Nome"    1 => "Razão Social"    2 => "Site"    3 => "Tipo"    4 => "Status"    
+            5 => "Score"    6 => "Cnpj"    7 => "Inscrição Estadual"    
+            8 => "Telefone Principal"    9 => "Telefone Secundario"    10 => "Contato"    
+            11 => "E-mail"    12 => "Departamento"    13 => "Celular"    14 => "Observação"    
+            15 => "CEP"    16 => "Logradouro"    17 => "Numero"    18 => "Complemento"    19 => "Estado"    
+            20 => "Cidade"    21 => "Bairro"
+        */
+        return [
+            'fantasy_name' => $row[0],
+            'name' => $row[1],
+            'site' => $row[2],
+            'client_type' => ['id' => ClientType::byDescription($row[3])->id],
+            'client_status' => ['id' => ClientStatus::byDescription($row[4])->id],
+            'employee' => ['id' => User::logged()->employee->id],
+            'score' => 0, //$row[5],
+            'cnpj' => $row[6],
+            'ie' => $row[7],
+            'mainphone' => $row[8],
+            'secundaryphone' => $row[9],
+            'note' => $row[14],
+            'cep' => $row[15],
+            'street' => $row[16],
+            'number' => $row[17],
+            'complement' => $row[18],
+            'city' => ['id' => City::byName($row[19], $row[20])->id],
+            'neighborhood' => $row[21],
+        ];
+    }
+
+
+    # My clients #
     public static function listMyClient() {
         $clients = Client::where('employee_id', '=', User::logged()->employee->id)
         ->orderBy('name', 'asc')
@@ -142,6 +259,7 @@ class Client extends Model implements Contactable
         try {
             $id = $data['id'];
             $client = Client::find($id);
+            $client->checkCnpj();
 
             if($client->employee_id != User::logged()->employee->id) {
                 throw new \Exception('Não é possível editar um cliente que não foi cadastrado por você.');
@@ -173,8 +291,11 @@ class Client extends Model implements Contactable
                 throw new \Exception('Não é possível remover um cliente que não foi cadastrado por você.');
             }
 
+            $contacts = $client->contacts;
             $client->contacts()->detach();
-            $client->contacts()->delete();
+            foreach($contacts as $contact) {
+                $contact->delete();
+            }
             $client->delete();
             DB::commit();
         } catch(\Exception $e) {
@@ -215,7 +336,7 @@ class Client extends Model implements Contactable
 
         return $clients;
     }
-
+    
     public function getCnpjAttribute($value) {
         return mask(str_pad($value, 14, '0', STR_PAD_LEFT), '##.###.###/####-##');
     }
@@ -255,25 +376,125 @@ class Client extends Model implements Contactable
     public function getCepAttribute($value) {
         return mask(str_pad($value, 8, '0', STR_PAD_LEFT), '#####-###');
     }
+
+    public function setFantasyNameAttribute($value) {
+        Validator::field('nome', $value)
+            ->required()
+            ->minLength(3)
+            ->maxLength(30);
+
+        $this->attributes['fantasy_name'] = $value;
+    }
     
-    public function setCnpjAttribute($value) {
-        $this->attributes['cnpj'] = (int) preg_replace('/[^0-9]+/', '', $value);
+    public function setNameAttribute($value) {
+        Validator::field('razão social', $value)
+            ->required()
+            ->minLength(3)
+            ->maxLength(50);
+
+        $this->attributes['name'] = $value;
     }
     
     public function setIeAttribute($value) {
         $this->attributes['ie'] = (int) preg_replace('/[^0-9]+/', '', $value);
     }
+    
+    public function setCnpjAttribute($value) {
+        Validator::field('CNPJ', $value)
+            ->required()
+            ->minLength(18)
+            ->maxLength(18);
 
+        $this->attributes['cnpj'] = (int) preg_replace('/[^0-9]+/', '', $value);
+    }
+    
     public function setMainphoneAttribute($value) {
+        Validator::field('telefone principal', $value)
+            ->required()
+            ->minLength(10);
+
         $this->attributes['mainphone'] = (int) preg_replace('/[^0-9]+/', '', $value);
     }
-
+    
     public function setSecundaryphoneAttribute($value) {
+        if($value != '') {
+            Validator::field('telefone secundário', $value)
+                ->minLength(10);
+        }
+
         $this->attributes['secundaryphone'] = (int) preg_replace('/[^0-9]+/', '', $value);
     }
+    
+    public function setSiteAttribute($value) {
+        if($value != '') {
+            Validator::field('site', $value)
+                ->minLength(7);
+        }
 
+        $this->attributes['site'] = $value;
+    }
+
+    public function setStreetAttribute($value) {
+        Validator::field('logradouro', $value)
+            ->required()
+            ->minLength(3)
+            ->maxLength(50);
+
+        $this->attributes['street'] = $value;
+    }
+    
+    public function setNumberAttribute($value) {
+        Validator::field('número', $value)
+            ->required()
+            ->maxLength(11);
+
+        $this->attributes['number'] = $value;
+    }
+    
+    public function setNeighborhoodAttribute($value) {
+        Validator::field('bairro', $value)
+            ->required()
+            ->minLength(3)
+            ->maxLength(30);
+
+        $this->attributes['neighborhood'] = $value;
+    }
+    
+    public function setComplementAttribute($value) {
+        Validator::field('complemento', $value)
+            ->maxLength(255);
+
+        $this->attributes['complement'] = $value;
+    }
+    
     public function setCepAttribute($value) {
+        Validator::field('CEP', $value)
+            ->required()
+            ->minLength(9)
+            ->maxLength(9);
+
         $this->attributes['cep'] = preg_replace('/[^0-9]+/', '', $value);
+    }
+    
+    public function setEmployeeIdAttribute($value) {
+        Validator::field('funcionário', $value)
+            ->required();
+
+        $this->attributes['employee_id'] = $value;
+    }
+    
+    public function setClientTypeIdAttribute($value) {
+        Validator::field('tipo', $value)
+            ->required();
+
+        $this->attributes['client_type_id'] = $value;
+    }
+    
+    public function setClientStatusIdAttribute($value) {
+        Validator::field('status', $value)
+            ->required();
+
+        $this->attributes['client_status_id'] = $value;
     }
 
     public function city() {

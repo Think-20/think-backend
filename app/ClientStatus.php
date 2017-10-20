@@ -13,4 +13,14 @@ class ClientStatus extends Model
     protected $fillable = [
         'description'
     ];
+    
+    public static function byDescription($description) {
+        $clientStatus = ClientStatus::where('description', '=', $description)->get();
+
+        if($clientStatus->count() == 0) {
+            throw new \Exception('O cliente de status ' . $description . ' não existe.');
+        }
+
+        return $clientStatus->first();
+    }
 }
