@@ -5,6 +5,7 @@ namespace App;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use PHPExcel_IOFactory;
+use PHPExcel_Settings;
 use DB;
 
 use App\Validators\Validator;
@@ -161,6 +162,7 @@ class Client extends Model implements Contactable
 
     public static function import(UploadedFile $uploadedFile) {
         $informations = [];
+        PHPExcel_Settings::setZipClass(PHPExcel_Settings::PCLZIP);
         $phpExcel = PHPExcel_IOFactory::load($uploadedFile->getPathname());
         $dataSheet = $phpExcel->getSheet(0)->toArray();
         $client = null;
