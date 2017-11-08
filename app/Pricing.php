@@ -4,8 +4,6 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-use App\Interfaces\Priceless;
-
 class Pricing extends Model
 {
     public $timestamps = false;
@@ -13,53 +11,30 @@ class Pricing extends Model
     protected $table = 'pricing';
 
     protected $fillable = [
-        'price', 'item_id', 'provider_id', 'measure_id'
+        'price', 'item_id', 'measure_id', 'provider_id', 'date', 'id'
     ];
-
-    public static function manage(array $pricingsDataArray, Priceless $priceless) {
-        $oldPricings = $priceless->pricings;
-        $pricingIds = [];
-
-        foreach($pricingsDataArray as $pricing) {
-            //Exists, update
-            if(isset($pricing['id'])) {
-                $pricingIds[] = $pricing['id'];
-                Pricing::edit($pricing);
-            } 
-            //Create because not found
-            else {
-                Pricing::insert($pricing, $priceless);
-            }
-        }
-
-        Pricing::deleteOldIds($oldPricings, $pricingIds, $priceless);
-    }
-
-    public static function deleteOldIds($oldPricings, array $pricingIds, Priceless $priceless) {
-        foreach($oldPricings as $pricing) {
-            if(!in_array($pricing->id, $pricingIds)) {
-                $pricing->delete();
-            }
-        }
-    }
 
     public static function edit($data) {
         $pricing = Pricing::find($data['id']);
-        $pricing->checkDuplicate();
+        #$pricing->checkDuplicate();
+
+        $pricing->price = isset($data['price']) ? $data['price'] : null;
         $pricing->provider_id = isset($data['provider']['id']) ? $data['provider']['id'] : null;
         $pricing->measure_id = isset($data['measure']['id']) ? $data['measure']['id'] : null;
         $pricing->update($data);
     }
 
-    public static function insert(array $data, Priceless $priceless) {
+    public static function insert(array $data, int $itemId) {
         $pricing = new Pricing($data);
-        $pricing->checkDuplicate();
-        $pricing->item_id = isset($data['item']['id']) ? $data['item']['id'] : null;
+        #$pricing->checkDuplicate();
+        $pricing->item_id = $itemId;
         $pricing->provider_id = isset($data['provider']['id']) ? $data['provider']['id'] : null;
         $pricing->measure_id = isset($data['measure']['id']) ? $data['measure']['id'] : null;
-        $priceless->pricings()->save($pricing);
+        $pricing->save();
+        return $pricing;
     }
 
+/*
     public function checkDuplicate() {
         $duplicatePricing = Pricing::where('item_id', '=', $this->item_id)
             ->where('provider_id', '=', $this->provider_id)
@@ -74,6 +49,7 @@ class Pricing extends Model
         
         throw new \Exception('O preço ' . $this->price . ' para o fornecedor ' . $this->provider->fantasy_name . ' com a medida ' . $this->measure->description . ' já foi cadastrado.');
     }
+*/
 
     public function setPriceAttribute($value) {
         $this->attributes['price'] = (float) str_replace(',', '.', $value);

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 
 use App\Interfaces\Priceless;
 
-class Item extends Model implements Priceless
+class Item extends Model
 {
     public $timestamps = false;
 
@@ -26,12 +26,10 @@ class Item extends Model implements Priceless
             $id = $data['id'];
             $item = Item::find($id);
             $item->checkDuplicate();
+            $item->item_type_id = isset($data['item_type']) ? ($data['item_type'] == true ? '1' : '0') : null;
             $item->item_category_id = isset($data['item_category']['id']) ? $data['item_category']['id'] : null;
             $item->cost_category_id = isset($data['cost_category']['id']) ? $data['cost_category']['id'] : null;
             $item->update($data);
-
-            $pricings = isset($data['pricings']) ? $data['pricings'] : [];
-            Pricing::manage($pricings, $item);
 
             DB::commit();
         } catch(Exception $e) {
@@ -44,21 +42,52 @@ class Item extends Model implements Priceless
         DB::beginTransaction();
 
         try {
-            #dd(Request::file('image'));
             $item = new Item($data);
             $item->checkDuplicate();
+            $item->item_type_id = isset($data['item_type']) ? ($data['item_type'] == true ? '1' : '0') : null;
             $item->item_category_id = isset($data['item_category']['id']) ? $data['item_category']['id'] : null;
             $item->cost_category_id = isset($data['cost_category']['id']) ? $data['cost_category']['id'] : null;
             $item->save();
 
-            $pricings = isset($data['pricings']) ? $data['pricings'] : [];
-            Pricing::manage($pricings, $item);
-
             DB::commit();
+            return $item;
         } catch(Exception $e) {
             DB::rollBack();
             throw new Exception($e->getMessage());
         }
+    }
+
+    public function addPricing(array $data) {
+        if(isset($data['id'])) {
+            $pricing = Pricing::find($data['id']);
+            $pricing2 = new Pricing($data);
+            if($pricing->price === $pricing2->price) {
+                return $pricing;
+            }
+        }
+
+        $pricing = Pricing::insert($data, $this->id);
+        return $pricing;
+    }
+
+    public function removePricing(int $pricingId) {
+        $pricing = Pricing::find($pricingId);
+        $pricing->delete();
+    }
+
+    public function addChildItem(array $data) {
+        if(isset($data['id'])) {
+            $childItem = ChildItem::edit($data);
+            return $childItem;
+        }
+
+        $childItem = ChildItem::insert($data, $this->id);
+        return $childItem;
+    }
+
+    public function removeChildItem(int $childItemId) {
+        $childItem = ChildItem::find($childItemId);
+        $childItem->delete();
     }
 
     public function checkDuplicate() {
@@ -78,7 +107,6 @@ class Item extends Model implements Priceless
         foreach($items as $item) {
             $item->item_category;
             $item->cost_category;
-            $item->pricings;
         }
 
         return $items;
@@ -89,7 +117,6 @@ class Item extends Model implements Priceless
 
         try {
             $item = Item::find($id);
-            $item->pricings()->delete();
             $item->delete();
 
             DB::commit();
@@ -103,11 +130,9 @@ class Item extends Model implements Priceless
         $item = Item::find($id);
         $item->item_category;
         $item->cost_category;
-
-        foreach($item->pricings as $pricing) {
-            $pricing->measure;
-            $pricing->provider;
-        }
+        $item->item_type;
+        $item->pricings = $item->pricings();
+        $item->child_items;
 
         return $item;
     }
@@ -120,14 +145,37 @@ class Item extends Model implements Priceless
         foreach($items as $item) {
             $item->item_category;
             $item->cost_category;
-            $item->pricings;
         }
 
         return $items;
     }
 
+    public function child_items() {
+        return $this->hasMany('App\ChildItem', 'parent_item_id')
+        ->with('measure')
+        ->with('item');
+    }
+
     public function pricings() {
-        return $this->hasMany('App\Pricing', 'item_id');
+        $pricings = DB::select('select p.* from pricing p 
+inner join (select max(date) as max_date, item_id, measure_id, provider_id 
+from pricing group by item_id, measure_id, provider_id) p2 
+on p.item_id = p2.item_id and p.date = p2.max_date where p.item_id = :item_id;', ['item_id' => $this->id]);
+
+        $pricingArray = [];
+
+        foreach($pricings as $data) {
+            $pricing = new Pricing((array) $data);
+            $pricing->measure;
+            $pricing->provider;
+            $pricingArray[] = $pricing;
+        }
+
+        return $pricingArray;
+    }
+
+    public function item_type() {
+        return $this->belongsTo('App\ItemType', 'item_type_id');
     }
 
     public function item_category() {

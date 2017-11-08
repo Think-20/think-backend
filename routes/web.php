@@ -105,4 +105,8 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/items/all', 'ItemController@all');
     Route::get('/items/get/{id}', 'ItemController@get');
     Route::get('/items/filter/{query}', 'ItemController@filter');
+    Route::post('/item/save-pricing/{id}', 'ItemController@savePricing');
+    Route::delete('/item/{itemId}/remove-pricing/{pricingId}', 'ItemController@removePricing');
+    Route::post('/item/save-child-item/{id}', 'ItemController@saveChildItem');
+    Route::delete('/item/{itemId}/remove-child-item/{childItemId}', 'ItemController@removeChildItem');
 });
