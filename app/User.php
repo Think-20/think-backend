@@ -3,6 +3,7 @@
 namespace App;
 
 use DateTime;
+use DB;
 use Hash;
 use Request;
 
@@ -33,6 +34,7 @@ class User extends Model
         $foundUser->employee;
         $foundUser->employee->department;
         $foundUser->employee->position;
+        $foundUser->displays();
 
         return $foundUser;
     }
@@ -63,6 +65,14 @@ class User extends Model
     public static function logged() {
         $userId = (int) Request::header('User');
         return User::find($userId);
+    }
+
+    public function displays() {
+        $displays = DB::select("select d.url as url, IF(du.user_id is null, 'N', 'Y') as 
+        access from display d left join display_user du on du.display_id = d.id and user_id = :user_id 
+        or du.display_id is null;", ['user_id' => $this->id]);
+
+        $this->displays = $displays;
     }
 
     public function employee() {
