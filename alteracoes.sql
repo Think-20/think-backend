@@ -113,6 +113,7 @@ insert into functionality values (47, '/briefing/remove/{id}', 'Remover um brief
 insert into functionality values (48, '/briefings/all', 'Listar todos os briefings');
 insert into functionality values (49, '/briefings/get/{id}', 'Visualizar informações de um briefing');
 insert into functionality values (50, '/briefings/filter/{query}', 'Filtrar um briefing');
+insert into functionality values (51, '/briefing/download/{id}/{type}/{file}', 'Download de arquivos do briefing');
 
 insert into user_functionality
 	select null, user.id, 45
@@ -138,10 +139,13 @@ insert into user_functionality
 	select null, user.id, 50
 		from user left join employee on user.employee_id = employee.id
 	where employee.department_id in (1,2,4);
+insert into user_functionality
+	select null, user.id, 51
+		from user left join employee on user.employee_id = employee.id
+	where employee.department_id in (1,2,4);
 
 insert into position values (7, 'Designer', '.');
 insert into department values (5, 'Criação');
-
 insert into employee values (19, 'Edgar', 0.0, 7, 5);
 
 

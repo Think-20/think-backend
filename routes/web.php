@@ -17,7 +17,6 @@ Route::get('/', function () {
 
 Route::post('/login', 'UserController@login')->name('login');
 Route::post('/logout', 'UserController@logout')->name('logout');
-Route::get('/briefing/download/{id}/{type}/{file}', 'BriefingController@downloadFile');
 
 /*  
     Construir authenticate request para imagens 
@@ -138,4 +137,5 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/briefings/all', 'BriefingController@all');
     Route::get('/briefings/get/{id}', 'BriefingController@get');
     Route::get('/briefings/filter/{query}', 'BriefingController@filter');
+    Route::get('/briefing/download/{id}/{type}/{file}', 'BriefingController@downloadFile');
 });
