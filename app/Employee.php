@@ -17,9 +17,15 @@ class Employee extends Model
     ];
 
     public static function list() {
-        return Employee::select()
+        $employees = Employee::select()
         ->orderBy('name', 'asc')
         ->get();
+
+        foreach($employees as $employee) {
+            $employee->department;
+        }
+
+        return $employees;
     }
 
     public static function canInsertClients() {

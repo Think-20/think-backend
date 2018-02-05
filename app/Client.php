@@ -324,10 +324,25 @@ class Client extends Model implements Contactable
     }
 
     public static function filterMyClient($query) {
-        $clients = Client::where('name', 'like', $query . '%')
-            ->where('employee_id', '=', User::logged()->employee->id)
-            ->orWhere('fantasy_name', 'like', $query . '%')
-            ->orWhere('cnpj', 'like', $query . '%')
+        $where1 = [   
+            ['employee_id', '=', User::logged()->employee->id],
+            ['fantasy_name', 'like', $query . '%']
+        ];
+
+        $where2 = [   
+            ['employee_id', '=', User::logged()->employee->id],
+            ['cnpj', 'like', $query . '%']
+        ];
+
+        $where3 = [   
+            ['employee_id', '=', User::logged()->employee->id],
+            ['name', 'like', $query . '%'],
+        ];
+
+        $clients = Client::select()
+            ->where($where1)
+            ->orWhere($where2)
+            ->orWhere($where3)
             ->get();
 
         foreach($clients as $client) {

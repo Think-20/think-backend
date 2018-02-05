@@ -17,6 +17,7 @@ Route::get('/', function () {
 
 Route::post('/login', 'UserController@login')->name('login');
 Route::post('/logout', 'UserController@logout')->name('logout');
+Route::get('/briefing/download/{id}/{type}/{file}', 'BriefingController@downloadFile');
 
 /*  
     Construir authenticate request para imagens 
@@ -41,11 +42,11 @@ Route::get('/assets/images/{filename}', function ($filename)
 
 Route::group(['middleware' => ['auth.api']], function() {
 
+    Route::post('/upload-file', 'UploadFileController@upload');
+
     Route::get('/states/all', 'AddressController@allStates')->name('allStates');
     Route::get('/states/{stateName}', 'AddressController@states')->name('states');
     Route::get('/cities/{stateId}/{cityName}', 'AddressController@cities')->name('cities');
-
-    Route::post('/item/image', 'ItemController@image');
     
     Route::get('/client-types/all', 'ClientTypeController@all');
     Route::get('/client-status/all', 'ClientStatusController@all');
@@ -57,6 +58,27 @@ Route::group(['middleware' => ['auth.api']], function() {
     
     Route::get('/measures/all', 'MeasureController@all');
     Route::get('/measures/filter/{query}', 'MeasureController@filter');
+    
+    Route::get('/jobs/all', 'JobController@all');
+    Route::get('/jobs/filter/{query}', 'JobController@filter');
+    
+    Route::get('/job-types/all', 'JobTypeController@all');
+    Route::get('/job-types/filter/{query}', 'JobTypeController@filter');
+    
+    Route::get('/briefing-competitions/all', 'BriefingCompetitionController@all');
+    Route::get('/briefing-competitions/filter/{query}', 'BriefingCompetitionController@filter');
+    
+    Route::get('/briefing-presentations/all', 'BriefingPresentationController@all');
+    Route::get('/briefing-presentations/filter/{query}', 'BriefingPresentationController@filter');
+    
+    Route::get('/briefing-special-presentations/all', 'BriefingSpecialPresentationController@all');
+    Route::get('/briefing-special-presentations/filter/{query}', 'BriefingSpecialPresentationController@filter');
+    
+    Route::get('/stand-configurations/all', 'StandConfigurationController@all');
+    Route::get('/stand-configurations/filter/{query}', 'StandConfigurationController@filter');
+    
+    Route::get('/stand-genres/all', 'StandGenreController@all');
+    Route::get('/stand-genres/filter/{query}', 'StandGenreController@filter');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {
@@ -109,4 +131,11 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::delete('/item/{itemId}/remove-pricing/{pricingId}', 'ItemController@removePricing');
     Route::post('/item/save-child-item/{id}', 'ItemController@saveChildItem');
     Route::delete('/item/{itemId}/remove-child-item/{childItemId}', 'ItemController@removeChildItem');
+
+    Route::post('/briefing/save', 'BriefingController@save');
+    Route::put('/briefing/edit', 'BriefingController@edit');
+    Route::delete('/briefing/remove/{id}', 'BriefingController@remove');
+    Route::get('/briefings/all', 'BriefingController@all');
+    Route::get('/briefings/get/{id}', 'BriefingController@get');
+    Route::get('/briefings/filter/{query}', 'BriefingController@filter');
 });
