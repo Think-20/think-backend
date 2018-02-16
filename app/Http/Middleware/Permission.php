@@ -23,9 +23,14 @@ class Permission
         }, $funcionalities->toArray());
 
         if(!in_array(('/' . $request->route()->uri), $urls)) {
-            return response()->make(json_encode([
-                'message' => 'Você não tem permissão para acessar essa função.'
-            ]), 403);
+            if($request->isJson()) {
+                $content = json_encode([
+                    'message' => 'Você não tem permissão para acessar essa função.'
+                ]);
+            } else {
+                $content = 'Você não tem permissão para acessar essa função.';
+            }
+            return response()->make($content, 403);
         }
 
         return $next($request);

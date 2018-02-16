@@ -63,7 +63,7 @@ class User extends Model
     }
 
     public static function logged() {
-        $userId = (int) Request::header('User');
+        $userId = empty(Request::header('User')) ? Request::input('user_id') : (int) Request::header('User');
         return User::find($userId);
     }
 

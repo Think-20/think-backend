@@ -42,6 +42,7 @@ insert into briefing_special_presentation values (null, 'PDF margem para e-mail'
 
 create table briefing (
 	id int not null auto_increment primary key,
+    code int not null,
     job_id int not null,
     exhibitor_id int not null,
     event varchar(150) not null,
@@ -61,7 +62,7 @@ create table briefing (
     special_presentation_id int not null,
     approval_expectation_rate int not null,
     created_at timestamp default current_timestamp,
-    updated_at timestamp default null on update current_timestamp,
+    updated_at timestamp on update current_timestamp,
     
     foreign key (job_id) references job (id) on update cascade on delete no action,
     foreign key (exhibitor_id) references client (id) on update cascade on delete no action,
@@ -102,10 +103,35 @@ create table stand (
     genre_id int not null,
     closed_area_percent int(3) not null,
     note text(5000),
+    note_closed_area text(5000),
+    note_opened_area text(5000),
     foreign key (briefing_id) references briefing (id) on update cascade on delete no action,
     foreign key (configuration_id) references stand_configuration (id) on update cascade on delete no action,
     foreign key (genre_id) references stand_genre (id) on update cascade on delete no action
 );
+
+create table stand_item_type (
+	id int not null auto_increment primary key,
+    description varchar(30) not null,
+    unique(description)
+);
+
+insert into stand_item_type values (1, 'Área fechada'), (2, 'Área aberta');
+
+create table stand_item (
+	id int not null auto_increment primary key,
+    stand_id int not null,
+    stand_item_type_id int not null,
+    title varchar(30) not null,
+    quantity int(2) not null,
+    description varchar(255),
+    foreign key (stand_id) references stand (id) on update cascade on delete no action,
+    foreign key (stand_item_type_id) references stand_item_type (id) on update cascade on delete no action
+);
+
+insert into position values (7, 'Designer', '.');
+insert into department values (5, 'Criação');
+insert into employee values (19, 'Edgar', 0.0, 7, 5);
 
 insert into functionality values (45, '/briefing/save', 'Cadastrar um briefing');
 insert into functionality values (46, '/briefing/edit', 'Editar um briefing');
@@ -115,39 +141,71 @@ insert into functionality values (49, '/briefings/get/{id}', 'Visualizar informa
 insert into functionality values (50, '/briefings/filter/{query}', 'Filtrar um briefing');
 insert into functionality values (51, '/briefing/download/{id}/{type}/{file}', 'Download de arquivos do briefing');
 
+insert into functionality values (52, '/my-briefing/save', 'Cadastrar um briefing (atendimento)');
+insert into functionality values (53, '/my-briefing/edit', 'Editar um briefing (atendimento)');
+insert into functionality values (54, '/my-briefing/remove/{id}', 'Remover um briefing (atendimento)');
+insert into functionality values (55, '/my-briefings/all', 'Listar todos os briefing (atendimento)s');
+insert into functionality values (56, '/my-briefings/get/{id}', 'Visualizar informações de um briefing (atendimento)');
+insert into functionality values (57, '/my-briefings/filter/{query}', 'Filtrar um briefing (atendimento)');
+insert into functionality values (58, '/my-briefing/download/{id}/{type}/{file}', 'Download de arquivos do briefing (atendimento)');
+
 insert into user_functionality
 	select null, user.id, 45
 		from user left join employee on user.employee_id = employee.id
-	where employee.department_id in (1,2,4);
+	where employee.department_id in (1,2);
 insert into user_functionality
 	select null, user.id, 46
 		from user left join employee on user.employee_id = employee.id
-	where employee.department_id in (1,2,4);
+	where employee.department_id in (1,2);
 insert into user_functionality
 	select null, user.id, 47
 		from user left join employee on user.employee_id = employee.id
-	where employee.department_id in (1,2,4);
+	where employee.department_id in (1,2);
 insert into user_functionality
 	select null, user.id, 48
 		from user left join employee on user.employee_id = employee.id
-	where employee.department_id in (1,2,4);
+	where employee.department_id in (1,2,5);
 insert into user_functionality
 	select null, user.id, 49
 		from user left join employee on user.employee_id = employee.id
-	where employee.department_id in (1,2,4);
+	where employee.department_id in (1,2,5);
 insert into user_functionality
 	select null, user.id, 50
 		from user left join employee on user.employee_id = employee.id
-	where employee.department_id in (1,2,4);
+	where employee.department_id in (1,2,5);
 insert into user_functionality
 	select null, user.id, 51
 		from user left join employee on user.employee_id = employee.id
-	where employee.department_id in (1,2,4);
+	where employee.department_id in (1,2,5);
 
-insert into position values (7, 'Designer', '.');
-insert into department values (5, 'Criação');
-insert into employee values (19, 'Edgar', 0.0, 7, 5);
-
+insert into user_functionality
+select null, user.id, 52
+    from user left join employee on user.employee_id = employee.id
+where employee.department_id in (4);
+insert into user_functionality
+select null, user.id, 53
+    from user left join employee on user.employee_id = employee.id
+where employee.department_id in (4);
+insert into user_functionality
+select null, user.id, 54
+    from user left join employee on user.employee_id = employee.id
+where employee.department_id in (4);
+insert into user_functionality
+select null, user.id, 55
+    from user left join employee on user.employee_id = employee.id
+where employee.department_id in (4);
+insert into user_functionality
+select null, user.id, 56
+    from user left join employee on user.employee_id = employee.id
+where employee.department_id in (4);
+insert into user_functionality
+select null, user.id, 57
+    from user left join employee on user.employee_id = employee.id
+where employee.department_id in (4);
+insert into user_functionality
+select null, user.id, 58
+    from user left join employee on user.employee_id = employee.id
+where employee.department_id in (4);
 
 
 

@@ -14,7 +14,7 @@ class Stand extends Model
 
     protected $fillable = [
         'briefing_id', 'configuration_id', 'place', 'plan', 'regulation', 'column', 'street_number',
-        'genre_id', 'reference', 'closed_area_percent', 'note'
+        'genre_id', 'reference', 'closed_area_percent', 'note', 'note_opened_area', 'note_closed_area'
     ];
 
     public static function edit(array $data) {
@@ -28,7 +28,7 @@ class Stand extends Model
                 'genre_id' => $data['genre']['id']
             ])
         );
-        $stand->editFiles($oldStand, $data);
+        $stand->saveStandItems($data);
         return $stand;
     }
 
@@ -45,7 +45,37 @@ class Stand extends Model
         );
 
         $stand->save();
-        $stand->saveFiles($data);
+        $stand->saveStandItems($data);
+    }
+
+    public function saveStandItems(array $data) {
+        $this->items()->delete();
+
+        $closedItemType = StandItemType::where('description', '=', 'Área fechada')->first();
+        $openedItemType = StandItemType::where('description', '=', 'Área aberta')->first();
+
+        $closedItems = $data['closed_items'];
+        $openedItems = $data['opened_items'];
+
+        foreach($closedItems as $closedItem) {
+            $this->items()->save(new StandItem([
+                'title' => $closedItem['title'],
+                'description' => $closedItem['description'],
+                'quantity' => $closedItem['quantity'],
+                'stand_id' => $this->id,
+                'stand_item_type_id' => $closedItemType->id
+            ]));
+        }
+
+        foreach($openedItems as $openedItem) {
+            $this->items()->save(new StandItem([
+                'title' => $openedItem['title'],
+                'description' => $openedItem['description'],
+                'quantity' => $openedItem['quantity'],
+                'stand_id' => $this->id,
+                'stand_item_type_id' => $openedItemType->id
+            ]));
+        }
     }
 
     public function saveFiles($data) {
@@ -76,10 +106,12 @@ class Stand extends Model
             }   
         }
 
-        foreach($updatedFiles as $file) {
-            unlink($path . '/' . $oldStand->{$file});
-            rename(sys_get_temp_dir() . '/' .  $data[$file], $path . '/' . $data[$file]);
-        }
+        try {
+            foreach($updatedFiles as $file) {
+                unlink($path . '/' . $oldStand->{$file});
+                rename(sys_get_temp_dir() . '/' .  $data[$file], $path . '/' . $data[$file]);
+            }
+        } catch(\Exception $e) {}
     }
 
     public static function fileArrayFields() {
@@ -91,7 +123,16 @@ class Stand extends Model
 
     public static function remove($id) {
         $stand = Stand::find($id);
+        $oldStand = clone $stand;
+        $stand->items()->delete();
         $stand->delete();
+
+        try {
+            $path = resource_path('assets/files/stands/') . $oldStand->id;
+            unlink($path . '/' . $oldStand->plan);
+            unlink($path . '/' . $oldStand->regulation);
+            rmdir($path);
+        } catch(\Exception $e) {}
     }
 
     public static function list() {
@@ -103,6 +144,7 @@ class Stand extends Model
         $stand->briefing;
         $stand->configuration;
         $stand->genre;
+        $stand->items;
         return $stand;
     }
 
@@ -124,6 +166,10 @@ class Stand extends Model
 
     public function setClosedAreaPercentAttribute($value) {
         $this->attributes['closed_area_percent'] = (int) $value;
+    }
+
+    public function items() {
+        return $this->hasMany('App\StandItem', 'stand_id');
     }
 
     public function briefing() {

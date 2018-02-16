@@ -39,6 +39,18 @@ Route::get('/assets/images/{filename}', function ($filename)
     return $response;
 });
 
+/*
+
+Route::get('/pass', function() {
+    dd( [
+        'Mauricio' => bcrypt('m1219'),
+        'Nildo' => bcrypt('n1320'),
+        'Rafaela' => bcrypt('r1421')
+    ]);
+});
+
+*/
+
 Route::group(['middleware' => ['auth.api']], function() {
 
     Route::post('/upload-file', 'UploadFileController@upload');
@@ -78,6 +90,8 @@ Route::group(['middleware' => ['auth.api']], function() {
     
     Route::get('/stand-genres/all', 'StandGenreController@all');
     Route::get('/stand-genres/filter/{query}', 'StandGenreController@filter');
+    
+    Route::get('/briefings/load-form', 'BriefingController@loadForm');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {
@@ -138,4 +152,12 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/briefings/get/{id}', 'BriefingController@get');
     Route::get('/briefings/filter/{query}', 'BriefingController@filter');
     Route::get('/briefing/download/{id}/{type}/{file}', 'BriefingController@downloadFile');
+
+    Route::post('/my-briefing/save', 'BriefingController@saveMyBriefing');
+    Route::put('/my-briefing/edit', 'BriefingController@editMyBriefing');
+    Route::delete('/my-briefing/remove/{id}', 'BriefingController@removeMyBriefing');
+    Route::get('/my-briefings/all', 'BriefingController@allMyBriefing');
+    Route::get('/my-briefings/get/{id}', 'BriefingController@getMyBriefing');
+    Route::get('/my-briefings/filter/{query}', 'BriefingController@filterMyBriefing');
+    Route::get('/my-briefing/download/{id}/{type}/{file}', 'BriefingController@downloadFileMyBriefing');
 });
