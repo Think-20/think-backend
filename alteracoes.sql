@@ -62,7 +62,7 @@ create table briefing (
     special_presentation_id int not null,
     approval_expectation_rate int not null,
     created_at timestamp default current_timestamp,
-    updated_at timestamp on update current_timestamp,
+    updated_at timestamp default current_timestamp on update current_timestamp,
     
     foreign key (job_id) references job (id) on update cascade on delete no action,
     foreign key (exhibitor_id) references client (id) on update cascade on delete no action,
