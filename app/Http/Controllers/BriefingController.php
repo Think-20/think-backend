@@ -30,10 +30,10 @@ class BriefingController extends Controller
             $briefing = Briefing::insert($data);
             $code = str_pad($briefing->code, 4, '0', STR_PAD_LEFT) . '/' . $briefing->created_at->format('Y');
             $message = 'Briefing ' . $code . ' cadastrado com sucesso!';
-            $status = true;;
-            DB::commit();
+            $status = true;
             $briefing->saveFiles($data);
             $briefing->saveFilesChild($data);
+            DB::commit();
         } catch(QueryException $queryException) {
             DB::rollBack();
             if($queryException->getCode() == 23000) {
@@ -69,9 +69,9 @@ class BriefingController extends Controller
             $briefing = Briefing::edit($data);
             $message = 'Briefing alterado com sucesso!';
             $status = true;
-            DB::commit();
             $briefing->editFiles($oldBriefing, $data);
             $briefing->editFilesChild($oldChild, $data);
+            DB::commit();
         } catch(QueryException $queryException) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
@@ -146,9 +146,9 @@ class BriefingController extends Controller
             $briefing = Briefing::insert($data);
             $message = 'Briefing ' . $briefing->id . ' cadastrado com sucesso!';
             $status = true;
-            DB::commit();
             $briefing->saveFiles($data);
             $briefing->saveFilesChild($data);
+            DB::commit();
         } catch(QueryException $queryException) {
             DB::rollBack();
             if($queryException->getCode() == 23000) {
@@ -184,9 +184,9 @@ class BriefingController extends Controller
             $briefing = Briefing::editMyBriefing($data);
             $message = 'Briefing alterado com sucesso!';
             $status = true;
-            DB::commit();
             $briefing->editFiles($oldBriefing, $data);
             $briefing->editFilesChild($oldChild, $data);
+            DB::commit();
         } catch(QueryException $queryException) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();

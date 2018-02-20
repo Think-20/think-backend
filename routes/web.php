@@ -40,15 +40,15 @@ Route::get('/assets/images/{filename}', function ($filename)
 });
 
 /*
-
 Route::get('/pass', function() {
     dd( [
-        'Mauricio' => bcrypt('m1219'),
-        'Nildo' => bcrypt('n1320'),
-        'Rafaela' => bcrypt('r1421')
+        'Edgar' => bcrypt('e1522'),
+        'Tiago' => bcrypt('t1623'),
+        'Miguel' => bcrypt('m1724'),
+        'Fernando' => bcrypt('m1825'),
+        'Patrick' => bcrypt('m1926'),
     ]);
 });
-
 */
 
 Route::group(['middleware' => ['auth.api']], function() {
