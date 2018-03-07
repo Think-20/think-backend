@@ -36,7 +36,7 @@ class Client extends Model implements Contactable
     public static function list() {
         $clients = Client::select()
         ->orderBy('name', 'asc')
-        ->get();
+        ->paginate(50);
 
         foreach($clients as $client) {
             $client->employee;
@@ -131,7 +131,7 @@ class Client extends Model implements Contactable
         $clients = Client::where('name', 'like', $query . '%')
             ->orWhere('fantasy_name', 'like', $query . '%')
             ->orWhere('cnpj', 'like', $query . '%')
-            ->get();
+            ->paginate(50);
 
         foreach($clients as $client) {
             $client->employee;
@@ -244,7 +244,7 @@ class Client extends Model implements Contactable
     public static function listMyClient() {
         $clients = Client::where('employee_id', '=', User::logged()->employee->id)
         ->orderBy('name', 'asc')
-        ->get();
+        ->paginate(50);
 
         foreach($clients as $client) {
             $client->employee;
@@ -343,7 +343,7 @@ class Client extends Model implements Contactable
             ->where($where1)
             ->orWhere($where2)
             ->orWhere($where3)
-            ->get();
+            ->paginate(50);
 
         foreach($clients as $client) {
             $client->employee;

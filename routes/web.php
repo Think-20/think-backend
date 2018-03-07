@@ -39,12 +39,13 @@ Route::get('/assets/images/{filename}', function ($filename)
     return $response;
 });
 
+/*
 Route::get('/pass', function() {
     dd( [
-        'Tais' => bcrypt('t2027'),
-        'Elaine' => bcrypt('e2128'),
+        'Marcus' => bcrypt('m2229'),
     ]);
 });
+*/
 
 Route::group(['middleware' => ['auth.api']], function() {
 
@@ -92,6 +93,13 @@ Route::group(['middleware' => ['auth.api']], function() {
 Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/employees/all', 'EmployeeController@all');
     Route::get('/employees/filter/{query}', 'EmployeeController@filter');
+    Route::post('/employees/office-hours/register/another', 'EmployeeController@registerAnother');
+    Route::post('/employees/office-hours/register/yourself', 'EmployeeController@registerYourself');
+    Route::get('/employees/office-hours/show/another/{employeeId}', 'EmployeeController@showAnother');
+    Route::get('/employees/office-hours/show/yourself', 'EmployeeController@showYourself');
+    Route::get('/employees/office-hours/get/{id}', 'EmployeeController@getOfficeHour');
+    Route::put('/employees/office-hours/edit', 'EmployeeController@editOfficeHour');
+    Route::delete('/employees/office-hours/remove/{id}', 'EmployeeController@removeOfficeHour');
 
     Route::post('/client/save', 'ClientController@save');
     Route::put('/client/edit', 'ClientController@edit');
