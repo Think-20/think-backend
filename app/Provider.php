@@ -20,7 +20,7 @@ class Provider extends Model implements Contactable, HasBankAccount
 
     public static function list() {
         $providers = Provider::select()
-        ->orderBy('name', 'asc')
+        ->orderBy('fantasy_name', 'asc')
         ->get();
 
         foreach($providers as $provider) {
@@ -33,6 +33,7 @@ class Provider extends Model implements Contactable, HasBankAccount
 
     public static function edit(array $data) {
         DB::beginTransaction();
+        Provider::checkData($data);
         
         try {
             $id = $data['id'];
@@ -57,6 +58,7 @@ class Provider extends Model implements Contactable, HasBankAccount
 
     public static function insert(array $data) {
         DB::beginTransaction();
+        Provider::checkData($data);
         
         try {
             $provider = new Provider($data);
@@ -119,6 +121,7 @@ class Provider extends Model implements Contactable, HasBankAccount
             ->orWhere('fantasy_name', 'like', $query . '%')
             ->orWhere('cnpj', 'like', $query . '%')
             ->orWhere('cpf', 'like', $query . '%')
+            ->orderBy('fantasy_name', 'asc')
             ->get();
 
         foreach($providers as $provider) {
@@ -127,6 +130,16 @@ class Provider extends Model implements Contactable, HasBankAccount
         }
 
         return $providers;
+    }
+    
+    public static function checkData(array $data, $editMode = false) {
+        if(!isset($data['state']['id'])) {
+            throw new \Exception('Estado não informado!');
+        }
+
+        if(!isset($data['city']['id'])) {
+            throw new \Exception('Cidade não informada!');
+        }
     }
 
     public function getCnpjAttribute($value) {

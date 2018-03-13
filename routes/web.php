@@ -100,6 +100,8 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/employees/office-hours/get/{id}', 'EmployeeController@getOfficeHour');
     Route::put('/employees/office-hours/edit', 'EmployeeController@editOfficeHour');
     Route::delete('/employees/office-hours/remove/{id}', 'EmployeeController@removeOfficeHour');
+    Route::get('employees/office-hours/approvals-pending/show', 'EmployeeController@showApprovalsPending');
+    Route::get('employees/office-hours/approvals-pending/approve/{id}', 'EmployeeController@approvePending');
 
     Route::post('/client/save', 'ClientController@save');
     Route::put('/client/edit', 'ClientController@edit');

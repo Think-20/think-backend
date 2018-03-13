@@ -6,6 +6,7 @@ use App\Employee;
 use App\EmployeeOfficeHours;
 use Illuminate\Http\Request;
 use Response;
+use Exception;
 
 class EmployeeController extends Controller
 {
@@ -21,15 +22,15 @@ class EmployeeController extends Controller
         return Employee::canInsertClients();
     }
 
-    public static function registerYourself() {
+    public static function registerYourself(Request $request) {
         $status = false;
 
         try {
-            $officeHours = EmployeeOfficeHours::registerYourself();
+            $officeHours = EmployeeOfficeHours::registerYourself($request->all());
             $message = 'Horário registrado com sucesso!';
             $status = true;
         } catch(Exception $e) {
-            $message = 'Um erro desconhecido ocorreu ao cadastrar: ' . $e->getMessage();
+            $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
         }
 
         return Response::make(json_encode([
@@ -67,7 +68,27 @@ class EmployeeController extends Controller
         return EmployeeOfficeHours::get($id);
     }
 
+    public static function showApprovalsPending() {
+        return EmployeeOfficeHours::showApprovalsPending();
+    }
 
+    public static function approvePending($id) {
+        $status = false;
+
+        try {
+            EmployeeOfficeHours::approvePending($id);
+            $message = 'Horário aprovado com sucesso!';
+            $status = true;
+        } catch(Exception $e) {
+            $message = 'Um erro ocorreu ao aprovar: ' . $e->getMessage();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+         ]), 200);
+    }
+    
     public static function editOfficeHour(Request $request) {
         $status = false;
 

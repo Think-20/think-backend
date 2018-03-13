@@ -35,7 +35,7 @@ class Client extends Model implements Contactable
 
     public static function list() {
         $clients = Client::select()
-        ->orderBy('name', 'asc')
+        ->orderBy('fantasy_name', 'asc')
         ->paginate(50);
 
         foreach($clients as $client) {
@@ -49,6 +49,7 @@ class Client extends Model implements Contactable
 
     public static function edit(array $data) {
         DB::beginTransaction();
+        Client::checkData($data);
         
         try {
             $id = $data['id'];
@@ -72,6 +73,7 @@ class Client extends Model implements Contactable
 
     public static function insert(array $data) {
         DB::beginTransaction();
+        Client::checkData($data);
         
         try {
             $client = new Client($data);
@@ -131,6 +133,7 @@ class Client extends Model implements Contactable
         $clients = Client::where('name', 'like', $query . '%')
             ->orWhere('fantasy_name', 'like', $query . '%')
             ->orWhere('cnpj', 'like', $query . '%')
+            ->orderBy('fantasy_name', 'asc')
             ->paginate(50);
 
         foreach($clients as $client) {
@@ -238,12 +241,21 @@ class Client extends Model implements Contactable
             'neighborhood' => $row[21],
         ];
     }
+    
+    public static function checkData(array $data, $editMode = false) {
+        if(!isset($data['state']['id'])) {
+            throw new \Exception('Estado não informado!');
+        }
 
+        if(!isset($data['city']['id'])) {
+            throw new \Exception('Cidade não informada!');
+        }
+    }
 
     # My clients #
     public static function listMyClient() {
         $clients = Client::where('employee_id', '=', User::logged()->employee->id)
-        ->orderBy('name', 'asc')
+        ->orderBy('fantasy_name', 'asc')
         ->paginate(50);
 
         foreach($clients as $client) {
@@ -257,6 +269,7 @@ class Client extends Model implements Contactable
 
     public static function editMyClient(array $data) {
         DB::beginTransaction();
+        Client::checkData($data);
         
         try {
             $id = $data['id'];
@@ -320,6 +333,10 @@ class Client extends Model implements Contactable
         $client->city;
         $client->city->state;
         $client->employee;
+        $client->type;
+        $client->status;
+        $client->contacts;
+
         return $client;
     }
 
@@ -343,6 +360,7 @@ class Client extends Model implements Contactable
             ->where($where1)
             ->orWhere($where2)
             ->orWhere($where3)
+            ->orderBy('fantasy_name', 'asc')
             ->paginate(50);
 
         foreach($clients as $client) {

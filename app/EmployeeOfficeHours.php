@@ -11,7 +11,7 @@ class EmployeeOfficeHours extends Model
     protected $table = 'employee_office_hours';
 
     protected $fillable = [
-        'entry', 'exit', 'employee_id'
+        'entry', 'exit', 'employee_id', 'reason', 'approved'
     ];
 
     public static function edit(array $data) {
@@ -76,21 +76,51 @@ class EmployeeOfficeHours extends Model
         return $officeHours;
     }
 
-    public static function registerYourself() {
+    public static function registerYourself(array $data) {
+        $approved = 0;
         $employee = User::logged()->employee;
-        $officeHours = EmployeeOfficeHours::where(['exit' => null])->first();
+        $dateEntry = new \DateTime($data['entry']);
+        $dateExit = new \DateTime($data['exit']);
+        $reason = isset($data['reason']) ? $data['reason'] : null;
 
-        if($officeHours == null) {
-            $officeHours = EmployeeOfficeHours::create([
-                'entry' => new \DateTime(),
-                'employee_id' => $employee->id
-            ]);
-            $officeHours->save();
-        } else {
-            $officeHours->update([
-                'exit' => new \DateTime()
-            ]);
+        $testIfExists = EmployeeOfficeHours::where('employee_id', '=', $employee->id)
+        ->where('entry', '>=', $dateEntry->format('Y-m-d'))
+        ->where('entry', '<=', $dateEntry->format('Y-m-d') . ' 23:59:59')
+        ->count();
+
+        if($testIfExists > 0) {
+            throw new \Exception('Você já registrou nessa data.');
         }
+
+        $interval = $dateExit->diff($dateEntry);
+        $hour = $interval->h;
+        $min = $interval->i;
+
+        $seconds = ($interval->s)
+         + ($interval->i * 60)
+         + ($interval->h * 60 * 60)
+         + ($interval->d * 60 * 60 * 24)
+         + ($interval->m * 60 * 60 * 24 * 30)
+         + ($interval->y * 60 * 60 * 24 * 365);
+
+        if(($seconds > 33300 || $seconds < 31500) && empty($reason)) {
+            throw new \Exception('Você precisa justificar a diferença de horário.');
+        } else if($seconds > 33300 || $seconds < 31500) {
+            $approved = 0;
+        } else {
+            //Aprovar, horário comercial normal
+            $approved = 1;
+        }
+        
+        $officeHours = EmployeeOfficeHours::create(
+            array_merge($data, [
+                'employee_id' => $employee->id,
+                'reason' => $reason,
+                'approved' => $approved
+            ])
+        );
+
+        $officeHours->save();
 
         return $officeHours;
     }
@@ -101,6 +131,22 @@ class EmployeeOfficeHours extends Model
 
     public static function showYourself() {
         return EmployeeOfficeHours::where('employee_id', '=', User::logged()->employee->id)->paginate(15);
+    }
+
+    public static function showApprovalsPending() {
+        return EmployeeOfficeHours::where('approved', '=', '0')->get();
+    }
+
+    public static function approvePending($id) {
+        $officeHours = EmployeeOfficeHours::find($id);
+
+        if($officeHours == null) {
+            throw new \Exception('Informe corretamente o horário.');
+        }
+        
+        $officeHours->update(['approved' => 1]);
+        
+        return $officeHours;
     }
 
     public function employee() {
