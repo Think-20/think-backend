@@ -84,8 +84,8 @@ class ClientController extends Controller
         return Client::list();
     }
 
-    public static function filter($query) {
-        return Client::filter($query);
+    public static function filter(Request $request) {
+        return Client::filter($request->all());
     }
 
     public static function import(Request $request) {
@@ -178,6 +178,7 @@ class ClientController extends Controller
         return Client::getMyClient($id);
     }
 
+    /*
     public static function allMyClient() {
         return Client::listMyClient();
     }
@@ -185,4 +186,5 @@ class ClientController extends Controller
     public static function filterMyClient($query) {
         return Client::filterMyClient($query);
     }
+    */
 }

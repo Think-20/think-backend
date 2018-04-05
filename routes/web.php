@@ -93,30 +93,31 @@ Route::group(['middleware' => ['auth.api']], function() {
 Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/employees/all', 'EmployeeController@all');
     Route::get('/employees/filter/{query}', 'EmployeeController@filter');
-    Route::post('/employees/office-hours/register/another', 'EmployeeController@registerAnother');
-    Route::post('/employees/office-hours/register/yourself', 'EmployeeController@registerYourself');
-    Route::get('/employees/office-hours/show/another/{employeeId}', 'EmployeeController@showAnother');
-    Route::get('/employees/office-hours/show/yourself', 'EmployeeController@showYourself');
-    Route::get('/employees/office-hours/get/{id}', 'EmployeeController@getOfficeHour');
-    Route::put('/employees/office-hours/edit', 'EmployeeController@editOfficeHour');
-    Route::delete('/employees/office-hours/remove/{id}', 'EmployeeController@removeOfficeHour');
-    Route::get('employees/office-hours/approvals-pending/show', 'EmployeeController@showApprovalsPending');
-    Route::get('employees/office-hours/approvals-pending/approve/{id}', 'EmployeeController@approvePending');
+    Route::post('/employees/office-hours/register/another', 'TimecardController@registerAnother');
+    Route::post('/employees/office-hours/register/yourself', 'TimecardController@registerYourself');
+    Route::post('/employees/office-hours/show/another', 'TimecardController@showAnother');
+    Route::post('/employees/office-hours/show/yourself', 'TimecardController@showYourself');
+    Route::get('/employees/office-hours/get/{id}', 'TimecardController@getOfficeHour');
+    Route::put('/employees/office-hours/edit', 'TimecardController@editOfficeHour');
+    Route::delete('/employees/office-hours/remove/{id}', 'TimecardController@removeOfficeHour');
+    Route::get('/employees/office-hours/approvals-pending/show', 'TimecardController@showApprovalsPending');
+    Route::get('/employees/office-hours/approvals-pending/approve/{id}', 'TimecardController@approvePending');
+    Route::get('/employees/office-hours/status/yourself', 'TimecardController@statusYourself');
 
     Route::post('/client/save', 'ClientController@save');
     Route::put('/client/edit', 'ClientController@edit');
     Route::delete('/client/remove/{id}', 'ClientController@remove');
     Route::post('/client/import', 'ClientController@import');
-    Route::get('/clients/all', 'ClientController@all');
+    Route::post('/clients/all', 'ClientController@all');
     Route::get('/clients/get/{id}', 'ClientController@get');
-    Route::get('/clients/filter/{query}', 'ClientController@filter');
+    Route::post('/clients/filter', 'ClientController@filter');
 
     Route::post('/my-client/save', 'ClientController@saveMyClient');
     Route::put('/my-client/edit', 'ClientController@editMyClient');
     Route::delete('/my-client/remove/{id}', 'ClientController@removeMyClient');
-    Route::get('/my-clients/all', 'ClientController@allMyClient');
+    //Route::get('/my-clients/all', 'ClientController@allMyClient');
     Route::get('/my-clients/get/{id}', 'ClientController@getMyClient');
-    Route::get('/my-clients/filter/{query}', 'ClientController@filterMyClient');
+    //Route::get('/my-clients/filter/{query}', 'ClientController@filterMyClient');
 
     Route::post('/provider/save', 'ProviderController@save');
     Route::put('/provider/edit', 'ProviderController@edit');

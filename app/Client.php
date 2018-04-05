@@ -36,7 +36,7 @@ class Client extends Model implements Contactable
     public static function list() {
         $clients = Client::select()
         ->orderBy('fantasy_name', 'asc')
-        ->paginate(50);
+        ->paginate(20);
 
         foreach($clients as $client) {
             $client->employee;
@@ -129,12 +129,27 @@ class Client extends Model implements Contactable
         return $client;
     }
 
-    public static function filter($query) {
-        $clients = Client::where('name', 'like', $query . '%')
-            ->orWhere('fantasy_name', 'like', $query . '%')
-            ->orWhere('cnpj', 'like', $query . '%')
-            ->orderBy('fantasy_name', 'asc')
-            ->paginate(50);
+    public static function filter(array $data) {
+        $search = isset($data['search']) ? $data['search'] : null;
+        $attendance = isset($data['attendance']['id']) ? $data['attendance']['id'] : null;
+
+        $query = Client::select();
+
+        if($search != null && $attendance == null) {
+            $query->orWhere([
+                ['name', 'like', $search . '%'],
+                ['fantasy_name', 'like', $search . '%'],
+                ['cnpj', 'like', $search . '%']
+            ]);
+        } else if($attendance != null) {
+            $query->orWhere([
+                ['employee_id', '=', $attendance],
+                ['fantasy_name', 'like', $search . '%']
+            ]);
+        }
+
+        $query->orderBy('fantasy_name', 'asc');
+        $clients = $query->paginate(20);
 
         foreach($clients as $client) {
             $client->employee;
@@ -256,7 +271,7 @@ class Client extends Model implements Contactable
     public static function listMyClient() {
         $clients = Client::where('employee_id', '=', User::logged()->employee->id)
         ->orderBy('fantasy_name', 'asc')
-        ->paginate(50);
+        ->paginate(20);
 
         foreach($clients as $client) {
             $client->employee;
@@ -361,7 +376,7 @@ class Client extends Model implements Contactable
             ->orWhere($where2)
             ->orWhere($where3)
             ->orderBy('fantasy_name', 'asc')
-            ->paginate(50);
+            ->paginate(20);
 
         foreach($clients as $client) {
             $client->employee;

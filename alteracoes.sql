@@ -1,13 +1,21 @@
-truncate table employee_office_hours;
+RENAME TABLE  `employee_office_hours` TO  `timecard`;
 
-alter table employee_office_hours add column reason text(1000);
-alter table employee_office_hours add column approved tinyint(1) default 0;
+insert into functionality values(null, '/employees/office-hours/status/yourself', 'Status do horário de funcionário');
 
-alter table provider modify column site varchar(100) default null;
-alter table client modify column site varchar(100) default null;
-alter table provider modify column number varchar(11) default null;
-alter table client modify column number varchar(11) default null;
+TRUNCATE TABLE `timecard`;
+ALTER TABLE `timecard` ADD COLUMN `approved_by` INT;
+ALTER TABLE `timecard` ADD CONSTRAINT `fk_approved_by_timecard_id_user` FOREIGN KEY(`approved_by`) REFERENCES `user`(`id`) ON UPDATE CASCADE ON DELETE NO ACTION; 
+ALTER TABLE `timecard` ADD COLUMN `entryPlace` VARCHAR(50) NOT NULL;
+ALTER TABLE `timecard` ADD COLUMN `exitPlace`  VARCHAR(50);
+ALTER TABLE `timecard` ADD COLUMN `autoEntryPlaceCoordinates` VARCHAR(50) NOT NULL;
+ALTER TABLE `timecard` ADD COLUMN `autoEntryPlace` VARCHAR(50) NOT NULL;
+ALTER TABLE `timecard` ADD COLUMN `autoExitPlaceCoordinates` VARCHAR(50);
+ALTER TABLE `timecard` ADD COLUMN `autoExitPlace` VARCHAR(50);
 
+ALTER TABLE `client` MODIFY COLUMN `name` VARCHAR(100) NOT NULL;
+ALTER TABLE `client` MODIFY COLUMN `fantasy_name` VARCHAR(50) NOT NULL;
+ALTER TABLE `provider` MODIFY COLUMN `name` VARCHAR(100) NOT NULL;
+ALTER TABLE `provider` MODIFY COLUMN `fantasy_name` VARCHAR(50) NOT NULL;
+ALTER TABLE `contact` MODIFY COLUMN `email` VARCHAR(80) NOT NULL;
 
-insert into functionality values(null, '/employees/office-hours/approvals-pending/show', 'Visualização de aprovações de horário pendente.');
-insert into functionality values(null, '/employees/office-hours/approvals-pending/approve/{id}', 'Aprovação de horário de funcionário');
+UPDATE functionality SET url = '/clients/filter' WHERE id = 6;
