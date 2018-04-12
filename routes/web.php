@@ -69,6 +69,8 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/jobs/all', 'JobController@all');
     Route::get('/jobs/filter/{query}', 'JobController@filter');
     
+    Route::get('timecard/places/all', 'TimecardPlaceController@all');
+    
     Route::get('/job-types/all', 'JobTypeController@all');
     Route::get('/job-types/filter/{query}', 'JobTypeController@filter');
     

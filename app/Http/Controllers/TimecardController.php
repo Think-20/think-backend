@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Employee;
+use App\User;
 use App\Timecard;
 use Illuminate\Http\Request;
 use Response;
@@ -49,11 +50,17 @@ class TimecardController extends Controller
     }
 
     public static function showAnother(Request $request) {
-        return Timecard::showAnother($request->all());
+        return [
+            'timecards' => Timecard::showAnother($request->all()),
+            'balance' => Timecard::balance($request->employee['id'])
+        ];
     }
 
     public static function showYourself(Request $request) {
-        return Timecard::showYourself($request->all());
+        return [
+            'timecards' => Timecard::showYourself($request->all()),
+            'balance' => Timecard::balance(User::logged()->employee->id)
+        ];
     }
 
     public static function getOfficeHour($id) {

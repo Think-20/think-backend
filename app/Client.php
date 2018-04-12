@@ -136,11 +136,10 @@ class Client extends Model implements Contactable
         $query = Client::select();
 
         if($search != null && $attendance == null) {
-            $query->orWhere([
-                ['name', 'like', $search . '%'],
-                ['fantasy_name', 'like', $search . '%'],
-                ['cnpj', 'like', $search . '%']
-            ]);
+            $query->orWhere('name', 'like', $search . '%');
+            $query->orWhere('fantasy_name', 'like', $search . '%');
+            $query->orWhere('cnpj', 'like', $search . '%');
+            //dd($query->toSql());
         } else if($attendance != null) {
             $query->orWhere([
                 ['employee_id', '=', $attendance],
