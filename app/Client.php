@@ -22,7 +22,7 @@ class Client extends Model implements Contactable
     ];
 
     public function checkCnpj() {
-        $duplicateClient = Client::where('cnpj', '=', $this->cnpj)
+        $duplicateClient = Client::where('cnpj', '=', preg_replace('/[^0-9]+/', '', $this->cnpj))
         ->where('id', '<>', $this->id)
         ->get();
 

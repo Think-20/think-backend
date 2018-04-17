@@ -50,9 +50,10 @@ class TimecardController extends Controller
     }
 
     public static function showAnother(Request $request) {
+        $employee_id = isset($request->employee['id']) ? $request->employee['id'] : 0;
         return [
             'timecards' => Timecard::showAnother($request->all()),
-            'balance' => Timecard::balance($request->employee['id'])
+            'balance' => Timecard::balance($employee_id)
         ];
     }
 

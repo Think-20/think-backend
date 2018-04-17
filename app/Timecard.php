@@ -233,18 +233,26 @@ class Timecard extends Model
 
     public static function showAnother(array $data) {
         $employeeId = isset($data['employee']['id']) ? $data['employee']['id'] : null;
+        $placeId = isset($data['place']['id']) ? $data['place']['id'] : null;
         $month = isset($data['month']['id']) ? $data['month']['id'] : null;
         $year = isset($data['year']) ? $data['year'] : null;
-
-
-        if($year == null || $month == null || $employeeId == null) {
+        
+        if($employeeId == null) {
             return;
         }
 
-        $timecards = Timecard::where('employee_id', '=', $employeeId)
-        ->where('entry', '>=', $year . '-' . $month . '-01 00:00:00')
-        ->where('entry', '<=', $year . '-' . $month . '-31 23:59:59')
-        ->get();
+        $timecards = Timecard::where('entry', '>=', $year . '-' . $month . '-01 00:00:00')
+        ->where('entry', '<=', $year . '-' . $month . '-31 23:59:59');
+        $timecards->where('employee_id', '=', $employeeId);
+
+        if($placeId != null) {
+            $timecards->where(function($query) use ($placeId) {
+                $query->where('entry_place_id', '=', $placeId)
+                ->orWhere('exit_place_id', '=', $placeId);
+            });
+        }
+
+        $timecards = $timecards->get();
 
         foreach($timecards as $timecard) {
             if($timecard->approved_user != null) $timecard->approved_user->employee;
@@ -271,6 +279,7 @@ class Timecard extends Model
     }
 
     public static function showYourself(array $data) {
+        $placeId = isset($data['place']['id']) ? $data['place']['id'] : null;
         $employeeId = User::logged()->employee->id;
         $month = isset($data['month']['id']) ? $data['month']['id'] : null;
         $year = isset($data['year']) ? $data['year'] : null;
@@ -281,8 +290,17 @@ class Timecard extends Model
 
         $timecards = Timecard::where('employee_id', '=', $employeeId)
         ->where('entry', '>=', $year . '-' . $month . '-01 00:00:00')
-        ->where('entry', '<=', $year . '-' . $month . '-31 23:59:59')
-        ->get();
+        ->where('entry', '<=', $year . '-' . $month . '-31 23:59:59');
+        
+
+        if($placeId != null) {
+            $timecards->where(function($query) use ($placeId) {
+                $query->where('entry_place_id', '=', $placeId)
+                ->orWhere('exit_place_id', '=', $placeId);
+            });
+        }
+
+        $timecards = $timecards->get();
 
         foreach($timecards as $timecard) {
             if($timecard->approved_user != null) $timecard->approved_user->employee;
@@ -316,7 +334,13 @@ class Timecard extends Model
             + ($interval->m * 60 * 60 * 24 * 30)
             + ($interval->y * 60 * 60 * 24 * 365);
 
-            $balance += ($seconds - 32400);
+            //3600 - 1 hora - almoço
+            $balance += ($seconds - 32400) - 3600;
+        }
+
+        if($balance < 0) {
+            $sign = '-';
+            $balance = $balance * - 1;
         }
             
         $hours = floor($balance / 3600);
@@ -329,11 +353,6 @@ class Timecard extends Model
         if(strlen($min) == 1) { 
             $min = '0' . $min;
         }
-
-        if($balance < 0) {
-            $sign = '-';
-        }
-
         return $sign . $hours . ':' . $min;
     }
 
