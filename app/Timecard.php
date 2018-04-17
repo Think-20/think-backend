@@ -334,8 +334,7 @@ class Timecard extends Model
             + ($interval->m * 60 * 60 * 24 * 30)
             + ($interval->y * 60 * 60 * 24 * 365);
 
-            //3600 - 1 hora - almoço
-            $balance += ($seconds - 32400) - 3600;
+            $balance += ($seconds - 32400);
         }
 
         if($balance < 0) {
