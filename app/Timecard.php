@@ -158,6 +158,7 @@ class Timecard extends Model
         ->first();
         $timecardDuplicated = Timecard::where('entry','>=', (new DateTime('now'))->format('y-m-d'))
         ->where('entry','<=', (new DateTime('now'))->format('y-m-d') . ' 23:59:59')
+        ->where('employee_id', '=', $employee->id)
         ->whereNotNull('exit')
         ->first();
         $autoPlace = GoogleApi::getAutoPlace($coordinates);
