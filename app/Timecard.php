@@ -24,7 +24,6 @@ class Timecard extends Model
         if($employeeId == null || ($employee = Employee::find($employeeId)) == null) {
             throw new \Exception('Informe corretamente o funcionário.');
         }
-        
 
         if($id == null) {
             throw new \Exception('Informe corretamente o horário.');
@@ -113,10 +112,6 @@ class Timecard extends Model
         
         if($coordinates == null) {
             throw new \Exception('Coordenadas não detectadas.');
-        }
-        
-        if(!$timecardDuplicated == null) {
-            throw new \Exception('Você já informou checkout para esse dia. Se for necessário, solicite a correção.');
         }
 
         if($timecard == null) {
