@@ -149,7 +149,7 @@ class Timecard extends Model
 
             $timecard->update(
                 [
-                    'exit' => $timecard->exit->format('Y-m-d H:i:s'),
+                    'exit' => $timecard->exit,
                     'reason' => $reason,
                     'approved' => $approved,
                     'exit_place_id' => $place_id,
