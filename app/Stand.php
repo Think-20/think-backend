@@ -14,7 +14,8 @@ class Stand extends Model
 
     protected $fillable = [
         'briefing_id', 'configuration_id', 'place', 'plan', 'regulation', 'column', 'street_number',
-        'genre_id', 'reference', 'closed_area_percent', 'note', 'note_opened_area', 'note_closed_area'
+        'genre_id', 'reference', 'closed_area_percent', 'note', 'note_opened_area', 'note_closed_area',
+        'area', 'budget'
     ];
 
     public static function edit(array $data) {
@@ -182,5 +183,13 @@ class Stand extends Model
 
     public function genre() {
         return $this->belongsTo('App\StandGenre', 'genre_id');
+    }
+
+    public function setAreaAttribute($value) {
+        $this->attributes['area'] = (float) str_replace(',', '.', $value);
+    }
+
+    public function setBudgetAttribute($value) {
+        $this->attributes['budget'] = (float) str_replace(',', '.', $value);
     }
 }

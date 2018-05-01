@@ -12,9 +12,9 @@ class Briefing extends Model
 
     protected $fillable = [
         'code',
-        'job_id', 'exhibitor_id', 'event', 'deadline', 'job_type_id', 'agency_id', 'attendance_id',
-        'creation_id', 'area', 'budget', 'rate', 'competition_id', 'latest_mounts_file', 
-        'colors_file', 'guide_file', 'presentation_id', 'special_presentation_id', 'approval_expectation_rate'
+        'job_id', 'client_id', 'event', 'deadline', 'job_type_id', 'agency_id', 'attendance_id',
+        'creation_id', 'rate', 'competition_id', 'latest_mounts_file', 'last_provider', 'level_id', 
+        'how_come_id', 'approval_expectation_rate', 'main_expectation_id', 'available_date',
     ];
 
     protected $dates = [
@@ -30,8 +30,10 @@ class Briefing extends Model
                 $query->where('description', '=', 'Criação');
             })->get(),
             'competitions' => BriefingCompetition::all(),
-            'presentations' => BriefingPresentation::all(),
-            'special_presentations' => BriefingSpecialPresentation::all()
+            'main_expectations' => BriefingMainExpectation::all(),
+            'levels' => BriefingLevel::all(),
+            'how_comes' => BriefingHowCome::all(),
+            'presentations' => BriefingPresentation::all()
         ];
     }
 
@@ -44,16 +46,21 @@ class Briefing extends Model
         $briefing->update(
             array_merge($data, [
                 'job_id' => $data['job']['id'],
-                'exhibitor_id' => $data['exhibitor']['id'],
+                'client_id' => $data['client']['id'],
+                'main_expectation_id' => $data['main_expectation']['id'],
+                'level_id' => $data['level']['id'],
+                'how_come_id' => $data['how_come']['id'],
                 'agency_id' => $data['agency']['id'],
                 'attendance_id' => $data['attendance']['id'],
                 'creation_id' => $data['creation']['id'],
                 'competition_id' => $data['competition']['id'],
-                'presentation_id' => $data['presentation']['id'],
-                'special_presentation_id' => $data['special_presentation']['id']
             ])
         );
         $briefing->editChild($data);
+
+        $arrayPresentations = !isset($data['presentations']) ? [] : $data['presentations'];
+        $briefing->savePresentations($arrayPresentations);
+
         return $briefing;
     }
 
@@ -65,19 +72,23 @@ class Briefing extends Model
             array_merge($data, [
                 'code' => $code,
                 'job_id' => $data['job']['id'],
-                'exhibitor_id' => $data['exhibitor']['id'],
+                'client_id' => $data['client']['id'],
+                'main_expectation_id' => $data['main_expectation']['id'],
+                'level_id' => $data['level']['id'],
+                'how_come_id' => $data['how_come']['id'],
                 'job_type_id' => $data['job_type']['id'],
                 'agency_id' => $data['agency']['id'],
                 'attendance_id' => $data['attendance']['id'],
                 'creation_id' => $data['creation']['id'],
                 'competition_id' => $data['competition']['id'],
-                'presentation_id' => $data['presentation']['id'],
-                'special_presentation_id' => $data['special_presentation']['id']
             ])
         );
 
         $briefing->save();
         $briefing->saveChild($data);
+
+        $arrayPresentations = !isset($data['presentations']) ? [] : $data['presentations'];
+        $briefing->savePresentations($arrayPresentations);
 
         return $briefing;
     }
@@ -139,13 +150,12 @@ class Briefing extends Model
         $briefing = Briefing::find($id);
         $oldBriefing = clone $briefing;
         $briefing->deleteChild();
+        $briefing->presentations()->delete();
         $briefing->delete();
         
         try {
             $path = resource_path('assets/files/briefings/') . $oldBriefing->id;
             unlink($path . '/' . $oldBriefing->latest_mounts_file);
-            unlink($path . '/' . $oldBriefing->colors_file);
-            unlink($path . '/' . $oldBriefing->guide_file);
             rmdir($path);
         } catch(\Exception $e) {}
     }
@@ -156,7 +166,7 @@ class Briefing extends Model
         foreach($briefings as $briefing) {
             $briefing->job_type;
             $briefing->attendance;
-            $briefing->exhibitor;
+            $briefing->client;
         }
 
         return $briefings;
@@ -166,13 +176,15 @@ class Briefing extends Model
         $briefing = Briefing::find($id);
         $briefing->job;
         $briefing->job_type;
-        $briefing->exhibitor;
+        $briefing->client;
+        $briefing->main_expectation;
+        $briefing->level;
+        $briefing->how_come;
         $briefing->agency;
         $briefing->attendance;
         $briefing->creation;
         $briefing->competition;
-        $briefing->presentation;
-        $briefing->special_presentation;
+        $briefing->presentations;
 
         Briefing::getBriefingChild($briefing);
 
@@ -186,7 +198,7 @@ class Briefing extends Model
         foreach($briefings as $briefing) {
             $briefing->job_type;
             $briefing->attendance;
-            $briefing->exhibitor;
+            $briefing->client;
         }
 
         return $briefings;
@@ -208,17 +220,28 @@ class Briefing extends Model
         $briefing->update(
             array_merge($data, [
                 'job_id' => $data['job']['id'],
-                'exhibitor_id' => $data['exhibitor']['id'],
+                'client_id' => $data['client']['id'],
+                'main_expectation_id' => $data['main_expectation']['id'],
+                'level_id' => $data['level']['id'],
+                'how_come_id' => $data['how_come']['id'],
                 'agency_id' => $data['agency']['id'],
                 'attendance_id' => $data['attendance']['id'],
                 'creation_id' => $data['creation']['id'],
-                'competition_id' => $data['competition']['id'],
-                'presentation_id' => $data['presentation']['id'],
-                'special_presentation_id' => $data['special_presentation']['id']
+                'competition_id' => $data['competition']['id']
             ])
         );
-        $briefing->editChild($data);
+        $briefing->editChild($data);        
+
+        $arrayPresentations = !isset($data['presentations']) ? [] : $data['presentations'];
+        $briefing->savePresentations($arrayPresentations);
+
         return $briefing;
+    }
+
+    public function savePresentations(array $data) {
+        foreach($data as $presentation) {
+            $this->presentations()->attach($presentation['id']);
+        }
     }
 
     public static function downloadFileMyBriefing($id, $type, $file) {
@@ -282,13 +305,12 @@ class Briefing extends Model
 
         $oldBriefing = clone $briefing;
         $briefing->deleteChild();
+        $briefing->presentations()->delete();
         $briefing->delete();
         
         try {
             $path = resource_path('assets/files/briefings/') . $oldBriefing->id;
             unlink($path . '/' . $oldBriefing->latest_mounts_file);
-            unlink($path . '/' . $oldBriefing->colors_file);
-            unlink($path . '/' . $oldBriefing->guide_file);
             rmdir($path);
         } catch(\Exception $e) {}
     }
@@ -301,7 +323,7 @@ class Briefing extends Model
         foreach($briefings as $briefing) {
             $briefing->job_type;
             $briefing->attendance;
-            $briefing->exhibitor;
+            $briefing->client;
         }
 
         return $briefings;
@@ -316,13 +338,15 @@ class Briefing extends Model
 
         $briefing->job;
         $briefing->job_type;
-        $briefing->exhibitor;
+        $briefing->client;
+        $briefing->main_expectation;
+        $briefing->level;
+        $briefing->how_come;
         $briefing->agency;
         $briefing->attendance;
         $briefing->creation;
         $briefing->competition;
-        $briefing->presentation;
-        $briefing->special_presentation;
+        $briefing->presentations;
 
         Briefing::getBriefingChild($briefing);
         return $briefing;
@@ -336,7 +360,7 @@ class Briefing extends Model
         foreach($briefings as $briefing) {
             $briefing->job_type;
             $briefing->attendance;
-            $briefing->exhibitor;
+            $briefing->client;
         }
 
         return $briefings;
@@ -394,8 +418,6 @@ class Briefing extends Model
     public static function fileArrayFields() {
         return [
             'latest_mounts_file' => 'Referências', 
-            'colors_file' => 'Cores e Materiais Sugeridos',
-            'guide_file' => 'Guide/Key Visual/Logos/Imagens/Produtos',
         ];
     }
  
@@ -450,8 +472,20 @@ class Briefing extends Model
             throw new \Exception('Job do briefing não informado!');
         }
 
-        if(!isset($data['exhibitor']['id'])) {
+        if(!isset($data['client']['id'])) {
             throw new \Exception('Expositor do briefing não cadastrado!');
+        }
+
+        if(!isset($data['main_expectation']['id'])) {
+            throw new \Exception('Expectativa principal do briefing não informada!');
+        }
+
+        if(!isset($data['level']['id'])) {
+            throw new \Exception('Nível de entrega do briefing não informado!');
+        }
+
+        if(!isset($data['how_come']['id'])) {
+            throw new \Exception('Motivo do briefing não informado!');
         }
 
         if(!isset($data['job_type']['id']) && !$editMode) {
@@ -472,22 +506,6 @@ class Briefing extends Model
         if(!isset($data['competition']['id'])) {
             throw new \Exception('Concorrência do briefing não informada!');
         }
-
-        if(!isset($data['presentation']['id'])) {
-            throw new \Exception('Apresentação do briefing não informada!');
-        }
-
-        if(!isset($data['special_presentation']['id'])) {
-            throw new \Exception('Apresentação especial do briefing não informada!');
-        }
-    }
-
-    public function setAreaAttribute($value) {
-        $this->attributes['area'] = (float) str_replace(',', '.', $value);
-    }
-
-    public function setBudgetAttribute($value) {
-        $this->attributes['budget'] = (float) str_replace(',', '.', $value);
     }
 
     public function stand() {
@@ -498,12 +516,24 @@ class Briefing extends Model
         return $this->belongsTo('App\Job', 'job_id');
     }
 
-    public function exhibitor() {
-        return $this->belongsTo('App\Client', 'exhibitor_id');
+    public function client() {
+        return $this->belongsTo('App\Client', 'client_id');
     }
 
     public function job_type() {
         return $this->belongsTo('App\JobType', 'job_type_id');
+    }
+
+    public function main_expectation() {
+        return $this->belongsTo('App\BriefingMainExpectation', 'main_expectation_id');
+    }
+
+    public function level() {
+        return $this->belongsTo('App\BriefingLevel', 'level_id');
+    }
+
+    public function how_come() {
+        return $this->belongsTo('App\BriefingHowCome', 'how_come_id');
     }
 
     public function agency() {
@@ -522,11 +552,7 @@ class Briefing extends Model
         return $this->belongsTo('App\BriefingCompetition', 'competition_id');
     }
 
-    public function presentation() {
-        return $this->belongsTo('App\BriefingPresentation', 'presentation_id');
-    }
-
-    public function special_presentation() {
-        return $this->belongsTo('App\BriefingSpecialPresentation', 'special_presentation_id');
+    public function presentations() {
+        return $this->belongsToMany('App\BriefingPresentation', 'briefing_presentation_briefing', 'briefing_id', 'presentation_id');
     }
 }

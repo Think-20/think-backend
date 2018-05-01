@@ -89,6 +89,15 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/stand-genres/all', 'StandGenreController@all');
     Route::get('/stand-genres/filter/{query}', 'StandGenreController@filter');
     
+    Route::get('/briefing-main-expectations/all', 'BriefingMainExpectationController@all');
+    Route::get('/briefing-main-expectations/filter/{query}', 'BriefingMainExpectationController@filter');
+    
+    Route::get('/briefing-levels/all', 'BriefingLevelController@all');
+    Route::get('/briefing-levels/filter/{query}', 'BriefingLevelController@filter');
+    
+    Route::get('/briefing-how-comes/all', 'BriefingHowComeController@all');
+    Route::get('/briefing-how-comes/filter/{query}', 'BriefingHowComeController@filter');
+    
     Route::get('/briefings/load-form', 'BriefingController@loadForm');
 });
 
