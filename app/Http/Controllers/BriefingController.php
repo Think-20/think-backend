@@ -30,25 +30,14 @@ class BriefingController extends Controller
             $briefing = Briefing::insert($data);
             $code = str_pad($briefing->code, 4, '0', STR_PAD_LEFT) . '/' . $briefing->created_at->format('Y');
             $message = 'Briefing ' . $code . ' cadastrado com sucesso!';
-            $status = true;
-            $briefing->saveFiles($data);
-            $briefing->saveFilesChild($data);
             DB::commit();
-        } catch(QueryException $queryException) {
-            DB::rollBack();
-            if($queryException->getCode() == 23000) {
-                $message = 'Já existe um briefing idêntico cadastrado.';  
-                //. $queryException->getMessage() . $queryException->getFile() . $queryException->getLine();
-            } else {
-                $message = 'Um erro ocorreu ao cadastrar no banco de dados.' . $queryException->getMessage();
-                //. $queryException->getMessage() . $queryException->getFile() . $queryException->getLine();
-            }
+            $status = true;
         } 
         /* Catch com FileException tamanho máximo */
         catch(Exception $e) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
-            // . $e->getFile() . $e->getLine();
+             //. $e->getFile() . $e->getLine();
         }
 
         return Response::make(json_encode([
@@ -144,20 +133,10 @@ class BriefingController extends Controller
 
         try {
             $briefing = Briefing::insert($data);
-            $message = 'Briefing ' . $briefing->id . ' cadastrado com sucesso!';
+            $code = str_pad($briefing->code, 4, '0', STR_PAD_LEFT) . '/' . $briefing->created_at->format('Y');
+            $message = 'Briefing ' . $code . ' cadastrado com sucesso!';
             $status = true;
-            $briefing->saveFiles($data);
-            $briefing->saveFilesChild($data);
             DB::commit();
-        } catch(QueryException $queryException) {
-            DB::rollBack();
-            if($queryException->getCode() == 23000) {
-                $message = 'Já existe um briefing idêntico cadastrado.';  
-                //. $queryException->getMessage() . $queryException->getFile() . $queryException->getLine();
-            } else {
-                $message = 'Um erro ocorreu ao cadastrar no banco de dados.' . $queryException->getMessage();
-                //. $queryException->getMessage() . $queryException->getFile() . $queryException->getLine();
-            }
         } 
         /* Catch com FileException tamanho máximo */
         catch(Exception $e) {
@@ -184,8 +163,6 @@ class BriefingController extends Controller
             $briefing = Briefing::editMyBriefing($data);
             $message = 'Briefing alterado com sucesso!';
             $status = true;
-            $briefing->editFiles($oldBriefing, $data);
-            $briefing->editFilesChild($oldChild, $data);
             DB::commit();
         } catch(QueryException $queryException) {
             DB::rollBack();
@@ -202,11 +179,14 @@ class BriefingController extends Controller
          ]), 200);
     }
 
-    public static function downloadFileMyBriefing($id, $type, $file) {
+    public static function downloadFileMyBriefing($id, $type, $filename) {
         try {
-            $file = Briefing::downloadFileMyBriefing($id, $type, $file);
+            $file = Briefing::downloadFileMyBriefing($id, $type, $filename);
             $status = true;
-            return Response::make(file_get_contents($file), 200, ['Content-Type' => mime_content_type($file)]);
+            return Response::make(file_get_contents($file), 200, [
+                'Content-Type' => mime_content_type($file), 
+                'Content-Disposition: inline; filename="' . $filename . '"'
+            ]);
         } catch(Exception $e) {
             $message = 'Um erro ocorreu ao abrir o arquivo: ' . $e->getMessage();
             return Response::make($message, 404);

@@ -18,12 +18,6 @@ class ClientController extends Controller
             $client = Client::insert($request->all());
             $message = 'Cliente cadastrado com sucesso!';
             $status = true;
-        } catch(QueryException $queryException) {
-            if($queryException->getCode() == 23000) {
-                $message = 'Erro de entrada ou já existe um cadastro como esse.' . $queryException->getMessage();
-            } else {
-                $message = 'Um erro ocorreu ao cadastrar no banco de dados.' . $queryException->getMessage();
-            }
         } catch(Exception $e) {
             $message = 'Um erro desconhecido ocorreu ao cadastrar: ' . $e->getMessage();
         }
@@ -41,12 +35,6 @@ class ClientController extends Controller
             Client::edit($request->all());
             $message = 'Cliente alterado com sucesso!';
             $status = true;
-        } catch(QueryException $queryException) {
-            if($queryException->getCode() == 23000) {
-                $message = 'Já existe um CNPJ como esse cadastrado.';
-            } else {
-                $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
-            }
         } catch(Exception $e) {
             $message = 'Um erro desconhecido ocorreu ao atualizar: ' . $e->getMessage();
         }
@@ -116,12 +104,6 @@ class ClientController extends Controller
             $client = Client::insert($request->all());
             $message = 'Cliente cadastrado com sucesso!';
             $status = true;
-        } catch(QueryException $queryException) {
-            if($queryException->getCode() == 23000) {
-                $message = 'Erro de entrada ou já existe um cadastro como esse.';
-            } else {
-                $message = 'Um erro ocorreu ao cadastrar no banco de dados.';
-            }
         } catch(Exception $e) {
             $message = 'Um erro desconhecido ocorreu ao cadastrar: ' . $e->getMessage();
         }
@@ -139,12 +121,6 @@ class ClientController extends Controller
             $client = Client::editMyClient($request->all());
             $message = 'Cliente alterado com sucesso!';
             $status = true;
-        } catch(QueryException $queryException) {
-            if($queryException->getCode() == 23000) {
-                $message = 'Já existe um CNPJ como esse cadastrado.';
-            } else {
-                $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
-            }
         } catch(Exception $e) {
             $message = 'Um erro desconhecido ocorreu ao atualizar: ' . $e->getMessage();
         }

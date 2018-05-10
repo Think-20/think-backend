@@ -33,7 +33,7 @@ insert into display_user (display_id, user_id)
 select d.id, u.id from display d 
 inner join employee e on e.department_id IN (4)
 left join user u on u.employee_id = e.id
-where (d.id >= 16 AND d.id <= 21) OR (d.id >= 27 AND d.id <= 31);
+where (d.id >= 16 AND d.id <= 21) OR (d.id >= 27 AND d.id <= 31) OR (d.id = 33);
 
 insert into user_functionality (functionality_id, user_id) 
 select f.id, u.id from functionality f 

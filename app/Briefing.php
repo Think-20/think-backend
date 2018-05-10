@@ -5,6 +5,8 @@ namespace App;
 use Illuminate\Database\Eloquent\Model;
 
 use DB;
+use DateTime;
+use DateInterval;
 
 class Briefing extends Model
 {
@@ -13,8 +15,8 @@ class Briefing extends Model
     protected $fillable = [
         'code',
         'job_id', 'client_id', 'event', 'deadline', 'job_type_id', 'agency_id', 'attendance_id',
-        'creation_id', 'rate', 'competition_id', 'latest_mounts_file', 'last_provider', 'level_id', 
-        'how_come_id', 'approval_expectation_rate', 'main_expectation_id', 'available_date',
+        'creation_id', 'rate', 'competition_id', 'last_provider', 'estimated_time', 'not_client',
+        'how_come_id', 'approval_expectation_rate', 'main_expectation_id', 'available_date', 'budget'
     ];
 
     protected $dates = [
@@ -33,8 +35,32 @@ class Briefing extends Model
             'main_expectations' => BriefingMainExpectation::all(),
             'levels' => BriefingLevel::all(),
             'how_comes' => BriefingHowCome::all(),
-            'presentations' => BriefingPresentation::all()
+            'presentations' => BriefingPresentation::all(),
+            'available_date' => Briefing::getNextAvailableDate()
         ];
+    }
+
+    public static function getNextAvailableDate() {
+        $date = new DateTime('now');
+        $query = DB::select(DB::raw('SELECT quantity, available_date FROM '
+        . '(SELECT COUNT(available_date) as quantity, available_date '
+        . 'FROM briefing  WHERE available_date >= "' . $date->format('Y-m-d') . '" GROUP BY available_date) as available '
+        . 'WHERE quantity < 5 ORDER BY available_date LIMIT 1;'));
+
+        if(isset($query[0])) {
+            $date = new DateTime($query[0]->available_date);
+        } else {
+            $query = Briefing::orderBy('available_date', 'DESC')
+            ->limit(1)
+            ->first();
+            $date = new DateTime($query->available_date);
+            $date->add(new DateInterval('P1D'));
+        }
+
+        $weekDayDiff = ((int) $date->format('N')) > 5 ? ((int) $date->format('N') - 5) + 1 :  0;
+        $date->add(new DateInterval('P' . ($weekDayDiff) . 'D'));
+
+        return $date->format('Y-m-d');
     }
 
     public static function edit(array $data) {
@@ -48,7 +74,6 @@ class Briefing extends Model
                 'job_id' => $data['job']['id'],
                 'client_id' => $data['client']['id'],
                 'main_expectation_id' => $data['main_expectation']['id'],
-                'level_id' => $data['level']['id'],
                 'how_come_id' => $data['how_come']['id'],
                 'agency_id' => $data['agency']['id'],
                 'attendance_id' => $data['attendance']['id'],
@@ -56,10 +81,16 @@ class Briefing extends Model
                 'competition_id' => $data['competition']['id'],
             ])
         );
-        $briefing->editChild($data);
+        //$briefing->editChild($data);
 
         $arrayPresentations = !isset($data['presentations']) ? [] : $data['presentations'];
         $briefing->savePresentations($arrayPresentations);
+
+        $arrayLevels = !isset($data['levels']) ? [] : $data['levels'];
+        $briefing->saveLevels($arrayLevels);
+
+        $arrayFiles = !isset($data['files']) ? [] : $data['files'];
+        $briefing->editFiles($arrayFiles);
 
         return $briefing;
     }
@@ -74,7 +105,6 @@ class Briefing extends Model
                 'job_id' => $data['job']['id'],
                 'client_id' => $data['client']['id'],
                 'main_expectation_id' => $data['main_expectation']['id'],
-                'level_id' => $data['level']['id'],
                 'how_come_id' => $data['how_come']['id'],
                 'job_type_id' => $data['job_type']['id'],
                 'agency_id' => $data['agency']['id'],
@@ -85,10 +115,16 @@ class Briefing extends Model
         );
 
         $briefing->save();
-        $briefing->saveChild($data);
+        //$briefing->saveChild($data);
 
         $arrayPresentations = !isset($data['presentations']) ? [] : $data['presentations'];
         $briefing->savePresentations($arrayPresentations);
+
+        $arrayLevels = !isset($data['levels']) ? [] : $data['levels'];
+        $briefing->saveLevels($arrayLevels);
+
+        $arrayFiles = !isset($data['files']) ? [] : $data['files'];
+        $briefing->saveFiles($arrayFiles);
 
         return $briefing;
     }
@@ -149,21 +185,20 @@ class Briefing extends Model
     public static function remove($id) {
         $briefing = Briefing::find($id);
         $oldBriefing = clone $briefing;
-        $briefing->deleteChild();
-        $briefing->presentations()->delete();
+        //$briefing->deleteChild();
+        $briefing->presentations()->detach();
+        $briefing->levels()->detach();
+        $briefing->deleteFiles();
         $briefing->delete();
-        
-        try {
-            $path = resource_path('assets/files/briefings/') . $oldBriefing->id;
-            unlink($path . '/' . $oldBriefing->latest_mounts_file);
-            rmdir($path);
-        } catch(\Exception $e) {}
     }
 
     public static function list() {
-        $briefings = Briefing::orderBy('id', 'desc')->paginate(50);
+        $briefings = Briefing::orderBy('available_date', 'asc')->paginate(20);
 
         foreach($briefings as $briefing) {
+            $briefing->agency;
+            $briefing->creation;
+            $briefing->job;
             $briefing->job_type;
             $briefing->attendance;
             $briefing->client;
@@ -178,15 +213,16 @@ class Briefing extends Model
         $briefing->job_type;
         $briefing->client;
         $briefing->main_expectation;
-        $briefing->level;
+        $briefing->levels;
         $briefing->how_come;
         $briefing->agency;
         $briefing->attendance;
         $briefing->creation;
         $briefing->competition;
         $briefing->presentations;
+        $briefing->files;
 
-        Briefing::getBriefingChild($briefing);
+        //Briefing::getBriefingChild($briefing);
 
         return $briefing;
     }
@@ -222,7 +258,6 @@ class Briefing extends Model
                 'job_id' => $data['job']['id'],
                 'client_id' => $data['client']['id'],
                 'main_expectation_id' => $data['main_expectation']['id'],
-                'level_id' => $data['level']['id'],
                 'how_come_id' => $data['how_come']['id'],
                 'agency_id' => $data['agency']['id'],
                 'attendance_id' => $data['attendance']['id'],
@@ -230,17 +265,33 @@ class Briefing extends Model
                 'competition_id' => $data['competition']['id']
             ])
         );
-        $briefing->editChild($data);        
+        //$briefing->editChild($data);        
 
         $arrayPresentations = !isset($data['presentations']) ? [] : $data['presentations'];
         $briefing->savePresentations($arrayPresentations);
+
+        $arrayLevels = !isset($data['levels']) ? [] : $data['levels'];
+        $briefing->saveLevels($arrayLevels);
+
+        $arrayFiles = !isset($data['files']) ? [] : $data['files'];
+        $briefing->editFiles($arrayFiles);
 
         return $briefing;
     }
 
     public function savePresentations(array $data) {
+        $this->presentations()->detach();
+
         foreach($data as $presentation) {
             $this->presentations()->attach($presentation['id']);
+        }
+    }
+
+    public function saveLevels(array $data) {
+        $this->levels()->detach();
+        
+        foreach($data as $level) {
+            $this->levels()->attach($level['id']);
         }
     }
 
@@ -262,11 +313,11 @@ class Briefing extends Model
             case 'briefing': {
                 $path = resource_path('assets/files/briefings/') . $briefing->id;
 
-                if(!array_key_exists($file, Briefing::fileArrayFields())) {
+                if(!is_file($path . '/' . $file)) {
                     throw new \Exception('O arquivo solicitado não existe.');
                 }
 
-                $path .= '/' . $briefing->{$file};
+                $path .= '/' . $file;
                 
                 $content = file_get_contents($path);
                 $mime = mime_content_type($path);
@@ -304,23 +355,22 @@ class Briefing extends Model
         }
 
         $oldBriefing = clone $briefing;
-        $briefing->deleteChild();
-        $briefing->presentations()->delete();
+        //$briefing->deleteChild();
+        $briefing->presentations()->detach();
+        $briefing->levels()->detach();
+        $briefing->deleteFiles();
         $briefing->delete();
-        
-        try {
-            $path = resource_path('assets/files/briefings/') . $oldBriefing->id;
-            unlink($path . '/' . $oldBriefing->latest_mounts_file);
-            rmdir($path);
-        } catch(\Exception $e) {}
     }
 
     public static function listMyBriefing() {
-        $briefings = Briefing::orderBy('id', 'desc')
+        $briefings = Briefing::orderBy('available_date', 'asc')
          ->where('attendance_id', '=', User::logged()->employee->id)
-         ->paginate(50);
+         ->paginate(20);
 
         foreach($briefings as $briefing) {
+            $briefing->agency;
+            $briefing->creation;
+            $briefing->job;
             $briefing->job_type;
             $briefing->attendance;
             $briefing->client;
@@ -340,15 +390,16 @@ class Briefing extends Model
         $briefing->job_type;
         $briefing->client;
         $briefing->main_expectation;
-        $briefing->level;
+        $briefing->levels;
         $briefing->how_come;
         $briefing->agency;
         $briefing->attendance;
         $briefing->creation;
         $briefing->competition;
         $briefing->presentations;
+        $briefing->files;
 
-        Briefing::getBriefingChild($briefing);
+        //Briefing::getBriefingChild($briefing);
         return $briefing;
     }
 
@@ -379,6 +430,7 @@ class Briefing extends Model
         return $result->code; 
     }
 
+    /*
     public function saveFiles($data) {
         $path = resource_path('assets/files/briefings/') . $this->id;
         $files = Briefing::fileArrayFields();
@@ -395,7 +447,72 @@ class Briefing extends Model
             rename(sys_get_temp_dir() . '/' .  $data[$file], $path . '/' . $data[$file]);
         }
     }
+    */
 
+    public function saveFiles(array $data) {
+        $path = resource_path('assets/files/briefings/') . $this->id;
+
+        if(!is_dir($path)) {
+            mkdir($path);
+        }
+
+        foreach($data as $file) {
+            rename(sys_get_temp_dir() . '/' .  $file['name'], $path . '/' . $file['name']);
+            $this->files()->save(new BriefingFile([
+                'briefing_id' => $this->id,
+                'filename' => $file['name']
+            ]));
+        }
+    }
+
+    public function editFiles(array $data) {
+        $browserFiles = [];
+        $path = resource_path('assets/files/briefings/') . $this->id;
+
+        if(!is_dir($path)) {
+            mkdir($path);
+        }
+
+        foreach($data as $file) {
+            $browserFiles[] = $file['name'];
+            $oldFile = $this->files()
+            ->where('briefing_file.filename', '=', $file['name'])
+            ->first();
+
+            if(is_file(sys_get_temp_dir() . '/' .  $file['name'])) {
+                // Substituir / criar arquivo em caso de não existir
+                rename(sys_get_temp_dir() . '/' .  $file['name'], $path . '/' . $file['name']);
+                
+                if(is_null($oldFile)) {
+                    $this->files()->save(new BriefingFile([
+                        'briefing_id' => $this->id,
+                        'filename' => $file['name']
+                    ]));
+                }
+            }
+        }
+
+        foreach($this->files as $file) {
+            try {
+                if(!in_array($file->filename, $browserFiles)) {
+                    unlink($path . '/' . $file->filename);
+                    $file->delete();
+                }
+            } catch(\Exception $e) {}
+        }
+    }
+
+    public function deleteFiles() {
+        $path = resource_path('assets/files/briefings/') . $this->id;
+        foreach($this->files as $file) {
+            try {
+                unlink($path . '/' . $file->filename);
+                $file->delete();
+            } catch(\Exception $e) {}
+        } 
+    }
+
+    /*
     public function editFiles(Briefing $oldBriefing, $data) {
         $updatedFiles = [];
         $path = resource_path('assets/files/briefings/') . $this->id;
@@ -414,12 +531,7 @@ class Briefing extends Model
             }
         } catch(\Exception $e) {}
     }
-
-    public static function fileArrayFields() {
-        return [
-            'latest_mounts_file' => 'Referências', 
-        ];
-    }
+    */
  
     public function saveChild($data) {
         if($this->job_type->description === 'Stand') {
@@ -478,10 +590,6 @@ class Briefing extends Model
 
         if(!isset($data['main_expectation']['id'])) {
             throw new \Exception('Expectativa principal do briefing não informada!');
-        }
-
-        if(!isset($data['level']['id'])) {
-            throw new \Exception('Nível de entrega do briefing não informado!');
         }
 
         if(!isset($data['how_come']['id'])) {
@@ -554,5 +662,17 @@ class Briefing extends Model
 
     public function presentations() {
         return $this->belongsToMany('App\BriefingPresentation', 'briefing_presentation_briefing', 'briefing_id', 'presentation_id');
+    }
+
+    public function levels() {
+        return $this->belongsToMany('App\BriefingLevel', 'briefing_level_briefing', 'briefing_id', 'level_id');
+    }
+
+    public function files() {
+        return $this->hasMany('App\BriefingFile', 'briefing_id');
+    }
+
+    public function setBudgetAttribute($value) {
+        $this->attributes['budget'] = (float) str_replace(',', '.', $value);
     }
 }
