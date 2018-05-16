@@ -67,15 +67,17 @@ class Briefing extends Model
         Briefing::checkData($data, true);
 
         $id = $data['id'];
+        $agency_id = isset($data['agency']['id']) ? $data['agency']['id'] : null;
+        $client_id = isset($data['client']['id']) ? $data['client']['id'] : null;
         $briefing = Briefing::find($id);
         $oldBriefing = clone $briefing;
         $briefing->update(
             array_merge($data, [
                 'job_id' => $data['job']['id'],
-                'client_id' => $data['client']['id'],
+                'client_id' => $client_id,
+                'agency_id' => $agency_id,
                 'main_expectation_id' => $data['main_expectation']['id'],
                 'how_come_id' => $data['how_come']['id'],
-                'agency_id' => $data['agency']['id'],
                 'attendance_id' => $data['attendance']['id'],
                 'creation_id' => $data['creation']['id'],
                 'competition_id' => $data['competition']['id'],
@@ -98,16 +100,18 @@ class Briefing extends Model
     public static function insert(array $data) {
         Briefing::checkData($data);
         $code = Briefing::generateCode();
+        $agency_id = isset($data['agency']['id']) ? $data['agency']['id'] : null;
+        $client_id = isset($data['client']['id']) ? $data['client']['id'] : null;
 
         $briefing = new Briefing(
             array_merge($data, [
                 'code' => $code,
                 'job_id' => $data['job']['id'],
-                'client_id' => $data['client']['id'],
+                'client_id' => $client_id,
                 'main_expectation_id' => $data['main_expectation']['id'],
                 'how_come_id' => $data['how_come']['id'],
                 'job_type_id' => $data['job_type']['id'],
-                'agency_id' => $data['agency']['id'],
+                'agency_id' => $agency_id,
                 'attendance_id' => $data['attendance']['id'],
                 'creation_id' => $data['creation']['id'],
                 'competition_id' => $data['competition']['id'],
@@ -247,6 +251,8 @@ class Briefing extends Model
 
         $id = $data['id'];
         $briefing = Briefing::find($id);
+        $agency_id = isset($data['agency']['id']) ? $data['agency']['id'] : null;
+        $client_id = isset($data['client']['id']) ? $data['client']['id'] : null;
 
         if($briefing->attendance_id != User::logged()->employee->id) {
             throw new \Exception('Você não tem permissão para editar esse briefing.');
@@ -256,10 +262,10 @@ class Briefing extends Model
         $briefing->update(
             array_merge($data, [
                 'job_id' => $data['job']['id'],
-                'client_id' => $data['client']['id'],
+                'client_id' => $client_id,
+                'agency_id' => $agency_id,
                 'main_expectation_id' => $data['main_expectation']['id'],
                 'how_come_id' => $data['how_come']['id'],
-                'agency_id' => $data['agency']['id'],
                 'attendance_id' => $data['attendance']['id'],
                 'creation_id' => $data['creation']['id'],
                 'competition_id' => $data['competition']['id']
@@ -584,9 +590,11 @@ class Briefing extends Model
             throw new \Exception('Job do briefing não informado!');
         }
 
+        /*
         if(!isset($data['client']['id'])) {
             throw new \Exception('Expositor do briefing não cadastrado!');
         }
+        */
 
         if(!isset($data['main_expectation']['id'])) {
             throw new \Exception('Expectativa principal do briefing não informada!');
@@ -600,9 +608,11 @@ class Briefing extends Model
             throw new \Exception('Tipo de job do briefing não informado!');
         }
 
+        /*
         if(!isset($data['agency']['id'])) {
             throw new \Exception('Agência do briefing não cadastrada!');
         }
+        */
 
         if(!isset($data['attendance']['id'])) {
             throw new \Exception('Atendimento do briefing não informado!');

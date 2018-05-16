@@ -1,4 +1,6 @@
 alter table briefing add column not_client varchar(100);
+alter table briefing modify column agency_id int(11);
+alter table briefing modify column client_id int(11);
 
 /*
 alter table briefing drop column latest_mounts_file;
