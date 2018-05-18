@@ -61,6 +61,43 @@ class Briefing extends Model
         $date->add(new DateInterval('P' . ($weekDayDiff) . 'D'));
 
         return $date->format('Y-m-d');
+
+        /*
+        $resultCreation = DB::table('employee')
+        ->select('employee.id')
+        ->leftJoin('department', 'department.id', '=', 'employee.department_id')
+        ->where('department.description','=','Criação')
+        ->get();
+
+        $creations = [];
+
+        foreach($resultCreation as $creation) {
+            $creations[] = $creation->id;
+        }
+
+        /*
+        * Impossível definir data sem criação
+        
+        if(count($creations) == 0) {
+            exit;
+        }
+
+        $creationNotFound = true;
+
+        do {
+            $lastBriefing = Briefing::orderBy('id', 'DESC')->limit(1)->first();
+            $creationKey = array_search($lastBriefing->creation_id, $creations) !== false 
+                ? array_search($lastBriefing->creation_id, $creations) + 1 : 0;
+            $nextCreationId = isset($creations[$creationKey]) ? $creations[$creationKey] : $creations[0];
+            $lastBriefingOfCreator = Briefing::where('creation_id', '=', $nextCreationId);
+                ->orderBy('id', 'DESC')->limit(1)->first();
+            $nextDateAvailableOfCreator = (new DateTime($lastBriefingOfCreator->available_date))->add(new DateInterval('P' . $lastBriefingOfCreator->estimated_time . 'D'));
+
+            if($nextDateAvailableOfCreator <= $date)
+        } while($creationNotFound);
+        
+        dd($date);
+        */
     }
 
     public static function edit(array $data) {
