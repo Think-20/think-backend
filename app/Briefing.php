@@ -243,6 +243,7 @@ class Briefing extends Model
             $briefing->job_type;
             $briefing->attendance;
             $briefing->client;
+            $briefing->status = 'Stand-by';
         }
 
         return $briefings;
