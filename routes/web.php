@@ -99,6 +99,7 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/briefing-how-comes/filter/{query}', 'BriefingHowComeController@filter');
     
     Route::get('/briefings/load-form', 'BriefingController@loadForm');
+    Route::get('/briefings/recalculate-next-date/{nextEstimatedTime}', 'BriefingController@recalculateNextDate');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {
@@ -167,7 +168,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::delete('/briefing/remove/{id}', 'BriefingController@remove');
     Route::get('/briefings/all', 'BriefingController@all');
     Route::get('/briefings/get/{id}', 'BriefingController@get');
-    Route::get('/briefings/filter/{query}', 'BriefingController@filter');
+    Route::post('/briefings/filter', 'BriefingController@filter');
     Route::get('/briefing/download/{id}/{type}/{file}', 'BriefingController@downloadFile');
 
     Route::post('/my-briefing/save', 'BriefingController@saveMyBriefing');

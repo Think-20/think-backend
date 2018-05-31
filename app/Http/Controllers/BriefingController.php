@@ -18,6 +18,11 @@ class BriefingController extends Controller
             'data' => Briefing::loadForm()
          ]), 200); 
     }
+    public static function recalculateNextDate($nextEstimatedTime) {
+        return Response::make(json_encode([
+            'data' => Briefing::recalculateNextDate($nextEstimatedTime)
+         ]), 200); 
+    }
 
     public static function save(Request $request) {
         $data = $request->all();
@@ -120,8 +125,8 @@ class BriefingController extends Controller
         return $briefings;
     }
 
-    public static function filter($query) {
-        return Briefing::filter($query);
+    public static function filter(Request $request) {
+        return Briefing::filter($request->all());
     }
 
     public static function saveMyBriefing(Request $request) {

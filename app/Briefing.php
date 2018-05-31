@@ -24,6 +24,8 @@ class Briefing extends Model
     ];
 
     public static function loadForm() {
+        $dataNext  = Briefing::getNextAvailableDate();
+
         return [
             'jobs' => Job::all(),
             'job_types' => JobType::all(),
@@ -31,73 +33,264 @@ class Briefing extends Model
             'creations' => Employee::whereHas('department', function($query) {
                 $query->where('description', '=', 'Criação');
             })->get(),
+            'creation' => $dataNext[1],
             'competitions' => BriefingCompetition::all(),
             'main_expectations' => BriefingMainExpectation::all(),
             'levels' => BriefingLevel::all(),
             'how_comes' => BriefingHowCome::all(),
             'presentations' => BriefingPresentation::all(),
-            'available_date' => Briefing::getNextAvailableDate()
+            'available_date' => $dataNext[0]
         ];
     }
 
     public static function getNextAvailableDate() {
         $date = new DateTime('now');
-        $query = DB::select(DB::raw('SELECT quantity, available_date FROM '
-        . '(SELECT COUNT(available_date) as quantity, available_date '
-        . 'FROM briefing  WHERE available_date >= "' . $date->format('Y-m-d') . '" GROUP BY available_date) as available '
-        . 'WHERE quantity < 5 ORDER BY available_date LIMIT 1;'));
-
-        if(isset($query[0])) {
-            $date = new DateTime($query[0]->available_date);
-        } else {
-            $query = Briefing::orderBy('available_date', 'DESC')
-            ->limit(1)
-            ->first();
-            $date = new DateTime($query->available_date);
-            $date->add(new DateInterval('P1D'));
-        }
-
         $weekDayDiff = ((int) $date->format('N')) > 5 ? ((int) $date->format('N') - 5) + 1 :  0;
         $date->add(new DateInterval('P' . ($weekDayDiff) . 'D'));
-
-        return $date->format('Y-m-d');
-
-        /*
+        
         $resultCreation = DB::table('employee')
         ->select('employee.id')
         ->leftJoin('department', 'department.id', '=', 'employee.department_id')
         ->where('department.description','=','Criação')
         ->get();
 
+        $nextCreationId = null;
         $creations = [];
 
         foreach($resultCreation as $creation) {
             $creations[] = $creation->id;
         }
 
-        /*
-        * Impossível definir data sem criação
-        
-        if(count($creations) == 0) {
-            exit;
-        }
-
-        $creationNotFound = true;
+        $dateNotFound = true;
 
         do {
-            $lastBriefing = Briefing::orderBy('id', 'DESC')->limit(1)->first();
-            $creationKey = array_search($lastBriefing->creation_id, $creations) !== false 
-                ? array_search($lastBriefing->creation_id, $creations) + 1 : 0;
-            $nextCreationId = isset($creations[$creationKey]) ? $creations[$creationKey] : $creations[0];
-            $lastBriefingOfCreator = Briefing::where('creation_id', '=', $nextCreationId);
-                ->orderBy('id', 'DESC')->limit(1)->first();
-            $nextDateAvailableOfCreator = (new DateTime($lastBriefingOfCreator->available_date))->add(new DateInterval('P' . $lastBriefingOfCreator->estimated_time . 'D'));
+            $nextBriefings = Briefing::where('available_date', '>=', $date->format('Y-m-d'))
+            ->orderBy('available_date', 'ASC')
+            ->orderBy('creation_id', 'ASC')
+            ->limit(30)
+            ->get();
 
-            if($nextDateAvailableOfCreator <= $date)
-        } while($creationNotFound);
+            if($nextBriefings->count() == 0) {
+                $dateNotFound = false;
+                $nextCreationId = $creations[0];
+                break;
+            }
+
+            $i = 0;
+
+            foreach($nextBriefings as $nextBriefing) {
+                $available_date = new DateTime($nextBriefing->available_date);
+
+                $reviewDates = $nextBriefings->reject(function ($nextBriefing) use ($available_date, $date) {
+                    return (new DateTime($nextBriefing->available_date))->format('d') != $date->format('d');
+                });
+
+                if($reviewDates->count() == 0) {
+                    foreach($creations as $creation) {
+                        $lastBriefingOfCreation = Briefing::where('creation_id', '=', $creation)
+                        ->orderBy('available_date', 'DESC')
+                        ->limit(1)
+                        ->first();
+
+                        $estimatedTimeOfCreation = (int) ceil($lastBriefingOfCreation->estimated_time);
+
+                        /*
+                        if((int) $date->format('d') == 1) {
+                            dd($lastBriefingOfCreation->estimated_time % 1 == 0, $lastBriefingOfCreation->estimated_time);
+                            dd($date, $reviewDates, $availableDateOfCreation, $creation, $lastBriefingOfCreation->available_date, $estimatedTimeOfCreation);
+                        }
+                        */
+
+                        $availableDateOfCreation = new DateTime($lastBriefingOfCreation->available_date);
+                        $availableDateOfCreation->add(new DateInterval('P' . ($estimatedTimeOfCreation) . 'D'));
+
+
+                        // Verifica se o próximo criação está disponível para aquela data
+                        if($availableDateOfCreation <= $date) {
+                            $nextCreationId = $creation;
+                            $dateNotFound = false;
+                            break;
+                        } else {
+                            $nextCreationId = null;
+                        }
+
+                        $i++;
+                    }
+                    
+                    if(!$dateNotFound) {
+                        break;
+                    }
+                } else if($reviewDates->count() < count($creations)) {
+                    $tempArray = $reviewDates->map(function($item, $key) {
+                        return $item->creation_id;
+                    });
+
+                    $freeCreations = array_diff($creations, $tempArray->toArray());
+                    foreach($freeCreations as $freeCreation) {
+                        $lastBriefingOfCreation = Briefing::where('creation_id', '=', $freeCreation)
+                        ->orderBy('available_date', 'DESC')
+                        ->limit(1)
+                        ->first();
+
+                        $estimatedTimeOfCreation = (int) ceil($lastBriefingOfCreation->estimated_time);
+
+                        $availableDateOfCreation = new DateTime($lastBriefingOfCreation->available_date);
+                        $availableDateOfCreation->add(new DateInterval('P' . ($estimatedTimeOfCreation) . 'D'));
+
+                        // Verifica se o próximo criação está disponível para aquela data
+                        if($availableDateOfCreation <= $date) {
+                            $nextCreationId = $freeCreation;
+                            $dateNotFound = false;
+                            break;
+                        } else {
+                            $nextCreationId = null;
+                        }
+                    }
+                    
+                    if(!$dateNotFound) {
+                        break;
+                    }
+                }
+
+                $date->add(new DateInterval('P1D'));
+                $weekDayDiff = ((int) $date->format('N')) > 5 ? ((int) $date->format('N') - 5) + 1 :  0;
+                $date->add(new DateInterval('P' . ($weekDayDiff) . 'D'));
+                //$i++;
+            }
+        } while ($dateNotFound);
+
+        return [$date->format('Y-m-d'), Employee::find($nextCreationId)];
+    }
+
+    public static function recalculateNextDate($nextEstimatedTime) {
+        $date = new DateTime('now');
+        $weekDayDiff = ((int) $date->format('N')) > 5 ? ((int) $date->format('N') - 5) + 1 :  0;
+        $date->add(new DateInterval('P' . ($weekDayDiff) . 'D'));
         
-        dd($date);
-        */
+        $resultCreation = DB::table('employee')
+        ->select('employee.id')
+        ->leftJoin('department', 'department.id', '=', 'employee.department_id')
+        ->where('department.description','=','Criação')
+        ->get();
+
+        $nextCreationId = null;
+        $creations = [];
+
+        foreach($resultCreation as $creation) {
+            $creations[] = $creation->id;
+        }
+
+        $dateNotFound = true;
+
+        do {
+            $nextBriefings = Briefing::where('available_date', '>=', $date->format('Y-m-d'))
+            ->orderBy('available_date', 'ASC')
+            ->orderBy('creation_id', 'ASC')
+            ->limit(30)
+            ->get();
+
+            if($nextBriefings->count() == 0) {
+                $dateNotFound = false;
+                $nextCreationId = $creations[0];
+                break;
+            }
+
+            $i = 0;
+
+            foreach($nextBriefings as $nextBriefing) {
+                $available_date = new DateTime($nextBriefing->available_date);
+
+                $reviewDates = $nextBriefings->reject(function ($nextBriefing) use ($available_date, $date) {
+                    return (new DateTime($nextBriefing->available_date))->format('d') != $date->format('d');
+                });
+
+                if($reviewDates->count() == 0) {
+                    foreach($creations as $creation) {
+                        $lastBriefingOfCreation = Briefing::where('creation_id', '=', $creation)
+                        ->orderBy('available_date', 'DESC')
+                        ->limit(1)
+                        ->first();
+                        
+                        if($nextEstimatedTime < 1) {
+                            $estimatedTimeOfCreation = (int) ceil($lastBriefingOfCreation->estimated_time + $nextEstimatedTime) - 1;
+
+                            if($estimatedTimeOfCreation < 1) {
+                                $estimatedTimeOfCreation = 1;
+                            }
+                        } else {
+                            $estimatedTimeOfCreation = (int) ceil($lastBriefingOfCreation->estimated_time);
+                        }
+
+                        $availableDateOfCreation = new DateTime($lastBriefingOfCreation->available_date);
+                        $availableDateOfCreation->add(new DateInterval('P' . ($estimatedTimeOfCreation) . 'D'));
+
+                        //if((int) $date->format('d') == 1 && $i == 1) {
+                            //dd($date, $reviewDates, $availableDateOfCreation, $creation, $lastBriefingOfCreation->available_date, $estimatedTimeOfCreation);
+                        //}
+
+                        // Verifica se o próximo criação está disponível para aquela data
+                        if($availableDateOfCreation <= $date) {
+                            $nextCreationId = $creation;
+                            $dateNotFound = false;
+                            break;
+                        } else {
+                            $nextCreationId = null;
+                        }
+
+                        $i++;
+                    }
+                    
+                    if(!$dateNotFound) {
+                        break;
+                    }
+                } else if($reviewDates->count() < count($creations)) {
+                    $tempArray = $reviewDates->map(function($item, $key) {
+                        return $item->creation_id;
+                    });
+
+                    $freeCreations = array_diff($creations, $tempArray->toArray());
+                    foreach($freeCreations as $freeCreation) {
+                        $lastBriefingOfCreation = Briefing::where('creation_id', '=', $freeCreation)
+                        ->orderBy('available_date', 'DESC')
+                        ->limit(1)
+                        ->first();
+
+                        if($nextEstimatedTime < 1) {
+                            $estimatedTimeOfCreation = (int) ceil($lastBriefingOfCreation->estimated_time + $nextEstimatedTime) - 1;
+
+                            if($estimatedTimeOfCreation < 1) {
+                                $estimatedTimeOfCreation = 1;
+                            }
+                        } else {
+                            $estimatedTimeOfCreation = (int) ceil($lastBriefingOfCreation->estimated_time);
+                        }
+
+                        $availableDateOfCreation = new DateTime($lastBriefingOfCreation->available_date);
+                        $availableDateOfCreation->add(new DateInterval('P' . ($estimatedTimeOfCreation) . 'D'));
+
+                        // Verifica se o próximo criação está disponível para aquela data
+                        if($availableDateOfCreation <= $date) {
+                            $nextCreationId = $freeCreation;
+                            $dateNotFound = false;
+                            break;
+                        } else {
+                            $nextCreationId = null;
+                        }
+                    }
+                    
+                    if(!$dateNotFound) {
+                        break;
+                    }
+                }
+
+                $date->add(new DateInterval('P1D'));
+                $weekDayDiff = ((int) $date->format('N')) > 5 ? ((int) $date->format('N') - 5) + 1 :  0;
+                $date->add(new DateInterval('P' . ($weekDayDiff) . 'D'));
+                //$i++;
+            }
+        } while ($dateNotFound);
+
+        return ['available_date' => $date->format('Y-m-d'), 'creation' => Employee::find($nextCreationId)];
     }
 
     public static function edit(array $data) {
@@ -269,14 +462,43 @@ class Briefing extends Model
         return $briefing;
     }
 
-    public static function filter($query) {
-       $briefings = Briefing::where('event', 'like', $query . '%')
-        ->paginate(50);
+    public static function filter($params) {
+        $iniDate = isset($params['iniDate']) ? $params['iniDate'] : null;
+        $finDate = isset($params['finDate']) ? $params['finDate'] : null;
+        $paginate = isset($params['paginate']) ? $params['paginate'] : true;
+        $briefings = Briefing::select();
 
-        foreach($briefings as $briefing) {
-            $briefing->job_type;
-            $briefing->attendance;
-            $briefing->client;
+        if($iniDate != null && $finDate != null) {
+            $briefings->where('available_date', '>=', $iniDate);
+            $briefings->where('available_date', '<=', $finDate);
+        }
+
+        if($paginate) {
+            $briefings = $briefings->paginate(50);
+            
+            foreach($briefings as $briefing) {
+                $briefing->agency;
+                $briefing->creation;
+                $briefing->job;
+                $briefing->job_type;
+                $briefing->attendance;
+                $briefing->client;
+                $briefing->status = 'Stand-by';
+            }
+        } else {
+            $briefings = $briefings->get();
+            
+            foreach($briefings as $briefing) {
+                $briefing->agency;
+                $briefing->creation;
+                $briefing->job;
+                $briefing->job_type;
+                $briefing->attendance;
+                $briefing->client;
+                $briefing->status = 'Stand-by';
+            }
+
+            $briefings = ['data' => $briefings, 'page' => 0, 'total' => $briefings->count()];
         }
 
         return $briefings;
@@ -722,5 +944,13 @@ class Briefing extends Model
 
     public function setBudgetAttribute($value) {
         $this->attributes['budget'] = (float) str_replace(',', '.', $value);
+    }
+
+    public function setEstimatedTimeAttribute($value) {
+        $this->attributes['estimated_time'] = (float) str_replace(',', '.', $value);
+    }
+
+    public function setEstimated_timeAttribute($value) {
+        $this->attributes['estimated_time'] = (float) str_replace(',', '.', $value);
     }
 }
