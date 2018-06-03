@@ -63,8 +63,6 @@ class BriefingController extends Controller
             $briefing = Briefing::edit($data);
             $message = 'Briefing alterado com sucesso!';
             $status = true;
-            $briefing->editFiles($oldBriefing, $data);
-            $briefing->editFilesChild($oldChild, $data);
             DB::commit();
         } catch(QueryException $queryException) {
             DB::rollBack();

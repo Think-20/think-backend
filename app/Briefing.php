@@ -943,7 +943,7 @@ class Briefing extends Model
     }
 
     public function setBudgetAttribute($value) {
-        $this->attributes['budget'] = (float) str_replace(',', '.', $value);
+        $this->attributes['budget'] = (float) str_replace(',', '.', str_replace('.', '', $value));
     }
 
     public function setEstimatedTimeAttribute($value) {
