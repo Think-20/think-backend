@@ -7,6 +7,7 @@ use Illuminate\Http\UploadedFile;
 use PHPExcel_IOFactory;
 use PHPExcel_Settings;
 use DB;
+use DateTime;
 
 use App\Validators\Validator;
 use App\Interfaces\Contactable;
@@ -44,7 +45,13 @@ class Client extends Model implements Contactable
             $client->status;
         }
 
-        return $clients;
+        $lastData = Client::orderBy('updated_at', 'desc')->limit(1)->first();
+        $updatedInfo = (new DateTime($lastData->updated_at))->format('d/m/Y');
+
+        return [
+            'pagination' => $clients,
+            'updatedInfo' => $updatedInfo
+        ];
     }
 
     public static function edit(array $data) {
@@ -156,7 +163,13 @@ class Client extends Model implements Contactable
             $client->status;
         }
 
-        return $clients;
+        $lastData = Client::orderBy('updated_at', 'desc')->limit(1)->first();
+        $updatedInfo = (new DateTime($lastData->updated_at))->format('d/m/Y');
+
+        return [
+            'pagination' => $clients,
+            'updatedInfo' => $updatedInfo
+        ];
     }
 
     public static function byName($name) {
@@ -278,7 +291,13 @@ class Client extends Model implements Contactable
             $client->status;
         }
 
-        return $clients;
+        $lastData = Client::orderBy('updated_at', 'desc')->limit(1)->first();
+        $updatedInfo = (new DateTime($lastData->updated_at))->format('d/m/Y');
+
+        return [
+            'pagination' => $clients,
+            'updatedInfo' => $updatedInfo
+        ];
     }
 
     public static function editMyClient(array $data) {
@@ -383,7 +402,13 @@ class Client extends Model implements Contactable
             $client->status;
         }
 
-        return $clients;
+        $lastData = Client::orderBy('updated_at', 'desc')->limit(1)->first();
+        $updatedInfo = (new DateTime($lastData->updated_at))->format('d/m/Y');
+
+        return [
+            'pagination' => $clients,
+            'updatedInfo' => $updatedInfo
+        ];
     }
     
     public function getCnpjAttribute($value) {

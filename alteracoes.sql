@@ -1,2 +1,1 @@
-UPDATE functionality SET url = '/briefings/filter' where id = 50;
-ALTER TABLE briefing MODIFY estimated_time FLOAT(2,1);
+alter table briefing modify column last_provider varchar(100);
