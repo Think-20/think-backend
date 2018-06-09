@@ -382,11 +382,11 @@ class Briefing extends Model
             case 'briefing': {
                 $path = resource_path('assets/files/briefings/') . $briefing->id;
 
-                if(!array_key_exists($file, Briefing::fileArrayFields())) {
+                if(!is_file($path . '/' . $file)) {
                     throw new \Exception('O arquivo solicitado não existe.');
                 }
 
-                $path .= '/' . $briefing->{$file};
+                $path .= '/' . $file;
                 
                 $content = file_get_contents($path);
                 $mime = mime_content_type($path);
@@ -395,7 +395,7 @@ class Briefing extends Model
             case 'stand': {
                 $path = resource_path('assets/files/stands/') . $briefing->stand->id;
 
-                if(!array_key_exists($file, Stand::fileArrayFields())) {
+                if(!is_file($path . '/' . $file)) {
                     throw new \Exception('O arquivo solicitado não existe.');
                 }
                 
@@ -592,7 +592,7 @@ class Briefing extends Model
             case 'stand': {
                 $path = resource_path('assets/files/stands/') . $briefing->stand->id;
 
-                if(!array_key_exists($file, Stand::fileArrayFields())) {
+                if(!is_file($path . '/' . $file)) {
                     throw new \Exception('O arquivo solicitado não existe.');
                 }
                 
