@@ -1,2 +1,2 @@
-alter table briefing modify column last_provider varchar(100);
-alter table briefing modify column estimated_time decimal(3,1) not null;
+insert into functionality values (69, '/briefing/edit-available-date', 'Mudar data disponível do briefing');
+insert into functionality values (70, '/my-briefing/edit-available-date', 'Mudar data disponível dos briefings próprios');

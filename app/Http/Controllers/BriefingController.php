@@ -56,11 +56,36 @@ class BriefingController extends Controller
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
-        $oldBriefing = Briefing::find($request->id);
-        $oldChild = Briefing::getBriefingChild($oldBriefing);
+        //$oldBriefing = Briefing::find($request->id);
+        //$oldChild = Briefing::getBriefingChild($oldBriefing);
 
         try {
             $briefing = Briefing::edit($data);
+            $message = 'Briefing alterado com sucesso!';
+            $status = true;
+            DB::commit();
+        } catch(QueryException $queryException) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
+        } catch(Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
+            // . $e->getFile() . $e->getLine();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+         ]), 200);
+    }
+
+    public static function editAvailableDate(Request $request) {
+        DB::beginTransaction();
+        $status = false;
+        $data = $request->all();
+
+        try {
+            $briefing = Briefing::editAvailableDate($data);
             $message = 'Briefing alterado com sucesso!';
             $status = true;
             DB::commit();
@@ -127,6 +152,32 @@ class BriefingController extends Controller
         return Briefing::filter($request->all());
     }
 
+
+    public static function myEditAvailableDate(Request $request) {
+        DB::beginTransaction();
+        $status = false;
+        $data = $request->all();
+
+        try {
+            $briefing = Briefing::myEditAvailableDate($data);
+            $message = 'Briefing alterado com sucesso!';
+            $status = true;
+            DB::commit();
+        } catch(QueryException $queryException) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
+        } catch(Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
+            // . $e->getFile() . $e->getLine();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+         ]), 200);
+    }
+
     public static function saveMyBriefing(Request $request) {
         $data = $request->all();
         $status = false;
@@ -159,8 +210,8 @@ class BriefingController extends Controller
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
-        $oldBriefing = Briefing::find($request->id);
-        $oldChild = Briefing::getBriefingChild($oldBriefing);
+        //$oldBriefing = Briefing::find($request->id);
+        //$oldChild = Briefing::getBriefingChild($oldBriefing);
 
         try {
             $briefing = Briefing::editMyBriefing($data);

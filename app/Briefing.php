@@ -10,6 +10,8 @@ use DateInterval;
 
 class Briefing extends Model
 {
+    public $timestamps = true;
+
     protected $table = 'briefing';
 
     protected $fillable = [
@@ -131,6 +133,13 @@ class Briefing extends Model
                         ->orderBy('available_date', 'DESC')
                         ->limit(1)
                         ->first();
+
+                        /* Nenhum trabalho para o criação, atribuir um */
+                        if($lastBriefingOfCreation == null) {
+                            $nextCreationId = $freeCreation;
+                            $dateNotFound = false;
+                            break;
+                        }
 
                         $estimatedTimeOfCreation = (int) ceil($lastBriefingOfCreation->estimated_time);
 
@@ -467,6 +476,8 @@ class Briefing extends Model
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
         $briefings = Briefing::select();
+        $briefings->orderBy('available_date', 'ASC');
+        $briefings->orderBy('attendance_id', 'ASC');
 
         if($iniDate != null && $finDate != null) {
             $briefings->where('available_date', '>=', $iniDate);
@@ -504,8 +515,30 @@ class Briefing extends Model
         return $briefings;
     }
 
+    public static function editAvailableDate(array $data) {
+        $id = $data['id'];
+        $briefing = Briefing::find($id);
+        $available_date = isset($data['available_date']) ? $data['available_date'] : null;
+        $briefing->update(['available_date' => $available_date]);
+        return $briefing;
+    }
+
     
     #My Briefing#
+
+    public static function myEditAvailableDate(array $data) {
+        $id = $data['id'];
+        $briefing = Briefing::find($id);
+        $available_date = isset($data['available_date']) ? $data['available_date'] : null;
+
+        if($briefing->attendance_id != User::logged()->employee->id) {
+            throw new \Exception('Você não tem permissão para editar esse briefing.');
+        }
+
+        $briefing->update(['available_date' => $available_date]);
+        return $briefing;
+    }
+
     public static function editMyBriefing(array $data) {
         Briefing::checkData($data, true);
 

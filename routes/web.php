@@ -54,7 +54,7 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/states/all', 'AddressController@allStates')->name('allStates');
     Route::get('/states/{stateName}', 'AddressController@states')->name('states');
     Route::get('/cities/{stateId}/{cityName}', 'AddressController@cities')->name('cities');
-    
+
     Route::get('/client-types/all', 'ClientTypeController@all');
     Route::get('/client-status/all', 'ClientStatusController@all');
     Route::get('/employees/can-insert-clients', 'EmployeeController@canInsertClients');
@@ -170,6 +170,8 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/briefings/get/{id}', 'BriefingController@get');
     Route::post('/briefings/filter', 'BriefingController@filter');
     Route::get('/briefing/download/{id}/{type}/{file}', 'BriefingController@downloadFile');
+    Route::put('/briefing/edit-available-date', 'BriefingController@editAvailableDate');
+    Route::put('/my-briefing/edit-available-date', 'BriefingController@myEditAvailableDate');
 
     Route::post('/my-briefing/save', 'BriefingController@saveMyBriefing');
     Route::put('/my-briefing/edit', 'BriefingController@editMyBriefing');
