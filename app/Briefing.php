@@ -142,7 +142,6 @@ class Briefing extends Model
                         }
 
                         $estimatedTimeOfCreation = (int) ceil($lastBriefingOfCreation->estimated_time);
-
                         $availableDateOfCreation = new DateTime($lastBriefingOfCreation->available_date);
                         $availableDateOfCreation->add(new DateInterval('P' . ($estimatedTimeOfCreation) . 'D'));
 
@@ -151,13 +150,54 @@ class Briefing extends Model
                             $nextCreationId = $freeCreation;
                             $dateNotFound = false;
                             break;
-                        } else {
-                            $nextCreationId = null;
+                        } else {                        
+                            //Retroceder datas para ver se há compromisso no buraco
+                            $tempDate = clone $date;
+                            $tempDate->sub(new DateInterval('P10D'));
+                            $previousBriefing = Briefing::where('creation_id', '=', $freeCreation)
+                            ->where('available_date', '>=', $tempDate->format('Y-m-d'))
+                            ->where('available_date', '<=', $lastBriefingOfCreation->available_date)
+                            ->orderBy('available_date', 'ASC')
+                            ->get();    
+                            
+                            $firstDate = new DateTime($previousBriefing[0]->available_date);
+                            $lastDate = new DateTime($previousBriefing[count($previousBriefing) - 1]->available_date);
+                            $interval = (int) $lastDate->diff($firstDate)->format('%d');
+
+                            for($index = 1; $index <= $interval; $i++) {
+                                $filterArray = $previousBriefing->reject(function ($pBriefing) use ($date) {
+                                    return (new DateTime($pBriefing->available_date))->format('d') != $date->format('d');
+                                });
+
+                                foreach($filterArray as $fa) {
+                                    $estimatedTimeOfCreation = (int) ceil($fa->estimated_time);
+                                    $availableDateOfCreation = new DateTime($fa->available_date);
+                                    $availableDateOfCreation->add(new DateInterval('P' . ($estimatedTimeOfCreation) . 'D'));
+                                    
+                                    if($availableDateOfCreation > $tempDate) {
+                                        $tempDate = $availableDateOfCreation;
+
+                                        if($availableDateOfCreation > $date) {
+                                            break;
+                                        }
+                                    }
+                                }
+                                    
+                                if($tempDate == $date) {
+                                    $nextCreationId = $freeCreation;
+                                    $dateNotFound = false;
+                                    break;
+                                }
+
+                                $tempDate->add(new DateInterval('P1D'));
+                            }                           
                         }
                     }
                     
                     if(!$dateNotFound) {
                         break;
+                    } else {
+                        $nextCreationId = null;
                     }
                 }
 
