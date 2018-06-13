@@ -18,10 +18,15 @@ class BriefingController extends Controller
             'data' => Briefing::loadForm()
          ]), 200); 
     }
+
     public static function recalculateNextDate($nextEstimatedTime) {
         return Response::make(json_encode([
             'data' => Briefing::recalculateNextDate($nextEstimatedTime)
          ]), 200); 
+    }
+    
+    public static function getNextAvailableDate($date) {
+        return Response::make(json_encode(Briefing::getNextAvailableDate($date)), 200); 
     }
 
     public static function save(Request $request) {

@@ -50,6 +50,7 @@ Route::get('/pass', function() {
 Route::group(['middleware' => ['auth.api']], function() {
 
     Route::post('/upload-file', 'UploadFileController@upload');
+    Route::get('/briefing/get-next-available/{date}', 'BriefingController@getNextAvailableDate');
 
     Route::get('/states/all', 'AddressController@allStates')->name('allStates');
     Route::get('/states/{stateName}', 'AddressController@states')->name('states');

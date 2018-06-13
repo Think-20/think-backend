@@ -26,7 +26,7 @@ class Briefing extends Model
     ];
 
     public static function loadForm() {
-        $dataNext  = Briefing::getNextAvailableDate();
+        $dateNext  = Briefing::getNextAvailableDate();
 
         return [
             'jobs' => Job::all(),
@@ -35,18 +35,18 @@ class Briefing extends Model
             'creations' => Employee::whereHas('department', function($query) {
                 $query->where('description', '=', 'Criação');
             })->get(),
-            'creation' => $dataNext[1],
+            'creation' => $dateNext['creation'],
             'competitions' => BriefingCompetition::all(),
             'main_expectations' => BriefingMainExpectation::all(),
             'levels' => BriefingLevel::all(),
             'how_comes' => BriefingHowCome::all(),
             'presentations' => BriefingPresentation::all(),
-            'available_date' => $dataNext[0]
+            'available_date' => $dateNext['available_date']
         ];
     }
 
-    public static function getNextAvailableDate() {
-        $date = new DateTime('now');
+    public static function getNextAvailableDate($dateParam = 'now') {
+        $date = new DateTime($dateParam);
         $weekDayDiff = ((int) $date->format('N')) > 5 ? ((int) $date->format('N') - 5) + 1 :  0;
         $date->add(new DateInterval('P' . ($weekDayDiff) . 'D'));
         
@@ -168,7 +168,7 @@ class Briefing extends Model
             }
         } while ($dateNotFound);
 
-        return [$date->format('Y-m-d'), Employee::find($nextCreationId)];
+        return ['available_date' => $date->format('Y-m-d'), 'creation' => Employee::find($nextCreationId)];
     }
 
     public static function recalculateNextDate($nextEstimatedTime) {
@@ -519,13 +519,13 @@ class Briefing extends Model
         $id = $data['id'];
         $briefing = Briefing::find($id);
         $available_date = isset($data['available_date']) ? $data['available_date'] : null;
-        $briefing->update(['available_date' => $available_date]);
+        $creation_id = isset($data['creation_id']) ? $data['creation_id'] : null;
+        $briefing->update(['available_date' => $available_date, 'creation_id' => $creation_id]);
         return $briefing;
     }
 
     
     #My Briefing#
-
     public static function myEditAvailableDate(array $data) {
         $id = $data['id'];
         $briefing = Briefing::find($id);
