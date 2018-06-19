@@ -18,7 +18,8 @@ class Briefing extends Model
         'code',
         'job_id', 'client_id', 'event', 'deadline', 'job_type_id', 'agency_id', 'attendance_id',
         'creation_id', 'rate', 'competition_id', 'last_provider', 'estimated_time', 'not_client',
-        'how_come_id', 'approval_expectation_rate', 'main_expectation_id', 'available_date', 'budget'
+        'how_come_id', 'approval_expectation_rate', 'main_expectation_id', 'available_date', 'budget',
+        'status_id'
     ];
 
     protected $dates = [
@@ -41,6 +42,7 @@ class Briefing extends Model
             'levels' => BriefingLevel::all(),
             'how_comes' => BriefingHowCome::all(),
             'presentations' => BriefingPresentation::all(),
+            'status' => BriefingStatus::all(),
             'available_date' => $dateNext['available_date']
         ];
     }
@@ -356,6 +358,7 @@ class Briefing extends Model
                 'client_id' => $client_id,
                 'agency_id' => $agency_id,
                 'main_expectation_id' => $data['main_expectation']['id'],
+                'status_id' => $data['status']['id'],
                 'how_come_id' => $data['how_come']['id'],
                 'attendance_id' => $data['attendance']['id'],
                 'creation_id' => $data['creation']['id'],
@@ -388,6 +391,7 @@ class Briefing extends Model
                 'job_id' => $data['job']['id'],
                 'client_id' => $client_id,
                 'main_expectation_id' => $data['main_expectation']['id'],
+                'status_id' => $data['status']['id'],
                 'how_come_id' => $data['how_come']['id'],
                 'job_type_id' => $data['job_type']['id'],
                 'agency_id' => $agency_id,
@@ -485,7 +489,7 @@ class Briefing extends Model
             $briefing->job_type;
             $briefing->attendance;
             $briefing->client;
-            $briefing->status = 'Stand-by';
+            $briefing->status;
         }
 
         return $briefings;
@@ -505,6 +509,7 @@ class Briefing extends Model
         $briefing->competition;
         $briefing->presentations;
         $briefing->files;
+        $briefing->status;
 
         //Briefing::getBriefingChild($briefing);
 
@@ -528,25 +533,37 @@ class Briefing extends Model
             $briefings = $briefings->paginate(50);
             
             foreach($briefings as $briefing) {
-                $briefing->agency;
-                $briefing->creation;
                 $briefing->job;
                 $briefing->job_type;
-                $briefing->attendance;
                 $briefing->client;
-                $briefing->status = 'Stand-by';
+                $briefing->main_expectation;
+                $briefing->levels;
+                $briefing->how_come;
+                $briefing->agency;
+                $briefing->attendance;
+                $briefing->creation;
+                $briefing->competition;
+                $briefing->presentations;
+                $briefing->files;
+                $briefing->status;
             }
         } else {
             $briefings = $briefings->get();
             
             foreach($briefings as $briefing) {
-                $briefing->agency;
-                $briefing->creation;
                 $briefing->job;
                 $briefing->job_type;
-                $briefing->attendance;
                 $briefing->client;
-                $briefing->status = 'Stand-by';
+                $briefing->main_expectation;
+                $briefing->levels;
+                $briefing->how_come;
+                $briefing->agency;
+                $briefing->attendance;
+                $briefing->creation;
+                $briefing->competition;
+                $briefing->presentations;
+                $briefing->files;
+                $briefing->status;
             }
 
             $briefings = ['data' => $briefings, 'page' => 0, 'total' => $briefings->count()];
@@ -598,6 +615,7 @@ class Briefing extends Model
                 'client_id' => $client_id,
                 'agency_id' => $agency_id,
                 'main_expectation_id' => $data['main_expectation']['id'],
+                'status_id' => $data['status']['id'],
                 'how_come_id' => $data['how_come']['id'],
                 'attendance_id' => $data['attendance']['id'],
                 'creation_id' => $data['creation']['id'],
@@ -713,6 +731,7 @@ class Briefing extends Model
             $briefing->job_type;
             $briefing->attendance;
             $briefing->client;
+            $briefing->status;
         }
 
         return $briefings;
@@ -733,6 +752,7 @@ class Briefing extends Model
         $briefing->how_come;
         $briefing->agency;
         $briefing->attendance;
+        $briefing->status;
         $briefing->creation;
         $briefing->competition;
         $briefing->presentations;
@@ -748,9 +768,19 @@ class Briefing extends Model
         ->paginate(50);
 
         foreach($briefings as $briefing) {
+            $briefing->job;
             $briefing->job_type;
-            $briefing->attendance;
             $briefing->client;
+            $briefing->main_expectation;
+            $briefing->levels;
+            $briefing->how_come;
+            $briefing->agency;
+            $briefing->attendance;
+            $briefing->creation;
+            $briefing->competition;
+            $briefing->presentations;
+            $briefing->files;
+            $briefing->status;
         }
 
         return $briefings;
@@ -923,11 +953,9 @@ class Briefing extends Model
             throw new \Exception('Job do briefing não informado!');
         }
 
-        /*
-        if(!isset($data['client']['id'])) {
-            throw new \Exception('Expositor do briefing não cadastrado!');
+        if(!isset($data['status']['id'])) {
+            throw new \Exception('Status não informado!');
         }
-        */
 
         if(!isset($data['main_expectation']['id'])) {
             throw new \Exception('Expectativa principal do briefing não informada!');
@@ -1001,6 +1029,10 @@ class Briefing extends Model
 
     public function competition() {
         return $this->belongsTo('App\BriefingCompetition', 'competition_id');
+    }
+
+    public function status() {
+        return $this->belongsTo('App\BriefingStatus', 'status_id');
     }
 
     public function presentations() {

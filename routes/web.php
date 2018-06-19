@@ -78,6 +78,9 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/briefing-competitions/all', 'BriefingCompetitionController@all');
     Route::get('/briefing-competitions/filter/{query}', 'BriefingCompetitionController@filter');
     
+    Route::get('/briefing-status/all', 'BriefingStatusController@all');
+    Route::get('/briefing-status/filter/{query}', 'BriefingStatusController@filter');
+    
     Route::get('/briefing-presentations/all', 'BriefingPresentationController@all');
     Route::get('/briefing-presentations/filter/{query}', 'BriefingPresentationController@filter');
     
