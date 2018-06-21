@@ -56,4 +56,17 @@ inner join employee e on e.department_id IN (5)
 left join user u on u.employee_id = e.id
 where (f.id >= 48 AND f.id <= 51) OR (f.id IN(60,62,68));
 
+#Telas e permissões para criação
+insert into display_user (display_id, user_id) 
+select d.id, u.id from display d 
+inner join employee e on e.department_id IN (5)
+left join user u on u.employee_id = e.id
+where d.id IN (27,30,31);
+
+insert into user_functionality (functionality_id, user_id) 
+select f.id, u.id from functionality f 
+inner join employee e on e.department_id IN (6)
+left join user u on u.employee_id = e.id
+where (f.id >= 48 AND f.id <= 51) OR (f.id IN(60,62,68));
+
 

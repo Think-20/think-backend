@@ -42,7 +42,7 @@ Route::get('/assets/images/{filename}', function ($filename)
 /*
 Route::get('/pass', function() {
     dd( [
-        'Marcus' => bcrypt('m2229'),
+        'Williane' => bcrypt('w2431'),
     ]);
 });
 */
