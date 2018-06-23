@@ -15,7 +15,7 @@ class Briefing extends Model
     protected $table = 'briefing';
 
     protected $fillable = [
-        'code', 'briefing_id',
+        'code', 'internal_creation',
         'job_id', 'client_id', 'event', 'deadline', 'job_type_id', 'agency_id', 'attendance_id',
         'creation_id', 'rate', 'competition_id', 'last_provider', 'estimated_time', 'not_client',
         'how_come_id', 'approval_expectation_rate', 'main_expectation_id', 'available_date', 'budget',
@@ -70,6 +70,7 @@ class Briefing extends Model
 
         do {
             $nextBriefings = Briefing::where('available_date', '>=', $date->format('Y-m-d'))
+            ->whereNotNull('estimated_time')
             ->orderBy('available_date', 'ASC')
             ->orderBy('creation_id', 'ASC')
             ->limit(30)
@@ -236,6 +237,7 @@ class Briefing extends Model
 
         do {
             $nextBriefings = Briefing::where('available_date', '>=', $date->format('Y-m-d'))
+            ->whereNotNull('estimated_time')
             ->orderBy('available_date', 'ASC')
             ->orderBy('creation_id', 'ASC')
             ->limit(30)
@@ -351,8 +353,6 @@ class Briefing extends Model
         $id = $data['id'];
         $agency_id = isset($data['agency']['id']) ? $data['agency']['id'] : null;
         $client_id = isset($data['client']['id']) ? $data['client']['id'] : null;
-        $briefing_id = isset($data['briefing']['id']) ? $data['briefing']['id'] : null;
-        $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
         $creation_id = isset($data['creation']['id']) ? $data['creation']['id'] : null;
         $briefing = Briefing::find($id);
         $oldBriefing = clone $briefing;
@@ -361,8 +361,6 @@ class Briefing extends Model
                 'job_id' => $data['job']['id'],
                 'client_id' => $client_id,
                 'agency_id' => $agency_id,
-                'briefing_id' => $briefing_id,
-                'responsible_id' => $responsible_id,
                 'main_expectation_id' => $data['main_expectation']['id'],
                 'status_id' => $data['status']['id'],
                 'how_come_id' => $data['how_come']['id'],
@@ -390,8 +388,6 @@ class Briefing extends Model
         $code = Briefing::generateCode();
         $agency_id = isset($data['agency']['id']) ? $data['agency']['id'] : null;
         $client_id = isset($data['client']['id']) ? $data['client']['id'] : null;
-        $briefing_id = isset($data['briefing']['id']) ? $data['briefing']['id'] : null;
-        $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
         $creation_id = isset($data['creation']['id']) ? $data['creation']['id'] : null;
 
         $briefing = new Briefing(
@@ -399,8 +395,6 @@ class Briefing extends Model
                 'code' => $code,
                 'job_id' => $data['job']['id'],
                 'client_id' => $client_id,
-                'briefing_id' => $briefing_id,
-                'responsible_id' => $responsible_id,
                 'main_expectation_id' => $data['main_expectation']['id'],
                 'status_id' => $data['status']['id'],
                 'how_come_id' => $data['how_come']['id'],
@@ -501,8 +495,6 @@ class Briefing extends Model
             $briefing->attendance;
             $briefing->client;
             $briefing->status;
-            $briefing->responsible;
-            $briefing->briefing;
         }
 
         return $briefings;
@@ -523,8 +515,6 @@ class Briefing extends Model
         $briefing->presentations;
         $briefing->files;
         $briefing->status;
-        $briefing->responsible;
-        $briefing->briefing;
 
         //Briefing::getBriefingChild($briefing);
 
@@ -534,11 +524,18 @@ class Briefing extends Model
     public static function filter($params) {
         $iniDate = isset($params['iniDate']) ? $params['iniDate'] : null;
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
+        $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'available_date';
         $status = isset($params['status']) ? $params['status'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
         $briefings = Briefing::select();
-        $briefings->orderBy('available_date', 'ASC');
+
+        if($orderBy == 'available_date') {
+            $briefings->orderBy('available_date', 'ASC');
+        } else if($orderBy == 'created_at') {
+            $briefings->orderBy('created_at', 'DESC');
+        }
         $briefings->orderBy('attendance_id', 'ASC');
+
 
         if($iniDate != null && $finDate != null) {
             $briefings->where('available_date', '>=', $iniDate);
@@ -566,8 +563,6 @@ class Briefing extends Model
                 $briefing->presentations;
                 $briefing->files;
                 $briefing->status;
-                $briefing->responsible;
-                $briefing->briefing;
             }
         } else {
             $briefings = $briefings->get();
@@ -586,8 +581,6 @@ class Briefing extends Model
                 $briefing->presentations;
                 $briefing->files;
                 $briefing->status;
-                $briefing->responsible;
-                $briefing->briefing;
             }
 
             $briefings = ['data' => $briefings, 'page' => 0, 'total' => $briefings->count()];
@@ -627,8 +620,6 @@ class Briefing extends Model
         $briefing = Briefing::find($id);
         $agency_id = isset($data['agency']['id']) ? $data['agency']['id'] : null;
         $client_id = isset($data['client']['id']) ? $data['client']['id'] : null;
-        $briefing_id = isset($data['briefing']['id']) ? $data['briefing']['id'] : null;
-        $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
         $creation_id = isset($data['creation']['id']) ? $data['creation']['id'] : null;
 
         if($briefing->attendance_id != User::logged()->employee->id) {
@@ -641,8 +632,6 @@ class Briefing extends Model
                 'job_id' => $data['job']['id'],
                 'client_id' => $client_id,
                 'agency_id' => $agency_id,
-                'briefing_id' => $briefing_id,
-                'responsible_id' => $responsible_id,
                 'main_expectation_id' => $data['main_expectation']['id'],
                 'status_id' => $data['status']['id'],
                 'how_come_id' => $data['how_come']['id'],
@@ -761,8 +750,6 @@ class Briefing extends Model
             $briefing->attendance;
             $briefing->client;
             $briefing->status;
-            $briefing->responsible;
-            $briefing->briefing;
         }
 
         return $briefings;
@@ -788,8 +775,6 @@ class Briefing extends Model
         $briefing->competition;
         $briefing->presentations;
         $briefing->files;
-        $briefing->responsible;
-        $briefing->briefing;
 
         //Briefing::getBriefingChild($briefing);
         return $briefing;
@@ -814,8 +799,6 @@ class Briefing extends Model
             $briefing->presentations;
             $briefing->files;
             $briefing->status;
-            $briefing->responsible;
-            $briefing->briefing;
         }
 
         return $briefings;
@@ -1055,14 +1038,6 @@ class Briefing extends Model
 
     public function agency() {
         return $this->belongsTo('App\Client', 'agency_id');
-    }
-
-    public function briefing() {
-        return $this->belongsTo('App\Briefing', 'briefing_id');
-    }
-
-    public function responsible() {
-        return $this->belongsTo('App\Employee', 'responsible_id');
     }
 
     public function attendance() {
