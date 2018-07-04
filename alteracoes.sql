@@ -72,4 +72,3 @@ insert into functionality values(null, '/budget/edit', 'Editar um orçamento');
 alter table job change column budget budget_value decimal(14,2) not null;
 
 
-

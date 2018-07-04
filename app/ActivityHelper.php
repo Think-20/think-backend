@@ -62,7 +62,8 @@ class ActivityHelper {
         foreach($modelList as $key => $model) {
             $date = new DateTime($model->{$dateField});
 
-            $estimatedTimeOfCreation = (int) ceil($model->estimated_time);
+            $estimatedTime = $model->estimated_time != null ? $model->estimated_time : 1;
+            $estimatedTimeOfCreation = (int) ceil($estimatedTime);
             $availableDateOfCreation = DateHelper::sumUtil($date, $estimatedTimeOfCreation);
 
             $responsible_id = $model->responsible_id;

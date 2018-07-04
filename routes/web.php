@@ -17,34 +17,23 @@ Route::get('/', function () {
 
 /*
 Route::get('/test', function () {
-    $inserir = Request::input('inserir');
     $estimated_time = 1;
 
     $arr = App\ActivityHelper::calculateNextDate(
-        '2018-06-27',
+        '2018-07-04',
         
-        App\Employee::where('department_id', '=', '5')
+        App\Employee::where('name', 'LIKE', 'Rafaela%')
             ->get(),
 
         $estimated_time,
 
-        App\Briefing::where('available_date', '>=', '2018-06-17')
+        App\Budget::where('available_date', '>=', '2018-06-04')
+            ->where('available_date', '<=', '2018-08-04')
             ->orderBy('available_date', 'ASC')
             ->orderBy('responsible_id', 'ASC')
             ->limit(30)
             ->get()
     );
-
-    $briefing = new App\Briefing([
-        'job_id' => 2,
-        'available_date' => $arr['date'],
-        'responsible_id' => $arr['id'],
-        'estimated_time' => $estimated_time
-    ]);
-
-    if($inserir == 'true') {
-        $briefing->save();
-    }  
 
     dd($arr);
 });
@@ -117,9 +106,6 @@ Route::group(['middleware' => ['auth.api']], function() {
     
     Route::get('/briefing-presentations/all', 'BriefingPresentationController@all');
     Route::get('/briefing-presentations/filter/{query}', 'BriefingPresentationController@filter');
-    
-    Route::get('/briefing-special-presentations/all', 'BriefingSpecialPresentationController@all');
-    Route::get('/briefing-special-presentations/filter/{query}', 'BriefingSpecialPresentationController@filter');
     
     Route::get('/stand-configurations/all', 'StandConfigurationController@all');
     Route::get('/stand-configurations/filter/{query}', 'StandConfigurationController@filter');

@@ -102,9 +102,9 @@ class JobController extends Controller
 
     public static function downloadFile($id, $type, $file) {
         try {
-            $file = Job::downloadFile($id, $type, $file);
+            $fileFound = Job::downloadFile($id, $type, $file);
             $status = true;
-            return Response::make(file_get_contents($file), 200, ['Content-Type' => mime_content_type($file)]);
+            return Response::make(file_get_contents($fileFound), 200, ['Content-Type' => mime_content_type($fileFound)]);
         } catch(Exception $e) {
             $message = 'Um erro ocorreu ao abrir o arquivo: ' . $e->getMessage();
             return Response::make($message, 404);

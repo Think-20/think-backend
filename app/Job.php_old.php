@@ -179,53 +179,106 @@ class Job extends Model
         $status = isset($params['status']) ? $params['status'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
 
-        $jobs = Job::selectRaw('*, job.id as id')
-        ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels',
-        'how_come', 'agency', 'attendance', 'creation', 'competition', 'files', 'status')
-        ->leftJoin('briefing', 'job.id', '=', 'briefing.job_id')        
-        ->leftJoin('budget', 'job.id', '=', 'budget.job_id');
-        
-        if( ! is_null($iniDate) && ! is_null($finDate) ) {
-            $sql = '(briefing.available_date >= "' . $iniDate . '"';
-            $sql .= ' AND briefing.available_date <= "' . $finDate . '")';
-            $sql .= 'OR (budget.available_date >= "' . $iniDate . '"';
-            $sql .= ' AND budget.available_date <= "' . $finDate . '")';
-            $jobs->whereRaw($sql);
-        }
-
-        if( ! is_null($status) ) {
-            $jobs->where('status_id', '=', $status);
-        }
-
-        if($orderBy == 'available_date') {
-            $jobs->orderBy('briefing.available_date', 'ASC');
-            $jobs->orderBy('budget.available_date', 'ASC');
-        } else if($orderBy == 'created_at') {
-            $jobs->orderBy('created_at', 'DESC');
-        }
-
         if($paginate) {
-            $paginate = $jobs->paginate(50);
-            $result = $paginate->items();
-            $page = $paginate->currentPage();
-            $total = $paginate->total();
-        } else {
-            $result = $jobs->get();
-
-            foreach($result as $job) {
+            $jobs = Job::orderBy('created_at', 'desc')->paginate(50);
+            
+            foreach($jobs as $job) {
+                $job->job_activity;
+                $job->job_type;
+                $job->client;
+                $job->main_expectation;
+                $job->levels;
+                $job->how_come;
+                $job->agency;
+                $job->attendance;
+                $job->creation;
+                $job->competition;
+                $job->files;
+                $job->status;
                 $job->briefing ? $job->briefing->get() : null;
                 $job->budget ? $job->budget->get() : null;
             }
 
-            $total = $jobs->count();
-            $page = 0;
+            return $jobs;
         }
 
-        return [
-            'data' => $result,
-            'total' => $total,
-            'page' => $page
-        ];
+
+        $jobs = Job::select()
+            ->leftJoin('briefing', 'job.id', '=', 'briefing.job_id');
+        $jobs2 = Job::select()
+        ->leftJoin('budget', 'job.id', '=', 'budget.job_id');
+        
+        if($iniDate != null && $finDate != null) {
+            $jobs->where('briefing.available_date', '>=', $iniDate);
+            $jobs->where('briefing.available_date', '<=', $finDate);
+            $jobs2->where('budget.available_date', '>=', $iniDate);
+            $jobs2->where('budget.available_date', '<=', $finDate);
+        }
+        
+        if($status != null) {
+            $jobs->where('status_id', '=', $status);
+            $jobs2->where('status_id', '=', $status);
+        }
+        
+        /*
+        if($orderBy == 'available_date') {
+            $jobs->orderBy('briefing.available_date', 'ASC');
+        } else if($orderBy == 'created_at') {
+            $jobs->orderBy('created_at', 'DESC');
+        }
+        */
+        $jobs->orderBy('created_at', 'DESC');
+        $jobs->orderBy('attendance_id', 'ASC');
+        $jobs2->orderBy('created_at', 'DESC');
+        $jobs2->orderBy('attendance_id', 'ASC');
+
+        if($paginate) {
+            $jobs = $jobs->paginate(50);
+            dd($jobs);
+            $jobs = $jobs->merge($jobs2->paginate(50));
+            
+            foreach($jobs as $job) {
+                $job->job_activity;
+                $job->job_type;
+                $job->client;
+                $job->main_expectation;
+                $job->levels;
+                $job->how_come;
+                $job->agency;
+                $job->attendance;
+                $job->creation;
+                $job->competition;
+                $job->files;
+                $job->status;
+                $job->briefing ? $job->briefing->get() : null;
+                $job->budget ? $job->budget->get() : null;
+            }
+
+        } else {
+            $jobs = $jobs->get();
+            $jobs = $jobs->merge($jobs2->get());
+            
+            foreach($jobs as $job) {
+                $job->job_activity;
+                $job->job_type;
+                $job->client;
+                $job->main_expectation;
+                $job->levels;
+                $job->how_come;
+                $job->agency;
+                $job->attendance;
+                $job->creation;
+                $job->competition;
+                $job->files;
+                $job->status;
+                $job->briefing ? $job->briefing->get() : null;
+                $job->budget ? $job->budget->get() : null;
+            }
+
+            $jobs = ['data' => $jobs, 'page' => 0, 'total' => $jobs->count()];
+        }
+
+        return $jobs;
     }
 
     
