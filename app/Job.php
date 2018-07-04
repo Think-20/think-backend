@@ -176,6 +176,31 @@ class Job extends Model
         $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'available_date';
         $status = isset($params['status']) ? $params['status'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
+
+        if($paginate) {
+            $jobs = Job::orderBy('created_at', 'desc')->paginate(50);
+            
+            foreach($jobs as $job) {
+                $job->job_activity;
+                $job->job_type;
+                $job->client;
+                $job->main_expectation;
+                $job->levels;
+                $job->how_come;
+                $job->agency;
+                $job->attendance;
+                $job->creation;
+                $job->competition;
+                $job->files;
+                $job->status;
+                $job->briefing ? $job->briefing->get() : null;
+                $job->budget ? $job->budget->get() : null;
+            }
+
+            return $jobs;
+        }
+
+
         $jobs = Job::select()
             ->leftJoin('briefing', 'job.id', '=', 'briefing.job_id');
         $jobs2 = Job::select()
@@ -207,6 +232,7 @@ class Job extends Model
 
         if($paginate) {
             $jobs = $jobs->paginate(50);
+            dd($jobs);
             $jobs = $jobs->merge($jobs2->paginate(50));
             
             foreach($jobs as $job) {
@@ -225,6 +251,7 @@ class Job extends Model
                 $job->briefing ? $job->briefing->get() : null;
                 $job->budget ? $job->budget->get() : null;
             }
+
         } else {
             $jobs = $jobs->get();
             $jobs = $jobs->merge($jobs2->get());
