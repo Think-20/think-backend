@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\BriefingLevel;
+use App\JobLevel;
 use Illuminate\Http\Request;
 
-class BriefingLevelController extends Controller
+class JobLevelController extends Controller
 {
     public static function all() {
-        return BriefingLevel::all();
+        return JobLevel::all();
     }
 
     public static function filter($query) {
-        return BriefingLevel::filter($query);
+        return JobLevel::filter($query);
     }
 }

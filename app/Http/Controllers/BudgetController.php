@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Job;
+use App\Budget;
 use Exception;
 use Response;
 
@@ -12,25 +12,31 @@ use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
 use App\FileHelper;
 
-class JobController extends Controller
+class BudgetController extends Controller
 {
     public static function loadForm() {        
         return Response::make(json_encode([
-            'data' => Job::loadForm()
+            'data' => Budget::loadForm()
          ]), 200); 
     }
     
+
+    public static function recalculateNextDate($nextEstimatedTime) {
+        return Response::make(json_encode([
+            'data' => Budget::recalculateNextDate($nextEstimatedTime)
+         ]), 200); 
+    }
+
     public static function save(Request $request) {
         $data = $request->all();
         $status = false;
-        $job = null;
+        $budget = null;
 
         DB::beginTransaction();
 
         try {
-            $job = Job::insert($data);
-            $code = str_pad($job->code, 4, '0', STR_PAD_LEFT) . '/' . $job->created_at->format('Y');
-            $message = 'Job ' . $code . ' cadastrado com sucesso!';
+            $budget = Budget::insert($data);
+            $message = 'Orçamento cadastrado com sucesso!';
             DB::commit();
             $status = true;
         } 
@@ -44,7 +50,7 @@ class JobController extends Controller
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-            'job' => $job
+            'budget' => $budget
          ]), 200);
     }
 
@@ -52,12 +58,79 @@ class JobController extends Controller
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
-        //$oldJob = Job::find($request->id);
-        //$oldChild = Job::getJobChild($oldJob);
+        //$oldBudget = Budget::find($request->id);
+        //$oldChild = Budget::getBudgetChild($oldBudget);
 
         try {
-            $job = Job::edit($data);
-            $message = 'Job alterado com sucesso!';
+            $budget = Budget::edit($data);
+            $message = 'Orçamento alterado com sucesso!';
+            $status = true;
+            DB::commit();
+        } catch(QueryException $queryException) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
+        } catch(Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
+            // . $e->getFile() . $e->getLine();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+         ]), 200);
+    }
+
+    /*
+
+    public static function recalculateNextDate($nextEstimatedTime) {
+        return Response::make(json_encode([
+            'data' => Budget::recalculateNextDate($nextEstimatedTime)
+         ]), 200); 
+    }
+    
+    public static function getNextAvailableDate($date) {
+        return Response::make(json_encode(Budget::getNextAvailableDate($date)), 200); 
+    }
+
+    public static function save(Request $request) {
+        $data = $request->all();
+        $status = false;
+        $budget = null;
+
+        DB::beginTransaction();
+
+        try {
+            $budget = Budget::insert($data);
+            $code = str_pad($budget->code, 4, '0', STR_PAD_LEFT) . '/' . $budget->created_at->format('Y');
+            $message = 'Budget ' . $code . ' cadastrado com sucesso!';
+            DB::commit();
+            $status = true;
+        } 
+        // Catch com FileException tamanho máximo
+        catch(Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
+             //. $e->getFile() . $e->getLine();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+            'budget' => $budget
+         ]), 200);
+    }
+
+    public static function edit(Request $request) {
+        DB::beginTransaction();
+        $status = false;
+        $data = $request->all();
+        //$oldBudget = Budget::find($request->id);
+        //$oldChild = Budget::getBudgetChild($oldBudget);
+
+        try {
+            $budget = Budget::edit($data);
+            $message = 'Budget alterado com sucesso!';
             $status = true;
             DB::commit();
         } catch(QueryException $queryException) {
@@ -81,8 +154,8 @@ class JobController extends Controller
         $data = $request->all();
 
         try {
-            $job = Job::editAvailableDate($data);
-            $message = 'Job alterado com sucesso!';
+            $budget = Budget::editAvailableDate($data);
+            $message = 'Budget alterado com sucesso!';
             $status = true;
             DB::commit();
         } catch(QueryException $queryException) {
@@ -102,7 +175,7 @@ class JobController extends Controller
 
     public static function downloadFile($id, $type, $file) {
         try {
-            $file = Job::downloadFile($id, $type, $file);
+            $file = Budget::downloadFile($id, $type, $file);
             $status = true;
             return Response::make(file_get_contents($file), 200, ['Content-Type' => mime_content_type($file)]);
         } catch(Exception $e) {
@@ -116,8 +189,8 @@ class JobController extends Controller
         $status = false;
 
         try {
-            $job = Job::remove($id);
-            $message = 'Job deletado com sucesso!';
+            $budget = Budget::remove($id);
+            $message = 'Budget deletado com sucesso!';
             $status = true;
             DB::commit();
         } catch(QueryException $queryException) {
@@ -135,17 +208,17 @@ class JobController extends Controller
     }
 
     public static function get(int $id) {
-        return Job::get($id);
+        return Budget::get($id);
     }
 
     public static function all() {
-        $jobs = Job::list();
+        $budgets = Budget::list();
 
-        return $jobs;
+        return $budgets;
     }
 
     public static function filter(Request $request) {
-        return Job::filter($request->all());
+        return Budget::filter($request->all());
     }
 
 
@@ -155,8 +228,8 @@ class JobController extends Controller
         $data = $request->all();
 
         try {
-            $job = Job::myEditAvailableDate($data);
-            $message = 'Job alterado com sucesso!';
+            $budget = Budget::myEditAvailableDate($data);
+            $message = 'Budget alterado com sucesso!';
             $status = true;
             DB::commit();
         } catch(QueryException $queryException) {
@@ -174,21 +247,21 @@ class JobController extends Controller
          ]), 200);
     }
 
-    public static function saveMyJob(Request $request) {
+    public static function saveMyBudget(Request $request) {
         $data = $request->all();
         $status = false;
-        $job = null;
+        $budget = null;
 
         DB::beginTransaction();
 
         try {
-            $job = Job::insert($data);
-            $code = str_pad($job->code, 4, '0', STR_PAD_LEFT) . '/' . $job->created_at->format('Y');
-            $message = 'Job ' . $code . ' cadastrado com sucesso!';
+            $budget = Budget::insert($data);
+            $code = str_pad($budget->code, 4, '0', STR_PAD_LEFT) . '/' . $budget->created_at->format('Y');
+            $message = 'Budget ' . $code . ' cadastrado com sucesso!';
             $status = true;
             DB::commit();
         } 
-        /* Catch com FileException tamanho máximo */
+        //Catch com FileException tamanho máximo
         catch(Exception $e) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
@@ -198,20 +271,20 @@ class JobController extends Controller
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-            'job' => $job
+            'budget' => $budget
          ]), 200);
     }
 
-    public static function editMyJob(Request $request) {
+    public static function editMyBudget(Request $request) {
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
-        //$oldJob = Job::find($request->id);
-        //$oldChild = Job::getJobChild($oldJob);
+        //$oldBudget = Budget::find($request->id);
+        //$oldChild = Budget::getBudgetChild($oldBudget);
 
         try {
-            $job = Job::editMyJob($data);
-            $message = 'Job alterado com sucesso!';
+            $budget = Budget::editMyBudget($data);
+            $message = 'Budget alterado com sucesso!';
             $status = true;
             DB::commit();
         } catch(QueryException $queryException) {
@@ -229,9 +302,9 @@ class JobController extends Controller
          ]), 200);
     }
 
-    public static function downloadFileMyJob($id, $type, $filename) {
+    public static function downloadFileMyBudget($id, $type, $filename) {
         try {
-            $file = Job::downloadFileMyJob($id, $type, $filename);
+            $file = Budget::downloadFileMyBudget($id, $type, $filename);
             $status = true;
             return Response::make(file_get_contents($file), 200, [
                 'Content-Type' => mime_content_type($file), 
@@ -243,13 +316,13 @@ class JobController extends Controller
         }
     }
 
-    public static function removeMyJob(int $id) {
+    public static function removeMyBudget(int $id) {
         DB::beginTransaction();
         $status = false;
 
         try {
-            $job = Job::removeMyJob($id);
-            $message = 'Job deletado com sucesso!';
+            $budget = Budget::removeMyBudget($id);
+            $message = 'Budget deletado com sucesso!';
             $status = true;
             DB::commit();
         } catch(QueryException $queryException) {
@@ -266,17 +339,18 @@ class JobController extends Controller
          ]), 200);
     }
 
-    public static function getMyJob(int $id) {
-        return Job::getMyJob($id);
+    public static function getMyBudget(int $id) {
+        return Budget::getMyBudget($id);
     }
 
-    public static function allMyJob() {
-        $jobs = Job::listMyJob();
+    public static function allMyBudget() {
+        $budgets = Budget::listMyBudget();
 
-        return $jobs;
+        return $budgets;
     }
 
-    public static function filterMyJob($query) {
-        return Job::filterMyJob($query);
+    public static function filterMyBudget($query) {
+        return Budget::filterMyBudget($query);
     }
+    */
 }

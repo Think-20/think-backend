@@ -4,9 +4,9 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class BriefingSpecialPresentation extends Model
+class JobHowCome extends Model
 {
-    protected $table = 'briefing_special_presentation';
+    protected $table = 'job_how_come';
 
     protected $fillable = [
         'description'

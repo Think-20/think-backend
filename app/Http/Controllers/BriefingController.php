@@ -10,14 +10,77 @@ use DB;
 
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
+use App\FileHelper;
 
 class BriefingController extends Controller
 {
-    public static function loadForm() {
+    public static function loadForm() {        
         return Response::make(json_encode([
             'data' => Briefing::loadForm()
          ]), 200); 
     }
+
+    public static function recalculateNextDate($nextEstimatedTime) {
+        return Response::make(json_encode([
+            'data' => Briefing::recalculateNextDate($nextEstimatedTime)
+         ]), 200); 
+    }
+
+    public static function save(Request $request) {
+        $data = $request->all();
+        $status = false;
+        $briefing = null;
+
+        DB::beginTransaction();
+
+        try {
+            $briefing = Briefing::insert($data);
+            $message = 'Briefing cadastrado com sucesso!';
+            DB::commit();
+            $status = true;
+        } 
+        /* Catch com FileException tamanho máximo */
+        catch(Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
+             //. $e->getFile() . $e->getLine();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+            'briefing' => $briefing
+         ]), 200);
+    }
+
+    public static function edit(Request $request) {
+        DB::beginTransaction();
+        $status = false;
+        $data = $request->all();
+        //$oldBriefing = Briefing::find($request->id);
+        //$oldChild = Briefing::getBriefingChild($oldBriefing);
+
+        try {
+            $briefing = Briefing::edit($data);
+            $message = 'Briefing alterado com sucesso!';
+            $status = true;
+            DB::commit();
+        } catch(QueryException $queryException) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
+        } catch(Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
+            // . $e->getFile() . $e->getLine();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+         ]), 200);
+    }
+
+    /*
 
     public static function recalculateNextDate($nextEstimatedTime) {
         return Response::make(json_encode([
@@ -43,7 +106,7 @@ class BriefingController extends Controller
             DB::commit();
             $status = true;
         } 
-        /* Catch com FileException tamanho máximo */
+        // Catch com FileException tamanho máximo
         catch(Exception $e) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
@@ -197,7 +260,7 @@ class BriefingController extends Controller
             $status = true;
             DB::commit();
         } 
-        /* Catch com FileException tamanho máximo */
+        //Catch com FileException tamanho máximo
         catch(Exception $e) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
@@ -288,4 +351,5 @@ class BriefingController extends Controller
     public static function filterMyBriefing($query) {
         return Briefing::filterMyBriefing($query);
     }
+    */
 }

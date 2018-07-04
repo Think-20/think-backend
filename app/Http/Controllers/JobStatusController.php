@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\BriefingStatus;
+use App\JobStatus;
 use Illuminate\Http\Request;
 
-class BriefingStatusController extends Controller
+class JobStatusController extends Controller
 {
     public static function all() {
-        return BriefingStatus::all();
+        return JobStatus::all();
     }
 
     public static function filter($query) {
-        return BriefingStatus::filter($query);
+        return JobStatus::filter($query);
     }
 }

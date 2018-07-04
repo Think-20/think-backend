@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\BriefingHowCome;
+use App\JobCompetition;
 use Illuminate\Http\Request;
 
-class BriefingHowComeController extends Controller
+class JobCompetitionController extends Controller
 {
     public static function all() {
-        return BriefingHowCome::all();
+        return JobCompetition::all();
     }
 
     public static function filter($query) {
-        return BriefingHowCome::filter($query);
+        return JobCompetition::filter($query);
     }
 }

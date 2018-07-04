@@ -15,6 +15,41 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+/*
+Route::get('/test', function () {
+    $inserir = Request::input('inserir');
+    $estimated_time = 1;
+
+    $arr = App\ActivityHelper::calculateNextDate(
+        '2018-06-27',
+        
+        App\Employee::where('department_id', '=', '5')
+            ->get(),
+
+        $estimated_time,
+
+        App\Briefing::where('available_date', '>=', '2018-06-17')
+            ->orderBy('available_date', 'ASC')
+            ->orderBy('responsible_id', 'ASC')
+            ->limit(30)
+            ->get()
+    );
+
+    $briefing = new App\Briefing([
+        'job_id' => 2,
+        'available_date' => $arr['date'],
+        'responsible_id' => $arr['id'],
+        'estimated_time' => $estimated_time
+    ]);
+
+    if($inserir == 'true') {
+        $briefing->save();
+    }  
+
+    dd($arr);
+});
+*/
+
 Route::post('/login', 'UserController@login')->name('login');
 Route::post('/logout', 'UserController@logout')->name('logout');
 
@@ -50,7 +85,6 @@ Route::get('/pass', function() {
 Route::group(['middleware' => ['auth.api']], function() {
 
     Route::post('/upload-file', 'UploadFileController@upload');
-    Route::get('/briefing/get-next-available/{date}', 'BriefingController@getNextAvailableDate');
 
     Route::get('/states/all', 'AddressController@allStates')->name('allStates');
     Route::get('/states/{stateName}', 'AddressController@states')->name('states');
@@ -67,8 +101,8 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/measures/all', 'MeasureController@all');
     Route::get('/measures/filter/{query}', 'MeasureController@filter');
     
-    Route::get('/jobs/all', 'JobController@all');
-    Route::get('/jobs/filter/{query}', 'JobController@filter');
+    Route::get('/job-activities/all', 'JobActivityController@all');
+    Route::get('/job-activities/filter/{query}', 'JobActivityController@filter');
     
     Route::get('timecard/places/all', 'TimecardPlaceController@all');
     
@@ -78,8 +112,8 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/briefing-competitions/all', 'BriefingCompetitionController@all');
     Route::get('/briefing-competitions/filter/{query}', 'BriefingCompetitionController@filter');
     
-    Route::get('/briefing-status/all', 'BriefingStatusController@all');
-    Route::get('/briefing-status/filter/{query}', 'BriefingStatusController@filter');
+    Route::get('/job-status/all', 'JobStatusController@all');
+    Route::get('/job-status/filter/{query}', 'JobStatusController@filter');
     
     Route::get('/briefing-presentations/all', 'BriefingPresentationController@all');
     Route::get('/briefing-presentations/filter/{query}', 'BriefingPresentationController@filter');
@@ -102,8 +136,10 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/briefing-how-comes/all', 'BriefingHowComeController@all');
     Route::get('/briefing-how-comes/filter/{query}', 'BriefingHowComeController@filter');
     
+    Route::get('/jobs/load-form', 'JobController@loadForm');
     Route::get('/briefings/load-form', 'BriefingController@loadForm');
     Route::get('/briefings/recalculate-next-date/{nextEstimatedTime}', 'BriefingController@recalculateNextDate');
+    Route::get('/budgets/load-form', 'BudgetController@loadForm');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {
@@ -167,21 +203,27 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/item/save-child-item/{id}', 'ItemController@saveChildItem');
     Route::delete('/item/{itemId}/remove-child-item/{childItemId}', 'ItemController@removeChildItem');
 
+    Route::post('/job/save', 'JobController@save');
+    Route::put('/job/edit', 'JobController@edit');
+    Route::delete('/job/remove/{id}', 'JobController@remove');
+    Route::get('/jobs/all', 'JobController@all');
+    Route::get('/jobs/get/{id}', 'JobController@get');
+    Route::post('/jobs/filter', 'JobController@filter');
+    Route::get('/job/download/{id}/{type}/{file}', 'JobController@downloadFile');
+    Route::put('/job/edit-available-date', 'JobController@editAvailableDate');
+    Route::put('/my-job/edit-available-date', 'JobController@myEditAvailableDate');
+
+    Route::post('/my-job/save', 'JobController@saveMyBriefing');
+    Route::put('/my-job/edit', 'JobController@editMyBriefing');
+    Route::delete('/my-job/remove/{id}', 'JobController@removeMyBriefing');
+    Route::get('/my-jobs/all', 'JobController@allMyBriefing');
+    Route::get('/my-jobs/get/{id}', 'JobController@getMyBriefing');
+    Route::get('/my-jobs/filter', 'JobController@filterMyBriefing');
+    Route::get('/my-job/download/{id}/{type}/{file}', 'JobController@downloadFileMyBriefing');
+    
     Route::post('/briefing/save', 'BriefingController@save');
     Route::put('/briefing/edit', 'BriefingController@edit');
-    Route::delete('/briefing/remove/{id}', 'BriefingController@remove');
-    Route::get('/briefings/all', 'BriefingController@all');
-    Route::get('/briefings/get/{id}', 'BriefingController@get');
-    Route::post('/briefings/filter', 'BriefingController@filter');
-    Route::get('/briefing/download/{id}/{type}/{file}', 'BriefingController@downloadFile');
-    Route::put('/briefing/edit-available-date', 'BriefingController@editAvailableDate');
-    Route::put('/my-briefing/edit-available-date', 'BriefingController@myEditAvailableDate');
-
-    Route::post('/my-briefing/save', 'BriefingController@saveMyBriefing');
-    Route::put('/my-briefing/edit', 'BriefingController@editMyBriefing');
-    Route::delete('/my-briefing/remove/{id}', 'BriefingController@removeMyBriefing');
-    Route::get('/my-briefings/all', 'BriefingController@allMyBriefing');
-    Route::get('/my-briefings/get/{id}', 'BriefingController@getMyBriefing');
-    Route::get('/my-briefings/filter/{query}', 'BriefingController@filterMyBriefing');
-    Route::get('/my-briefing/download/{id}/{type}/{file}', 'BriefingController@downloadFileMyBriefing');
+    
+    Route::post('/budget/save', 'BudgetController@save');
+    Route::put('/budget/edit', 'BudgetController@edit');
 });

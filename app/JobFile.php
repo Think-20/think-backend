@@ -4,13 +4,13 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class BriefingFile extends Model
+class JobFile extends Model
 {
     public $timestamps = false;
     
-    protected $table = 'briefing_file';
+    protected $table = 'job_file';
 
     protected $fillable = [
-        'filename', 'briefing_id'
+        'filename', 'job_id'
     ];
 }
