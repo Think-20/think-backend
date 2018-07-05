@@ -88,7 +88,7 @@ class Briefing extends Model {
         ]));
 
         $briefing->save();
-        //$briefing->saveChild($data);  
+        $briefing->saveChild($data);  
 
         $arrayPresentations = !isset($data['presentations']) ? [] : $data['presentations'];
         $briefing->savePresentations($arrayPresentations);
@@ -107,7 +107,7 @@ class Briefing extends Model {
             ])
         );  
 
-        //$briefing->editChild($data);       
+        $briefing->editChild($data);       
 
         $arrayPresentations = !isset($data['presentations']) ? [] : $data['presentations'];
         $briefing->savePresentations($arrayPresentations); 
@@ -116,6 +116,7 @@ class Briefing extends Model {
     public function get() {
         $this->presentations;
         $this->responsible;
+        Briefing::getBriefingChild($this);
     }
 
     public function savePresentations(array $data) {
@@ -127,39 +128,38 @@ class Briefing extends Model {
     }
 
     public function saveChild($data) {
-        if($this->job_type->description === 'Stand') {
+        if($this->job->job_type->description === 'Stand') {
             Stand::insert($this, $data['stand']);
         }
     }
  
     public function saveFilesChild($data) {
-        if($this->job_type->description === 'Stand') {
+        if($this->job->job_type->description === 'Stand') {
             $this->stand->saveFiles($data['stand']);
         }
     }
  
     public function editChild($data) {
-        if($this->job_type->description === 'Stand') {
+        if($this->job->job_type->description === 'Stand') {
             Stand::edit($data['stand']);
         }
     }
  
     public function editFilesChild($oldChild, $data) {
-        if($this->job_type->description === 'Stand') {
+        if($this->job->job_type->description === 'Stand') {
             $this->stand->editFiles($oldChild, $data['stand']);
         }
     }
  
     public function deleteChild() {
-        if($this->job_type->description === 'Stand') {
+        if($this->job->job_type->description === 'Stand') {
             Stand::remove($this->stand->id);
         }
     }
  
-    public static function getBriefingChild(Briefing $job) {
-        if($job->job_type->description === 'Stand') {
-            $stand = $job->stand;
-            $stand->job;
+    public static function getBriefingChild(Briefing $briefing) {
+        if($briefing->job->job_type->description === 'Stand') {
+            $stand = $briefing->stand;
             $stand->configuration;
             $stand->genre;
             $stand->column = $stand->column == 0 ? ['id' => 0] : ['id' => 1];
@@ -170,6 +170,14 @@ class Briefing extends Model {
 
             return $stand;
         }
+    }
+
+    public function job() {
+        return $this->belongsTo('App\Job', 'job_id');
+    }
+
+    public function stand() {
+        return $this->HasOne('App\Stand', 'briefing_id');
     }
 
     public function presentations() {

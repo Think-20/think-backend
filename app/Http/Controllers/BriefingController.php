@@ -42,8 +42,8 @@ class BriefingController extends Controller
         /* Catch com FileException tamanho máximo */
         catch(Exception $e) {
             DB::rollBack();
-            $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
-             //. $e->getFile() . $e->getLine();
+            $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage()//;
+             . $e->getFile() . $e->getLine();
         }
 
         return Response::make(json_encode([

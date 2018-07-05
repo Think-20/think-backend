@@ -30,6 +30,7 @@ class Stand extends Model
             ])
         );
         $stand->saveStandItems($data);
+        $stand->editFiles($data);
         return $stand;
     }
 
@@ -47,6 +48,7 @@ class Stand extends Model
 
         $stand->save();
         $stand->saveStandItems($data);
+        $stand->saveFiles($data);
     }
 
     public function saveStandItems(array $data) {

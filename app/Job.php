@@ -114,7 +114,7 @@ class Job extends Model
                 break;
             }
             case 'stand': {
-                $path = resource_path('assets/files/stands/') . $job->stand->id . '/' . $job->stand->{$file};
+                $path = resource_path('assets/files/stands/') . $job->briefing->stand->id . '/' . $job->briefing->stand->{$file};
                 break;
             } 
             default: {
@@ -123,7 +123,6 @@ class Job extends Model
         }
 
         FileHelper::checkIfExists($path);
-
         return $path;
     }
 
