@@ -47,10 +47,10 @@ class Client extends Model implements Contactable
 
         $lastData = Client::orderBy('updated_at', 'desc')->limit(1)->first();
         $updatedInfo = (new DateTime($lastData->updated_at))->format('d/m/Y');
-
+        
         return [
             'pagination' => $clients,
-            'updatedInfo' => $updatedInfo
+            'updatedInfo' => Client::updatedInfo()
         ];
     }
 
@@ -163,12 +163,18 @@ class Client extends Model implements Contactable
             $client->status;
         }
 
-        $lastData = Client::orderBy('updated_at', 'desc')->limit(1)->first();
-        $updatedInfo = (new DateTime($lastData->updated_at))->format('d/m/Y');
-
         return [
             'pagination' => $clients,
-            'updatedInfo' => $updatedInfo
+            'updatedInfo' => Client::updatedInfo()
+        ];
+    }
+
+    public static function updatedInfo() {
+        $lastData = Client::orderBy('updated_at', 'desc')->limit(1)->first();
+
+        return [
+            'date' => (new DateTime($lastData->updated_at))->format('d/m/Y'),
+            'employee' => $lastData->employee->name
         ];
     }
 
@@ -290,13 +296,10 @@ class Client extends Model implements Contactable
             $client->type;
             $client->status;
         }
-
-        $lastData = Client::orderBy('updated_at', 'desc')->limit(1)->first();
-        $updatedInfo = (new DateTime($lastData->updated_at))->format('d/m/Y');
-
+        
         return [
             'pagination' => $clients,
-            'updatedInfo' => $updatedInfo
+            'updatedInfo' => Client::updatedInfo()
         ];
     }
 
@@ -401,13 +404,10 @@ class Client extends Model implements Contactable
             $client->type;
             $client->status;
         }
-
-        $lastData = Client::orderBy('updated_at', 'desc')->limit(1)->first();
-        $updatedInfo = (new DateTime($lastData->updated_at))->format('d/m/Y');
-
+        
         return [
             'pagination' => $clients,
-            'updatedInfo' => $updatedInfo
+            'updatedInfo' => Client::updatedInfo()
         ];
     }
     
