@@ -33,6 +33,34 @@ class Budget extends Model {
         ];
     }
 
+    public function remove() {
+        $this->delete();
+    }
+
+    public static function getNextAvailableDate($availableDate, $estimatedTime, $swap) {
+        $responsibles = Employee::where('name', 'LIKE', 'Rafaela%')->get();
+        $date = new DateTime($availableDate);
+        $activityList = Budget::where('available_date', '>=', DateHelper::subUtil($date, 10)->format('Y-m-d'))
+        ->where('available_date' , '<=', DateHelper::sumUtil($date, 30)->format('Y-m-d'))
+        ->orderBy('available_date', 'ASC')
+        ->orderBy('responsible_id', 'ASC')
+        ->limit(30)
+        ->get();
+
+        if($swap) {
+            $activityList = $activityList->reject(function ($model) use ($availableDate) {
+                return $model->available_date == $availableDate;
+            });
+        }
+
+        $arr = ActivityHelper::calculateNextDate($date->format('Y-m-d'), $responsibles, $estimatedTime, $activityList);
+
+        return [
+            'available_date' => ($arr['date'])->format('Y-m-d'),
+            'responsible' =>  $arr['responsible']
+        ];
+    }
+
     public static function editAvailableDate(array $data) {
         $id = $data['id'];
         $budget = Budget::find($id);

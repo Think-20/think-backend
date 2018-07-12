@@ -79,6 +79,61 @@ class BriefingController extends Controller
             'status' => $status,
          ]), 200);
     }
+    
+    public static function getNextAvailableDate($availableDate, $estimatedTime, $swap) {
+        return Response::make(json_encode(Briefing::getNextAvailableDate($availableDate, $estimatedTime, $swap)), 200); 
+    }
+
+    public static function editAvailableDate(Request $request) {
+        DB::beginTransaction();
+        $status = false;
+        $data = $request->all();
+
+        try {
+            $briefing = Briefing::editAvailableDate($data);
+            $message = 'Briefing alterado com sucesso!';
+            $status = true;
+            DB::commit();
+        } catch(QueryException $queryException) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
+        } catch(Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
+            // . $e->getFile() . $e->getLine();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+         ]), 200);
+    }
+
+
+    public static function myEditAvailableDate(Request $request) {
+        DB::beginTransaction();
+        $status = false;
+        $data = $request->all();
+
+        try {
+            $briefing = Briefing::myEditAvailableDate($data);
+            $message = 'Briefing alterado com sucesso!';
+            $status = true;
+            DB::commit();
+        } catch(QueryException $queryException) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
+        } catch(Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
+            // . $e->getFile() . $e->getLine();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+         ]), 200);
+    }
 
     /*
 
@@ -86,10 +141,6 @@ class BriefingController extends Controller
         return Response::make(json_encode([
             'data' => Briefing::recalculateNextDate($nextEstimatedTime)
          ]), 200); 
-    }
-    
-    public static function getNextAvailableDate($date) {
-        return Response::make(json_encode(Briefing::getNextAvailableDate($date)), 200); 
     }
 
     public static function save(Request $request) {
@@ -129,31 +180,6 @@ class BriefingController extends Controller
 
         try {
             $briefing = Briefing::edit($data);
-            $message = 'Briefing alterado com sucesso!';
-            $status = true;
-            DB::commit();
-        } catch(QueryException $queryException) {
-            DB::rollBack();
-            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
-        } catch(Exception $e) {
-            DB::rollBack();
-            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
-            // . $e->getFile() . $e->getLine();
-        }
-
-        return Response::make(json_encode([
-            'message' => $message,
-            'status' => $status,
-         ]), 200);
-    }
-
-    public static function editAvailableDate(Request $request) {
-        DB::beginTransaction();
-        $status = false;
-        $data = $request->all();
-
-        try {
-            $briefing = Briefing::editAvailableDate($data);
             $message = 'Briefing alterado com sucesso!';
             $status = true;
             DB::commit();
@@ -218,32 +244,6 @@ class BriefingController extends Controller
 
     public static function filter(Request $request) {
         return Briefing::filter($request->all());
-    }
-
-
-    public static function myEditAvailableDate(Request $request) {
-        DB::beginTransaction();
-        $status = false;
-        $data = $request->all();
-
-        try {
-            $briefing = Briefing::myEditAvailableDate($data);
-            $message = 'Briefing alterado com sucesso!';
-            $status = true;
-            DB::commit();
-        } catch(QueryException $queryException) {
-            DB::rollBack();
-            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
-        } catch(Exception $e) {
-            DB::rollBack();
-            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
-            // . $e->getFile() . $e->getLine();
-        }
-
-        return Response::make(json_encode([
-            'message' => $message,
-            'status' => $status,
-         ]), 200);
     }
 
     public static function saveMyBriefing(Request $request) {

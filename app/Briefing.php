@@ -37,20 +37,26 @@ class Briefing extends Model {
         ];
     }
 
-    public static function recalculateNextDate($estimatedTime) {
+    public static function getNextAvailableDate($availableDate, $estimatedTime, $swap) {
         $responsibles = Employee::whereHas('department', function($query) {
             $query->where('description', '=', 'Criação');
         })->get();
 
-        $now = new DateTime('now');
-        $activityList = Briefing::where('available_date', '>=', DateHelper::subUtil($now, 10)->format('Y-m-d'))
-        ->where('available_date' , '<=', DateHelper::sumUtil($now, 30)->format('Y-m-d'))
+        $date = new DateTime($availableDate);
+        $activityList = Briefing::where('available_date', '>=', DateHelper::subUtil($date, 10)->format('Y-m-d'))
+        ->where('available_date' , '<=', DateHelper::sumUtil($date, 30)->format('Y-m-d'))
         ->orderBy('available_date', 'ASC')
         ->orderBy('responsible_id', 'ASC')
         ->limit(30)
         ->get();
 
-        $arr = ActivityHelper::calculateNextDate($now->format('Y-m-d'), $responsibles, $estimatedTime, $activityList);
+        if($swap) {
+            $activityList = $activityList->reject(function ($model) use ($availableDate) {
+                return $model->available_date == $availableDate;
+            });
+        }
+
+        $arr = ActivityHelper::calculateNextDate($date->format('Y-m-d'), $responsibles, $estimatedTime, $activityList);
 
         return [
             'available_date' => ($arr['date'])->format('Y-m-d'),
@@ -111,6 +117,12 @@ class Briefing extends Model {
 
         $arrayPresentations = !isset($data['presentations']) ? [] : $data['presentations'];
         $briefing->savePresentations($arrayPresentations); 
+    }
+
+    public function remove() {
+        $this->presentations()->detach();
+        $this->deleteChild();
+        $this->delete();
     }
 
     public function get() {

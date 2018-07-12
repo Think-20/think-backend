@@ -129,9 +129,10 @@ class Job extends Model
     public static function remove($id) {
         $job = Job::find($id);
         $oldJob = clone $job;
-        $job->presentations()->detach();
         $job->levels()->detach();
         $job->deleteFiles();
+        $job->briefing ? $job->briefing->delete() : null;
+        $job->budget ? $job->budget->delete() : null;
         $job->delete();
     }
 

@@ -1,3 +1,5 @@
-alter table stand drop foreign key stand_ibfk_1;
-alter table stand add constraint `stand_ibfk_1` foreign key(briefing_id) references briefing (id) on update cascade on delete no action;
+update functionality set url = REPLACE(url, 'job', 'briefing') WHERE id IN (69,70);
+update functionality set description = REPLACE(description, 'job', 'briefing') WHERE id IN (69,70);
 
+insert into functionality (url, description) values('/budget/edit-available-date', 'Mudar data disponível do orçamento');
+insert into functionality (url, description) values('/my-budget/edit-available-date', 'Mudar data disponível dos orçamentos próprios');

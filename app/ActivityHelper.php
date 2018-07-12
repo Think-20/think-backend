@@ -14,8 +14,8 @@ class ActivityHelper {
         $professionalIdList = $professionalList->map(function($model) use ($dateField) {
             return $model->id;
         });
-
-        if($modelList->count() == 0) {
+        
+        if($modelList->count() == 0 || $modelList->values()->get(0)->{$dateField} > $initialDate->format('Y-m-d')) {
             return ['date' => $initialDate, 'responsible' => $professionalList->find($professionalIdList[0])];
         }
 
@@ -57,7 +57,6 @@ class ActivityHelper {
     protected static function searchDate($modelList, $professionalIdList, $initialDate, $dateField, $duration, $lastExecutionDateList = null) {
         $professionalDateList = [];
         $professionalDateWrite = [];
-
 
         foreach($modelList as $key => $model) {
             $date = new DateTime($model->{$dateField});

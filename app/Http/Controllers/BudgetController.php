@@ -80,6 +80,61 @@ class BudgetController extends Controller
             'status' => $status,
          ]), 200);
     }
+    
+    public static function getNextAvailableDate($availableDate, $estimatedTime, $swap) {
+        return Response::make(json_encode(Budget::getNextAvailableDate($availableDate, $estimatedTime, $swap)), 200); 
+    }
+
+    public static function editAvailableDate(Request $request) {
+        DB::beginTransaction();
+        $status = false;
+        $data = $request->all();
+
+        try {
+            $budget = Budget::editAvailableDate($data);
+            $message = 'Budget alterado com sucesso!';
+            $status = true;
+            DB::commit();
+        } catch(QueryException $queryException) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
+        } catch(Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
+            // . $e->getFile() . $e->getLine();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+         ]), 200);
+    }
+
+
+    public static function myEditAvailableDate(Request $request) {
+        DB::beginTransaction();
+        $status = false;
+        $data = $request->all();
+
+        try {
+            $budget = Budget::myEditAvailableDate($data);
+            $message = 'Budget alterado com sucesso!';
+            $status = true;
+            DB::commit();
+        } catch(QueryException $queryException) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
+        } catch(Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
+            // . $e->getFile() . $e->getLine();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+         ]), 200);
+    }
 
     /*
 
@@ -87,10 +142,6 @@ class BudgetController extends Controller
         return Response::make(json_encode([
             'data' => Budget::recalculateNextDate($nextEstimatedTime)
          ]), 200); 
-    }
-    
-    public static function getNextAvailableDate($date) {
-        return Response::make(json_encode(Budget::getNextAvailableDate($date)), 200); 
     }
 
     public static function save(Request $request) {
@@ -130,31 +181,6 @@ class BudgetController extends Controller
 
         try {
             $budget = Budget::edit($data);
-            $message = 'Budget alterado com sucesso!';
-            $status = true;
-            DB::commit();
-        } catch(QueryException $queryException) {
-            DB::rollBack();
-            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
-        } catch(Exception $e) {
-            DB::rollBack();
-            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
-            // . $e->getFile() . $e->getLine();
-        }
-
-        return Response::make(json_encode([
-            'message' => $message,
-            'status' => $status,
-         ]), 200);
-    }
-
-    public static function editAvailableDate(Request $request) {
-        DB::beginTransaction();
-        $status = false;
-        $data = $request->all();
-
-        try {
-            $budget = Budget::editAvailableDate($data);
             $message = 'Budget alterado com sucesso!';
             $status = true;
             DB::commit();
@@ -219,32 +245,6 @@ class BudgetController extends Controller
 
     public static function filter(Request $request) {
         return Budget::filter($request->all());
-    }
-
-
-    public static function myEditAvailableDate(Request $request) {
-        DB::beginTransaction();
-        $status = false;
-        $data = $request->all();
-
-        try {
-            $budget = Budget::myEditAvailableDate($data);
-            $message = 'Budget alterado com sucesso!';
-            $status = true;
-            DB::commit();
-        } catch(QueryException $queryException) {
-            DB::rollBack();
-            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
-        } catch(Exception $e) {
-            DB::rollBack();
-            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
-            // . $e->getFile() . $e->getLine();
-        }
-
-        return Response::make(json_encode([
-            'message' => $message,
-            'status' => $status,
-         ]), 200);
     }
 
     public static function saveMyBudget(Request $request) {
