@@ -18,7 +18,7 @@ class Job extends Model
         'code', 
         'job_activity_id', 'client_id', 'event', 'deadline', 'job_type_id', 'agency_id', 'attendance_id',
         'rate', 'competition_id', 'last_provider', 'not_client', 'how_come_id', 'approval_expectation_rate', 
-        'main_expectation_id', 'budget_value', 'status_id'
+        'main_expectation_id', 'budget_value', 'status_id', 'note'
     ];
 
     protected $dates = [
@@ -130,6 +130,7 @@ class Job extends Model
         $job = Job::find($id);
         $oldJob = clone $job;
         $job->levels()->detach();
+        $job->tasks->delete();
         $job->deleteFiles();
         $job->briefing ? $job->briefing->delete() : null;
         $job->budget ? $job->budget->delete() : null;
@@ -141,7 +142,7 @@ class Job extends Model
 
         foreach($jobs as $job) {
             $job->agency;
-            $job->creation;
+            #$job->creation;
             $job->job_activity;
             $job->job_type;
             $job->attendance;
@@ -162,10 +163,11 @@ class Job extends Model
         $job->how_come;
         $job->agency;
         $job->attendance;
-        $job->creation;
+        #$job->creation;
         $job->competition;
         $job->files;
         $job->status;
+        #$job->creation;
         $job->briefing ? $job->briefing->get() : null;
         $job->budget ? $job->budget->get() : null;
 
@@ -175,48 +177,35 @@ class Job extends Model
     public static function filter($params) {
         $iniDate = isset($params['iniDate']) ? $params['iniDate'] : null;
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
-        $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'available_date';
+        $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'created_at';
         $status = isset($params['status']) ? $params['status'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
 
         $jobs = Job::selectRaw('*, job.id as id')
         ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels',
-        'how_come', 'agency', 'attendance', 'creation', 'competition', 'files', 'status')
-        ->leftJoin('briefing', 'job.id', '=', 'briefing.job_id')        
-        ->leftJoin('budget', 'job.id', '=', 'budget.job_id');
-        
-        if( ! is_null($iniDate) && ! is_null($finDate) ) {
-            $sql = '(briefing.available_date >= "' . $iniDate . '"';
-            $sql .= ' AND briefing.available_date <= "' . $finDate . '")';
-            $sql .= 'OR (budget.available_date >= "' . $iniDate . '"';
-            $sql .= ' AND budget.available_date <= "' . $finDate . '")';
-            $jobs->whereRaw($sql);
-        }
+        'how_come', 'agency', 'attendance', 'competition', 'files', 'status');
 
         if( ! is_null($status) ) {
             $jobs->where('status_id', '=', $status);
         }
 
-        if($orderBy == 'available_date') {
-            $jobs->orderBy('briefing.available_date', 'ASC');
-            $jobs->orderBy('budget.available_date', 'ASC');
-        } else if($orderBy == 'created_at') {
+        if($orderBy == 'created_at') {
             $jobs->orderBy('created_at', 'DESC');
         }
 
         if($paginate) {
             $paginate = $jobs->paginate(50);
+            foreach($paginate as $job) {
+                $job->creation();
+            }
             $result = $paginate->items();
             $page = $paginate->currentPage();
             $total = $paginate->total();
         } else {
             $result = $jobs->get();
-
             foreach($result as $job) {
-                $job->briefing ? $job->briefing->get() : null;
-                $job->budget ? $job->budget->get() : null;
+                $job->creation();
             }
-
             $total = $jobs->count();
             $page = 0;
         }
@@ -531,6 +520,18 @@ class Job extends Model
         }
     }
 
+    public function tasks() {
+        return $this->hasMany('App\Task', 'job_id');
+    }
+
+    public function creation() {
+        foreach($this->tasks as $task) {
+            if($task->job_activity->description == 'Projeto') {
+                $this->creation = $task->responsible;
+            }
+        }
+    }
+
     public function stand() {
         return $this->hasOne('App\Stand', 'job_id');
     }
@@ -565,10 +566,6 @@ class Job extends Model
 
     public function attendance() {
         return $this->belongsTo('App\Employee', 'attendance_id');
-    }
-
-    public function creation() {
-        return $this->belongsTo('App\Employee', 'creation_id');
     }
 
     public function competition() {

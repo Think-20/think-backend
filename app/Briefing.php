@@ -56,7 +56,7 @@ class Briefing extends Model {
             });
         }
 
-        $arr = ActivityHelper::calculateNextDate($date->format('Y-m-d'), $responsibles, $estimatedTime, $activityList);
+        $arr = ActivityHelper::calculateNextDate($date->format('Y-m-d'), $responsibles, $estimatedTime, $activityList, $swap);
 
         return [
             'available_date' => ($arr['date'])->format('Y-m-d'),

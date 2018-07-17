@@ -39,7 +39,7 @@ insert into user_functionality (functionality_id, user_id)
 select f.id, u.id from functionality f 
 inner join employee e on e.department_id IN (4)
 left join user u on u.employee_id = e.id
-where f.id = 4 OR f.id = 6 OR (f.id >= 19 AND f.id <= 21)
+where f.id = 4 OR f.id = 6 OR (f.id >= 19 AND f.id <= 20)
 OR (f.id >= 23 AND f.id <= 23) OR (f.id >= 31 AND f.id <= 32) 
 OR f.id = 39 OR (f.id >= 52 AND f.id <= 58) OR (f.id IN(60,62,68,70,71,72,73,74));
 

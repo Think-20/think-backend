@@ -63,13 +63,11 @@ Route::get('/assets/images/{filename}', function ($filename)
     return $response;
 });
 
-/*
 Route::get('/pass', function() {
     dd( [
-        'Williane' => bcrypt('w2431'),
+        'Bruna' => bcrypt('b2532'),
     ]);
 });
-*/
 
 Route::group(['middleware' => ['auth.api']], function() {
 
@@ -123,10 +121,17 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/briefing-how-comes/filter/{query}', 'BriefingHowComeController@filter');
     
     Route::get('/jobs/load-form', 'JobController@loadForm');
-    Route::get('/briefings/load-form', 'BriefingController@loadForm');
-    Route::get('/briefings/get-next-available-date/{availableDate}/{estimatedTime}/{swap}', 'BriefingController@getNextAvailableDate');
-    Route::get('/budgets/load-form', 'BudgetController@loadForm');
-    Route::get('/budgets/get-next-available-date/{availableDate}/{estimatedTime}/{swap}', 'BudgetController@getNextAvailableDate');
+    //Route::get('/briefings/load-form', 'BriefingController@loadForm');
+    //Route::get('/briefings/get-next-available-date/{availableDate}/{estimatedTime}/{swap}', 'BriefingController@getNextAvailableDate');
+    //Route::get('/budgets/load-form', 'BudgetController@loadForm');
+    //Route::get('/budgets/get-next-available-date/{availableDate}/{estimatedTime}/{swap}', 'BudgetController@getNextAvailableDate');
+    Route::post('/task/save', 'TaskController@save');
+    Route::post('/my-task/save', 'TaskController@save');
+    Route::get('/tasks/get-next-available-date/{availableDate}/{estimatedTime}/{jobActivity}', 'TaskController@getNextAvailableDate');
+    Route::post('/tasks/filter', 'TaskController@filter');
+    Route::post('/my-tasks/filter', 'TaskController@filter');
+    Route::put('/task/edit-available-date', 'TaskController@editAvailableDate');
+    Route::put('/my-task/edit-available-date', 'TaskController@editAvailableDate');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {
@@ -206,6 +211,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/my-jobs/filter', 'JobController@filterMyBriefing');
     Route::get('/my-job/download/{id}/{type}/{file}', 'JobController@downloadFileMyBriefing');
     
+    /*
     Route::post('/briefing/save', 'BriefingController@save');
     Route::put('/briefing/edit', 'BriefingController@edit');
     Route::put('/briefing/edit-available-date', 'BriefingController@editAvailableDate');
@@ -215,4 +221,5 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::put('/budget/edit', 'BudgetController@edit');
     Route::put('/budget/edit-available-date', 'BudgetController@editAvailableDate');
     Route::put('/my-budget/edit-available-date', 'BudgetController@myEditAvailableDate');
+    */
 });

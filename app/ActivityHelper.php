@@ -7,136 +7,84 @@ use Illuminate\Database\Eloquent\Collection;
 
 class ActivityHelper {
 
-    public static function calculateNextDate($initialDate, Collection $professionalList, $duration, Collection $modelList, $dateField = 'available_date') {
-        $initialDate = DateHelper::validDate(new DateTime($initialDate));
-        ActivityHelper::checkIfProfessionalListIsEmpty($professionalList);
+    public static function calculateNextDate($initialDate, JobActivity $jobActivity, Collection $professionalList, $duration) {
+        $date = DateHelper::nextUtilIfNotUtil(DateHelper::subUtil(new DateTime($initialDate), 1));
+        $professionalId = -1;
+        $professionalIn = '';
 
-        $professionalIdList = $professionalList->map(function($model) use ($dateField) {
-            return $model->id;
-        });
-        
-        if($modelList->count() == 0 || $modelList->values()->get(0)->{$dateField} > $initialDate->format('Y-m-d')) {
-            return ['date' => $initialDate, 'responsible' => $professionalList->find($professionalIdList[0])];
+        foreach($professionalList as $professional) {
+            $professionalIn .= $professional->id . ',';
         }
 
-        $professionalDateList = ActivityHelper::searchDate($modelList, $professionalIdList, $initialDate, $dateField, $duration);
-        $professionalsArrayWithDates = ActivityHelper::organizeData($professionalIdList, $professionalDateList);
-        $professionalSelected = array_shift($professionalsArrayWithDates);
-        
+        $professionalIn = substr($professionalIn, 0, strlen($professionalIn) -1);
+
+        do {
+            $date = DateHelper::sumUtil($date, 1);
+            $items = TaskItem::select()
+            ->leftJoin('task', 'task.id', '=', 'task_item.task_id')
+            ->where('date', '=', $date->format('Y-m-d'))
+            ->whereIn('responsible_id', $professionalList)
+            #->where('job_activity_id', '=', $jobActivity->id)
+            ->get();
+            
+            $groupedItems = ActivityHelper::groupItemsByProfessional($items, $professionalList);
+            $professionalIdInThisDate = ActivityHelper::getAvailableProfessionalInThisDate($groupedItems);
+            $professionalId = ActivityHelper::verifyProfessionalWithDuration($groupedItems, $date, $jobActivity, $professionalIdInThisDate, $duration);
+        } while($professionalId == -1);
+
         return [
-            'date' => $professionalSelected['date'],
-            'responsible' => $professionalList->find($professionalSelected['id'])
+            'date' => $date,
+            'responsible' => Employee::find($professionalId)
         ];
     }
 
-    protected static function organizeData($professionalIdList, $professionalDateList) {
-        $professionalsArrayWithDates = $professionalIdList->toArray();
-        $thisDate = DateHelper::nextUtilIfNotUtil(new DateTime('now'));
-
-        foreach($professionalsArrayWithDates as $key => $id) {
-            $professionalsArrayWithDates[$key] = [
-                'id' => $id,
-                'date' => isset($professionalDateList[$key]) ? $professionalDateList[$key] : $thisDate
-            ];
+    protected static function verifyProfessionalWithDuration(array $groupedItems, DateTime $date, JobActivity $jobActivity, $professionalId, $duration) {
+        if($professionalId == -1  
+        || $duration == 1 && $groupedItems[$professionalId] == 0 
+        || $duration == 0.5 && $groupedItems[$professionalId] == 0.5) {
+            return $professionalId;
         }
 
-        uasort($professionalsArrayWithDates, function($a, $b) use (&$arr) {
-            if ($a['date']->format('Y-m-d') == $b['date']->format('Y-m-d')) {
-                return 0;
-            }
-            else if($a['date']->format('Y-m-d') < $b['date']->format('Y-m-d')) {
-                return -1;
-            } else {
-                return 1;
-            }
-        });
+        $dates = '';
 
-        return $professionalsArrayWithDates;
-    }
-    
-    protected static function searchDate($modelList, $professionalIdList, $initialDate, $dateField, $duration, $lastExecutionDateList = null) {
-        $professionalDateList = [];
-        $professionalDateWrite = [];
-
-        foreach($modelList as $key => $model) {
-            $date = new DateTime($model->{$dateField});
-
-            $estimatedTime = $model->estimated_time != null ? $model->estimated_time : 1;
-            $estimatedTimeOfCreation = (int) ceil($estimatedTime);
-            $availableDateOfCreation = DateHelper::sumUtil($date, $estimatedTimeOfCreation);
-
-            $responsible_id = $model->responsible_id;
-            $indexProfessionalDateList = array_search($responsible_id, $professionalIdList->toArray());
-
-            if( ! isset($professionalDateWrite[$indexProfessionalDateList])) {
-                $professionalDateWrite[$indexProfessionalDateList] = true;
-            }
-
-            $projectInThisDate = $modelList->filter(function($model) use ($availableDateOfCreation, $dateField, $responsible_id) {
-              return DateHelper::compare(new DateTime($model->{$dateField}), $availableDateOfCreation)
-                && $model->responsible_id == $responsible_id;
-            });
-
-            $nextProjectDates = $modelList->filter(function($model) use ($availableDateOfCreation, $dateField, $responsible_id) {
-              return (new DateTime($model->{$dateField}))->format('Y-m-d') > $availableDateOfCreation->format('Y-m-d')
-                && $model->responsible_id == $responsible_id;
-            });
-
-            $newDate = null;
-            $intervalBetweenProjects = 0;
-
-            if($nextProjectDates->count() > 0) {
-                $newDate = (new DateTime($nextProjectDates->values()->get(0)->{$dateField}));
-                
-                if($availableDateOfCreation->format('Y-m-d') <= $initialDate->format('Y-m-d')
-                && $initialDate->format('Y-m-d') <= $newDate->format('Y-m-d')
-                && $availableDateOfCreation < $initialDate ) {
-                    $availableDateOfCreation = $modelList->filter(function($model) use ($initialDate, $dateField, $responsible_id) {
-                       return DateHelper::compare(new DateTime($model->{$dateField}), $initialDate)
-                       && $responsible_id == $model->responsible_id;    
-                    })->count() > 0 
-                        ? $availableDateOfCreation
-                        : $initialDate;
-                }
-
-                $intervalBetweenProjects = DateHelper::calculateIntervalUtilInDays($availableDateOfCreation, $newDate);                
-            }
-
-            if($intervalBetweenProjects >= $duration 
-            && $availableDateOfCreation >= $initialDate
-            && $availableDateOfCreation->format('Y-m-d') <= $initialDate->format('Y-m-d')
-            && $initialDate->format('Y-m-d') <= $newDate->format('Y-m-d')) {
-                $professionalDateList[$indexProfessionalDateList] = $availableDateOfCreation;
-                $professionalDateWrite[$indexProfessionalDateList] = false;
-            }
-
-            if($projectInThisDate->count() == 0 
-            && DateHelper::compare($initialDate, $availableDateOfCreation) 
-            && ActivityHelper::enoughTime($modelList, $availableDateOfCreation, $dateField, $duration)) {
-                $professionalDateList[$indexProfessionalDateList] = $availableDateOfCreation;
-                $professionalDateWrite[$indexProfessionalDateList] = false;
-            } else if($initialDate < $availableDateOfCreation && $professionalDateWrite[$indexProfessionalDateList]) {
-                $professionalDateList[$indexProfessionalDateList] = $availableDateOfCreation;
-            }
+        for($i = 0; $i < ceil($duration); $i++) {
+            $incDate = DateHelper::sumUtil($date, 1);
+            $dates .= $date->format('Y-m-d') . ',';
         }
 
-        return $professionalDateList;
+        $dates = substr($dates, 0, count($dates) - 1);
+
+        $items = TaskItem::select()
+            ->leftJoin('task', 'task.id', '=', 'task_item.task_id')
+            ->where('date', 'IN', '(' . $dates . ')')
+            ->where('job_activity_id', '=', $jobActivity->id)
+            ->where('responsible_id', '=', $professionalId)
+            ->get();
+
+        return $items->count() > 0 ? -1 : $professionalId;
     }
 
-    public static function enoughTime($modelList, $availableDateOfCreation, $dateField, $duration) {
-        $ini = $availableDateOfCreation->format('Y-m-d');
-        $fin = DateHelper::sumUtil($availableDateOfCreation, $duration)->format('Y-m-d');
-        return $modelList->filter(function($model) use ($ini, $fin, $dateField) {
-            $date = (new DateTime($model->{$dateField}))->format('Y-m-d');
-            return $ini < $date && $date < $fin ? $model : null;
-        })->count() === 0;
-    }
-
-    public static function checkIfProfessionalListIsEmpty($professionalList) {
-        if($professionalList->count() != 0) {       
-            return;
+    protected static function getAvailableProfessionalInThisDate(array $groupedItems) {
+        foreach($groupedItems as $key => $value) {
+            if($value < 1) {
+                return $key;
+            } 
         }
-        throw new \Exception('A lista de profissionais está vazia.');
+
+        return -1;
     }
 
+    protected static function groupItemsByProfessional(Collection $items, Collection $professionalList) {
+        $arr = [];
+
+        foreach($professionalList as $professional) {
+            $arr[$professional->id] = 0;
+        }
+
+        foreach($items as $item) {
+            $arr[$item->responsible_id] = $arr[$item->responsible_id] + $item->duration;
+        }
+
+        return $arr;
+    }
 }
