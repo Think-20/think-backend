@@ -163,11 +163,11 @@ class Job extends Model
         $job->how_come;
         $job->agency;
         $job->attendance;
-        #$job->creation;
         $job->competition;
         $job->files;
         $job->status;
-        #$job->creation;
+        $job->creation();
+        $job->history();
         $job->briefing ? $job->briefing->get() : null;
         $job->budget ? $job->budget->get() : null;
 
@@ -338,12 +338,14 @@ class Job extends Model
         $job->how_come;
         $job->agency;
         $job->attendance;
-        $job->status;
-        $job->creation;
         $job->competition;
         $job->files;
+        $job->status;
+        $job->creation();
+        $job->history();
+        $job->briefing ? $job->briefing->get() : null;
+        $job->budget ? $job->budget->get() : null;
 
-        //Job::getJobChild($job);
         return $job;
     }
 
@@ -528,8 +530,25 @@ class Job extends Model
         foreach($this->tasks as $task) {
             if($task->job_activity->description == 'Projeto') {
                 $this->creation = $task->responsible;
+                $this->available_date_creation = $task->available_date;
             }
         }
+    }
+
+    public function history() {
+        $job = $this;
+        $jobs = Job::where(function($query) use ($job) {
+            $query->where('client_id', '=', $job->client_id);
+        })->where(function($query) use ($job) {
+            $query->where('not_client', '=', $job->not_client);
+            $query->where('agency_id', '=', $job->agency_id);
+        })->get();
+
+        $approved = $jobs->filter(function ($job) {
+            return $job->status->description == 'Aprovado';
+        })->count();
+        $total = $jobs->count();
+        $this->history = $approved . '/' . $total;
     }
 
     public function stand() {

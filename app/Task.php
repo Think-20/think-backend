@@ -32,36 +32,13 @@ class Task extends Model
 
     public static function editAvailableDate(array $data)
     {
-        $task1 = isset($data['task1']['id']) ? Task::find($data['task1']['id']) : (object) $data['task1'];
-        $task2 = isset($data['task2']['id']) ? Task::find($data['task2']['id']) : (object) $data['task2'];
-
-        if($task1->duration == $task2->duration) {
-            $tempR = $task1->responsible_id;
-            $tempA = $task1->available_date;
-            $tempD = $task1->duration;
-            $tempItems = $task1->items;
-            
-            $task1->responsible_id = $task2->responsible_id;
-            $task1->available_date = $task2->available_date;
-            $task1->duration = $task2->duration;
-            $task1->save();
-            
-            foreach($task2->items as $item) {
-                $item->task_id = $task1->id;
-                $item->save();
-            }
-            
-            $task2->responsible_id = $tempR;
-            $task2->available_date = $tempA;
-            $task2->duration = $tempD;
-            $task2->save();
-            
-            foreach($tempItems as $item) {
-                $item->task_id = $task2->id;
-                $item->save();
-            }
-        } else {
-            throw new \Exception('A duração das tarefas estão diferentes.');
+        if( isset($data['task1']['id']) && isset($data['task2']['id']) ) {
+            $task1 = (object) $data['task1'];
+            $task2 = (object) $data['task2'];
+            ActivityHelper::swapActivities($task1, $task2);
+        }
+        else {
+            ActivityHelper::moveActivity($data['task1'], $data['task2']);
         }
         
         return true;
@@ -210,6 +187,10 @@ class Task extends Model
     {
         $this->presentations;
         $this->responsible;
+    }
+
+    public function type(): TaskInterface {
+        return TaskFactory::build($this->job_activity->description);
     }
 
     public function items()

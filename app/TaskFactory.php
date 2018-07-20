@@ -4,7 +4,7 @@ namespace App;
 
 abstract class TaskFactory {
     public static function build($type): TaskInterface {
-        if($type == 'Projeto' || $type == 'Modificação' || $type == 'Opção') {
+        if($type == 'Projeto' || $type == 'Modificação' || $type == 'Opção' || $type == 'Outsider') {
             return new TaskCreation;
         } else if($type == 'Orçamento') {
             return new TaskBudget;
