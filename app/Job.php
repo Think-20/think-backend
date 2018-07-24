@@ -166,7 +166,7 @@ class Job extends Model
         $job->competition;
         $job->files;
         $job->status;
-        $job->creation();
+        $job->responsibles();
         $job->history();
         $job->briefing ? $job->briefing->get() : null;
         $job->budget ? $job->budget->get() : null;
@@ -196,7 +196,7 @@ class Job extends Model
         if($paginate) {
             $paginate = $jobs->paginate(50);
             foreach($paginate as $job) {
-                $job->creation();
+                $job->responsibles();
             }
             $result = $paginate->items();
             $page = $paginate->currentPage();
@@ -204,7 +204,7 @@ class Job extends Model
         } else {
             $result = $jobs->get();
             foreach($result as $job) {
-                $job->creation();
+                $job->responsibles();
             }
             $total = $jobs->count();
             $page = 0;
@@ -341,7 +341,7 @@ class Job extends Model
         $job->competition;
         $job->files;
         $job->status;
-        $job->creation();
+        $job->responsibles();
         $job->history();
         $job->briefing ? $job->briefing->get() : null;
         $job->budget ? $job->budget->get() : null;
@@ -526,13 +526,49 @@ class Job extends Model
         return $this->hasMany('App\Task', 'job_id');
     }
 
-    public function creation() {
+    public function attendance_responsible() {
+        $this->attendance_responsible = $this->attendance;
+    }
+
+    public function creation_responsible() {
         foreach($this->tasks as $task) {
             if($task->job_activity->description == 'Projeto') {
-                $this->creation = $task->responsible;
+                $this->creation_responsible = $task->responsible;
                 $this->available_date_creation = $task->available_date;
             }
         }
+    }
+
+    public function budget_responsible() {
+        foreach($this->tasks as $task) {
+            if($task->job_activity->description == 'Orçamento') {
+                $this->budget_responsible = $task->responsible;
+            }
+        }
+    }
+
+    public function detailing_responsible() {
+        foreach($this->tasks as $task) {
+            if($task->job_activity->description == 'Detalhamento') {
+                $this->detailing_responsible = $task->responsible;
+            }
+        }
+    }
+
+    public function production_responsible() {
+        foreach($this->tasks as $task) {
+            if($task->job_activity->description == 'Produção') {
+                $this->production_responsible = $task->responsible;
+            }
+        }
+    }
+
+    public function responsibles() {
+        $this->attendance_responsible();
+        $this->creation_responsible();
+        $this->budget_responsible();
+        $this->detailing_responsible();
+        $this->production_responsible();
     }
 
     public function history() {
