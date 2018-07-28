@@ -148,7 +148,6 @@ class JobController extends Controller
         return Job::filter($request->all());
     }
 
-
     public static function myEditAvailableDate(Request $request) {
         DB::beginTransaction();
         $status = false;
@@ -272,11 +271,10 @@ class JobController extends Controller
 
     public static function allMyJob() {
         $jobs = Job::listMyJob();
-
         return $jobs;
     }
 
-    public static function filterMyJob($query) {
-        return Job::filterMyJob($query);
+    public static function filterMyJob(Request $request) {
+        return Job::filterMyJob($request->all());
     }
 }

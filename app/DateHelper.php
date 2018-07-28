@@ -38,6 +38,11 @@ class DateHelper {
         return (int) $interval->d;
     }
 
+    public static function dateInPast(DateTime $dt1, DateTime $dt2) {
+        $interval = $dt2->diff($dt1);
+        return $interval->invert == 1;
+    }
+
     public static function calculateIntervalUtilInDays(DateTime $date1, DateTime $date2) {
         $interval = 0;
         $dt1 = clone $date1;
@@ -97,6 +102,18 @@ class DateHelper {
             $interval--;
         }
 
+        return $newDate;
+    }
+
+    public static function sum(DateTime $date, $interval) {
+        $newDate = clone $date;
+        $newDate->add(new DateInterval('P1D'));
+        return $newDate;
+    }
+
+    public static function sub(DateTime $date, $interval) {
+        $newDate = clone $date;
+        $newDate->sub(new DateInterval('P1D'));
         return $newDate;
     }
 

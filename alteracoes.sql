@@ -1,10 +1,8 @@
-insert into functionality values (null, '/task/save', 'Cadastrar tarefas no cronograma');
-insert into functionality values (null, '/tasks/filter', 'Filtrar tarefas no cronograma');
-insert into functionality values (null, '/task/edit-available-date', 'Mover uma tarefa no cronograma');
+alter table task add column created_at timestamp default current_timestamp;
+alter table task add column updated_at timestamp default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
 
-insert into functionality values (null, '/my-task/save', 'Cadastrar tarefas no cronograma');
-insert into functionality values (null, '/my-tasks/filter', 'Filtrar tarefas no cronograma');
-insert into functionality values (null, '/my-task/edit-available-date', 'Mover somente tarefas próprias no cronograma');
+update functionality set url = '/my-jobs/filter' where id = 57;
+update employee set department_id = 6 where id = 21;
 
-alter table task modify column available_date date not null;
-insert into job_activity values (null, 'Outsider');
+insert into functionality values (null, '/task/remove/{id}', 'Remover tarefas do cronograma');
+insert into functionality values (null, '/my-task/remove/{id}', 'Remover tarefas do cronograma pertencentes ao atendimento');

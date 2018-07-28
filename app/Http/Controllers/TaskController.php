@@ -17,6 +17,10 @@ class TaskController extends Controller
         return Response::make(json_encode(Task::getNextAvailableDate($availableDate, $estimatedTime, $jobActivity)), 200); 
     }
 
+    public static function getNextAvailableDates(Request $request) {
+        return Response::make(json_encode(Task::getNextAvailableDates($request->all())), 200); 
+    }
+
     public static function save(Request $request) {
         $data = $request->all();
         $status = false;
@@ -100,7 +104,7 @@ class TaskController extends Controller
 
         try {
             $task = Task::remove($id);
-            $message = 'Cronograma deletado com sucesso!';
+            $message = 'Tarefa no cronograma deletada com sucesso!';
             $status = true;
             DB::commit();
         } catch(QueryException $queryException) {
@@ -215,7 +219,7 @@ class TaskController extends Controller
 
         try {
             $task = Task::removeMyTask($id);
-            $message = 'Cronograma deletado com sucesso!';
+            $message = 'Tarefa no cronograma deletada com sucesso!';
             $status = true;
             DB::commit();
         } catch(QueryException $queryException) {
@@ -242,7 +246,7 @@ class TaskController extends Controller
         return $tasks;
     }
 
-    public static function filterMyTask($query) {
-        return Task::filterMyTask($query);
+    public static function filterMyTask(Request $request) {
+        return Task::filterMyTask($request->all());
     }
 }

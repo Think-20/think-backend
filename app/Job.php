@@ -130,10 +130,15 @@ class Job extends Model
         $job = Job::find($id);
         $oldJob = clone $job;
         $job->levels()->detach();
-        $job->tasks->delete();
+        
+        foreach($job->tasks as $task) {
+            $task->items()->delete();
+            $task->delete();
+        }
+
         $job->deleteFiles();
-        $job->briefing ? $job->briefing->delete() : null;
-        $job->budget ? $job->budget->delete() : null;
+        //$job->briefing ? $job->briefing->delete() : null;
+        //$job->budget ? $job->budget->delete() : null;
         $job->delete();
     }
 
@@ -299,16 +304,24 @@ class Job extends Model
         }
 
         $oldJob = clone $job;
-        $job->presentations()->detach();
         $job->levels()->detach();
+        
+        foreach($job->tasks as $task) {
+            $task->items()->delete();
+            $task->delete();
+        }
+
         $job->deleteFiles();
+        //$job->briefing ? $job->briefing->delete() : null;
+        //$job->budget ? $job->budget->delete() : null;
         $job->delete();
     }
 
     public static function listMyJob() {
-        $jobs = Job::orderBy('available_date', 'asc')
-         ->where('attendance_id', '=', User::logged()->employee->id)
-         ->paginate(20);
+        $jobs = Job::with('tasks')->orderBy('available_date', 'asc')
+        ->where('attendance_id', '=', User::logged()->employee->id) 
+        ->orWhere('task.responsible_id', '=', User::logged()->employee->id)
+        ->paginate(20);
 
         foreach($jobs as $job) {
             $job->agency;
@@ -355,13 +368,17 @@ class Job extends Model
         $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'available_date';
         $status = isset($params['status']) ? $params['status'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
-        $user = User::logged();
-        $jobs = Job::where('attendance_id', '=', $user->employee->id);
+
+        $jobs = Job::leftJoin('task', 'task.job_id', '=', 'job.id')
+        ->where(function($query) {
+            $query->where('attendance_id', '=', User::logged()->employee->id);
+            $query->orWhere('task.responsible_id', '=', User::logged()->employee->id);
+        });        
 
         if($orderBy == 'available_date') {
             $jobs->orderBy('available_date', 'ASC');
         } else if($orderBy == 'created_at') {
-            $jobs->orderBy('created_at', 'DESC');
+            $jobs->orderBy('job.created_at', 'DESC');
         }
         $jobs->orderBy('attendance_id', 'ASC');
 
@@ -649,5 +666,9 @@ class Job extends Model
 
     public function setBudget_valueAttribute($value) {
         $this->attributes['budget_value'] = (float) str_replace(',', '.', str_replace('.', '', $value));
+    }
+
+    public function setDeadlineAttribute($value) {
+        $this->attributes['deadline'] = substr($value, 0, 10);
     }
 }

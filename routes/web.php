@@ -63,11 +63,13 @@ Route::get('/assets/images/{filename}', function ($filename)
     return $response;
 });
 
+/*
 Route::get('/pass', function() {
     dd( [
         'Bruna' => bcrypt('b2532'),
     ]);
 });
+*/
 
 Route::group(['middleware' => ['auth.api']], function() {
 
@@ -126,6 +128,7 @@ Route::group(['middleware' => ['auth.api']], function() {
     //Route::get('/budgets/load-form', 'BudgetController@loadForm');
     //Route::get('/budgets/get-next-available-date/{availableDate}/{estimatedTime}/{swap}', 'BudgetController@getNextAvailableDate');
     Route::get('/tasks/get-next-available-date/{availableDate}/{estimatedTime}/{jobActivity}', 'TaskController@getNextAvailableDate');
+    Route::post('/tasks/get-available-dates', 'TaskController@getNextAvailableDates');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {
@@ -197,13 +200,13 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/jobs/filter', 'JobController@filter');
     Route::get('/job/download/{id}/{type}/{file}', 'JobController@downloadFile');
 
-    Route::post('/my-job/save', 'JobController@saveMyBriefing');
-    Route::put('/my-job/edit', 'JobController@editMyBriefing');
-    Route::delete('/my-job/remove/{id}', 'JobController@removeMyBriefing');
-    Route::get('/my-jobs/all', 'JobController@allMyBriefing');
-    Route::get('/my-jobs/get/{id}', 'JobController@getMyBriefing');
-    Route::get('/my-jobs/filter', 'JobController@filterMyBriefing');
-    Route::get('/my-job/download/{id}/{type}/{file}', 'JobController@downloadFileMyBriefing');
+    Route::post('/my-job/save', 'JobController@saveMyJob');
+    Route::put('/my-job/edit', 'JobController@editMyJob');
+    Route::delete('/my-job/remove/{id}', 'JobController@removeMyJob');
+    Route::get('/my-jobs/all', 'JobController@allMyJob');
+    Route::get('/my-jobs/get/{id}', 'JobController@getMyJob');
+    Route::post('/my-jobs/filter', 'JobController@filterMyJob');
+    Route::get('/my-job/download/{id}/{type}/{file}', 'JobController@downloadFileMyJob');
     
     /*
     Route::post('/briefing/save', 'BriefingController@save');
@@ -220,8 +223,10 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/task/save', 'TaskController@save');
     Route::post('/tasks/filter', 'TaskController@filter');
     Route::put('/task/edit-available-date', 'TaskController@editAvailableDate');
+    Route::delete('/task/remove/{id}', 'TaskController@remove');
 
     Route::post('/my-task/save', 'TaskController@save');
-    Route::post('/my-tasks/filter', 'TaskController@filter');
+    Route::post('/my-tasks/filter', 'TaskController@filterMyTask');
     Route::put('/my-task/edit-available-date', 'TaskController@editAvailableDate');
+    Route::delete('/my-task/remove/{id}', 'TaskController@removeMyTask');
 });

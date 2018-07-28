@@ -8,8 +8,6 @@ use DateInterval;
 
 class Task extends Model
 {
-
-    public $timestamps = false;
     protected $table = 'task';
     protected $fillable = [
         'job_id', 'responsible_id', 'available_date', 'job_activity_id', 'duration'
@@ -28,6 +26,32 @@ class Task extends Model
             'responsible' => $arr['responsible'],
             'responsibles' => $responsibles
         ];
+    }
+
+    public static function getNextAvailableDates(array $data)
+    {
+        $jobActivityId = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
+        $duration = isset($data['duration']) ? $data['duration'] : 1;
+        $jobActivity = JobActivity::findOrFail($jobActivityId);
+        $taskBuild = TaskFactory::build($jobActivity->description);
+        
+        $responsibles = $taskBuild->getResponsibleList();
+
+        $iniDate = isset($data['iniDate']) ? new DateTime($data['iniDate']) : null;
+        $finDate = isset($data['finDate']) ? new DateTime($data['finDate']) : null;
+
+        if(DateHelper::dateInPast($iniDate, new DateTime('now'))) {
+            $iniDate = new DateTime('now');
+        }
+
+        $arr = [];
+        while($iniDate->format('Y-m-d') <= $finDate->format('Y-m-d')) {
+            $arr[] = ActivityHelper::calculateNextDate($iniDate->format('Y-m-d'), $jobActivity, $responsibles, $duration);
+            $iniDate = DateHelper::nextUtil($iniDate, 1);
+        }
+        
+
+        return $arr;
     }
 
     public static function editAvailableDate(array $data)
@@ -177,10 +201,83 @@ class Task extends Model
         ];
     }
 
-    public function remove()
+    public static function filterMyTask($params)
     {
-        $this->items->delete();
-        $this->delete();
+        $user = User::logged();
+        $iniDate = isset($params['iniDate']) ? $params['iniDate'] : null;
+        $finDate = isset($params['finDate']) ? $params['finDate'] : null;
+        $paginate = isset($params['paginate']) ? $params['paginate'] : true;
+
+        $tasks = Task::select('task.*')
+        ->leftJoin('job', 'job.id', '=', 'task.job_id')
+        ->where(function($query) use ($user) {
+            $query->where('job.attendance_id', '=', $user->employee->id);
+            $query->orWhere('task.responsible_id', '=', $user->employee->id);
+        });
+
+        if (!is_null($iniDate) && !is_null($finDate)) {
+            $tasks->where(function($query) use ($iniDate, $finDate) {
+                $sql = '(task.available_date >= "' . $iniDate . '"';
+                $sql .= ' AND task.available_date <= "' . $finDate . '")';
+                $sql .= 'OR (task.available_date >= "' . $iniDate . '"';
+                $sql .= ' AND task.available_date <= "' . $finDate . '")';
+                $query->whereRaw($sql);
+            });
+        }
+
+        $tasks->orderBy('task.available_date', 'ASC');
+
+        if ($paginate) {
+            $paginate = $tasks->paginate(50);
+
+            foreach($paginate as $task) {
+                $task->job = Job::get($task->job_id);
+                $task->items;
+                $task->responsible;
+                $task->job_activity;
+            }
+
+            $result = $paginate->items();
+            $page = $paginate->currentPage();
+            $total = $paginate->total();
+        } else {
+            $result = $tasks->get();
+
+            foreach($result as $task) {
+                $task->job = Job::get($task->job_id);
+                $task->items;
+                $task->responsible;
+                $task->job_activity;
+            }
+
+            $total = $tasks->count();
+            $page = 0;
+        }
+
+        return [
+            'data' => $result,
+            'total' => $total,
+            'page' => $page
+        ];
+    }
+
+    public static function remove($id)
+    {
+        $task = Task::find($id);
+        $task->items()->delete();
+        $task->delete();
+    }
+
+    public static function removeMyTask($id)
+    {
+        $task = Task::find($id);
+
+        if($task->job->attendance_id != User::logged()->employee->id) {
+            throw new \Exception('Você não tem permissão para remover esse job.');
+        }
+
+        $task->items()->delete();
+        $task->delete();
     }
 
     public function get()
@@ -216,5 +313,9 @@ class Task extends Model
     public function setDurationAttribute($value)
     {
         $this->attributes['duration'] = (float)str_replace(',', '.', $value);
+    }
+
+    public function setAvailableDateAttribute($value) {
+        $this->attributes['available_date'] = substr($value, 0, 10);
     }
 }
