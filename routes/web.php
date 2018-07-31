@@ -66,7 +66,7 @@ Route::get('/assets/images/{filename}', function ($filename)
 /*
 Route::get('/pass', function() {
     dd( [
-        'Bruna' => bcrypt('b2532'),
+        'Marcelo' => bcrypt('m2633'),
     ]);
 });
 */

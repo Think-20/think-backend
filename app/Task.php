@@ -195,9 +195,22 @@ class Task extends Model
         }
 
         return [
-            'data' => $result,
-            'total' => $total,
-            'page' => $page
+            'pagination' => [
+                'data' => $result,
+                'total' => $total,
+                'page' => $page
+            ],
+            'updatedInfo' => Task::updatedInfo()
+        ];
+    }
+    
+
+    public static function updatedInfo() {
+        $lastData = Task::orderBy('updated_at', 'desc')->limit(1)->first();
+
+        return [
+            'date' => (new DateTime($lastData->updated_at))->format('d/m/Y'),
+            'employee' => $lastData->job->attendance->name
         ];
     }
 
@@ -257,7 +270,8 @@ class Task extends Model
         return [
             'data' => $result,
             'total' => $total,
-            'page' => $page
+            'page' => $page,
+            'updatedInfo' => Task::updatedInfo()
         ];
     }
 

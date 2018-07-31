@@ -83,20 +83,18 @@ class ActivityHelper {
         }
         $date = DateHelper::nextUtilIfNotUtil(DateHelper::subUtil(new DateTime($initialDate), 1));
         $professionalId = -1;
-        $professionalIn = '';
+        $professionalIn = [];
 
         foreach($professionalList as $professional) {
-            $professionalIn .= $professional->id . ',';
+            $professionalIn[] .= $professional->id;
         }
-
-        $professionalIn = substr($professionalIn, 0, strlen($professionalIn) -1);
 
         do {
             $date = DateHelper::sumUtil($date, 1);
             $items = TaskItem::select()
             ->leftJoin('task', 'task.id', '=', 'task_item.task_id')
             ->where('date', '=', $date->format('Y-m-d'))
-            ->whereIn('responsible_id', $professionalList)
+            ->whereIn('responsible_id', $professionalIn)
             #->where('job_activity_id', '=', $jobActivity->id)
             ->get();
             
