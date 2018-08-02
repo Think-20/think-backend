@@ -209,7 +209,7 @@ class Task extends Model
         $lastData = Task::orderBy('updated_at', 'desc')->limit(1)->first();
 
         return [
-            'date' => (new DateTime($lastData->updated_at))->format('d/m/Y'),
+            'date' => (new DateTime($lastData->updated_at))->format('d/m/Y H:i:s'),
             'employee' => $lastData->job->attendance->name
         ];
     }

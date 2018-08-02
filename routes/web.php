@@ -129,6 +129,7 @@ Route::group(['middleware' => ['auth.api']], function() {
     //Route::get('/budgets/get-next-available-date/{availableDate}/{estimatedTime}/{swap}', 'BudgetController@getNextAvailableDate');
     Route::get('/tasks/get-next-available-date/{availableDate}/{estimatedTime}/{jobActivity}', 'TaskController@getNextAvailableDate');
     Route::post('/tasks/get-available-dates', 'TaskController@getNextAvailableDates');
+    Route::get('/tasks/updated-info', 'TaskController@updatedInfo');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {

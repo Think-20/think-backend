@@ -135,6 +135,10 @@ class TaskController extends Controller
         return Task::filter($request->all());
     }
 
+    public static function updatedInfo() {
+        return Task::updatedInfo();
+    }
+
 
     public static function myEditAvailableDate(Request $request) {
         DB::beginTransaction();
