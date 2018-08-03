@@ -32,10 +32,16 @@ class Task extends Model
     {
         $jobActivityId = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
         $duration = isset($data['duration']) ? $data['duration'] : 1;
+        $onlyEmployeeId = isset($data['only_employee']['id']) ? $data['only_employee']['id'] : null;
         $jobActivity = JobActivity::findOrFail($jobActivityId);
         $taskBuild = TaskFactory::build($jobActivity->description);
-        
         $responsibles = $taskBuild->getResponsibleList();
+
+        if( ! is_null($onlyEmployeeId) ) {
+            $responsibles = $responsibles->filter(function($responsible) use ($onlyEmployeeId) {
+                return $responsible->id == $onlyEmployeeId;
+            });
+        }
 
         $iniDate = isset($data['iniDate']) ? new DateTime($data['iniDate']) : null;
         $finDate = isset($data['finDate']) ? new DateTime($data['finDate']) : null;

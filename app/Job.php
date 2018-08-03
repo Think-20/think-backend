@@ -181,12 +181,13 @@ class Job extends Model
 
     public static function filter($params) {
         $iniDate = isset($params['iniDate']) ? $params['iniDate'] : null;
+        $jobActivities = isset($params['job_activities']) ? $params['job_activities'] : null;
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
         $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'created_at';
         $status = isset($params['status']) ? $params['status'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
 
-        $jobs = Job::selectRaw('*, job.id as id')
+        $jobs = Job::selectRaw('job.*')
         ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels',
         'how_come', 'agency', 'attendance', 'competition', 'files', 'status');
 
@@ -194,8 +195,16 @@ class Job extends Model
             $jobs->where('status_id', '=', $status);
         }
 
+        if( ! is_null($jobActivities) ) {
+            $jobs->leftJoin('task', function($query) use ($jobActivities) {
+                $query->on('task.job_id', '=', 'job.id');
+            });
+            $jobs->whereIn('task.job_activity_id', $jobActivities);
+            $jobs->distinct('job.id');
+        }
+
         if($orderBy == 'created_at') {
-            $jobs->orderBy('created_at', 'DESC');
+            $jobs->orderBy('job.created_at', 'DESC');
         }
 
         if($paginate) {
@@ -368,12 +377,24 @@ class Job extends Model
         $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'available_date';
         $status = isset($params['status']) ? $params['status'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
-
-        $jobs = Job::leftJoin('task', 'task.job_id', '=', 'job.id')
+        $jobActivities = isset($params['job_activities']) ? $params['job_activities'] : null;
+               
+        $jobs = Job::selectRaw('job.*')
+        ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels',
+        'how_come', 'agency', 'attendance', 'competition', 'files', 'status')
         ->where(function($query) {
             $query->where('attendance_id', '=', User::logged()->employee->id);
             $query->orWhere('task.responsible_id', '=', User::logged()->employee->id);
-        });        
+        }); 
+
+        
+        if( ! is_null($jobActivities) ) {
+            $jobs->leftJoin('task', function($query) use ($jobActivities) {
+                $query->on('task.job_id', '=', 'job.id');
+            });
+            $jobs->whereIn('task.job_activity_id', $jobActivities);
+            $jobs->distinct('job.id');
+        }
 
         if($orderBy == 'available_date') {
             $jobs->orderBy('available_date', 'ASC');
@@ -553,7 +574,10 @@ class Job extends Model
 
     public function creation_responsible() {
         foreach($this->tasks as $task) {
-            if($task->job_activity->description == 'Projeto') {
+            if($task->job_activity->description == 'Projeto'
+            || $task->job_activity->description == 'Modificação'
+            || $task->job_activity->description == 'Opção'
+            || $task->job_activity->description == 'Outsider') {
                 $this->creation_responsible = $task->responsible;
                 $this->available_date_creation = $task->available_date;
             }
