@@ -1,0 +1,1 @@
+alter table job modify column budget_value DECIMAL(14,2);

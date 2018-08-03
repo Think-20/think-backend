@@ -182,6 +182,7 @@ class Job extends Model
     public static function filter($params) {
         $iniDate = isset($params['iniDate']) ? $params['iniDate'] : null;
         $jobActivities = isset($params['job_activities']) ? $params['job_activities'] : null;
+        $jobActivitiesMode = isset($params['job_activities_mode']) ? $params['job_activities_mode'] : 'IN';
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
         $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'created_at';
         $status = isset($params['status']) ? $params['status'] : null;
@@ -199,7 +200,11 @@ class Job extends Model
             $jobs->leftJoin('task', function($query) use ($jobActivities) {
                 $query->on('task.job_id', '=', 'job.id');
             });
-            $jobs->whereIn('task.job_activity_id', $jobActivities);
+            if($jobActivitiesMode == 'IN') {
+               $jobs->whereIn('task.job_activity_id', $jobActivities);
+            } else {
+                $jobs->whereNotIn('task.job_activity_id', $jobActivities);
+            }
             $jobs->distinct('job.id');
         }
 
@@ -378,6 +383,7 @@ class Job extends Model
         $status = isset($params['status']) ? $params['status'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
         $jobActivities = isset($params['job_activities']) ? $params['job_activities'] : null;
+        $jobActivitiesMode = isset($params['job_activities_mode']) ? $params['job_activities_mode'] : 'IN';
                
         $jobs = Job::selectRaw('job.*')
         ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels',
@@ -387,12 +393,16 @@ class Job extends Model
             $query->orWhere('task.responsible_id', '=', User::logged()->employee->id);
         }); 
 
-        
+
         if( ! is_null($jobActivities) ) {
             $jobs->leftJoin('task', function($query) use ($jobActivities) {
                 $query->on('task.job_id', '=', 'job.id');
             });
-            $jobs->whereIn('task.job_activity_id', $jobActivities);
+            if($jobActivitiesMode == 'IN') {
+               $jobs->whereIn('task.job_activity_id', $jobActivities);
+            } else {
+                $jobs->whereNotIn('task.job_activity_id', $jobActivities);
+            }
             $jobs->distinct('job.id');
         }
 
