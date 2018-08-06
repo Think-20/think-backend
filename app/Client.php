@@ -172,6 +172,10 @@ class Client extends Model implements Contactable
     public static function updatedInfo() {
         $lastData = Client::orderBy('updated_at', 'desc')->limit(1)->first();
 
+        if($lastData == null) {
+            return [];
+        }
+
         return [
             'date' => (new DateTime($lastData->updated_at))->format('d/m/Y'),
             'employee' => $lastData->employee->name

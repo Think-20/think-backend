@@ -214,6 +214,10 @@ class Task extends Model
     public static function updatedInfo() {
         $lastData = Task::orderBy('updated_at', 'desc')->limit(1)->first();
 
+        if($lastData == null) {
+            return [];
+        }
+
         return [
             'date' => (new DateTime($lastData->updated_at))->format('d/m/Y H:i:s'),
             'employee' => $lastData->job->attendance->name
