@@ -117,7 +117,8 @@ class Task extends Model
 
         $duration = $this->duration;
         if ($taskIsThisDate->count() > 0) {
-            $duration .= -$taskIsThisDate->task_duration;
+            $firstDate = $taskIsThisDate->shift();
+            $duration .= -$firstDate->task_duration;
             TaskItem::insert([
                 'duration' => $this->duration - $duration,
                 'date' => $date->format('Y-m-d'),
@@ -142,17 +143,31 @@ class Task extends Model
         }
     }
 
+    public function deleteItems()
+    {
+        $this->items()->delete();
+    }
+
     public static function edit(array $data)
     {
         $id = $data['id'];
         $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
+        //$job_id = isset($data['job']['id']) ? $data['job']['id'] : null;
+        //$job_activity_id = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
         $task = Task::find($id);
 
         $task->update(
             array_merge($data, [
-                'responsible_id' => $responsible_id
+                'responsible_id' => $responsible_id,
+                //'job_id' => $job_id,
+                //'job_activity_id' => $job_activity_id
             ])
         );
+
+        $task->deleteItems();
+        $task->saveItems();
+
+        return $task;
     }
 
     public static function filter($params)
@@ -165,8 +180,6 @@ class Task extends Model
 
         if (!is_null($iniDate) && !is_null($finDate)) {
             $sql = '(task.available_date >= "' . $iniDate . '"';
-            $sql .= ' AND task.available_date <= "' . $finDate . '")';
-            $sql .= 'OR (task.available_date >= "' . $iniDate . '"';
             $sql .= ' AND task.available_date <= "' . $finDate . '")';
             $tasks->whereRaw($sql);
         }
@@ -227,6 +240,7 @@ class Task extends Model
     public static function filterMyTask($params)
     {
         $user = User::logged();
+        
         $iniDate = isset($params['iniDate']) ? $params['iniDate'] : null;
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
@@ -239,13 +253,9 @@ class Task extends Model
         });
 
         if (!is_null($iniDate) && !is_null($finDate)) {
-            $tasks->where(function($query) use ($iniDate, $finDate) {
-                $sql = '(task.available_date >= "' . $iniDate . '"';
-                $sql .= ' AND task.available_date <= "' . $finDate . '")';
-                $sql .= 'OR (task.available_date >= "' . $iniDate . '"';
-                $sql .= ' AND task.available_date <= "' . $finDate . '")';
-                $query->whereRaw($sql);
-            });
+            $sql = '(task.available_date >= "' . $iniDate . '"';
+            $sql .= ' AND task.available_date <= "' . $finDate . '")';
+            $tasks->whereRaw($sql);
         }
 
         $tasks->orderBy('task.available_date', 'ASC');
@@ -268,8 +278,8 @@ class Task extends Model
 
             foreach($result as $task) {
                 $task->job = Job::get($task->job_id);
-                $task->items;
                 $task->responsible;
+                $task->items;
                 $task->job_activity;
             }
 
@@ -278,9 +288,11 @@ class Task extends Model
         }
 
         return [
-            'data' => $result,
-            'total' => $total,
-            'page' => $page,
+            'pagination' => [
+                'data' => $result,
+                'total' => $total,
+                'page' => $page
+            ],
             'updatedInfo' => Task::updatedInfo()
         ];
     }
@@ -304,10 +316,14 @@ class Task extends Model
         $task->delete();
     }
 
-    public function get()
+    public static function get($id)
     {
-        $this->presentations;
-        $this->responsible;
+        $task = Task::findOrFail($id);
+        $task->responsible;
+        $task->job;
+        $task->items;
+        $task->job_activity;
+        return $task;
     }
 
     public function type(): TaskInterface {

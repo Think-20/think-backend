@@ -222,7 +222,9 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     */
 
     Route::post('/task/save', 'TaskController@save');
+    Route::put('/task/edit', 'TaskController@edit');
     Route::post('/tasks/filter', 'TaskController@filter');
+    Route::get('/tasks/get/{id}', 'TaskController@get');
     Route::put('/task/edit-available-date', 'TaskController@editAvailableDate');
     Route::delete('/task/remove/{id}', 'TaskController@remove');
 

@@ -1,2 +1,2 @@
-alter table job modify column budget_value DECIMAL(14,2);
-alter table job add column place text(500);
+insert into functionality values (85, '/tasks/get/{id}', 'Visualizar tarefa específica');
+insert into functionality values (86, '/task/edit', 'Editar tarefa');
