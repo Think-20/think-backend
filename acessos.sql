@@ -69,4 +69,10 @@ inner join employee e on e.department_id IN (6)
 left join user u on u.employee_id = e.id
 where (f.id IN (55,49,57,51)) OR (f.id IN(60,62,68,81));
 
+delete from user_functionality where user_id = 27;
+delete from display_user where user_id = 27;
+
+insert into user_functionality (user_id, functionality_id) select 27, id from functionality where id IN (78,77,46);
+insert into display_user (user_id, display_id) values (27, 33);
+
 
