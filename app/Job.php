@@ -385,29 +385,28 @@ class Job extends Model
         $jobActivities = isset($params['job_activities']) ? $params['job_activities'] : null;
         $jobActivitiesMode = isset($params['job_activities_mode']) ? $params['job_activities_mode'] : 'IN';
                
-        $jobs = Job::selectRaw('job.*')
+        $jobs = Job::selectRaw('DISTINCT job.id, job.*, task.available_date')
         ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels',
         'how_come', 'agency', 'attendance', 'competition', 'files', 'status')
         ->where(function($query) {
             $query->where('attendance_id', '=', User::logged()->employee->id);
             $query->orWhere('task.responsible_id', '=', User::logged()->employee->id);
-        }); 
-
+        })
+        ->leftJoin('task', function($query) use ($jobActivities) {
+            $query->on('task.job_id', '=', 'job.id');
+        });
 
         if( ! is_null($jobActivities) ) {
-            $jobs->leftJoin('task', function($query) use ($jobActivities) {
-                $query->on('task.job_id', '=', 'job.id');
-            });
             if($jobActivitiesMode == 'IN') {
                $jobs->whereIn('task.job_activity_id', $jobActivities);
             } else {
                 $jobs->whereNotIn('task.job_activity_id', $jobActivities);
             }
-            $jobs->distinct('job.id');
+            #$jobs->distinct('job.id');
         }
 
         if($orderBy == 'available_date') {
-            $jobs->orderBy('available_date', 'ASC');
+            $jobs->orderBy('task.available_date', 'ASC');
         } else if($orderBy == 'created_at') {
             $jobs->orderBy('job.created_at', 'DESC');
         }
