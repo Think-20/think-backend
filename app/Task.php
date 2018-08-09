@@ -23,7 +23,7 @@ class Task extends Model
 
         return [
             'available_date' => $arr['date'],
-            'available_responsibles' => $arr['responsibles'],
+            'available_responsibles' => $arr['available_responsibles'],
             'responsibles' => $responsibles
         ];
     }
@@ -56,8 +56,10 @@ class Task extends Model
             $iniDate = DateHelper::nextUtil($iniDate, 1);
         }
         
-
-        return $arr;
+        return [
+            'dates' => $arr,
+            'responsibles' => $responsibles
+        ];
     }
 
     public static function editAvailableDate(array $data)

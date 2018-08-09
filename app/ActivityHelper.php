@@ -82,8 +82,8 @@ class ActivityHelper
     {
         if (ActivityHelper::checkIfProfessionalListIsEmpty($professionalList)) {
             return [
-                'date' => new DateTime('now'),
-                'responsible' => ''
+                'date' => (new DateTime('now'))->format('Y-m-d'),
+                'available_responsibles' => []
             ];
         }
         $date = DateHelper::nextUtilIfNotUtil(DateHelper::subUtil(new DateTime($initialDate), 1));
@@ -111,7 +111,7 @@ class ActivityHelper
         
         return [
             'date' => $date->format('Y-m-d'),
-            'responsibles' => Employee::whereIn('id', $availableProfessionals)->get()
+            'available_responsibles' => Employee::whereIn('id', $availableProfessionals)->get()
         ];
     }
 

@@ -406,7 +406,7 @@ class Job extends Model
         }
 
         if($orderBy == 'available_date') {
-            $jobs->orderBy('task.available_date', 'ASC');
+            $jobs->orderBy('job.created_at', 'DESC');
         } else if($orderBy == 'created_at') {
             $jobs->orderBy('job.created_at', 'DESC');
         }
@@ -421,44 +421,29 @@ class Job extends Model
         if($status != null) {
             $jobs->where('status_id', '=', $status);
         }
-
+        
         if($paginate) {
-            $jobs = $jobs->paginate(50);
-            
-            foreach($jobs as $job) {
-                $job->job_activity;
-                $job->job_type;
-                $job->client;
-                $job->main_expectation;
-                $job->levels;
-                $job->how_come;
-                $job->agency;
-                $job->attendance;
-                $job->creation;
-                $job->competition;
-                $job->files;
-                $job->status;
+            $paginate = $jobs->paginate(50);
+            foreach($paginate as $job) {
+                $job->responsibles();
             }
+            $result = $paginate->items();
+            $page = $paginate->currentPage();
+            $total = $paginate->total();
         } else {
-            $jobs = $jobs->get();
-            
-            foreach($jobs as $job) {
-                $job->job_activity;
-                $job->job_type;
-                $job->client;
-                $job->main_expectation;
-                $job->levels;
-                $job->how_come;
-                $job->agency;
-                $job->attendance;
-                $job->creation;
-                $job->competition;
-                $job->files;
-                $job->status;
+            $result = $jobs->get();
+            foreach($result as $job) {
+                $job->responsibles();
             }
-
-            $jobs = ['data' => $jobs, 'page' => 0, 'total' => $jobs->count()];
+            $total = $jobs->count();
+            $page = 0;
         }
+
+        return [
+            'data' => $result,
+            'total' => $total,
+            'page' => $page
+        ];
 
         return $jobs;
     }
