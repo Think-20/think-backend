@@ -22,8 +22,8 @@ class Task extends Model
         $arr = ActivityHelper::calculateNextDate($availableDate, $jobActivity, $responsibles, $estimatedTime);
 
         return [
-            'available_date' => ($arr['date'])->format('Y-m-d'),
-            'responsible' => $arr['responsible'],
+            'available_date' => $arr['date'],
+            'available_responsibles' => $arr['responsibles'],
             'responsibles' => $responsibles
         ];
     }
