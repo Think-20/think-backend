@@ -81,6 +81,7 @@ Route::group(['middleware' => ['auth.api']], function() {
 
     Route::get('/client-types/all', 'ClientTypeController@all');
     Route::get('/client-status/all', 'ClientStatusController@all');
+    Route::get('/client-comission/all', 'ClientComissionController@all');
     Route::get('/employees/can-insert-clients', 'EmployeeController@canInsertClients');
 
     Route::get('/person-types/all', 'PersonTypeController@all');

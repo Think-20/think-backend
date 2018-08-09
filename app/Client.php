@@ -19,7 +19,7 @@ class Client extends Model implements Contactable
     protected $fillable = [
         'name', 'fantasy_name', 'ie', 'cnpj', 'mainphone', 'secundaryphone', 'site', 'rate', 'note',
         'street', 'number', 'neighborhood', 'complement', 'cep', 'city_id', 
-        'employee_id', 'client_type_id', 'client_status_id'
+        'employee_id', 'client_type_id', 'client_status_id', 'comission_id'
     ];
 
     public function checkCnpj() {
@@ -42,6 +42,7 @@ class Client extends Model implements Contactable
         foreach($clients as $client) {
             $client->employee;
             $client->type;
+            $client->comission;
             $client->status;
         }
 
@@ -65,6 +66,7 @@ class Client extends Model implements Contactable
             $client->city_id = isset($data['city']['id']) ? $data['city']['id'] : null;
             $client->employee_id = isset($data['employee']['id']) ? $data['employee']['id'] : null;
             $client->client_type_id = isset($data['client_type']['id']) ? $data['client_type']['id'] : null;
+            $client->comission_id = isset($data['comission']['id']) ? $data['comission']['id'] : null;
             $client->client_status_id = isset($data['client_status']['id']) ? $data['client_status']['id'] : null;
 
             $contacts = isset($data['contacts']) ? $data['contacts'] : [];
@@ -88,6 +90,7 @@ class Client extends Model implements Contactable
             $client->city_id = isset($data['city']['id']) ? $data['city']['id'] : null;
             $client->employee_id = isset($data['employee']['id']) ? $data['employee']['id'] : null;
             $client->client_type_id = isset($data['client_type']['id']) ? $data['client_type']['id'] : null;
+            $client->comission_id = isset($data['comission']['id']) ? $data['comission']['id'] : null;
             $client->client_status_id = isset($data['client_status']['id']) ? $data['client_status']['id'] : null;
             $client->save();
 
@@ -131,6 +134,7 @@ class Client extends Model implements Contactable
         $client->city->state;
         $client->employee;
         $client->type;
+        $client->comission;
         $client->status;
         $client->contacts;
         return $client;
@@ -160,6 +164,7 @@ class Client extends Model implements Contactable
         foreach($clients as $client) {
             $client->employee;
             $client->type;
+            $client->comission;
             $client->status;
         }
 
@@ -298,6 +303,7 @@ class Client extends Model implements Contactable
         foreach($clients as $client) {
             $client->employee;
             $client->type;
+            $client->comission;
             $client->status;
         }
         
@@ -323,6 +329,7 @@ class Client extends Model implements Contactable
             $client->city_id = isset($data['city']['id']) ? $data['city']['id'] : null;
             $client->employee_id = isset($data['employee']['id']) ? $data['employee']['id'] : null;
             $client->client_type_id = isset($data['client_type']['id']) ? $data['client_type']['id'] : null;
+            $client->comission_id = isset($data['comission']['id']) ? $data['comission']['id'] : null;
             $client->client_status_id = isset($data['client_status']['id']) ? $data['client_status']['id'] : null;
 
             $contacts = isset($data['contacts']) ? $data['contacts'] : [];
@@ -374,6 +381,7 @@ class Client extends Model implements Contactable
         $client->city->state;
         $client->employee;
         $client->type;
+        $client->comission;
         $client->status;
         $client->contacts;
 
@@ -406,6 +414,7 @@ class Client extends Model implements Contactable
         foreach($clients as $client) {
             $client->employee;
             $client->type;
+            $client->comission;
             $client->status;
         }
         
@@ -585,6 +594,10 @@ class Client extends Model implements Contactable
 
     public function type() {
         return $this->belongsTo('App\ClientType', 'client_type_id');
+    }
+
+    public function comission() {
+        return $this->belongsTo('App\ClientComission', 'comission_id');
     }
 
     public function status() {
