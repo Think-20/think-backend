@@ -58,7 +58,7 @@ class Task extends Model
         
         return [
             'dates' => $arr,
-            'responsibles' => $responsibles
+            'responsibles' => $taskBuild->getResponsibleList()
         ];
     }
 
