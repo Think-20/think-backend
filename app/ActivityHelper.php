@@ -53,13 +53,13 @@ class ActivityHelper
         $arr = ActivityHelper::calculateNextDate($nextDate, $task->job_activity, $task->type()->getResponsibleList(), $task->duration);
 
         /* Teste com calculadora de datas */
-        if (!DateHelper::compare($arr['date'], new DateTime($nextDate))) {
+        if (!DateHelper::compare(new DateTime($arr['date']), new DateTime($nextDate))) {
             throw new \Exception('Há um conflito entre datas e não podemos trocar.');
         }
 
         $task->items()->delete();
         $task->available_date = $nextDate;
-        $task->responsible_id = $arr['responsible']->id;
+        $task->responsible_id = $arr['available_responsibles'][0]->id;
         $task->save();
         $task->saveItems();
 
