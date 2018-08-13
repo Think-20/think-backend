@@ -113,7 +113,6 @@ class Task extends Model
         $taskIsThisDate = TaskItem::select('*', 'task_item.duration as task_duration')
             ->leftJoin('task', 'task.id', '=', 'task_item.task_id')
             ->where('responsible_id', '=', $this->responsible->id)
-            ->where('job_activity_id', '=', $this->job_activity->id)
             ->where('available_date', '=', $this->available_date)
             ->get();
 
