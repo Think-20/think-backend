@@ -110,23 +110,30 @@ class Task extends Model
     public function saveItems()
     {
         $date = new DateTime($this->available_date);
+        /*
         $taskIsThisDate = TaskItem::select('*', 'task_item.duration as task_duration')
             ->leftJoin('task', 'task.id', '=', 'task_item.task_id')
             ->where('responsible_id', '=', $this->responsible->id)
             ->where('available_date', '=', $this->available_date)
             ->get();
+        */
 
         $duration = $this->duration;
+        /*
         if ($taskIsThisDate->count() > 0) {
             $firstDate = $taskIsThisDate->shift();
             $duration .= -$firstDate->task_duration;
-            TaskItem::insert([
-                'duration' => $this->duration - $duration,
-                'date' => $date->format('Y-m-d'),
-                'task_id' => $this->id
-            ]);
-            $date = DateHelper::sumUtil($date, 1);
+
+            if($duration > 0) {
+                TaskItem::insert([
+                    'duration' => $this->duration - $duration,
+                    'date' => $date->format('Y-m-d'),
+                    'task_id' => $this->id
+                ]);
+                $date = DateHelper::sumUtil($date, 1);
+            }            
         }
+        */
 
         $tempDuration = $duration;
         for ($i = 0; $i < $duration; $i++) {
