@@ -45,9 +45,6 @@ class Client extends Model implements Contactable
             $client->comission;
             $client->status;
         }
-
-        $lastData = Client::orderBy('updated_at', 'desc')->limit(1)->first();
-        $updatedInfo = (new DateTime($lastData->updated_at))->format('d/m/Y');
         
         return [
             'pagination' => $clients,
@@ -96,8 +93,8 @@ class Client extends Model implements Contactable
 
             $contacts = isset($data['contacts']) ? $data['contacts'] : [];
             Contact::manage($contacts, $client);
-
             DB::commit();
+
             return $client;
         } catch(\Exception $e) {
             DB::rollBack();

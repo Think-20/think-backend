@@ -9,7 +9,7 @@ use Request;
 
 use Illuminate\Database\Eloquent\Model;
 
-class User extends Model
+class User extends Model implements NotifierInterface
 {
     public $timestamps = false;
 
@@ -22,6 +22,14 @@ class User extends Model
     protected $hidden = [
         'password'
     ];
+
+    public function getOficialId(): int {
+        return $this->id;
+    }
+
+    public function getName(): string {
+        return $this->employee->name;
+    }
 
     public static function auth(string $email, string $password) {
         $foundUser = User::where('email', '=', $email)->first();
@@ -62,7 +70,7 @@ class User extends Model
         return base64_encode(sha1($user->lastAccess . '_COMPANYBOOK_' . $user->password));
     }
 
-    public static function logged() {
+    public static function logged(): User {
         $userId = empty(Request::header('User')) ? Request::input('user_id') : (int) Request::header('User');
         return User::find($userId);
     }
@@ -81,5 +89,9 @@ class User extends Model
 
     public function functionalities() {
         return $this->belongsToMany('App\Functionality', 'user_functionality', 'user_id', 'functionality_id');
+    }
+    
+    public function notifications() {
+        return $this->morphMany(Notification::class, 'notifier');
     }
 }

@@ -103,6 +103,13 @@ class Task extends Model
 
         $task->save();
         $task->saveItems();
+        
+        Notification::createAndNotify(User::logged(), [
+            'message' => 'O cliente ' . $client->fantasy_name . ' foi cadastrado!'
+        ], NotificationSpecial::createArray([
+            'user_id' => $responsible_id,
+            'message' => 'Você foi designado para a atividade ' . $task->job_activity->description . ' da tarefa #123232'
+        ]), 'Cadastro de tarefa', $task->id);
 
         return $task;
     }

@@ -131,6 +131,11 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/tasks/get-next-available-date/{availableDate}/{estimatedTime}/{jobActivity}', 'TaskController@getNextAvailableDate');
     Route::post('/tasks/get-available-dates', 'TaskController@getNextAvailableDates');
     Route::get('/tasks/updated-info', 'TaskController@updatedInfo');
+
+    Route::get('/notifications/all', 'NotificationController@all');
+    Route::get('/notifications/recents', 'NotificationController@recents');
+    Route::get('/notifications/listen', 'NotificationController@listen');
+    Route::put('/notifications/read', 'NotificationController@read');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {
