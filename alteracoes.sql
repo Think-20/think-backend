@@ -17,10 +17,10 @@ create table notification_type (
     constraint `fk_genre_id_notification_type` foreign key(genre_id) references notification_genre(id)
 );
 
-insert into notification_type values (null, 'Cadastro de cliente', 1), (null, 'Alteração de cliente', 2), (null, 'Deleção de cliente', 3),
-(null, 'Cadastro de job', 1), (null, 'Alteração de job', 2), (null, 'Deleção de job', 3), (null, 'Aprovação de job', 5), (null, 'Sinalização de job', 6),
-(null, 'Cadastro de tarefa', 1), (null, 'Alteração de tarefa', 2), (null, 'Deleção de tarefa', 3), (null, 'Movimentação de tarefa', 6),
-(null, 'Aniversário', 4),  (null, 'Diversos', 7), (null, 'Sistema', 8);
+insert into notification_type values (null, 'Cadastro de cliente', 1, 1), (null, 'Alteração de cliente', 2, 1), (null, 'Deleção de cliente', 3, 1),
+(null, 'Cadastro de job', 1, 1), (null, 'Alteração de job', 2, 1), (null, 'Deleção de job', 3, 1), (null, 'Aprovação de job', 5, 1), (null, 'Sinalização de job', 6, 1),
+(null, 'Cadastro de tarefa', 1, 1), (null, 'Alteração de tarefa', 2, 1), (null, 'Deleção de tarefa', 3, 1), (null, 'Movimentação de tarefa', 6, 1),
+(null, 'Aniversário', 4, 1),  (null, 'Diversos', 7, 1), (null, 'Sistema', 8, 1);
 
 create table notification_rule (
 	id int not null auto_increment primary key,
@@ -34,8 +34,8 @@ create table notification_rule (
 create table notification (
 	id int not null auto_increment primary key,
     type_id int not null,
-    notifiable_id int not null,
-    notifiable_type varchar(30) not null,
+    notifier_id int,
+    notifier_type varchar(30),
     info varchar(15),
     date datetime default current_timestamp,
     message varchar(255),
@@ -47,7 +47,7 @@ create table user_notification (
     notification_id int not null,
     user_id int not null,
     `special` tinyint(1) not null default 0,
-    `special_message` varchar(50),
+    `special_message` varchar(255),
     `received` tinyint(1) not null default 0,
     `received_date` datetime default null,    
     `read` tinyint(1) not null default 0,

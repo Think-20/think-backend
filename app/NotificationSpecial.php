@@ -4,8 +4,8 @@ namespace App;
 
 class NotificationSpecial 
 {
-    private $message;
-    private $user_id;
+    public $message;
+    public $user_id;
 
     protected function __construct(int $user_id, string $message) 
     {

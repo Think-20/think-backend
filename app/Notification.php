@@ -4,8 +4,12 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
+use DateTime;
+
 class Notification extends Model
 {
+    public $timestamps = false;
+
     protected $table = 'notification';
 
     protected $fillable = [
@@ -20,19 +24,19 @@ class Notification extends Model
         if($type->active == 0) return;
 
         $data = array_merge($data, [
-            'date' => (new Date())->format('Y-m-d H:i:s'),
+            'date' => (new DateTime())->format('Y-m-d H:i:s'),
             'type_id' => $type->id,
             'info' => $info
         ]);
         $notification = new Notification($data);
         $notification->save();
-        $notification->notifier()->save($notifier);
+        $notifier->notifications()->save($notification);
         $notification->notify($type, $notifier, $notificationSpecial);
     }
 
     protected function notify(NotificationType $type, NotifierInterface $notifier, array $notificationSpecial) {
         $ableUsersForType = NotificationRule::where('type_id', '=', $type->id)
-        ->where('user_id','<>',$notifier->getOriginalId())
+        #->where('user_id','<>', $notifier->getOficialId())
         ->get();
         
         foreach($ableUsersForType as $ableUserForType) {
@@ -42,15 +46,16 @@ class Notification extends Model
             ];
 
             foreach($notificationSpecial as $special) {
-                if($special->user_id != $ableUserForType->user_id) return;
-
+                if($special->user_id != $ableUserForType->user_id) continue;
+                
                 $data = array_merge($data, [
                     'special' => 1,
                     'special_message' => $special->message
-                ]);
+                ]);             
             }
 
-            UserNotification::create($data);
+            $userNotification = new UserNotification($data);
+            $userNotification->save();
         }
     }
 

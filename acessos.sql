@@ -75,4 +75,7 @@ delete from display_user where user_id = 27;
 insert into user_functionality (user_id, functionality_id) select 27, id from functionality where id IN (78,77,46);
 insert into display_user (user_id, display_id) values (27, 33);
 
+/* ------------------ Notificações --------------------- */
+insert into notification_rule select null, n.id, u.id from notification_type n inner join user u;
+
 

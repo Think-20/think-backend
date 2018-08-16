@@ -4,8 +4,12 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
+use DateTime;
+
 class UserNotification extends Model
 {
+    public $timestamps = false;
+
     protected $table = 'user_notification';
 
     protected $fillable = [
@@ -37,11 +41,14 @@ class UserNotification extends Model
 
         foreach($usersNotification as $userNotification) {
             $userNotification->notification;
+            $userNotification->notification->type;
             $userNotification->user;
         }
         
         return [
-            'pagination' => $usersNotification,
+            'pagination' => [
+                'data' => $usersNotification,
+            ],
             'updatedInfo' => UserNotification::updatedInfo()
         ];
     }
@@ -55,11 +62,14 @@ class UserNotification extends Model
 
         foreach($usersNotification as $userNotification) {
             $userNotification->notification;
+            $userNotification->notification->type;
             $userNotification->user;
         }
         
         return [
-            'pagination' => $usersNotification,
+            'pagination' => [
+                'data' => $usersNotification,
+            ],
             'updatedInfo' => UserNotification::updatedInfo()
         ];
     }
@@ -73,6 +83,7 @@ class UserNotification extends Model
         foreach($usersNotification as $userNotification) {
             $userNotification->update(['received' => 1, 'received_date' => (new DateTime())->format('Y-m-d H:i:s')]);
             $userNotification->notification;
+            $userNotification->notification->type;
             $userNotification->user;
         }
         
@@ -89,7 +100,7 @@ class UserNotification extends Model
 
         return [
             'date' => (new DateTime($lastData->notification->date))->format('d/m/Y'),
-            'by' => $lastData->notifier->getName()
+            'by' => $lastData->notification->notifier->getName()
         ];
     }
 
