@@ -217,9 +217,10 @@ class Job extends Model
             foreach($paginate as $job) {
                 $job->responsibles();
             }
-            $result = $paginate->items();
             $page = $paginate->currentPage();
             $total = $paginate->total();
+
+            return $paginate;
         } else {
             $result = $jobs->get();
             foreach($result as $job) {
@@ -227,13 +228,13 @@ class Job extends Model
             }
             $total = $jobs->count();
             $page = 0;
-        }
 
-        return [
-            'data' => $result,
-            'total' => $total,
-            'page' => $page
-        ];
+            return [
+                'data' => $result,
+                'total' => $total,
+                'page' => $page
+            ];
+        }
     }
 
     
