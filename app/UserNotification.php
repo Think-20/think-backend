@@ -78,6 +78,7 @@ class UserNotification extends Model
         $usersNotification = UserNotification::select()
         ->where('user_id', '=', User::logged()->id)
         ->where('received', '0')
+        ->orderBy('id', 'desc')
         ->get();
 
         foreach($usersNotification as $userNotification) {
