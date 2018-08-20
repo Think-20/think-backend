@@ -72,6 +72,13 @@ class Task extends Model
         else {
             ActivityHelper::moveActivity($data['task1'], $data['task2']);
         }
+
+        Notification::createAndNotify(User::logged(), [
+            'message' => 'Tarefa com a atividade ' . $task->job_activity->description . ' editada.'
+        ], NotificationSpecial::createMulti([
+            'user_id' => $responsible_id,
+            'message' => 'A tarefa #123232 ' . $task->job_activity->description . ' na qual você estava envolvido foi editada.'
+        ]), 'Alteração de tarefa', $task->id);
         
         return true;
     }
@@ -87,6 +94,14 @@ class Task extends Model
         }
 
         $task->update(['available_date' => $available_date]);
+
+        Notification::createAndNotify(User::logged(), [
+            'message' => 'Tarefa com a atividade ' . $task->job_activity->description . ' editada.'
+        ], NotificationSpecial::createMulti([
+            'user_id' => $responsible_id,
+            'message' => 'A tarefa #123232 ' . $task->job_activity->description . ' na qual você estava envolvido foi editada.'
+        ]), 'Alteração de tarefa', $task->id);
+
         return $task;
     }
 
@@ -105,21 +120,21 @@ class Task extends Model
         $task->saveItems();
         
         Notification::createAndNotify(User::logged(), [
-            'message' => 'Uma nova tarefa com a atividade ' . $task->job_activity->description . ' foi cadastrada.'
+            'message' => 'Nova tarefa com a atividade ' . $task->job_activity->description . ' foi cadastrada.'
         ], NotificationSpecial::createMulti([
             'user_id' => $responsible_id,
             'message' => 'Você foi designado para a atividade ' . $task->job_activity->description . ' da tarefa #123232'
         ]), 'Cadastro de tarefa', $task->id);
 
-        $task->addModifyReopened();
+        $task->modifyReopened(1);
 
         return $task;
     }
 
-    public function addModifyReopened() {
+    public function modifyReopened($inc) {
         if($this->job_activity->description != 'Modificação') return;
 
-        $this->job->reopened = $this->job->reopened + 1;
+        $this->job->reopened = $this->job->reopened + $inc;
         $this->job->save();
     }
 
@@ -179,6 +194,13 @@ class Task extends Model
         //$job_id = isset($data['job']['id']) ? $data['job']['id'] : null;
         //$job_activity_id = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
         $task = Task::find($id);
+
+        Notification::createAndNotify(User::logged(), [
+            'message' => 'Tarefa com a atividade ' . $task->job_activity->description . ' editada.'
+        ], NotificationSpecial::createMulti([
+            'user_id' => $responsible_id,
+            'message' => 'A tarefa #123232 ' . $task->job_activity->description . ' na qual você estava envolvido foi editada.'
+        ]), 'Alteração de tarefa', $task->id);
 
         $task->update(
             array_merge($data, [
@@ -249,15 +271,20 @@ class Task extends Model
     
 
     public static function updatedInfo() {
-        $lastData = Task::orderBy('updated_at', 'desc')->limit(1)->first();
+        $typeIds = NotificationType::where('description', 'LIKE', '%tarefa%')->get();
+        $lastData = Notification::with('user', 'notifier')
+        ->whereIn('type_id', $typeIds->map(function($type) { return $type->id; }))
+        ->orderBy('date', 'desc')
+        ->limit(1)
+        ->first();
 
         if($lastData == null) {
             return [];
         }
 
         return [
-            'date' => (new DateTime($lastData->updated_at))->format('d/m/Y H:i:s'),
-            'employee' => $lastData->job->attendance->name
+            'date' => (new DateTime($lastData->date))->format('d/m/Y H:i:s'),
+            'employee' => $lastData->notifier->getName()
         ];
     }
 
@@ -325,7 +352,15 @@ class Task extends Model
     {
         $task = Task::find($id);
         $task->items()->delete();
+        $task->modifyReopened(-1);
         $task->delete();
+
+        Notification::createAndNotify(User::logged(), [
+            'message' => 'Tarefa com a atividade ' . $task->job_activity->description . ' foi deletada.'
+        ], NotificationSpecial::createMulti([
+            'user_id' => $responsible_id,
+            'message' => 'A tarefa #123232 ' . $task->job_activity->description . ' na qual você estava envolvido foi deletada.'
+        ]), 'Deleção de tarefa', $task->id);
     }
 
     public static function removeMyTask($id)
@@ -337,7 +372,15 @@ class Task extends Model
         }
 
         $task->items()->delete();
+        $task->modifyReopened(-1);
         $task->delete();
+
+        Notification::createAndNotify(User::logged(), [
+            'message' => 'Tarefa com a atividade ' . $task->job_activity->description . ' foi deletada.'
+        ], NotificationSpecial::createMulti([
+            'user_id' => $responsible_id,
+            'message' => 'A tarefa #123232 ' . $task->job_activity->description . ' na qual você estava envolvido foi deletada.'
+        ]), 'Deleção de tarefa', $task->id);
     }
 
     public static function get($id)
