@@ -11,33 +11,51 @@ class ActivityHelper
 
     public static function swapActivities(Task $task1, Task $task2)
     {
-        if ($task1->duration == $task2->duration) {
-            #$tempR = $task1->responsible_id;
-            $tempA = $task1->available_date;
-            $tempD = $task1->duration;
-            $tempItems = $task1->items;
-            
-            #$task1->responsible_id = $task2->responsible_id;
-            $task1->available_date = $task2->available_date;
-            $task1->duration = $task2->duration;
-            $task1->save();
-
-            foreach ($task2->items as $item) {
-                $item->task_id = $task1->id;
-                $item->save();
-            }
-            
-            #$task2->responsible_id = $tempR;
-            $task2->available_date = $tempA;
-            $task2->duration = $tempD;
-            $task2->save();
-
-            foreach ($tempItems as $item) {
-                $item->task_id = $task2->id;
-                $item->save();
-            }
-        } else {
+        if($task1->duration != $task2->duration) {
             throw new \Exception('A duração das tarefas estão diferentes.');
+        } else if($task1->job_activity_id != $task2->job_activity_id) {
+            throw new \Exception('A tarefas são diferentes.');
+        } else {
+            #$tempItems1 = $task1->items;
+            #$tempItems2 = $task2->items;
+            $tempJob = $task1->job_id;
+            #$tempResponsible = $task1->responsible_id;
+            #$tempJobActivity = $task1->job_activity_id;
+            #$tempAvailableDate = $task1->available_date;
+            #$task1->deleteItems();
+            #$task2->deleteItems();
+
+            $task1->job_id = $task2->job_id;
+            #$task1->job_activity_id = $task2->job_activity_id;
+            #$task1->responsible_id = $task2->responsible_id;
+            #$task1->available_date = $task2->available_date;
+            $task1->save();
+            
+            /*
+            foreach ($tempItems1 as $item) {
+                TaskItem::insert(
+                    array_merge($item->toArray(), [
+                        'task_id' => $task2->id
+                    ])
+                );
+            }
+            */
+            
+            $task2->job_id = $tempJob;
+            #$task2->job_activity_id = $tempJobActivity;
+            #$task2->available_date = $tempAvailableDate;
+            #$task2->responsible_id = $tempResponsible;
+            $task2->save();
+            
+            /*
+            foreach ($tempItems2 as $item) {
+                TaskItem::insert(
+                    array_merge($item->toArray(), [
+                        'task_id' => $task1->id
+                    ])
+                );
+            }
+            */
         }
     }
 
@@ -62,6 +80,8 @@ class ActivityHelper
         $task->responsible_id = $arr['available_responsibles'][0]->id;
         $task->save();
         $task->saveItems();
+
+        return $task;
 
         /*
         if($task->duration <= 1) {

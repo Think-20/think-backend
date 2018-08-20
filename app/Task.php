@@ -64,21 +64,38 @@ class Task extends Model
 
     public static function editAvailableDate(array $data)
     {
+        $task = null;
+        
         if( isset($data['task1']['id']) && isset($data['task2']['id']) ) {
-            $task1 = (object) $data['task1'];
-            $task2 = (object) $data['task2'];
+            $oTask1 = (object) $data['task1'];
+            $oTask2 = (object) $data['task2'];
+            $task1 = Task::find($oTask1->id);
+            $task2 = Task::find($oTask2->id);
             ActivityHelper::swapActivities($task1, $task2);
+
+            Notification::createAndNotify(User::logged(), [
+                'message' => 'Tarefa com a atividade ' . $task1->job_activity->description . ' editada.'
+            ], NotificationSpecial::createMulti([
+                'user_id' => $task1->responsible_id,
+                'message' => 'A tarefa #123232 ' . $task1->job_activity->description . ' na qual você estava envolvido foi editada.'
+            ]), 'Alteração de tarefa', $task1->id);
+
+            Notification::createAndNotify(User::logged(), [
+                'message' => 'Tarefa com a atividade ' . $task2->job_activity->description . ' editada.'
+            ], NotificationSpecial::createMulti([
+                'user_id' => $task2->responsible_id,
+                'message' => 'A tarefa #123232 ' . $task2->job_activity->description . ' na qual você estava envolvido foi editada.'
+            ]), 'Alteração de tarefa', $task2->id);
         }
         else {
-            ActivityHelper::moveActivity($data['task1'], $data['task2']);
-        }
-
-        Notification::createAndNotify(User::logged(), [
-            'message' => 'Tarefa com a atividade ' . $task->job_activity->description . ' editada.'
-        ], NotificationSpecial::createMulti([
-            'user_id' => $responsible_id,
-            'message' => 'A tarefa #123232 ' . $task->job_activity->description . ' na qual você estava envolvido foi editada.'
-        ]), 'Alteração de tarefa', $task->id);
+            $task = ActivityHelper::moveActivity($data['task1'], $data['task2']);
+            Notification::createAndNotify(User::logged(), [
+                'message' => 'Tarefa com a atividade ' . $task->job_activity->description . ' editada.'
+            ], NotificationSpecial::createMulti([
+                'user_id' => $responsible_id,
+                'message' => 'A tarefa #123232 ' . $task->job_activity->description . ' na qual você estava envolvido foi editada.'
+            ]), 'Alteração de tarefa', $task->id);
+        }        
         
         return true;
     }
