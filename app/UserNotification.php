@@ -5,6 +5,7 @@ namespace App;
 use Illuminate\Database\Eloquent\Model;
 
 use DateTime;
+use DB;
 
 class UserNotification extends Model
 {
@@ -34,7 +35,8 @@ class UserNotification extends Model
     }
     
     public static function list() {
-        $usersNotification = UserNotification::with(['notification', 'notification.type', 'user'])
+        $usersNotification = UserNotification::select('user_notification.*')
+        ->with(['notification', 'notification.type', 'user'])
         ->leftJoin('notification', 'notification.id', '=', 'user_notification.notification_id')
         ->where('user_notification.user_id', '=', User::logged()->id)
         ->orderBy('notification.date', 'desc')
@@ -49,10 +51,11 @@ class UserNotification extends Model
     }
     
     public static function recents() {
-        $usersNotification = UserNotification::with(['notification', 'notification.type', 'user'])
+        $usersNotification = UserNotification::select('user_notification.*')
+        ->with(['notification', 'notification.type', 'user'])
         ->leftJoin('notification', 'notification.id', '=', 'user_notification.notification_id')
         ->where('user_notification.user_id', '=', User::logged()->id)
-        ->where('received', '1')
+        ->where('received', '=', '1')
         ->orderBy('notification.date', 'desc')
         ->limit(15)
         ->get();
@@ -66,17 +69,16 @@ class UserNotification extends Model
     }
     
     public static function listen() {
-        $usersNotification = UserNotification::with(['notification', 'notification.type', 'user'])
+        $usersNotification = UserNotification::select('user_notification.*')
+        ->with(['notification', 'notification.type', 'user'])
         ->leftJoin('notification', 'notification.id', '=', 'user_notification.notification_id')
         ->where('user_notification.user_id', '=', User::logged()->id)
-        ->where('received', '0')
+        ->where('received', '=', '0')
         ->orderBy('notification.date', 'desc')
         ->get();
 
-        UserNotification::whereIn('id', $usersNotification->map(function($userNotification) {
-            return $userNotification->id;
-            })
-        )->update(['received' => 1, 'received_date' => (new DateTime())->format('Y-m-d H:i:s')]); 
+        UserNotification::whereIn('id', $usersNotification->map(function($u) { return $u->id; }))
+        ->update(['received' => 1, 'received_date' => (new DateTime())->format('Y-m-d H:i:s')]);     
 
         return $usersNotification;
     }

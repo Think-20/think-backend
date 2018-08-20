@@ -111,7 +111,16 @@ class Task extends Model
             'message' => 'Você foi designado para a atividade ' . $task->job_activity->description . ' da tarefa #123232'
         ]), 'Cadastro de tarefa', $task->id);
 
+        $task->addModifyReopened();
+
         return $task;
+    }
+
+    public function addModifyReopened() {
+        if($this->job_activity->description != 'Modificação') return;
+
+        $this->job->reopened = $this->job->reopened + 1;
+        $this->job->save();
     }
 
     public function saveItems()
