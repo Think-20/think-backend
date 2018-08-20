@@ -193,7 +193,7 @@ class Job extends Model
 
         $jobs = Job::selectRaw('job.*')
         ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels',
-        'how_come', 'agency', 'attendance', 'competition', 'files', 'status');
+        'how_come', 'agency', 'attendance', 'competition', 'files', 'status', 'creation');
 
         if ( ! is_null($clientName) ) {
             $jobs->whereHas('client', function($query) use ($clientName) {
@@ -210,7 +210,7 @@ class Job extends Model
 
         if ( ! is_null($creationId) ) {
             $jobs->whereHas('creation', function($query) use ($creationId) {
-                $query->where('id', '=', $creationId);
+                $query->where('responsible_id', '=', $creationId);
             });         
         }
 
@@ -586,7 +586,9 @@ class Job extends Model
     }
 
     public function creation() {
-        return $this->tasks()->with('job_activity')->where('job_activity.description', '=', 'Projeto');
+        return $this->tasks()
+        ->where('job_activity_id', '=', 
+        JobActivity::where('description', '=', 'Projeto')->first()->id);
     }
 
     public function attendance_responsible() {
