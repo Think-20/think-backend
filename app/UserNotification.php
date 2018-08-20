@@ -34,16 +34,11 @@ class UserNotification extends Model
     }
     
     public static function list() {
-        $usersNotification = UserNotification::select()
-        ->where('user_id', '=', User::logged()->id)
-        ->orderBy('id', 'desc')
+        $usersNotification = UserNotification::with(['notification', 'notification.type', 'user'])
+        ->leftJoin('notification', 'notification.id', '=', 'user_notification.notification_id')
+        ->where('user_notification.user_id', '=', User::logged()->id)
+        ->orderBy('notification.date', 'desc')
         ->paginate(20);
-
-        foreach($usersNotification as $userNotification) {
-            $userNotification->notification;
-            $userNotification->notification->type;
-            $userNotification->user;
-        }
         
         return [
             'pagination' => [
@@ -54,17 +49,13 @@ class UserNotification extends Model
     }
     
     public static function recents() {
-        $usersNotification = UserNotification::select()
-        ->where('user_id', '=', User::logged()->id)
-        ->orderBy('id', 'desc')
+        $usersNotification = UserNotification::with(['notification', 'notification.type', 'user'])
+        ->leftJoin('notification', 'notification.id', '=', 'user_notification.notification_id')
+        ->where('user_notification.user_id', '=', User::logged()->id)
+        ->where('received', '1')
+        ->orderBy('notification.date', 'desc')
         ->limit(15)
         ->get();
-
-        foreach($usersNotification as $userNotification) {
-            $userNotification->notification;
-            $userNotification->notification->type;
-            $userNotification->user;
-        }
         
         return [
             'pagination' => [
@@ -75,19 +66,18 @@ class UserNotification extends Model
     }
     
     public static function listen() {
-        $usersNotification = UserNotification::select()
-        ->where('user_id', '=', User::logged()->id)
+        $usersNotification = UserNotification::with(['notification', 'notification.type', 'user'])
+        ->leftJoin('notification', 'notification.id', '=', 'user_notification.notification_id')
+        ->where('user_notification.user_id', '=', User::logged()->id)
         ->where('received', '0')
-        ->orderBy('id', 'desc')
+        ->orderBy('notification.date', 'desc')
         ->get();
 
-        foreach($usersNotification as $userNotification) {
-            $userNotification->update(['received' => 1, 'received_date' => (new DateTime())->format('Y-m-d H:i:s')]);
-            $userNotification->notification;
-            $userNotification->notification->type;
-            $userNotification->user;
-        }
-        
+        UserNotification::whereIn('id', $usersNotification->map(function($userNotification) {
+            return $userNotification->id;
+            })
+        )->update(['received' => 1, 'received_date' => (new DateTime())->format('Y-m-d H:i:s')]); 
+
         return $usersNotification;
     }
 
