@@ -186,11 +186,33 @@ class Job extends Model
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
         $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'created_at';
         $status = isset($params['status']) ? $params['status'] : null;
+        $clientName = isset($params['clientName']) ? $params['clientName'] : null;
+        $attendanceId = isset($params['attendance']['id']) ? $params['attendance']['id'] : null;
+        $creationId = isset($params['creation']['id']) ? $params['creation']['id'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
 
         $jobs = Job::selectRaw('job.*')
         ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels',
         'how_come', 'agency', 'attendance', 'competition', 'files', 'status');
+
+        if ( ! is_null($clientName) ) {
+            $jobs->whereHas('client', function($query) use ($clientName) {
+                $query->where('fantasy_name', '=', $clientName);
+                $query->orWhere('name', '=', $clientName);
+            });         
+        }
+
+        if ( ! is_null($attendanceId) ) {
+            $jobs->whereHas('attendance', function($query) use ($attendanceId) {
+                $query->where('id', '=', $attendanceId);
+            });         
+        }
+
+        if ( ! is_null($creationId) ) {
+            $jobs->whereHas('creation', function($query) use ($creationId) {
+                $query->where('id', '=', $creationId);
+            });         
+        }
 
         if( ! is_null($status) ) {
             $jobs->where('status_id', '=', $status);
@@ -561,6 +583,10 @@ class Job extends Model
 
     public function tasks() {
         return $this->hasMany('App\Task', 'job_id');
+    }
+
+    public function creation() {
+        return $this->tasks()->with('job_activity')->where('job_activity.description', '=', 'Projeto');
     }
 
     public function attendance_responsible() {
