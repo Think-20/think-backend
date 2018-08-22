@@ -15,6 +15,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+/*
 Route::get('/mod', function () {
     $jobs = App\Job::all();
     foreach ($jobs as $job) {
@@ -28,6 +29,7 @@ Route::get('/mod', function () {
         }
     }
 });
+*/
 
 /*
 Route::get('/test', function () {
