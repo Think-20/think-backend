@@ -406,58 +406,71 @@ class Job extends Model
 
     public static function filterMyJob($params) {
         $iniDate = isset($params['iniDate']) ? $params['iniDate'] : null;
-        $finDate = isset($params['finDate']) ? $params['finDate'] : null;
-        $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'available_date';
-        $status = isset($params['status']) ? $params['status'] : null;
-        $paginate = isset($params['paginate']) ? $params['paginate'] : true;
+        $jobTypeId = isset($params['job_type']['id']) ? $params['job_type']['id'] : null;
         $jobActivities = isset($params['job_activities']) ? $params['job_activities'] : null;
         $jobActivitiesMode = isset($params['job_activities_mode']) ? $params['job_activities_mode'] : 'IN';
-               
-        $jobs = Job::select('job.id', 'job.*')
+        $finDate = isset($params['finDate']) ? $params['finDate'] : null;
+        $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'created_at';
+        $status = isset($params['status']) ? $params['status'] : null;
+        $clientName = isset($params['clientName']) ? $params['clientName'] : null;
+        $attendanceId = isset($params['attendance']['id']) ? $params['attendance']['id'] : null;
+        $creationId = isset($params['creation']['id']) ? $params['creation']['id'] : null;
+        $paginate = isset($params['paginate']) ? $params['paginate'] : true;
+
+        $jobs = Job::selectRaw('job.*')
         ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels',
-        'how_come', 'agency', 'attendance', 'competition', 'files', 'status')
-        ->where(function($query) {
-            $query->where('attendance_id', '=', User::logged()->employee->id);
-            $query->orWhere('task.responsible_id', '=', User::logged()->employee->id);
-        })
-        ->leftJoin('task', function($query) use ($jobActivities) {
-            $query->on('task.job_id', '=', 'job.id');
-        })->groupBy('job.id');
+        'how_come', 'agency', 'attendance', 'competition', 'files', 'status', 'creation');
+
+        if ( ! is_null($clientName) ) {
+            $jobs->whereHas('client', function($query) use ($clientName) {
+                $query->where('fantasy_name', '=', $clientName);
+                $query->orWhere('name', '=', $clientName);
+            });         
+        }
+
+        $jobs->whereHas('attendance', function($query) use ($attendanceId) {
+            $query->where('id', '=', User::logged()->employee->id);
+        });         
+
+        if ( ! is_null($creationId) ) {
+            $jobs->whereHas('creation', function($query) use ($creationId) {
+                $query->where('responsible_id', '=', $creationId);
+            });         
+        }
+
+        if( ! is_null($status) ) {
+            $jobs->where('status_id', '=', $status);
+        }
+
+        if( ! is_null($jobTypeId) ) {
+            $jobs->where('job_type_id', '=', $jobTypeId);
+        }
 
         if( ! is_null($jobActivities) ) {
+            $jobs->leftJoin('task', function($query) use ($jobActivities) {
+                $query->on('task.job_id', '=', 'job.id');
+            });
             if($jobActivitiesMode == 'IN') {
                $jobs->whereIn('task.job_activity_id', $jobActivities);
             } else {
                 $jobs->whereNotIn('task.job_activity_id', $jobActivities);
             }
-            #$jobs->distinct('job.id');
+            $jobs->distinct('job.id');
         }
 
-        if($orderBy == 'available_date') {
-            $jobs->orderBy('job.created_at', 'DESC');
-        } else if($orderBy == 'created_at') {
+        if($orderBy == 'created_at') {
             $jobs->orderBy('job.created_at', 'DESC');
         }
-        $jobs->orderBy('attendance_id', 'ASC');
 
-
-        if($iniDate != null && $finDate != null) {
-            $jobs->where('available_date', '>=', $iniDate);
-            $jobs->where('available_date', '<=', $finDate);
-        }
-        
-        if($status != null) {
-            $jobs->where('status_id', '=', $status);
-        }
-        
         if($paginate) {
             $paginate = $jobs->paginate(50);
             foreach($paginate as $job) {
                 $job->responsibles();
             }
-            $result = $paginate->items();
             $page = $paginate->currentPage();
             $total = $paginate->total();
+
+            return $paginate;
         } else {
             $result = $jobs->get();
             foreach($result as $job) {
@@ -465,15 +478,13 @@ class Job extends Model
             }
             $total = $jobs->count();
             $page = 0;
+
+            return [
+                'data' => $result,
+                'total' => $total,
+                'page' => $page
+            ];
         }
-
-        return [
-            'data' => $result,
-            'total' => $total,
-            'page' => $page
-        ];
-
-        return $jobs;
     }
 
     public static function generateCode() {
