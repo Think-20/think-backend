@@ -36,7 +36,7 @@ class UserNotification extends Model
     
     public static function list() {
         $usersNotification = UserNotification::select('user_notification.*')
-        ->with(['notification', 'notification.type', 'user'])
+        ->with(['notification', 'notification.type', 'notification.notifier.employee'])
         ->leftJoin('notification', 'notification.id', '=', 'user_notification.notification_id')
         ->where('user_notification.user_id', '=', User::logged()->id)
         ->orderBy('notification.date', 'desc')
@@ -52,7 +52,7 @@ class UserNotification extends Model
     
     public static function recents() {
         $usersNotification = UserNotification::select('user_notification.*')
-        ->with(['notification', 'notification.type', 'user'])
+        ->with(['notification', 'notification.type', 'notification.notifier.employee'])
         ->leftJoin('notification', 'notification.id', '=', 'user_notification.notification_id')
         ->where('user_notification.user_id', '=', User::logged()->id)
         ->where('received', '=', '1')
@@ -70,7 +70,7 @@ class UserNotification extends Model
     
     public static function listen() {
         $usersNotification = UserNotification::select('user_notification.*')
-        ->with(['notification', 'notification.type', 'user'])
+        ->with(['notification', 'notification.type', 'notification.notifier.employee'])
         ->leftJoin('notification', 'notification.id', '=', 'user_notification.notification_id')
         ->where('user_notification.user_id', '=', User::logged()->id)
         ->where('received', '=', '0')
