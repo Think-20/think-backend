@@ -181,6 +181,7 @@ class Job extends Model
 
     public static function filter($params) {
         $iniDate = isset($params['iniDate']) ? $params['iniDate'] : null;
+        $jobTypeId = isset($params['job_type']['id']) ? $params['job_type']['id'] : null;
         $jobActivities = isset($params['job_activities']) ? $params['job_activities'] : null;
         $jobActivitiesMode = isset($params['job_activities_mode']) ? $params['job_activities_mode'] : 'IN';
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
@@ -216,6 +217,10 @@ class Job extends Model
 
         if( ! is_null($status) ) {
             $jobs->where('status_id', '=', $status);
+        }
+
+        if( ! is_null($jobTypeId) ) {
+            $jobs->where('job_type_id', '=', $jobTypeId);
         }
 
         if( ! is_null($jobActivities) ) {
