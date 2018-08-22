@@ -68,7 +68,7 @@ class ActivityHelper
             throw new \Exception('Você não pode trocar por uma data menor que a de hoje.');
         }
 
-        $arr = ActivityHelper::calculateNextDate($nextDate, $task->job_activity, $task->type()->getResponsibleList(), $task->duration);
+        $arr = ActivityHelper::calculateNextDate($nextDate, $task->job_activity, $task->type()->getResponsibleList(), $task->duration, $task->id);
 
         /* Teste com calculadora de datas */
         if (!DateHelper::compare(new DateTime($arr['date']), new DateTime($nextDate))) {
@@ -98,7 +98,7 @@ class ActivityHelper
 
     }
 
-    public static function calculateNextDate($initialDate, JobActivity $jobActivity, Collection $professionalList, $duration)
+    public static function calculateNextDate($initialDate, JobActivity $jobActivity, Collection $professionalList, $duration, $taskIdIgnore = null)
     {
         if (ActivityHelper::checkIfProfessionalListIsEmpty($professionalList)) {
             return [
@@ -120,13 +120,17 @@ class ActivityHelper
             $items = TaskItem::select()
                 ->leftJoin('task', 'task.id', '=', 'task_item.task_id')
                 ->where('date', '=', $date->format('Y-m-d'))
-                ->whereIn('responsible_id', $professionalIn)
-            #->where('job_activity_id', '=', $jobActivity->id)
-                ->get();
+                ->whereIn('responsible_id', $professionalIn);
+
+            if( ! is_null($taskIdIgnore) ) {
+                $items->where('task_item.task_id', '<>', $taskIdIgnore);
+            }
+
+            $items = $items->get();
 
             $groupedItems = ActivityHelper::groupItemsByProfessional($items, $professionalList);
             $professionalIdsInThisDate = ActivityHelper::getAvailableProfessionalInThisDate($groupedItems);
-            $availableProfessionals = ActivityHelper::verifyProfessionalWithDuration($groupedItems, $date, $jobActivity, $professionalIdsInThisDate, $duration);
+            $availableProfessionals = ActivityHelper::verifyProfessionalWithDuration($groupedItems, $date, $jobActivity, $professionalIdsInThisDate, $duration, $taskIdIgnore);
         } while (count($availableProfessionals) == 0);
         
         return [
@@ -143,7 +147,7 @@ class ActivityHelper
         return true;
     }
 
-    protected static function verifyProfessionalWithDuration(array $groupedItems, DateTime $date, JobActivity $jobActivity, array $professionalIds, $duration)
+    protected static function verifyProfessionalWithDuration(array $groupedItems, DateTime $date, JobActivity $jobActivity, array $professionalIds, $duration, $taskIdIgnore)
     {
         $availableProfessionals = [];
 
@@ -159,8 +163,13 @@ class ActivityHelper
             $items = TaskItem::select()
                 ->leftJoin('task', 'task.id', '=', 'task_item.task_id')
                 ->whereIn('date', $dates)
-                ->where('responsible_id', '=', $professionalId)
-                ->get();
+                ->where('responsible_id', '=', $professionalId);
+
+            if( ! is_null($taskIdIgnore) ) {
+                $items->where('task_item.task_id', '<>', $taskIdIgnore);
+            }
+
+            $items = $items->get();
 
             if($items->count() == 0) {
                 $availableProfessionals[] = $professionalId;

@@ -93,7 +93,7 @@ class Task extends Model
             Notification::createAndNotify(User::logged(), [
                 'message' => 'Tarefa com a atividade ' . $task->job_activity->description . ' editada.'
             ], NotificationSpecial::createMulti([
-                'user_id' => $responsible_id,
+                'user_id' => $task->responsible_id,
                 'message' => 'A tarefa #123232 ' . $task->job_activity->description . ' na qual você estava envolvido foi editada.'
             ]), 'Alteração de tarefa', $task->id);
         }        
