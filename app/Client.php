@@ -139,20 +139,35 @@ class Client extends Model implements Contactable
 
     public static function filter(array $data) {
         $search = isset($data['search']) ? $data['search'] : null;
-        $attendance = isset($data['attendance']['id']) ? $data['attendance']['id'] : null;
+        $attendanceId = isset($data['attendance']['id']) ? $data['attendance']['id'] : null;
+        $clientStatusId = isset($data['client_status']['id']) ? $data['client_status']['id'] : null;
+        $clientTypeId = isset($data['client_type']['id']) ? $data['client_type']['id'] : null;
+        $rate = isset($data['rate']) ? $data['rate'] : null;
 
         $query = Client::select();
 
-        if($search != null && $attendance == null) {
-            $query->orWhere('name', 'like', $search . '%');
-            $query->orWhere('fantasy_name', 'like', $search . '%');
-            $query->orWhere('cnpj', 'like', $search . '%');
-            //dd($query->toSql());
-        } else if($attendance != null) {
-            $query->orWhere([
-                ['employee_id', '=', $attendance],
-                ['fantasy_name', 'like', $search . '%']
-            ]);
+        if( ! is_null($clientTypeId) ) {
+            $query->where('client_type_id', '=', $clientTypeId);
+        }
+
+        if( ! is_null($clientStatusId) ) {
+            $query->where('client_status_id', '=', $clientStatusId);
+        }
+
+        if( ! is_null($rate) ) {
+            $query->where('rate', '=', $rate);
+        }
+
+        if( ! is_null($search) ) {
+            $query->where(function($query2) use ($search) {
+                $query2->orWhere('name', 'like', $search . '%');
+                $query2->orWhere('fantasy_name', 'like', $search . '%');
+                $query2->orWhere('cnpj', 'like', $search . '%');
+            });
+        }
+
+        if( ! is_null($attendanceId) ) {
+            $query->where('employee_id', '=', $attendanceId);
         }
 
         $query->orderBy('fantasy_name', 'asc');
@@ -383,42 +398,6 @@ class Client extends Model implements Contactable
         $client->contacts;
 
         return $client;
-    }
-
-    public static function filterMyClient($query) {
-        $where1 = [   
-            ['employee_id', '=', User::logged()->employee->id],
-            ['fantasy_name', 'like', $query . '%']
-        ];
-
-        $where2 = [   
-            ['employee_id', '=', User::logged()->employee->id],
-            ['cnpj', 'like', $query . '%']
-        ];
-
-        $where3 = [   
-            ['employee_id', '=', User::logged()->employee->id],
-            ['name', 'like', $query . '%'],
-        ];
-
-        $clients = Client::select()
-            ->where($where1)
-            ->orWhere($where2)
-            ->orWhere($where3)
-            ->orderBy('fantasy_name', 'asc')
-            ->paginate(20);
-
-        foreach($clients as $client) {
-            $client->employee;
-            $client->type;
-            $client->comission;
-            $client->status;
-        }
-        
-        return [
-            'pagination' => $clients,
-            'updatedInfo' => Client::updatedInfo()
-        ];
     }
     
     public function getCnpjAttribute($value) {
