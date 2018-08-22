@@ -10,7 +10,8 @@ class Task extends Model
 {
     protected $table = 'task';
     protected $fillable = [
-        'job_id', 'responsible_id', 'available_date', 'job_activity_id', 'duration'
+        'job_id', 'responsible_id', 'available_date', 'job_activity_id', 'duration',
+        'reopened'
     ];
 
     public static function getNextAvailableDate($availableDate, $estimatedTime, $jobActivity)
@@ -151,8 +152,15 @@ class Task extends Model
     public function modifyReopened($inc) {
         if($this->job_activity->description != 'Modificação') return;
 
-        $this->job->reopened = $this->job->reopened + $inc;
-        $this->job->save();
+        $sum = 0;
+        foreach($this->job->tasks as $task) {
+            if($task->job_activity->description == 'Modificação') {
+                $sum++;
+            }
+        }
+
+        $this->reopened = $sum + $inc;
+        $this->save();
     }
 
     public function saveItems()

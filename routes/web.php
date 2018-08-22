@@ -15,6 +15,20 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/mod', function () {
+    $jobs = App\Job::all();
+    foreach ($jobs as $job) {
+        $inc = 0;        
+        foreach($job->tasks as $task) {
+            if($task->job_activity->description == 'Modificação') {
+                $inc++;
+                $task->reopened = $inc;
+                $task->save(); 
+            }
+        }
+    }
+});
+
 /*
 Route::get('/test', function () {
     $estimated_time = 1;
