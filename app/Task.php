@@ -74,27 +74,49 @@ class Task extends Model
             $task2 = Task::find($oTask2->id);
             ActivityHelper::swapActivities($task1, $task2);
 
+            $message1 = $task1->job_activity->description . ' de ';
+            $message1 .= ($task1->job->client ? $task1->job->client->fantasy_name : $task1->job->not_client);
+            $message1 .= ' alterado para ' . (new DateTime($task1->available_date))->format('d/m/Y');
+
+            $message2 = $task2->job_activity->description . ' de ';
+            $message2 .= ($task2->job->client ? $task2->job->client->fantasy_name : $task2->job->not_client);
+            $message2 .= ' alterado para ' . (new DateTime($task2->available_date))->format('d/m/Y');
+
             Notification::createAndNotify(User::logged(), [
-                'message' => 'Tarefa com a atividade ' . $task1->job_activity->description . ' editada.'
+                'message' => $message1
             ], NotificationSpecial::createMulti([
                 'user_id' => $task1->responsible_id,
-                'message' => 'A tarefa #123232 ' . $task1->job_activity->description . ' na qual você estava envolvido foi editada.'
+                'message' => $message1
+            ], [
+                'user_id' => $task1->job->attendance_id,
+                'message' => $message1
             ]), 'Alteração de tarefa', $task1->id);
 
             Notification::createAndNotify(User::logged(), [
-                'message' => 'Tarefa com a atividade ' . $task2->job_activity->description . ' editada.'
+                'message' => $message2
             ], NotificationSpecial::createMulti([
                 'user_id' => $task2->responsible_id,
-                'message' => 'A tarefa #123232 ' . $task2->job_activity->description . ' na qual você estava envolvido foi editada.'
+                'message' => $message2
+            ], [
+                'user_id' => $task2->job->attendance_id,
+                'message' => $message2
             ]), 'Alteração de tarefa', $task2->id);
         }
         else {
             $task = ActivityHelper::moveActivity($data['task1'], $data['task2']);
+
+            $message = $task->job_activity->description . ' de ';
+            $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
+            $message .= ' alterado para ' . (new DateTime($task->available_date))->format('d/m/Y');
+
             Notification::createAndNotify(User::logged(), [
-                'message' => 'Tarefa com a atividade ' . $task->job_activity->description . ' editada.'
+                'message' => $message
             ], NotificationSpecial::createMulti([
                 'user_id' => $task->responsible_id,
-                'message' => 'A tarefa #123232 ' . $task->job_activity->description . ' na qual você estava envolvido foi editada.'
+                'message' => $message
+            ], [
+                'user_id' => $task->job->attendance_id,
+                'message' => $message
             ]), 'Alteração de tarefa', $task->id);
         }        
         
@@ -103,24 +125,71 @@ class Task extends Model
 
     public static function myEditAvailableDate(array $data)
     {
-        $id = $data['id'];
-        $task = Task::find($id);
-        $available_date = isset($data['available_date']) ? $data['available_date'] : null;
+        $task = null;
+        
+        if( isset($data['task1']['id']) && isset($data['task2']['id']) ) {
+            $oTask1 = (object) $data['task1'];
+            $oTask2 = (object) $data['task2'];
+            $task1 = Task::find($oTask1->id);
+            $task2 = Task::find($oTask2->id);
 
-        if ($task->job->attendance_id != User::logged()->employee->id) {
-            throw new \Exception('Você não tem permissão para editar esse job.');
+            if(($task1->job->attendance_id != $task2->job->attendance_id) || $task1->job->attendance_id != User::logged()->employee->id) {
+                throw new \Exception('Você não pode alterar uma tarefa que não pertence a você.');
+            }
+
+            ActivityHelper::swapActivities($task1, $task2);
+
+            $message1 = $task1->job_activity->description . ' de ';
+            $message1 .= ($task1->job->client ? $task1->job->client->fantasy_name : $task1->job->not_client);
+            $message1 .= ' alterado para ' . (new DateTime($task1->available_date))->format('d/m/Y');
+
+            $message2 = $task2->job_activity->description . ' de ';
+            $message2 .= ($task2->job->client ? $task2->job->client->fantasy_name : $task2->job->not_client);
+            $message2 .= ' alterado para ' . (new DateTime($task2->available_date))->format('d/m/Y');
+
+            Notification::createAndNotify(User::logged(), [
+                'message' => $message1
+            ], NotificationSpecial::createMulti([
+                'user_id' => $task1->responsible_id,
+                'message' => $message1
+            ], [
+                'user_id' => $task1->job->attendance_id,
+                'message' => $message1
+            ]), 'Alteração de tarefa', $task1->id);
+
+            Notification::createAndNotify(User::logged(), [
+                'message' => $message2
+            ], NotificationSpecial::createMulti([
+                'user_id' => $task2->responsible_id,
+                'message' => $message2
+            ], [
+                'user_id' => $task2->job->attendance_id,
+                'message' => $message2
+            ]), 'Alteração de tarefa', $task2->id);
         }
+        else {
+            $task = ActivityHelper::moveActivity($data['task1'], $data['task2']);
 
-        $task->update(['available_date' => $available_date]);
+            if($task->job->attendance_id != User::logged()->employee->id) {
+                throw new \Exception('Você não pode alterar uma tarefa que não pertence a você.');
+            }
 
-        Notification::createAndNotify(User::logged(), [
-            'message' => 'Tarefa com a atividade ' . $task->job_activity->description . ' editada.'
-        ], NotificationSpecial::createMulti([
-            'user_id' => $responsible_id,
-            'message' => 'A tarefa #123232 ' . $task->job_activity->description . ' na qual você estava envolvido foi editada.'
-        ]), 'Alteração de tarefa', $task->id);
+            $message = $task->job_activity->description . ' de ';
+            $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
+            $message .= ' alterado para ' . (new DateTime($task->available_date))->format('d/m/Y');
 
-        return $task;
+            Notification::createAndNotify(User::logged(), [
+                'message' => $message
+            ], NotificationSpecial::createMulti([
+                'user_id' => $task->responsible_id,
+                'message' => $message
+            ], [
+                'user_id' => $task->job->attendance_id,
+                'message' => $message
+            ]), 'Alteração de tarefa', $task->id);
+        }        
+        
+        return true;
     }
 
     public static function insert(array $data)
@@ -136,12 +205,19 @@ class Task extends Model
 
         $task->save();
         $task->saveItems();
-        
+
+        $message = 'Novo ' . strlower($task->job_activity->description) . ' de ';
+        $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
+        $message .= ' cadastrado para ' . (new DateTime($task->available_date))->format('d/m/Y');
+
         Notification::createAndNotify(User::logged(), [
-            'message' => 'Nova tarefa com a atividade ' . $task->job_activity->description . ' foi cadastrada.'
+            'message' => $message
         ], NotificationSpecial::createMulti([
-            'user_id' => $responsible_id,
-            'message' => 'Você foi designado para a atividade ' . $task->job_activity->description . ' da tarefa #123232'
+            'user_id' => $task->responsible_id,
+            'message' => $message
+        ], [
+            'user_id' => $task->job->attendance_id,
+            'message' => $message
         ]), 'Cadastro de tarefa', $task->id);
 
         $task->modifyReopened(1);
@@ -219,24 +295,54 @@ class Task extends Model
         //$job_id = isset($data['job']['id']) ? $data['job']['id'] : null;
         //$job_activity_id = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
         $task = Task::find($id);
-
-        Notification::createAndNotify(User::logged(), [
-            'message' => 'Tarefa com a atividade ' . $task->job_activity->description . ' editada.'
-        ], NotificationSpecial::createMulti([
-            'user_id' => $responsible_id,
-            'message' => 'A tarefa #123232 ' . $task->job_activity->description . ' na qual você estava envolvido foi editada.'
-        ]), 'Alteração de tarefa', $task->id);
+        $oldDuration = $task->duration;
+        $oldResponsible = $task->responsible->name;
+        $oldResponsibleId = $task->responsible->id;
+        $oldDuration = $task->duration;
 
         $task->update(
             array_merge($data, [
                 'responsible_id' => $responsible_id,
-                //'job_id' => $job_id,
-                //'job_activity_id' => $job_activity_id
             ])
         );
 
         $task->deleteItems();
         $task->saveItems();
+
+        if($oldResponsible != $task->responsible->name) {
+            $message = 'Responsável de ' . strlower($task->job_activity->description) . ' pertencente a ';
+            $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
+            $message .= ' alterado de ' . $oldResponsible . ' para ' . $task->responsible->name; 
+
+            Notification::createAndNotify(User::logged(), [
+                'message' => $message
+            ], NotificationSpecial::createMulti([
+                'user_id' => $task->responsible_id,
+                'message' => $message,
+            ], [
+                'user_id' => $oldResponsibleId,
+                'message' => $message
+            ], [
+                'user_id' => $task->job->attendance_id,
+                'message' => $message
+            ]), 'Alteração de tarefa', $task->id);
+        }
+
+        if($oldDuration != $task->duration) {
+            $message = 'A duração de ' . strlower($task->job_activity->description) . ' pertencente a ';
+            $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
+            $message .= ' alterado de ' . parseInt($oldDuration) . ' para ' . parseInt($task->duration); 
+
+            Notification::createAndNotify(User::logged(), [
+                'message' => $message
+            ], NotificationSpecial::createMulti([
+                'user_id' => $task->responsible_id,
+                'message' => $message,
+            ], [
+                'user_id' => $task->job->attendance_id,
+                'message' => $message
+            ]), 'Alteração de tarefa', $task->id);
+        }
 
         return $task;
     }
@@ -376,16 +482,24 @@ class Task extends Model
     public static function remove($id)
     {
         $task = Task::find($id);
+        
+        $message = $task->job_activity->description . ' pertencente a ';
+        $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
+        $message .= ' removido';
+
+        Notification::createAndNotify(User::logged(), [
+            'message' => $message
+        ], NotificationSpecial::createMulti([
+            'user_id' => $task->responsible_id,
+            'message' => $message,
+        ], [
+            'user_id' => $task->job->attendance_id,
+            'message' => $message
+        ]), 'Deleção de tarefa', $task->id);
+
         $task->items()->delete();
         $task->modifyReopened(-1);
         $task->delete();
-
-        Notification::createAndNotify(User::logged(), [
-            'message' => 'Tarefa com a atividade ' . $task->job_activity->description . ' foi deletada.'
-        ], NotificationSpecial::createMulti([
-            'user_id' => $responsible_id,
-            'message' => 'A tarefa #123232 ' . $task->job_activity->description . ' na qual você estava envolvido foi deletada.'
-        ]), 'Deleção de tarefa', $task->id);
     }
 
     public static function removeMyTask($id)
@@ -396,16 +510,23 @@ class Task extends Model
             throw new \Exception('Você não tem permissão para remover esse job.');
         }
 
+        $message = 'A tarefa ' . strlower($task->job_activity->description) . ' pertencente a ';
+        $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
+        $message .= ' foi removida';
+
+        Notification::createAndNotify(User::logged(), [
+            'message' => $message
+        ], NotificationSpecial::createMulti([
+            'user_id' => $task->responsible_id,
+            'message' => $message,
+        ], [
+            'user_id' => $task->job->attendance_id,
+            'message' => $message
+        ]), 'Deleção de tarefa', $task->id);
+
         $task->items()->delete();
         $task->modifyReopened(-1);
         $task->delete();
-
-        Notification::createAndNotify(User::logged(), [
-            'message' => 'Tarefa com a atividade ' . $task->job_activity->description . ' foi deletada.'
-        ], NotificationSpecial::createMulti([
-            'user_id' => $responsible_id,
-            'message' => 'A tarefa #123232 ' . $task->job_activity->description . ' na qual você estava envolvido foi deletada.'
-        ]), 'Deleção de tarefa', $task->id);
     }
 
     public static function get($id)

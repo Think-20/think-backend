@@ -70,6 +70,12 @@ class Client extends Model implements Contactable
             Contact::manage($contacts, $client);
 
             $client->update($data);
+
+            $message = 'Cliente ' . $client->fantasy_name . ' alterado';
+            Notification::createAndNotify(User::logged(), [
+                'message' => $message
+            ], [], 'Alteração de cliente', $task->id);
+
             DB::commit();
         } catch(\Exception $e) {
             DB::rollBack();
@@ -93,6 +99,12 @@ class Client extends Model implements Contactable
 
             $contacts = isset($data['contacts']) ? $data['contacts'] : [];
             Contact::manage($contacts, $client);
+
+            $message = 'Novo cliente ' . $client->fantasy_name . ' cadastrado';
+            Notification::createAndNotify(User::logged(), [
+                'message' => $message
+            ], [], 'Cadastro de cliente', $task->id);
+
             DB::commit();
 
             return $client;
@@ -107,6 +119,12 @@ class Client extends Model implements Contactable
         
         try {
             $client = Client::find($id);
+            
+            $message = 'Cliente ' . $client->fantasy_name . ' removido';
+            Notification::createAndNotify(User::logged(), [
+                'message' => $message
+            ], [], 'Deleção de cliente', $task->id);
+
             $contacts = $client->contacts;
             $client->contacts()->detach();
             foreach($contacts as $contact) {
@@ -238,6 +256,11 @@ class Client extends Model implements Contactable
                     $contacts = array_merge($client->contacts->toArray(), [$dataContact]);
                     Contact::manage($contacts, $client);
                     $message = 'Cliente ' . $row[0] . ' cadastrado com sucesso.';
+                    
+                    $message1 = 'Cliente ' . $client->fantasy_name . ' cadastrado';
+                    Notification::createAndNotify(User::logged(), [
+                        'message' => $message1
+                    ], [], 'Cadastro de cliente', $task->id);
                 } else {
                     $dataContact = Contact::extractFromArray($row);
                     $name = Client::searchClient($dataSheet, $key);
@@ -348,6 +371,12 @@ class Client extends Model implements Contactable
             Contact::manage($contacts, $client);
 
             $client->update($data);
+            
+            $message = 'Cliente ' . $client->fantasy_name . ' alterado';
+            Notification::createAndNotify(User::logged(), [
+                'message' => $message
+            ], [], 'Alteração de cliente', $task->id);
+
             DB::commit();
         } catch(\Exception $e) {
             DB::rollBack();
@@ -360,6 +389,11 @@ class Client extends Model implements Contactable
         
         try {
             $client = Client::find($id);
+            
+            $message = 'Cliente ' . $client->fantasy_name . ' removido';
+            Notification::createAndNotify(User::logged(), [
+                'message' => $message
+            ], [], 'Deleção de cliente', $task->id);
 
             if($client->employee_id != User::logged()->employee->id) {
                 throw new \Exception('Não é possível remover um cliente que não foi cadastrado por você.');

@@ -13,7 +13,7 @@ class Notification extends Model
     protected $table = 'notification';
 
     protected $fillable = [
-        'date', 'message', 'type_id', 'notifiable_id', 'notifiable_type', 'json_data'
+        'date', 'message', 'type_id', 'notifiable_id', 'notifiable_type', 'info'
     ];
 
     public static function createAndNotify(NotifierInterface $notifier, array $data, array $notificationSpecial, string $type, $info = null) {
