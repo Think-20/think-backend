@@ -48,10 +48,11 @@ class Notification extends Model
             foreach($notificationSpecial as $special) {
                 if($special->user_id != $ableUserForType->user_id) continue;
                 
-                $data = array_merge($data, [
+                $userNotification = new UserNotification(array_merge($data, [
                     'special' => 1,
                     'special_message' => $special->message
-                ]);             
+                ]));             
+                $userNotification->save();
             }
 
             $userNotification = new UserNotification($data);

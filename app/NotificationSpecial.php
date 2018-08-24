@@ -18,15 +18,15 @@ class NotificationSpecial
         return [new NotificationSpecial($user_id, $message)];
     }
 
-    public static function createMulti(array $data): array
+    public static function createMulti(...$data): array
     {
         $array = [];
         $message = '';
 
         foreach($data as $notification) {
             //Recupera a última mensagem, caso a atual esteja vazia
-            $message = $data['message'] == '' ? $message : $data['message'];
-            $array[] = new NotificationSpecial($data['user_id'], $message);
+            $message = $notification['message'] == '' ? $message : $notification['message'];
+            $array[] = new NotificationSpecial($notification['user_id'], $message);
         }  
 
         return $array;

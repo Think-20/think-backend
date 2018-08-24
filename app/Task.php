@@ -85,20 +85,20 @@ class Task extends Model
             Notification::createAndNotify(User::logged(), [
                 'message' => $message1
             ], NotificationSpecial::createMulti([
-                'user_id' => $task1->responsible_id,
+                'user_id' => $task1->responsible->user->id,
                 'message' => $message1
             ], [
-                'user_id' => $task1->job->attendance_id,
+                'user_id' => $task1->job->attendance->user->id,
                 'message' => $message1
             ]), 'Alteração de tarefa', $task1->id);
 
             Notification::createAndNotify(User::logged(), [
                 'message' => $message2
             ], NotificationSpecial::createMulti([
-                'user_id' => $task2->responsible_id,
+                'user_id' => $task2->responsible->user->id,
                 'message' => $message2
             ], [
-                'user_id' => $task2->job->attendance_id,
+                'user_id' => $task2->job->attendance->user->id,
                 'message' => $message2
             ]), 'Alteração de tarefa', $task2->id);
         }
@@ -112,10 +112,10 @@ class Task extends Model
             Notification::createAndNotify(User::logged(), [
                 'message' => $message
             ], NotificationSpecial::createMulti([
-                'user_id' => $task->responsible_id,
+                'user_id' => $task->responsible->user->id,
                 'message' => $message
             ], [
-                'user_id' => $task->job->attendance_id,
+                'user_id' => $task->job->attendance->user->id,
                 'message' => $message
             ]), 'Alteração de tarefa', $task->id);
         }        
@@ -150,20 +150,20 @@ class Task extends Model
             Notification::createAndNotify(User::logged(), [
                 'message' => $message1
             ], NotificationSpecial::createMulti([
-                'user_id' => $task1->responsible_id,
+                'user_id' => $task1->responsible->user->id,
                 'message' => $message1
             ], [
-                'user_id' => $task1->job->attendance_id,
+                'user_id' => $task1->job->attendance->user->id,
                 'message' => $message1
             ]), 'Alteração de tarefa', $task1->id);
 
             Notification::createAndNotify(User::logged(), [
                 'message' => $message2
             ], NotificationSpecial::createMulti([
-                'user_id' => $task2->responsible_id,
+                'user_id' => $task2->responsible->user->id,
                 'message' => $message2
             ], [
-                'user_id' => $task2->job->attendance_id,
+                'user_id' => $task2->job->attendance->user->id,
                 'message' => $message2
             ]), 'Alteração de tarefa', $task2->id);
         }
@@ -181,10 +181,10 @@ class Task extends Model
             Notification::createAndNotify(User::logged(), [
                 'message' => $message
             ], NotificationSpecial::createMulti([
-                'user_id' => $task->responsible_id,
+                'user_id' => $task->responsible->user->id,
                 'message' => $message
             ], [
-                'user_id' => $task->job->attendance_id,
+                'user_id' => $task->job->attendance->user->id,
                 'message' => $message
             ]), 'Alteração de tarefa', $task->id);
         }        
@@ -206,17 +206,17 @@ class Task extends Model
         $task->save();
         $task->saveItems();
 
-        $message = 'Novo ' . strlower($task->job_activity->description) . ' de ';
+        $message = ($task->job_activity->description) . ' de ';
         $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
         $message .= ' cadastrado para ' . (new DateTime($task->available_date))->format('d/m/Y');
 
         Notification::createAndNotify(User::logged(), [
             'message' => $message
         ], NotificationSpecial::createMulti([
-            'user_id' => $task->responsible_id,
+            'user_id' => $task->responsible->user->id,
             'message' => $message
         ], [
-            'user_id' => $task->job->attendance_id,
+            'user_id' => $task->job->attendance->user->id,
             'message' => $message
         ]), 'Cadastro de tarefa', $task->id);
 
@@ -310,36 +310,36 @@ class Task extends Model
         $task->saveItems();
 
         if($oldResponsible != $task->responsible->name) {
-            $message = 'Responsável de ' . strlower($task->job_activity->description) . ' pertencente a ';
+            $message = 'Responsável de ' . strtolower($task->job_activity->description) . ' pertencente a ';
             $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
             $message .= ' alterado de ' . $oldResponsible . ' para ' . $task->responsible->name; 
 
             Notification::createAndNotify(User::logged(), [
                 'message' => $message
             ], NotificationSpecial::createMulti([
-                'user_id' => $task->responsible_id,
+                'user_id' => $task->responsible->user->id,
                 'message' => $message,
             ], [
                 'user_id' => $oldResponsibleId,
                 'message' => $message
             ], [
-                'user_id' => $task->job->attendance_id,
+                'user_id' => $task->job->attendance->user->id,
                 'message' => $message
             ]), 'Alteração de tarefa', $task->id);
         }
 
         if($oldDuration != $task->duration) {
-            $message = 'A duração de ' . strlower($task->job_activity->description) . ' pertencente a ';
+            $message = 'A duração de ' . strtolower($task->job_activity->description) . ' pertencente a ';
             $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
             $message .= ' alterado de ' . parseInt($oldDuration) . ' para ' . parseInt($task->duration); 
 
             Notification::createAndNotify(User::logged(), [
                 'message' => $message
             ], NotificationSpecial::createMulti([
-                'user_id' => $task->responsible_id,
+                'user_id' => $task->responsible->user->id,
                 'message' => $message,
             ], [
-                'user_id' => $task->job->attendance_id,
+                'user_id' => $task->job->attendance->user->id,
                 'message' => $message
             ]), 'Alteração de tarefa', $task->id);
         }
@@ -490,10 +490,10 @@ class Task extends Model
         Notification::createAndNotify(User::logged(), [
             'message' => $message
         ], NotificationSpecial::createMulti([
-            'user_id' => $task->responsible_id,
+            'user_id' => $task->responsible->user->id,
             'message' => $message,
         ], [
-            'user_id' => $task->job->attendance_id,
+            'user_id' => $task->job->attendance->user->id,
             'message' => $message
         ]), 'Deleção de tarefa', $task->id);
 
@@ -510,17 +510,17 @@ class Task extends Model
             throw new \Exception('Você não tem permissão para remover esse job.');
         }
 
-        $message = 'A tarefa ' . strlower($task->job_activity->description) . ' pertencente a ';
+        $message = 'A tarefa ' . strtolower($task->job_activity->description) . ' pertencente a ';
         $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
         $message .= ' foi removida';
 
         Notification::createAndNotify(User::logged(), [
             'message' => $message
         ], NotificationSpecial::createMulti([
-            'user_id' => $task->responsible_id,
+            'user_id' => $task->responsible->user->id,
             'message' => $message,
         ], [
-            'user_id' => $task->job->attendance_id,
+            'user_id' => $task->job->attendance->user->id,
             'message' => $message
         ]), 'Deleção de tarefa', $task->id);
 

@@ -59,7 +59,7 @@ class UserNotification extends Model
         ->orderBy('notification.date', 'desc')
         ->limit(15)
         ->get();
-        
+     
         return [
             'pagination' => [
                 'data' => $usersNotification,
