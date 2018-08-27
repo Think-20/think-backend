@@ -74,7 +74,7 @@ class Client extends Model implements Contactable
             $message = 'Cliente ' . $client->fantasy_name . ' alterado';
             Notification::createAndNotify(User::logged(), [
                 'message' => $message
-            ], [], 'Alteração de cliente', $task->id);
+            ], [], 'Alteração de cliente', $client->id);
 
             DB::commit();
         } catch(\Exception $e) {
@@ -103,7 +103,7 @@ class Client extends Model implements Contactable
             $message = 'Novo cliente ' . $client->fantasy_name . ' cadastrado';
             Notification::createAndNotify(User::logged(), [
                 'message' => $message
-            ], [], 'Cadastro de cliente', $task->id);
+            ], [], 'Cadastro de cliente', $client->id);
 
             DB::commit();
 
@@ -123,7 +123,7 @@ class Client extends Model implements Contactable
             $message = 'Cliente ' . $client->fantasy_name . ' removido';
             Notification::createAndNotify(User::logged(), [
                 'message' => $message
-            ], [], 'Deleção de cliente', $task->id);
+            ], [], 'Deleção de cliente', $client->id);
 
             $contacts = $client->contacts;
             $client->contacts()->detach();
@@ -260,7 +260,7 @@ class Client extends Model implements Contactable
                     $message1 = 'Cliente ' . $client->fantasy_name . ' cadastrado';
                     Notification::createAndNotify(User::logged(), [
                         'message' => $message1
-                    ], [], 'Cadastro de cliente', $task->id);
+                    ], [], 'Cadastro de cliente', $client->id);
                 } else {
                     $dataContact = Contact::extractFromArray($row);
                     $name = Client::searchClient($dataSheet, $key);
@@ -375,7 +375,7 @@ class Client extends Model implements Contactable
             $message = 'Cliente ' . $client->fantasy_name . ' alterado';
             Notification::createAndNotify(User::logged(), [
                 'message' => $message
-            ], [], 'Alteração de cliente', $task->id);
+            ], [], 'Alteração de cliente', $client->id);
 
             DB::commit();
         } catch(\Exception $e) {
@@ -393,7 +393,7 @@ class Client extends Model implements Contactable
             $message = 'Cliente ' . $client->fantasy_name . ' removido';
             Notification::createAndNotify(User::logged(), [
                 'message' => $message
-            ], [], 'Deleção de cliente', $task->id);
+            ], [], 'Deleção de cliente', $client->id);
 
             if($client->employee_id != User::logged()->employee->id) {
                 throw new \Exception('Não é possível remover um cliente que não foi cadastrado por você.');
