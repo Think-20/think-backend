@@ -331,7 +331,7 @@ class Task extends Model
         if($oldDuration != $task->duration) {
             $message = 'A duração de ' . strtolower($task->job_activity->description) . ' pertencente a ';
             $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
-            $message .= ' alterado de ' . ((int) $oldDuration) . ' para ' . ((int) $task->duration); 
+            $message .= ' alterado de ' . ((int) $oldDuration) . ' para ' . ((int) $task->duration) . ' dia(s)'; 
 
             Notification::createAndNotify(User::logged(), [
                 'message' => $message
