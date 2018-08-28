@@ -353,7 +353,10 @@ class Task extends Model
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
 
-        $tasks = Task::select();
+        $tasks = Task::with(
+            'items', 'responsible', 'job_activity', 'job', 'job.client', 'job.job_type', 
+            'job.status', 'job.agency', 'job.attendance', 'job.job_activity'
+        );
 
         if (!is_null($iniDate) && !is_null($finDate)) {
             $sql = '(task.available_date >= "' . $iniDate . '"';
@@ -365,27 +368,11 @@ class Task extends Model
 
         if ($paginate) {
             $paginate = $tasks->paginate(50);
-
-            foreach($paginate as $task) {
-                $task->job = Job::get($task->job_id);
-                $task->items;
-                $task->responsible;
-                $task->job_activity;
-            }
-
             $result = $paginate->items();
             $page = $paginate->currentPage();
             $total = $paginate->total();
         } else {
             $result = $tasks->get();
-
-            foreach($result as $task) {
-                $task->job = Job::get($task->job_id);
-                $task->items;
-                $task->responsible;
-                $task->job_activity;
-            }
-
             $total = $tasks->count();
             $page = 0;
         }
