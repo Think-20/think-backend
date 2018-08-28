@@ -147,7 +147,7 @@ class Job extends Model
 
         foreach($jobs as $job) {
             $job->agency;
-            #$job->creation;
+            $job->responsibles();
             $job->job_activity;
             $job->job_type;
             $job->attendance;
@@ -367,7 +367,7 @@ class Job extends Model
 
         foreach($jobs as $job) {
             $job->agency;
-            $job->creation;
+            $job->responsibles();
             $job->job_activity;
             $job->job_type;
             $job->attendance;
