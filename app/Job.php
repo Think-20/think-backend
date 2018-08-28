@@ -198,9 +198,10 @@ class Job extends Model
 
         if ( ! is_null($clientName) ) {
             $jobs->whereHas('client', function($query) use ($clientName) {
-                $query->where('fantasy_name', '=', $clientName);
-                $query->orWhere('name', '=', $clientName);
+                $query->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
+                $query->orWhere('name', 'LIKE', '%' . $clientName . '%');
             });         
+            $jobs->orWhere('not_client', 'LIKE', '%' . $clientName . '%');
         }
 
         if ( ! is_null($attendanceId) ) {
@@ -423,9 +424,10 @@ class Job extends Model
 
         if ( ! is_null($clientName) ) {
             $jobs->whereHas('client', function($query) use ($clientName) {
-                $query->where('fantasy_name', '=', $clientName);
-                $query->orWhere('name', '=', $clientName);
+                $query->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
+                $query->orWhere('name', 'LIKE', '%' . $clientName . '%');
             });         
+            $jobs->orWhere('not_client', 'LIKE', '%' . $clientName . '%');
         }
 
         $jobs->whereHas('attendance', function($query) use ($attendanceId) {
