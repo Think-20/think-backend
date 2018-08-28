@@ -71,7 +71,7 @@ class Client extends Model implements Contactable
 
             $client->update($data);
 
-            $message = 'Cliente ' . $client->fantasy_name . ' alterado';
+            $message = 'Cadastro do cliente ' . $client->fantasy_name . ' alterado';
             Notification::createAndNotify(User::logged(), [
                 'message' => $message
             ], [], 'Alteração de cliente', $client->id);

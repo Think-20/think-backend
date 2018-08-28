@@ -74,13 +74,13 @@ class Task extends Model
             $task2 = Task::find($oTask2->id);
             ActivityHelper::swapActivities($task1, $task2);
 
-            $message1 = $task1->job_activity->description . ' de ';
+            $message1 = 'Mudança de agenda de ' . $task1->job_activity->description . ' da ';
             $message1 .= ($task1->job->client ? $task1->job->client->fantasy_name : $task1->job->not_client);
-            $message1 .= ' alterado para ' . (new DateTime($task1->available_date))->format('d/m/Y');
+            $message1 .= ' para ' . (new DateTime($task1->available_date))->format('d/m/Y') . ' para ' . $task1->responsible->name;
 
-            $message2 = $task2->job_activity->description . ' de ';
+            $message2 = 'Mudança de agenda de ' . $task2->job_activity->description . ' da ';
             $message2 .= ($task2->job->client ? $task2->job->client->fantasy_name : $task2->job->not_client);
-            $message2 .= ' alterado para ' . (new DateTime($task2->available_date))->format('d/m/Y');
+            $message2 .= ' para ' . (new DateTime($task2->available_date))->format('d/m/Y') . ' para ' . $task2->responsible->name;
 
             Notification::createAndNotify(User::logged(), [
                 'message' => $message1
@@ -105,9 +105,9 @@ class Task extends Model
         else {
             $task = ActivityHelper::moveActivity($data['task1'], $data['task2']);
 
-            $message = $task->job_activity->description . ' de ';
+            $message = 'Mudança de agenda de ' . $task->job_activity->description . ' da ';
             $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
-            $message .= ' alterado para ' . (new DateTime($task->available_date))->format('d/m/Y');
+            $message .= ' para ' . (new DateTime($task->available_date))->format('d/m/Y') . ' para ' . $task->responsible->name;
 
             Notification::createAndNotify(User::logged(), [
                 'message' => $message
@@ -139,13 +139,13 @@ class Task extends Model
 
             ActivityHelper::swapActivities($task1, $task2);
 
-            $message1 = $task1->job_activity->description . ' de ';
+            $message1 = 'Mudança de agenda de ' . $task1->job_activity->description . ' da ';
             $message1 .= ($task1->job->client ? $task1->job->client->fantasy_name : $task1->job->not_client);
-            $message1 .= ' alterado para ' . (new DateTime($task1->available_date))->format('d/m/Y');
+            $message1 .= ' para ' . (new DateTime($task1->available_date))->format('d/m/Y') . ' para ' . $task1->responsible->name;
 
-            $message2 = $task2->job_activity->description . ' de ';
+            $message2 = 'Mudança de agenda de ' . $task2->job_activity->description . ' da ';
             $message2 .= ($task2->job->client ? $task2->job->client->fantasy_name : $task2->job->not_client);
-            $message2 .= ' alterado para ' . (new DateTime($task2->available_date))->format('d/m/Y');
+            $message2 .= ' para ' . (new DateTime($task2->available_date))->format('d/m/Y') . ' para ' . $task2->responsible->name;
 
             Notification::createAndNotify(User::logged(), [
                 'message' => $message1
@@ -174,9 +174,9 @@ class Task extends Model
                 throw new \Exception('Você não pode alterar uma tarefa que não pertence a você.');
             }
 
-            $message = $task->job_activity->description . ' de ';
+            $message = 'Mudança de agenda de ' . $task->job_activity->description . ' da ';
             $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
-            $message .= ' alterado para ' . (new DateTime($task->available_date))->format('d/m/Y');
+            $message .= ' para ' . (new DateTime($task->available_date))->format('d/m/Y') . ' para ' . $task->responsible->name;
 
             Notification::createAndNotify(User::logged(), [
                 'message' => $message
@@ -206,9 +206,9 @@ class Task extends Model
         $task->save();
         $task->saveItems();
 
-        $message = ($task->job_activity->description) . ' de ';
+        $message = ($task->job_activity->description) . ' da ';
         $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
-        $message .= ' cadastrado para ' . (new DateTime($task->available_date))->format('d/m/Y');
+        $message .= ' agendado em ' . (new DateTime($task->available_date))->format('d/m/Y') . ' para ' . $task->responsible->name;
 
         Notification::createAndNotify(User::logged(), [
             'message' => $message
@@ -310,7 +310,7 @@ class Task extends Model
         $task->saveItems();
 
         if($oldResponsible != $task->responsible->name) {
-            $message = 'Responsável de ' . strtolower($task->job_activity->description) . ' pertencente a ';
+            $message = 'Responsável de ' . strtolower($task->job_activity->description) . ' da ';
             $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
             $message .= ' alterado de ' . $oldResponsible . ' para ' . $task->responsible->name; 
 
@@ -329,9 +329,9 @@ class Task extends Model
         }
 
         if($oldDuration != $task->duration) {
-            $message = 'A duração de ' . strtolower($task->job_activity->description) . ' pertencente a ';
+            $message = 'Duração de ' . strtolower($task->job_activity->description) . ' da ';
             $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
-            $message .= ' alterado de ' . ((int) $oldDuration) . ' para ' . ((int) $task->duration) . ' dia(s)'; 
+            $message .= ' alterada de ' . ((int) $oldDuration) . ' para ' . ((int) $task->duration) . ' dia(s)'; 
 
             Notification::createAndNotify(User::logged(), [
                 'message' => $message
@@ -470,7 +470,7 @@ class Task extends Model
     {
         $task = Task::find($id);
         
-        $message = $task->job_activity->description . ' pertencente a ';
+        $message = $task->job_activity->description . ' de ';
         $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
         $message .= ' removido';
 
@@ -497,9 +497,10 @@ class Task extends Model
             throw new \Exception('Você não tem permissão para remover esse job.');
         }
 
-        $message = 'A tarefa ' . strtolower($task->job_activity->description) . ' pertencente a ';
+
+        $message = $task->job_activity->description . ' de ';
         $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
-        $message .= ' foi removida';
+        $message .= ' removido';
 
         Notification::createAndNotify(User::logged(), [
             'message' => $message
