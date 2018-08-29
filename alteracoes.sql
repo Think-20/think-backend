@@ -1,3 +1,11 @@
-insert into job_activity values (null, 'Continuação');
-alter table job_activity add column master tinyint(1) default 0;
-update job_activity set master = 1 where description = 'Continuação';
+drop table budget;
+
+create table budget (
+	id int not null auto_increment primary key,
+    responsible_id int not null,
+    gross_value decimal (8,2) not null,
+    bv_value decimal (8,2) not null,
+    equipments_value decimal (8,2) not null,
+    logistics_value decimal (8,2) not null,
+    sales_commission_value decimal (8,2) not null
+);
