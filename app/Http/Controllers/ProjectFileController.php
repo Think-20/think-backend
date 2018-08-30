@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Budget;
+use App\ProjectFile;
 use Exception;
 use Response;
 
@@ -12,18 +12,18 @@ use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
 use App\FileHelper;
 
-class BudgetController extends Controller
+class ProjectFileController extends Controller
 {
     public static function save(Request $request) {
         $data = $request->all();
         $status = false;
-        $budget = null;
+        $project_file = null;
 
         DB::beginTransaction();
 
         try {
-            $budget = Budget::insert($data);
-            $message = 'Orçamento cadastrado com sucesso!';
+            $project_file = ProjectFile::insert($data);
+            $message = 'Arquivo inserido com sucesso!';
             DB::commit();
             $status = true;
         } 
@@ -37,7 +37,7 @@ class BudgetController extends Controller
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-            'budget' => $budget
+            'project_file' => $project_file
          ]), 200);
     }
 
@@ -45,12 +45,12 @@ class BudgetController extends Controller
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
-        //$oldBudget = Budget::find($request->id);
-        //$oldChild = Budget::getBudgetChild($oldBudget);
+        //$oldProjectFile = ProjectFile::find($request->id);
+        //$oldChild = ProjectFile::getProjectFileChild($oldProjectFile);
 
         try {
-            $budget = Budget::edit($data);
-            $message = 'Orçamento alterado com sucesso!';
+            $project_file = ProjectFile::edit($data);
+            $message = 'Arquivo alterado com sucesso!';
             $status = true;
             DB::commit();
         } catch(QueryException $queryException) {
@@ -74,8 +74,8 @@ class BudgetController extends Controller
         $status = false;
 
         try {
-            $budget = Budget::remove($id);
-            $message = 'Orçamento removido com sucesso!';
+            $project_file = ProjectFile::remove($id);
+            $message = 'Arquivo removido com sucesso!';
             $status = true;
             DB::commit();
         } catch(QueryException $queryException) {

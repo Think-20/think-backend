@@ -551,6 +551,16 @@ class Task extends Model
         return $this->belongsTo('App\Employee', 'responsible_id');
     }
 
+    public function budget()
+    {
+        return $this->hasOne('App\Budget', 'task_id');
+    }
+
+    public function project_files()
+    {
+        return $this->hasMany('App\ProjectFile', 'task_id');
+    }
+
     public function setDurationAttribute($value)
     {
         $this->attributes['duration'] = (float)str_replace(',', '.', $value);
