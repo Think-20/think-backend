@@ -79,6 +79,24 @@ Route::get('/assets/images/{filename}', function ($filename)
     return $response;
 });
 
+Route::get('/project-files/view/{id}', function ($id)
+{
+    $projectFile = App\ProjectFile::find($id);
+    $path = resource_path('/assets/files/project-files/' . $projectFile->name);
+
+    if (!File::exists($path)) {
+        abort(404);
+    }
+
+    $file = File::get($path);
+    $type = File::mimeType($path);
+
+    $response = Response::make($file, 200);
+    $response->header("Content-Type", $type);
+
+    return $response;
+});
+
 /*
 Route::get('/pass', function() {
     dd( [
@@ -152,6 +170,9 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/notifications/recents', 'NotificationController@recents');
     Route::get('/notifications/listen', 'NotificationController@listen');
     Route::put('/notifications/read', 'NotificationController@read');
+
+    Route::post('/project-files/save-multiple', 'ProjectFileController@saveMultiple');
+    Route::delete('/project-file/remove/{id}', 'ProjectFileController@remove');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {

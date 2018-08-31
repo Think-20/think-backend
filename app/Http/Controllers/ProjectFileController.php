@@ -41,6 +41,33 @@ class ProjectFileController extends Controller
          ]), 200);
     }
 
+    public static function saveMultiple(Request $request) {
+        $data = $request->all();
+        $status = false;
+        $projectFiles = null;
+
+        DB::beginTransaction();
+
+        try {
+            $projectFiles = ProjectFile::insertAll($data);
+            $message = 'Arquivos inseridos com sucesso!';
+            DB::commit();
+            $status = true;
+        } 
+        /* Catch com FileException tamanho máximo */
+        catch(Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
+             //. $e->getFile() . $e->getLine();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+            'project_files' => $projectFiles
+         ]), 200);
+    }
+
     public static function edit(Request $request) {
         DB::beginTransaction();
         $status = false;

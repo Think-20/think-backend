@@ -14,7 +14,7 @@ class Budget extends Model {
 
     public static function insert(array $data) {
         $task_id = isset($data['task']['id']) ? $data['task']['id'] : null;
-        $responsible_id = isset($data['task']['id']) ? $data['task']['id']: null;
+        $responsible_id = User::logged()->employee->id;
 
         $budget = new Budget(array_merge($data, [
             'task_id' => $task_id,
@@ -29,7 +29,7 @@ class Budget extends Model {
     public static function edit(array $data) {
         $id = isset($data['id']) ? $data['id'] : null;
         $task_id = isset($data['task']['id']) ? $data['task']['id'] : null;
-        $responsible_id = isset($data['task']['id']) ? $data['task']['id']: null;
+        $responsible_id = User::logged()->employee->id;
 
         $budget = Budget::find($id);
         
