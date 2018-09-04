@@ -600,7 +600,7 @@ class Job extends Model
     }
 
     public function tasks() {
-        return $this->hasMany('App\Task', 'job_id');
+        return $this->hasMany('App\Task', 'job_id')->with('project_files');
     }
 
     public function creation() {

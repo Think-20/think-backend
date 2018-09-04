@@ -1,4 +1,8 @@
-drop table budget;
+
+
+
+
+#drop table budget;
 
 create table budget (
 	id int not null auto_increment primary key,
@@ -19,7 +23,7 @@ create table budget (
     constraint `fk_task_id_budget_id_task` foreign key(task_id) references task(id)
 );
 
-drop table project_file;
+#drop table project_file;
 
 create table project_file (
 	id int not null auto_increment primary key,

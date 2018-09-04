@@ -173,6 +173,7 @@ Route::group(['middleware' => ['auth.api']], function() {
 
     Route::post('/project-files/save-multiple', 'ProjectFileController@saveMultiple');
     Route::delete('/project-file/remove/{id}', 'ProjectFileController@remove');
+    Route::get('/project-files/download/{id}', 'ProjectFileController@downloadFile');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {

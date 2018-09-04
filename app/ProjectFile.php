@@ -24,6 +24,19 @@ class ProjectFile extends Model {
         }
     }
 
+    public static function downloadFile($id) {
+        $projectFile = ProjectFile::find($id);
+
+        if(is_null($projectFile)) {
+            throw new \Exception('O arquivo solicitado não existe.');
+        }
+
+        $path = resource_path('assets/files/project-files/') . $projectFile->name;
+
+        FileHelper::checkIfExists($path);
+        return $path;
+    }
+
     public static function insertAll(array $data) {
         $project_files = [];
         foreach($data as $projectFile) {
