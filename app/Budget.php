@@ -8,8 +8,8 @@ class Budget extends Model {
     
     protected $table = 'budget';
     protected $fillable = [
-        'task_id', 'responsible_id', 'gross_value', 'bv_value', 'equipments_value', 'logistics_value', 
-        'sales_commission_value', 'tax_aliquot', 'others_value', 'discount_aliquot'
+        'task_id', 'responsible_id', 'gross_value', 'optional_value', 'bv_value', 'equipments_value', 
+        'logistics_value', 'sales_commission_value', 'tax_aliquot', 'others_value', 'discount_aliquot'
     ];
 
     public static function insert(array $data) {
@@ -54,6 +54,11 @@ class Budget extends Model {
     public function setGrossValueAttribute($value)
     {
         $this->attributes['gross_value'] = (float)str_replace(',', '.', $value);
+    }
+
+    public function setOptionalValueAttribute($value)
+    {
+        $this->attributes['optional_value'] = (float)str_replace(',', '.', $value);
     }
 
     public function setBvValueAttribute($value)
