@@ -158,10 +158,6 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/briefing-how-comes/filter/{query}', 'BriefingHowComeController@filter');
     
     Route::get('/jobs/load-form', 'JobController@loadForm');
-    //Route::get('/briefings/load-form', 'BriefingController@loadForm');
-    //Route::get('/briefings/get-next-available-date/{availableDate}/{estimatedTime}/{swap}', 'BriefingController@getNextAvailableDate');
-    //Route::get('/budgets/load-form', 'BudgetController@loadForm');
-    //Route::get('/budgets/get-next-available-date/{availableDate}/{estimatedTime}/{swap}', 'BudgetController@getNextAvailableDate');
     Route::get('/tasks/get-next-available-date/{availableDate}/{estimatedTime}/{jobActivity}', 'TaskController@getNextAvailableDate');
     Route::post('/tasks/get-available-dates', 'TaskController@getNextAvailableDates');
     Route::get('/tasks/updated-info', 'TaskController@updatedInfo');
@@ -258,12 +254,10 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::put('/briefing/edit', 'BriefingController@edit');
     Route::put('/briefing/edit-available-date', 'BriefingController@editAvailableDate');
     Route::put('/my-briefing/edit-available-date', 'BriefingController@myEditAvailableDate');
+    */
     
     Route::post('/budget/save', 'BudgetController@save');
     Route::put('/budget/edit', 'BudgetController@edit');
-    Route::put('/budget/edit-available-date', 'BudgetController@editAvailableDate');
-    Route::put('/my-budget/edit-available-date', 'BudgetController@myEditAvailableDate');
-    */
 
     Route::post('/task/save', 'TaskController@save');
     Route::put('/task/edit', 'TaskController@edit');
