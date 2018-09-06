@@ -39,9 +39,27 @@ class ProjectFile extends Model {
 
     public static function insertAll(array $data) {
         $project_files = [];
+        
         foreach($data as $projectFile) {
             $project_files[] = ProjectFile::insert($projectFile);
         }
+
+        if(count($project_files) ==  0) return [];
+
+        $projectFile = $project_files[0];
+        $task1 = $projectFile->task;
+
+        $message1 = $projectFile->responsible->name . ': Entrega de projeto da ';
+        $message1 .= ($task1->job->client ? $task1->job->client->fantasy_name : $task1->job->not_client);
+        $message1 .= ' para ' . $task1->job->attendance->name;
+
+        Notification::createAndNotify(User::logged(), [
+            'message' => $message1
+        ], NotificationSpecial::createMulti([
+            'user_id' => $task1->job->attendance->user->id,
+            'message' => $message1
+        ]), 'Alteração de job', $task1->job->id);
+
         return $project_files;
     }
 
@@ -98,6 +116,11 @@ class ProjectFile extends Model {
         if(is_file($file)) {
             unlink($file);
         }
+    }
+
+    public function task()
+    {
+        return $this->belongsTo('App\Task', 'task_id');
     }
 
     public function responsible()
