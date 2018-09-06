@@ -9,7 +9,7 @@ class Employee extends Model
     protected $table = 'employee';
 
     protected $fillable = [
-        'name', 'payment', 'position_id', 'department_id'
+        'name', 'payment', 'position_id', 'department_id', 'schedule_active'
     ];
 
     protected $hidden = [

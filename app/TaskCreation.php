@@ -6,7 +6,9 @@ class TaskCreation implements TaskInterface {
     public function getResponsibleList() {
         return Employee::whereHas('department', function($query) {
             $query->where('description', '=', 'Criação');
-        })->get();
+        })
+        ->where('schedule_active', '=', '1')
+        ->get();
     }
     
     public function getMaxCapability() {
