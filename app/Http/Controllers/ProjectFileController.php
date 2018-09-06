@@ -129,4 +129,15 @@ class ProjectFileController extends Controller
             return Response::make($message, 404);
         }
     }
+
+    public static function downloadAll($taskId) {
+        try {
+            $fileFound = ProjectFile::downloadAllFiles($taskId);
+            $status = true;
+            return Response::make(file_get_contents($fileFound), 200, ['Content-Type' => mime_content_type($fileFound)]);
+        } catch(Exception $e) {
+            $message = 'Um erro ocorreu ao abrir o arquivo: ' . $e->getMessage();
+            return Response::make($message, 404);
+        }
+    }
 }

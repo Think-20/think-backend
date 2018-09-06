@@ -3,6 +3,7 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use ZipArchive;
 
 class ProjectFile extends Model {
     
@@ -34,6 +35,29 @@ class ProjectFile extends Model {
         $path = resource_path('assets/files/project-files/') . $projectFile->name;
 
         FileHelper::checkIfExists($path);
+        return $path;
+    }
+
+    public static function downloadAllFiles($taskId) {
+        $projectFiles = ProjectFile::where('task_id', '=', $taskId)->get();
+        $zip = new ZipArchive;
+        $path = sys_get_temp_dir() . '/' . $taskId . '.zip';
+
+        if($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) === false) {
+            throw new \Exception('Erro ao criar o arquivo zip.');            
+        }
+
+        //$paths = [];
+        foreach($projectFiles as $projectFile) {
+            $name = $projectFile->name;
+            $original_name = $projectFile->name . '.' . $projectFile->type;
+            $pathFile = resource_path('assets/files/project-files/') . $name;
+            $zip->addFile($pathFile, $original_name);
+            //$paths[] = $pathFile;
+        }
+
+        $zip->close();
+        //dd($paths);
         return $path;
     }
 
