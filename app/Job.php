@@ -420,7 +420,7 @@ class Job extends Model
 
         $jobs = Job::selectRaw('job.*')
         ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels',
-        'how_come', 'agency', 'attendance', 'competition', 'files', 'status', 'creation');
+        'how_come', 'agency', 'attendance', 'competition', 'files', 'status', 'creation', 'tasks');
 
         if ( ! is_null($clientName) ) {
             $jobs->whereHas('client', function($query) use ($clientName) {
@@ -430,8 +430,10 @@ class Job extends Model
             $jobs->orWhere('not_client', 'LIKE', '%' . $clientName . '%');
         }
 
-        $jobs->whereHas('attendance', function($query) use ($attendanceId) {
+        $jobs->whereHas('attendance', function($query) {
             $query->where('id', '=', User::logged()->employee->id);
+        })->orWhereHas('tasks', function($query) {
+            $query->where('responsible_id', '=', User::logged()->employee->id);
         });         
 
         if ( ! is_null($creationId) ) {

@@ -54,7 +54,7 @@ insert into user_functionality (functionality_id, user_id)
 select f.id, u.id from functionality f 
 inner join employee e on e.department_id IN (5)
 left join user u on u.employee_id = e.id
-where (f.id IN (55,49,57,51)) OR (f.id IN(60,62,68,81,87,88,89,90));
+where (f.id IN (31,55,56,57,49,51)) OR (f.id IN(60,62,68,81,87,88,89,90));
 
 #Telas e permissões para planejamento
 insert into display_user (display_id, user_id) 
@@ -67,7 +67,7 @@ insert into user_functionality (functionality_id, user_id)
 select f.id, u.id from functionality f 
 inner join employee e on e.department_id IN (6)
 left join user u on u.employee_id = e.id
-where (f.id IN (55,49,57,51)) OR (f.id IN(60,62,68,81,89,90));
+where (f.id IN (31,55,56,57,49,51)) OR (f.id IN(60,62,68,81,89,90));
 
 delete from user_functionality where user_id = 27;
 delete from display_user where user_id = 27;
