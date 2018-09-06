@@ -1,2 +1,3 @@
-alter table budget modify column tax_aliquot decimal (5,2) not null;
-alter table budget add column optional_value decimal (8,2) not null;
+insert into functionality values (null, '/project-files/save-multiple', 'Upload de arquivos de projeto para entrega');
+insert into functionality values (null, '/project-files/remove/{id}', 'Remoção de arquivos de projeto para entrega');
+insert into functionality values (null, '/project-files/download/{id}', 'Download de arquivos de projeto para entrega');

@@ -166,10 +166,6 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/notifications/recents', 'NotificationController@recents');
     Route::get('/notifications/listen', 'NotificationController@listen');
     Route::put('/notifications/read', 'NotificationController@read');
-
-    Route::post('/project-files/save-multiple', 'ProjectFileController@saveMultiple');
-    Route::delete('/project-file/remove/{id}', 'ProjectFileController@remove');
-    Route::get('/project-files/download/{id}', 'ProjectFileController@downloadFile');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {
@@ -255,9 +251,6 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::put('/briefing/edit-available-date', 'BriefingController@editAvailableDate');
     Route::put('/my-briefing/edit-available-date', 'BriefingController@myEditAvailableDate');
     */
-    
-    Route::post('/budget/save', 'BudgetController@save');
-    Route::put('/budget/edit', 'BudgetController@edit');
 
     Route::post('/task/save', 'TaskController@save');
     Route::put('/task/edit', 'TaskController@edit');
@@ -270,4 +263,11 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/my-tasks/filter', 'TaskController@filterMyTask');
     Route::put('/my-task/edit-available-date', 'TaskController@editAvailableDate');
     Route::delete('/my-task/remove/{id}', 'TaskController@removeMyTask');
+    
+    Route::post('/budget/save', 'BudgetController@save');
+    Route::put('/budget/edit', 'BudgetController@edit');
+
+    Route::post('/project-files/save-multiple', 'ProjectFileController@saveMultiple');
+    Route::delete('/project-file/remove/{id}', 'ProjectFileController@remove');
+    Route::get('/project-files/download/{id}', 'ProjectFileController@downloadFile');
 });
