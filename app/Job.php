@@ -39,25 +39,19 @@ class Job extends Model
     }
 
     public static function edit(array $data) {
-        Job::checkData($data, true);
-
         $id = $data['id'];
-        $agency_id = isset($data['agency']['id']) ? $data['agency']['id'] : null;
-        $client_id = isset($data['client']['id']) ? $data['client']['id'] : null;
         $job = Job::find($id);
-        $oldJob = clone $job;
-        $job->update(
-            array_merge($data, [
-                'job_activity_id' => $data['job_activity']['id'],
-                'client_id' => $client_id,
-                'agency_id' => $agency_id,
-                'main_expectation_id' => $data['main_expectation']['id'],
-                'status_id' => $data['status']['id'],
-                'how_come_id' => $data['how_come']['id'],
-                'attendance_id' => $data['attendance']['id'],
-                'competition_id' => $data['competition']['id'],
-            ])
-        );
+
+        isset($data['agency']['id']) ? $job->agency_id = $data['agency']['id'] : null;
+        isset($data['client']['id']) ? $job->client_id = $data['client']['id'] : null;
+        isset($data['main_expectation']['id']) ? $job->main_expectation_id = $data['main_expectation']['id'] : null;
+        isset($data['job_activity']['id']) ? $job->job_activity_id = $data['job_activity']['id'] : null;
+        isset($data['status']['id']) ? $job->status_id = $data['status']['id'] : null;
+        isset($data['how_come']['id']) ? $job->how_come_id = $data['how_come']['id'] : null;
+        isset($data['attendance']['id']) ? $job->attendance_id = $data['attendance']['id'] : null;
+        isset($data['competition']['id']) ? $job->competition_id = $data['competition']['id'] : null;
+
+        $job->save();
 
         $arrayLevels = !isset($data['levels']) ? [] : $data['levels'];
         $job->saveLevels($arrayLevels);
