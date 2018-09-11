@@ -83,4 +83,7 @@ insert into notification_rule select null, n.id, u.id from notification_type n i
 /* ------------------ Rafaela --------------------- */
 insert into user_functionality (user_id, functionality_id) values (14, 73), (14, 74);
 
+/* ------------------ Efetuar logoff ----------- */
+update user set lastAccess = null;
+
 
