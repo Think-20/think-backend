@@ -352,6 +352,11 @@ class Task extends Model
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
 
+        $status = isset($params['status']) ? $params['status'] : null;
+        $clientName = isset($params['clientName']) ? $params['clientName'] : null;
+        $attendanceId = isset($params['attendance']['id']) ? $params['attendance']['id'] : null;
+        $creationId = isset($params['creation']['id']) ? $params['creation']['id'] : null;
+
         $tasks = Task::with(
             'items', 'responsible', 'job_activity', 'job', 'job.client', 'job.job_type', 
             'job.status', 'job.agency', 'job.attendance', 'job.job_activity'
@@ -361,6 +366,32 @@ class Task extends Model
             $sql = '(task.available_date >= "' . $iniDate . '"';
             $sql .= ' AND task.available_date <= "' . $finDate . '")';
             $tasks->whereRaw($sql);
+        }
+
+        if ( ! is_null($clientName) ) {
+            $tasks->whereHas('job.client', function($query) use ($clientName) {
+                $query->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
+                $query->orWhere('name', 'LIKE', '%' . $clientName . '%');
+            });  
+            $tasks->orWhereHas('job', function($query) use ($clientName) {
+                $query->orWhere('not_client', 'LIKE', '%' . $clientName . '%');
+            });        
+        }
+
+        if ( ! is_null($attendanceId) ) {
+            $tasks->whereHas('job.attendance', function($query) use ($attendanceId) {
+                $query->where('id', '=', $attendanceId);
+            });         
+        }
+
+        if ( ! is_null($creationId) ) {
+            $tasks->where('responsible_id', '=', $creationId);      
+        }
+
+        if( ! is_null($status) ) {
+            $tasks->whereHas('job', function($query) use ($status) {
+                $query->where('status_id', '=', $status);
+            });
         }
 
         $tasks->orderBy('task.available_date', 'ASC');
