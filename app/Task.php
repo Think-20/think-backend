@@ -374,7 +374,7 @@ class Task extends Model
                 $query->orWhere('name', 'LIKE', '%' . $clientName . '%');
             });  
             $tasks->orWhereHas('job', function($query) use ($clientName) {
-                $query->orWhere('not_client', 'LIKE', '%' . $clientName . '%');
+                $query->where('not_client', 'LIKE', '%' . $clientName . '%');
             });        
         }
 
