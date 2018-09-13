@@ -100,13 +100,21 @@ class ActivityHelper
 
     public static function calculateNextDate($initialDate, JobActivity $jobActivity, Collection $professionalList, $duration, $taskIdIgnore = null)
     {
+        $date = new DateTime($initialDate);
+        $now = new DateTime('now');
+
+        if($date->format('Y-m-d') <= $now->format('Y-m-d')) {
+            $date = DateHelper::sumUtil($now, 1);
+        }        
+
         if (ActivityHelper::checkIfProfessionalListIsEmpty($professionalList)) {
             return [
-                'date' => (new DateTime('now'))->format('Y-m-d'),
+                'date' => $date->format('Y-m-d'),
                 'available_responsibles' => []
             ];
         }
-        $date = DateHelper::nextUtilIfNotUtil(DateHelper::subUtil(new DateTime($initialDate), 1));
+        
+        $date = DateHelper::nextUtilIfNotUtil(DateHelper::subUtil($date, 1));
         $professionalId = -1;
         $professionalIn = [];
         $availableProfessionals = [];
