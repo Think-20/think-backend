@@ -220,23 +220,22 @@ class Task extends Model
             'message' => $message
         ]), 'Cadastro de tarefa', $task->id);
 
-        $task->modifyReopened(1);
+        Task::modifyReopened($task);
 
         return $task;
     }
 
-    public function modifyReopened($inc) {
-        if($this->job_activity->description != 'Modificação') return;
+    public static function modifyReopened(Task $task) {
+        if($task->job_activity->description != 'Modificação') return;
 
-        $sum = 0;
-        foreach($this->job->tasks as $task) {
-            if($task->job_activity->description == 'Modificação') {
+        $sum = 1;
+        foreach($task->job->tasks as $t) {
+            if($t->job_activity->description == 'Modificação') {
+                $t->reopened = $sum;
+                $t->save();
                 $sum++;
             }
         }
-
-        $this->reopened = $sum + $inc;
-        $this->save();
     }
 
     public function saveItems()
@@ -469,6 +468,7 @@ class Task extends Model
     public static function remove($id)
     {
         $task = Task::find($id);
+        $oldTask = clone $task;
         
         $message = $task->job_activity->description . ' de ';
         $message .= ($task->job->client ? $task->job->client->fantasy_name : $task->job->not_client);
@@ -485,13 +485,15 @@ class Task extends Model
         ]), 'Deleção de tarefa', $task->id);
 
         $task->items()->delete();
-        $task->modifyReopened(-1);
         $task->delete();
+        
+        Task::modifyReopened($oldTask);
     }
 
     public static function removeMyTask($id)
     {
         $task = Task::find($id);
+        $oldTask = clone $task;
 
         if($task->job->attendance_id != User::logged()->employee->id) {
             throw new \Exception('Você não tem permissão para remover esse job.');
@@ -513,8 +515,9 @@ class Task extends Model
         ]), 'Deleção de tarefa', $task->id);
 
         $task->items()->delete();
-        $task->modifyReopened(-1);
         $task->delete();
+        
+        Task::modifyReopened($oldTask);
     }
 
     public static function get($id)
