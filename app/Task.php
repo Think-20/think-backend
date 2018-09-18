@@ -226,11 +226,16 @@ class Task extends Model
     }
 
     public static function modifyReopened(Task $task) {
-        if($task->job_activity->description != 'Modificação') return;
+        $description = $task->job_activity->description;
 
-        $sum = 1;
+        if(in_array($description, ['Projeto', 'Outsider'])) {
+            $sum = 0;
+        } else {
+            $sum = 1;    
+        }
+        
         foreach($task->job->tasks as $t) {
-            if($t->job_activity->description == 'Modificação') {
+            if($t->job_activity->description == $description) {
                 $t->reopened = $sum;
                 $t->save();
                 $sum++;

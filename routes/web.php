@@ -17,14 +17,9 @@ Route::get('/', function () {
 
 Route::get('/mod', function () {
     $jobs = App\Job::all();
-    foreach ($jobs as $job) {
-        $inc = 0;        
+    foreach ($jobs as $job) { 
         foreach($job->tasks as $task) {
-            if($task->job_activity->description == 'Modificação') {
-                $inc++;
-                $task->reopened = $inc;
-                $task->save(); 
-            }
+            App\Task::modifyReopened($task);
         }
     }
 });
