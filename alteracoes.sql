@@ -1,0 +1,1 @@
+alter table budget change column discount_aliquot markup_aliquot DECIMAL(8,2);

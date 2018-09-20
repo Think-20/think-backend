@@ -9,7 +9,7 @@ class Budget extends Model {
     protected $table = 'budget';
     protected $fillable = [
         'task_id', 'responsible_id', 'gross_value', 'optional_value', 'bv_value', 'equipments_value', 
-        'logistics_value', 'sales_commission_value', 'tax_aliquot', 'others_value', 'discount_aliquot'
+        'logistics_value', 'sales_commission_value', 'tax_aliquot', 'others_value', 'markup_aliquot'
     ];
 
     public static function insert(array $data) {
@@ -91,9 +91,9 @@ class Budget extends Model {
         $this->attributes['others_value'] = (float)str_replace(',', '.', $value);
     }
 
-    public function setDiscountAliquotAttribute($value)
+    public function setMarkupAliquotAttribute($value)
     {
-        $this->attributes['discount_aliquot'] = (float)str_replace(',', '.', $value);
+        $this->attributes['markup_aliquot'] = (float)str_replace(',', '.', $value);
     }
 
 
