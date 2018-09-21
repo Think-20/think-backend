@@ -52,6 +52,7 @@ class Job extends Model
         isset($data['competition']['id']) ? $job->competition_id = $data['competition']['id'] : null;
 
         $job->save();
+        $job->update($data);
 
         $arrayLevels = !isset($data['levels']) ? [] : $data['levels'];
         $job->saveLevels($arrayLevels);
