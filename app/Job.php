@@ -25,6 +25,13 @@ class Job extends Model
         'created_at', 'updated_at'
     ];
 
+    public function getJobName() {
+        $name = ($this->client ? $this->client->fantasy_name : $this->not_client);
+        $event = $this->event;
+
+        return $name . ' | ' . $event;
+    }
+
     public static function loadForm() {
         return [
             'job_activities' => JobActivity::all(),
