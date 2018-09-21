@@ -152,6 +152,7 @@ class Client extends Model implements Contactable
         $client->comission;
         $client->status;
         $client->contacts;
+        $client->jobs;
         return $client;
     }
 
@@ -430,6 +431,7 @@ class Client extends Model implements Contactable
         $client->comission;
         $client->status;
         $client->contacts;
+        $client->jobs;
 
         return $client;
     }
@@ -592,6 +594,10 @@ class Client extends Model implements Contactable
             ->required();
 
         $this->attributes['client_status_id'] = $value;
+    }
+
+    public function jobs() {
+        return $this->hasMany('App\Job', 'client_id');
     }
 
     public function city() {
