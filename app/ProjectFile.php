@@ -77,12 +77,19 @@ class ProjectFile extends Model {
         $message1 .= $task1->job->getJobName();
         $message1 .= ' para ' . $task1->job->attendance->name;
 
-        Notification::createAndNotify(User::logged(), [
-            'message' => $message1
-        ], NotificationSpecial::createMulti([
-            'user_id' => $task1->job->attendance->user->id,
-            'message' => $message1
-        ]), 'Alteração de job', $task1->job->id);
+        $notificationCount = Notification::where('message', '=', $message1)
+            ->where('info', '=', $task1->job->id)
+            ->get()
+            ->count();
+
+        if($notificationCount == 0) {
+            Notification::createAndNotify(User::logged(), [
+                'message' => $message1
+            ], NotificationSpecial::createMulti([
+                'user_id' => $task1->job->attendance->user->id,
+                'message' => $message1
+            ]), 'Alteração de job', $task1->job->id);
+        }
 
         return $project_files;
     }
