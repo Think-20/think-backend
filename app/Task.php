@@ -14,6 +14,11 @@ class Task extends Model
         'reopened'
     ];
 
+    public function getTaskName() {
+        $pad = $this->reopened > 0 ? str_pad($this->reopened, 2, '0', \STR_PAD_LEFT) : '';
+        return trim($this->job_activity->description . ' ' . $pad);
+    }
+
     public static function getNextAvailableDate($availableDate, $estimatedTime, $jobActivity)
     {
         $taskBuild = TaskFactory::build($jobActivity);

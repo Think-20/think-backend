@@ -73,8 +73,8 @@ class ProjectFile extends Model {
         $projectFile = $project_files[0];
         $task1 = $projectFile->task;
 
-        $message1 = $projectFile->responsible->name . ': Entrega de projeto da ';
-        $message1 .= ($task1->job->client ? $task1->job->client->fantasy_name : $task1->job->not_client);
+        $message1 = $projectFile->responsible->name . ': Entrega de ' . $task1->getTaskName() . ' da ';
+        $message1 .= $task1->job->getJobName();
         $message1 .= ' para ' . $task1->job->attendance->name;
 
         Notification::createAndNotify(User::logged(), [
