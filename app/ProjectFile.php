@@ -111,6 +111,7 @@ class ProjectFile extends Model {
 
         $project_file->save();
         $project_file->moveFile();
+        $project_file->task->insertMemorial();
         
         return $project_file;
     }

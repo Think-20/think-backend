@@ -11,7 +11,7 @@ class Task extends Model
     protected $table = 'task';
     protected $fillable = [
         'job_id', 'responsible_id', 'available_date', 'job_activity_id', 'duration',
-        'reopened'
+        'reopened', 'task_id'
     ];
 
     public function getTaskName() {
@@ -197,15 +197,34 @@ class Task extends Model
         return true;
     }
 
+    public function insertMemorial() {
+        $date = DateHelper::nextUtilIfNotUtil(new DateTime('now'))->format('Y-m-d');
+        $jobActivity = JobActivity::where('description', '=', 'Memorial descritivo')->first();
+
+        $data = [
+            'responsible' => ['id' => $this->job->attendance_id],
+            'job' => ['id' => $this->job->id],
+            'job_activity' => ['id' => $jobActivity->id],
+            'duration' => 1,
+            'available_date' => $date,
+            'task' => ['id' => $this->id]
+        ];
+        
+        Task::insert($data);
+    }
+
     public static function insert(array $data)
     {
         $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
         $job_id = isset($data['job']['id']) ? $data['job']['id'] : null;
         $job_activity_id = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
+        $task_id = isset($data['task']['id']) ? $data['task']['id'] : null;
+
         $task = new Task(array_merge($data, [
             'responsible_id' => $responsible_id,
             'job_id' => $job_id,
-            'job_activity_id' => $job_activity_id
+            'job_activity_id' => $job_activity_id,
+            'task_id' => $task_id,
         ]));
 
         $task->save();

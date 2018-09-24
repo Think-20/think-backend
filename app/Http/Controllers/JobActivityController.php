@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 class JobActivityController extends Controller
 {
     public static function all() {
-        return JobActivity::all();
+        return JobActivity::where('show', '=', 1)->get();
     }
 
     public static function filter($query) {
