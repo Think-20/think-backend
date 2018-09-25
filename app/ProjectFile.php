@@ -78,7 +78,7 @@ class ProjectFile extends Model {
         $message1 .= ' para ' . $task1->job->attendance->name;
 
         $notificationCount = Notification::where('message', '=', $message1)
-            ->where('info', '=', $task1->job->id)
+            ->where('info', '=', $task1->id)
             ->get()
             ->count();
 
@@ -88,7 +88,7 @@ class ProjectFile extends Model {
             ], NotificationSpecial::createMulti([
                 'user_id' => $task1->job->attendance->user->id,
                 'message' => $message1
-            ]), 'Alteração de job', $task1->job->id);
+            ]), 'Entrega de projeto', $task1->id);
         }
 
         return $project_files;

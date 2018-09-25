@@ -201,6 +201,15 @@ class Task extends Model
         $date = DateHelper::nextUtilIfNotUtil(new DateTime('now'))->format('Y-m-d');
         $jobActivity = JobActivity::where('description', '=', 'Memorial descritivo')->first();
 
+        $count = Task::where('job_activity_id', '=', $jobActivity->id)
+        ->where('task_id', '=', $this->id)
+        ->get()
+        ->count();
+
+        if($count > 0) {
+            return;
+        }
+
         $data = [
             'responsible' => ['id' => $this->job->attendance_id],
             'job' => ['id' => $this->job->id],
