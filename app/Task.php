@@ -384,6 +384,8 @@ class Task extends Model
         $status = isset($params['status']) ? $params['status'] : null;
         $clientName = isset($params['clientName']) ? $params['clientName'] : null;
         $attendanceId = isset($params['attendance']['id']) ? $params['attendance']['id'] : null;
+        $jobTypeId = isset($params['job_type']['id']) ? $params['job_type']['id'] : null;
+        $jobActivityId = isset($params['job_activity']['id']) ? $params['job_activity']['id'] : null;
         $creationId = isset($params['creation']['id']) ? $params['creation']['id'] : null;
 
         $tasks = Task::with(
@@ -410,6 +412,18 @@ class Task extends Model
         if ( ! is_null($attendanceId) ) {
             $tasks->whereHas('job.attendance', function($query) use ($attendanceId) {
                 $query->where('id', '=', $attendanceId);
+            });         
+        }
+
+        if ( ! is_null($jobTypeId) ) {
+            $tasks->whereHas('job.job_type', function($query) use ($jobTypeId) {
+                $query->where('id', '=', $jobTypeId);
+            });         
+        }
+
+        if ( ! is_null($jobActivityId) ) {
+            $tasks->whereHas('job.job_activity', function($query) use ($jobActivityId) {
+                $query->where('id', '=', $jobActivityId);
             });         
         }
 
