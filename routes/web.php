@@ -254,7 +254,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
 
     Route::post('/my-task/save', 'TaskController@save');
     Route::post('/my-tasks/filter', 'TaskController@filterMyTask');
-    Route::put('/my-task/edit-available-date', 'TaskController@editAvailableDate');
+    Route::put('/my-task/edit-available-date', 'TaskController@myEditAvailableDate');
     Route::delete('/my-task/remove/{id}', 'TaskController@removeMyTask');
     
     Route::post('/budget/save', 'BudgetController@save');
