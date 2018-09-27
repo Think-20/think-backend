@@ -37,6 +37,8 @@ class Budget extends Model {
             'task_id' => $task_id,
             'responsible_id' => $responsible_id
         ]));
+
+        $budget->responsible;
         
         return $budget;
     }

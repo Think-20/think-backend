@@ -65,6 +65,7 @@ class BudgetController extends Controller
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
+            'budget' => $budget
          ]), 200);
     }
     
