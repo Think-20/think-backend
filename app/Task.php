@@ -340,6 +340,7 @@ class Task extends Model
         $oldResponsible = $task->responsible->name;
         $oldResponsibleId = $task->responsible->id;
         $oldDuration = $task->duration;
+        $oldDate = $task->available_date;
 
         $task->update(
             array_merge($data, [
@@ -347,10 +348,11 @@ class Task extends Model
             ])
         );
 
+        $task = Task::find($id);
         $task->deleteItems();
         $task->saveItems();
 
-        if($oldResponsible != $task->responsible->name) {
+        if($oldResponsibleId != $task->responsible_id) {
             $message = 'Responsável de ' . strtolower($task->job_activity->description) . ' da ';
             $message .= $task->job->getJobName();
             $message .= ' alterado de ' . $oldResponsible . ' para ' . $task->responsible->name; 
@@ -373,6 +375,22 @@ class Task extends Model
             $message = 'Duração de ' . strtolower($task->job_activity->description) . ' da ';
             $message .= $task->job->getJobName();
             $message .= ' alterada de ' . ((int) $oldDuration) . ' para ' . ((int) $task->duration) . ' dia(s)'; 
+
+            Notification::createAndNotify(User::logged()->employee, [
+                'message' => $message
+            ], NotificationSpecial::createMulti([
+                'user_id' => $task->responsible->user->id,
+                'message' => $message,
+            ], [
+                'user_id' => $task->job->attendance->user->id,
+                'message' => $message
+            ]), 'Alteração de tarefa', $task->id);
+        }
+
+        if($oldDate != $task->available_date) {
+            $message = 'Data de ' . strtolower($task->job_activity->description) . ' da ';
+            $message .= $task->job->getJobName();
+            $message .= ' alterada de ' . (new DateTime($oldDate))->format('d/m/Y') . ' para ' . (new DateTime($task->available_date))->format('d/m/Y');
 
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message

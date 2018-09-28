@@ -136,6 +136,20 @@ class Job extends Model
         foreach($job->tasks as $task) {
             $task->items()->delete();
             $task->delete();
+        
+            $message = $task->job_activity->description . ' de ';
+            $message .= $task->job->getJobName();
+            $message .= ' removido';
+    
+            Notification::createAndNotify(User::logged()->employee, [
+                'message' => $message
+            ], NotificationSpecial::createMulti([
+                'user_id' => $task->responsible->user->id,
+                'message' => $message,
+            ], [
+                'user_id' => $task->job->attendance->user->id,
+                'message' => $message
+            ]), 'Deleção de job', $task->id);
         }
 
         $job->deleteFiles();
