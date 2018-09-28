@@ -198,7 +198,7 @@ class Task extends Model
     }
 
     public function insertMemorial() {
-        $date = DateHelper::nextUtilIfNotUtil(DateHelper::nextUtil(new DateTime('now')))->format('Y-m-d');
+        $date = DateHelper::nextUtilIfNotUtil(DateHelper::nextUtil(new DateTime('now'), 1))->format('Y-m-d');
         $jobActivity = JobActivity::where('description', '=', 'Memorial descritivo')->first();
 
         $count = Task::where('job_activity_id', '=', $jobActivity->id)
