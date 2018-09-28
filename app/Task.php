@@ -400,6 +400,7 @@ class Task extends Model
         $jobTypeId = isset($params['job_type']['id']) ? $params['job_type']['id'] : null;
         $jobActivityId = isset($params['job_activity']['id']) ? $params['job_activity']['id'] : null;
         $creationId = isset($params['creation']['id']) ? $params['creation']['id'] : null;
+        $responsibleId = isset($params['responsible']['id']) ? $params['responsible']['id'] : null;
 
         $tasks = Task::with(
             'items', 'responsible', 'job_activity', 'job', 'job.client', 'job.job_type', 
@@ -442,6 +443,10 @@ class Task extends Model
 
         if ( ! is_null($creationId) ) {
             $tasks->where('responsible_id', '=', $creationId);      
+        }
+
+        if ( ! is_null($responsibleId) ) {
+            $tasks->where('responsible_id', '=', $responsibleId);      
         }
 
         if( ! is_null($status) ) {
