@@ -480,7 +480,7 @@ class Client extends Model implements Contactable
         Validator::field('nome', $value)
             ->required()
             ->minLength(3)
-            ->maxLength(30);
+            ->maxLength(50);
 
         $this->attributes['fantasy_name'] = $value;
     }
@@ -489,7 +489,7 @@ class Client extends Model implements Contactable
         Validator::field('razão social', $value)
             ->required()
             ->minLength(3)
-            ->maxLength(50);
+            ->maxLength(100);
 
         $this->attributes['name'] = $value;
     }
