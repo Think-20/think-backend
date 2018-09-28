@@ -83,7 +83,7 @@ class ProjectFile extends Model {
             ->count();
 
         if($notificationCount == 0) {
-            Notification::createAndNotify(User::logged(), [
+            Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message1
             ], NotificationSpecial::createMulti([
                 'user_id' => $task1->job->attendance->user->id,

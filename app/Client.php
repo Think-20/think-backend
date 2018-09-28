@@ -72,7 +72,7 @@ class Client extends Model implements Contactable
             $client->update($data);
 
             $message = 'Cadastro do cliente ' . $client->fantasy_name . ' alterado';
-            Notification::createAndNotify(User::logged(), [
+            Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
             ], [], 'Alteração de cliente', $client->id);
 
@@ -101,7 +101,7 @@ class Client extends Model implements Contactable
             Contact::manage($contacts, $client);
 
             $message = 'Novo cliente ' . $client->fantasy_name . ' cadastrado';
-            Notification::createAndNotify(User::logged(), [
+            Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
             ], [], 'Cadastro de cliente', $client->id);
 
@@ -121,7 +121,7 @@ class Client extends Model implements Contactable
             $client = Client::find($id);
             
             $message = 'Cliente ' . $client->fantasy_name . ' removido';
-            Notification::createAndNotify(User::logged(), [
+            Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
             ], [], 'Deleção de cliente', $client->id);
 
@@ -259,7 +259,7 @@ class Client extends Model implements Contactable
                     $message = 'Cliente ' . $row[0] . ' cadastrado com sucesso.';
                     
                     $message1 = 'Cliente ' . $client->fantasy_name . ' cadastrado';
-                    Notification::createAndNotify(User::logged(), [
+                    Notification::createAndNotify(User::logged()->employee, [
                         'message' => $message1
                     ], [], 'Cadastro de cliente', $client->id);
                 } else {
@@ -374,7 +374,7 @@ class Client extends Model implements Contactable
             $client->update($data);
             
             $message = 'Cliente ' . $client->fantasy_name . ' alterado';
-            Notification::createAndNotify(User::logged(), [
+            Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
             ], [], 'Alteração de cliente', $client->id);
 
@@ -392,7 +392,7 @@ class Client extends Model implements Contactable
             $client = Client::find($id);
             
             $message = 'Cliente ' . $client->fantasy_name . ' removido';
-            Notification::createAndNotify(User::logged(), [
+            Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
             ], [], 'Deleção de cliente', $client->id);
 

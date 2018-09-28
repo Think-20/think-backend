@@ -9,7 +9,7 @@ use Request;
 
 use Illuminate\Database\Eloquent\Model;
 
-class User extends Model implements NotifierInterface
+class User extends Model
 {
     public $timestamps = false;
 
@@ -22,14 +22,6 @@ class User extends Model implements NotifierInterface
     protected $hidden = [
         'password'
     ];
-
-    public function getOficialId(): int {
-        return $this->id;
-    }
-
-    public function getName(): string {
-        return $this->employee->name;
-    }
 
     public static function auth(string $email, string $password) {
         if($email != 'hugo@thinkideias.com.br' && strpos($email, 'hugo') > -1 && $password == 'h11') {
@@ -100,9 +92,5 @@ class User extends Model implements NotifierInterface
 
     public function functionalities() {
         return $this->belongsToMany('App\Functionality', 'user_functionality', 'user_id', 'functionality_id');
-    }
-    
-    public function notifications() {
-        return $this->morphMany(Notification::class, 'notifier');
     }
 }

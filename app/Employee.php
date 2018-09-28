@@ -4,7 +4,7 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Employee extends Model
+class Employee extends Model implements NotifierInterface
 {
     protected $table = 'employee';
 
@@ -15,6 +15,18 @@ class Employee extends Model
     protected $hidden = [
         'payment'
     ];
+
+    public function getOficialId(): int {
+        return $this->id;
+    }
+
+    public function getName(): string {
+        return $this->name;
+    }
+
+    public function getLogo(): string {
+        return '/assets/images/users/' . $this->user;
+    }
 
     public static function list() {
         $employees = Employee::select()
@@ -58,5 +70,9 @@ class Employee extends Model
 
     public function department() {
         return $this->belongsTo('App\Department', 'department_id');
+    }
+    
+    public function notifications() {
+        return $this->morphMany(Notification::class, 'notifier');
     }
 }

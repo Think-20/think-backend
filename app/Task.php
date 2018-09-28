@@ -87,7 +87,7 @@ class Task extends Model
             $message2 .= $task2->job->getJobName();
             $message2 .= ' para ' . (new DateTime($task2->available_date))->format('d/m/Y') . ' para ' . $task2->responsible->name;
 
-            Notification::createAndNotify(User::logged(), [
+            Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message1
             ], NotificationSpecial::createMulti([
                 'user_id' => $task1->responsible->user->id,
@@ -97,7 +97,7 @@ class Task extends Model
                 'message' => $message1
             ]), 'Alteração de tarefa', $task1->id);
 
-            Notification::createAndNotify(User::logged(), [
+            Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message2
             ], NotificationSpecial::createMulti([
                 'user_id' => $task2->responsible->user->id,
@@ -114,7 +114,7 @@ class Task extends Model
             $message .= $task->job->getJobName();
             $message .= ' para ' . (new DateTime($task->available_date))->format('d/m/Y') . ' para ' . $task->responsible->name;
 
-            Notification::createAndNotify(User::logged(), [
+            Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
             ], NotificationSpecial::createMulti([
                 'user_id' => $task->responsible->user->id,
@@ -152,7 +152,7 @@ class Task extends Model
             $message2 .= $task2->job->getJobName();
             $message2 .= ' para ' . (new DateTime($task2->available_date))->format('d/m/Y') . ' para ' . $task2->responsible->name;
 
-            Notification::createAndNotify(User::logged(), [
+            Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message1
             ], NotificationSpecial::createMulti([
                 'user_id' => $task1->responsible->user->id,
@@ -162,7 +162,7 @@ class Task extends Model
                 'message' => $message1
             ]), 'Alteração de tarefa', $task1->id);
 
-            Notification::createAndNotify(User::logged(), [
+            Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message2
             ], NotificationSpecial::createMulti([
                 'user_id' => $task2->responsible->user->id,
@@ -183,7 +183,7 @@ class Task extends Model
             $message .= $task->job->getJobName();
             $message .= ' para ' . (new DateTime($task->available_date))->format('d/m/Y') . ' para ' . $task->responsible->name;
 
-            Notification::createAndNotify(User::logged(), [
+            Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
             ], NotificationSpecial::createMulti([
                 'user_id' => $task->responsible->user->id,
@@ -219,10 +219,10 @@ class Task extends Model
             'task' => ['id' => $this->id]
         ];
         
-        Task::insert($data);
+        Task::insert($data, Agent::automatic());
     }
 
-    public static function insert(array $data)
+    public static function insert(array $data, NotifierInterface $notifier = null)
     {
         $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
         $job_id = isset($data['job']['id']) ? $data['job']['id'] : null;
@@ -243,7 +243,11 @@ class Task extends Model
         $message .= $task->job->getJobName();
         $message .= ' agendado em ' . (new DateTime($task->available_date))->format('d/m/Y') . ' para ' . $task->responsible->name;
 
-        Notification::createAndNotify(User::logged(), [
+        if($notifier == null) {
+            $notifier = User::logged()->employee;
+        }
+
+        Notification::createAndNotify($notifier, [
             'message' => $message
         ], NotificationSpecial::createMulti([
             'user_id' => $task->responsible->user->id,
@@ -351,7 +355,7 @@ class Task extends Model
             $message .= $task->job->getJobName();
             $message .= ' alterado de ' . $oldResponsible . ' para ' . $task->responsible->name; 
 
-            Notification::createAndNotify(User::logged(), [
+            Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
             ], NotificationSpecial::createMulti([
                 'user_id' => $task->responsible->user->id,
@@ -370,7 +374,7 @@ class Task extends Model
             $message .= $task->job->getJobName();
             $message .= ' alterada de ' . ((int) $oldDuration) . ' para ' . ((int) $task->duration) . ' dia(s)'; 
 
-            Notification::createAndNotify(User::logged(), [
+            Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
             ], NotificationSpecial::createMulti([
                 'user_id' => $task->responsible->user->id,
@@ -557,7 +561,7 @@ class Task extends Model
         $message .= $task->job->getJobName();
         $message .= ' removido';
 
-        Notification::createAndNotify(User::logged(), [
+        Notification::createAndNotify(User::logged()->employee, [
             'message' => $message
         ], NotificationSpecial::createMulti([
             'user_id' => $task->responsible->user->id,
@@ -587,7 +591,7 @@ class Task extends Model
         $message .= $task->job->getJobName();
         $message .= ' removido';
 
-        Notification::createAndNotify(User::logged(), [
+        Notification::createAndNotify(User::logged()->employee, [
             'message' => $message
         ], NotificationSpecial::createMulti([
             'user_id' => $task->responsible->user->id,

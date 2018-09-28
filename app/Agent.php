@@ -22,8 +22,12 @@ class Agent extends Model implements NotifierInterface
         return $this->name;
     }
 
+    public function getLogo(): string {
+        return '';
+    }
+
     public static function automatic() {
-        return Agent::where('description', '=', 'Sistema')->first();
+        return Agent::all()->first();
     }
 
     public function notifications() {
