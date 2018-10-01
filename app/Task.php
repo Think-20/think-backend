@@ -430,6 +430,22 @@ class Task extends Model
         $creationId = isset($params['creation']['id']) ? $params['creation']['id'] : null;
         $responsibleId = isset($params['responsible']['id']) ? $params['responsible']['id'] : null;
 
+        $statusArrayId = isset($params['status_array']) && !empty($params['status_array']) ? array_map(function($v) {
+            return $v['id'];
+        }, $params['status_array']) : null;
+        $attendanceArrayId = isset($params['attendance_array']) && !empty($params['attendance_array']) ? array_map(function($v) {
+            return $v['id'];
+        }, $params['attendance_array']) : null;
+        $jobTypeArrayId = isset($params['job_type_array']) && !empty($params['job_type_array']) ? array_map(function($v) {
+            return $v['id'];
+        }, $params['job_type_array']) : null;
+        $jobActivityArrayId = isset($params['job_activity_array']) && !empty($params['job_activity_array']) ? array_map(function($v) {
+            return $v['id'];
+        }, $params['job_activity_array']) : null;
+        $responsibleArrayId = isset($params['responsible_array']) && !empty($params['responsible_array']) ? array_map(function($v) {
+            return $v['id'];
+        }, $params['responsible_array']) : null;
+
         $tasks = Task::with(
             'items', 'responsible', 'job_activity', 'job', 'job.client', 'job.job_type', 
             'job.status', 'job.agency', 'job.attendance', 'job.job_activity'
@@ -439,6 +455,32 @@ class Task extends Model
             $sql = '(task.available_date >= "' . $iniDate . '"';
             $sql .= ' AND task.available_date <= "' . $finDate . '")';
             $tasks->whereRaw($sql);
+        }
+
+        if( ! is_null($attendanceArrayId) ) {
+            $tasks->whereHas('job.attendance', function($query) use ($attendanceArrayId) {
+                $query->whereIn('id', $attendanceArrayId);
+            });   
+        }
+
+        if( ! is_null($jobTypeArrayId) ) {
+            $tasks->whereHas('job.job_type', function($query) use ($jobTypeArrayId) {
+                $query->whereIn('id', $jobTypeArrayId);
+            });   
+        }
+
+        if( ! is_null($statusArrayId) ) {
+            $tasks->whereHas('job', function($query) use ($statusArrayId) {
+                $query->whereIn('status_id', $statusArrayId);
+            });   
+        }
+
+        if( ! is_null($jobActivityArrayId) ) {
+            $tasks->whereIn('job_activity_id', $jobActivityArrayId);
+        }
+
+        if( ! is_null($responsibleArrayId) ) {
+            $tasks->whereIn('responsible_id', $responsibleArrayId);
         }
 
         if ( ! is_null($clientName) ) {
