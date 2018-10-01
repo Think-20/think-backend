@@ -229,7 +229,7 @@ class Task extends Model
             'task' => ['id' => $this->id]
         ];
         
-        Task::insert($data, Agent::automatic());
+        Task::insert($data, $this->job->attendance);
     }
 
     public static function insert(array $data, NotifierInterface $notifier = null)
