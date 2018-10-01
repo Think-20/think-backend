@@ -11,7 +11,7 @@ class Task extends Model
     protected $table = 'task';
     protected $fillable = [
         'job_id', 'responsible_id', 'available_date', 'job_activity_id', 'duration',
-        'reopened', 'task_id'
+        'reopened', 'task_id', 'project_file_done'
     ];
 
     public function getTaskName() {
@@ -126,6 +126,16 @@ class Task extends Model
         }        
         
         return true;
+    }
+
+    public function updateProjectFileDone() {
+        if($this->project_files->count() > 0) {
+            $this->project_file_done = 1;
+        } else {
+            $this->project_file_done = 0;
+        }
+
+        $this->save();
     }
 
     public static function myEditAvailableDate(array $data)
