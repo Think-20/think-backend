@@ -448,7 +448,7 @@ class Task extends Model
 
         $tasks = Task::with(
             'items', 'responsible', 'job_activity', 'job', 'job.client', 'job.job_type', 
-            'job.status', 'job.agency', 'job.attendance', 'job.job_activity'
+            'job.status', 'job.agency', 'job.attendance', 'job.job_activity', 'task', 'task.job_activity'
         );
 
         if (!is_null($iniDate) && !is_null($finDate)) {
@@ -714,6 +714,11 @@ class Task extends Model
     public function responsible()
     {
         return $this->belongsTo('App\Employee', 'responsible_id');
+    }
+
+    public function task()
+    {
+        return $this->belongsTo('App\Task', 'task_id');
     }
 
     public function budget()
