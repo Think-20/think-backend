@@ -12,7 +12,8 @@ select f.id, u.id from functionality f
 inner join employee e on e.department_id IN (1,2)
 left join user u on u.employee_id = e.id
 where (f.id >= 1 AND f.id <= 18) OR (f.id >= 25 AND f.id <= 51) 
-OR (f.id IN(59,61,63,64,65,66,67,69,71,72,73,74,77,78,79,83,85,86,87,88,89,90));
+OR (f.id >= 63 AND f.id <= 67) OR (f.id >= 71 AND f.id <= 74) 
+OR (f.id >= 85 AND f.id <= 94) OR (f.id IN(59,61,69,77,78,79,83));
 
 #Telas e permissões para produção
 insert into display_user (display_id, user_id) 

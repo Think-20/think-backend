@@ -305,4 +305,9 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::delete('/project-files/remove/{id}', 'ProjectFileController@remove');
     Route::get('/project-files/download/{id}', 'ProjectFileController@downloadFile');
     Route::get('/project-files/download-all/{taskId}', 'ProjectFileController@downloadAll');
+    
+    Route::post('/schedule-block/save', 'ScheduleBlockController@save');
+    Route::delete('/schedule-block/remove/{id}', 'ScheduleBlockController@remove');
+    Route::post('/schedule-blocks/all', 'ScheduleBlockController@all');
+    Route::get('/schedule-blocks/valid', 'ScheduleBlockController@valid');
 });
