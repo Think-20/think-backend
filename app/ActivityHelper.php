@@ -178,6 +178,9 @@ class ActivityHelper
             }
 
             $items = $items->get();
+            
+            //$blockedDates = ScheduleBlock::whereIn('date', $dates)->get();
+            //if($items->count() == 0 && $blockedDates->count() == 0) {
 
             if($items->count() == 0) {
                 $availableProfessionals[] = $professionalId;

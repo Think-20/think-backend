@@ -207,6 +207,22 @@ class Task extends Model
         return true;
     }
 
+    public function insertContinuation(DateTime $date, $duration) {
+        $availableDate = $date->format('Y-m-d');
+        $jobActivity = JobActivity::where('description', '=', 'Continuação')->first();
+
+        $data = [
+            'responsible' => ['id' => $this->responsible_id],
+            'job' => ['id' => $this->job->id],
+            'job_activity' => ['id' => $jobActivity->id],
+            'duration' => $duration,
+            'available_date' => $availableDate,
+            'task' => ['id' => $this->id]
+        ];
+        
+        Task::insert($data);
+    }
+
     public function insertMemorial() {
         $date = DateHelper::nextUtilIfNotUtil(DateHelper::nextUtil(new DateTime('now'), 1))->format('Y-m-d');
         $jobActivity = JobActivity::where('description', '=', 'Memorial descritivo')->first();
@@ -229,15 +245,16 @@ class Task extends Model
             'task' => ['id' => $this->id]
         ];
         
-        Task::insert($data, $this->job->attendance);
+        Task::insert($data, $this->job->attendance, false);
     }
 
-    public static function insert(array $data, NotifierInterface $notifier = null)
+    public static function insert(array $data, NotifierInterface $notifier = null, $recursiveScheduleBlock = true)
     {
         $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
         $job_id = isset($data['job']['id']) ? $data['job']['id'] : null;
         $job_activity_id = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
         $task_id = isset($data['task']['id']) ? $data['task']['id'] : null;
+        $verifyScheduleBlock = isset($data['verify_schedule_block']) ? $data['verify_schedule_block'] : true;
 
         $task = new Task(array_merge($data, [
             'responsible_id' => $responsible_id,
@@ -245,9 +262,13 @@ class Task extends Model
             'job_activity_id' => $job_activity_id,
             'task_id' => $task_id,
         ]));
+        
+        if($verifyScheduleBlock && $recursiveScheduleBlock) {
+            Task::checkScheduleBlock($task->available_date, true);
+        }
 
         $task->save();
-        $task->saveItems();
+        $task->saveItems($verifyScheduleBlock);
 
         $message = $task->getTaskName() . ' da ';
         $message .= $task->job->getJobName();
@@ -272,6 +293,15 @@ class Task extends Model
         return $task;
     }
 
+    public static function checkScheduleBlock($availableDate, $exception = false) {
+        $blocked = ScheduleBlock::where('date', '=', $availableDate)->first() != null;
+
+        if(!$blocked) return false;
+        if($exception) throw new \Exception('Você não pode agendar nesta data, está bloqueada.');
+
+        return true;
+    }
+
     public static function modifyReopened(Task $task) {
         $description = $task->job_activity->description;
 
@@ -290,41 +320,26 @@ class Task extends Model
         }
     }
 
-    public function saveItems()
+    public function saveItems($verifyScheduleBlock)
     {
         $date = new DateTime($this->available_date);
-        /*
-        $taskIsThisDate = TaskItem::select('*', 'task_item.duration as task_duration')
-            ->leftJoin('task', 'task.id', '=', 'task_item.task_id')
-            ->where('responsible_id', '=', $this->responsible->id)
-            ->where('available_date', '=', $this->available_date)
-            ->get();
-        */
-
         $duration = $this->duration;
-        /*
-        if ($taskIsThisDate->count() > 0) {
-            $firstDate = $taskIsThisDate->shift();
-            $duration .= -$firstDate->task_duration;
+        $tempDuration = (float) $duration;
 
-            if($duration > 0) {
-                TaskItem::insert([
-                    'duration' => $this->duration - $duration,
-                    'date' => $date->format('Y-m-d'),
-                    'task_id' => $this->id
-                ]);
-                $date = DateHelper::sumUtil($date, 1);
-            }            
-        }
-        */
-
-        $tempDuration = $duration;
         for ($i = 0; $i < $duration; $i++) {
-            $fator = $tempDuration >= 1
+            if($verifyScheduleBlock && Task::checkScheduleBlock($date)) {
+                $date = DateHelper::sumUtil($date, 1);
+                $this->duration = $duration - $tempDuration;
+                $this->save();
+                $this->insertContinuation($date, $tempDuration);
+                return;
+            }
+
+            $fator = (float) $tempDuration >= 1
                 ? 1
                 : $tempDuration;
 
-            $tempDuration .= -$fator;
+            $tempDuration = (float) $tempDuration - $fator;
             TaskItem::insert([
                 'duration' => $fator,
                 'date' => $date->format('Y-m-d'),
@@ -332,6 +347,7 @@ class Task extends Model
             ]);
             $date = DateHelper::sumUtil($date, 1);
         }
+
     }
 
     public function deleteItems()
@@ -630,6 +646,12 @@ class Task extends Model
     public static function remove($id)
     {
         $task = Task::find($id);
+        $childs = Task::where('task_id', '=', $task->id)->get();
+        
+        if($childs->count() > 0) {
+            throw new \Exception('Por favor, delete a tarefa anterior primeiro.');
+        }
+
         $oldTask = clone $task;
         
         $message = $task->getTaskName() . ' de ';
@@ -656,6 +678,11 @@ class Task extends Model
     {
         $task = Task::find($id);
         $oldTask = clone $task;
+        $childs = Task::where('task_id', '=', $task->id)->get();
+        
+        if($childs->count() > 0) {
+            throw new \Exception('Por favor, delete a tarefa anterior primeiro.');
+        }
 
         if($task->job->attendance_id != User::logged()->employee->id) {
             throw new \Exception('Você não tem permissão para remover esse job.');
