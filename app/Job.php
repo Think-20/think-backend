@@ -191,7 +191,6 @@ class Job extends Model
         $job->history();
         //$job->briefing ? $job->briefing->get() : null;
         //$job->budget ? $job->budget->get() : null;
-
         return $job;
     }
 

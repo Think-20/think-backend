@@ -139,20 +139,21 @@ class Client extends Model implements Contactable
     }
 
     public static function get(int $id) {
-        $client = Client::find($id);
-        
+        $client = Client::with('contacts')
+        ->with('city', 'city.state', 'employee', 'type', 'comission', 'status')
+        ->where('client.id', '=', $id)->first();  
+                
         if(is_null($client)) {
             return null;
         }
 
-        $client->city;
-        $client->city->state;
-        $client->employee;
-        $client->type;
-        $client->comission;
-        $client->status;
-        $client->contacts;
-        $client->jobs;
+        foreach($client->jobs as $job) {
+            $job->job_activity;
+            $job->attendance;
+            $job->status;
+            $job->responsibles();
+        }
+
         return $client;
     }
 
@@ -414,8 +415,10 @@ class Client extends Model implements Contactable
     }
 
     public static function getMyClient(int $id) {
-        $client = Client::find($id);
-        
+        $client = Client::with('contacts')
+        ->with('city', 'city.state', 'employee', 'type', 'comission', 'status')
+        ->where('client.id', '=', $id)->first();  
+                
         if(is_null($client)) {
             return null;
         }
@@ -424,14 +427,12 @@ class Client extends Model implements Contactable
             throw new \Exception('Não é possível visualizar um cliente que não foi cadastrado por você.');
         }
 
-        $client->city;
-        $client->city->state;
-        $client->employee;
-        $client->type;
-        $client->comission;
-        $client->status;
-        $client->contacts;
-        $client->jobs;
+        foreach($client->jobs as $job) {
+            $job->job_activity;
+            $job->attendance;
+            $job->status;
+            $job->responsibles();
+        }
 
         return $client;
     }
@@ -597,7 +598,8 @@ class Client extends Model implements Contactable
     }
 
     public function jobs() {
-        return $this->hasMany('App\Job', 'client_id');
+        return $this->hasMany('App\Job','client_id')->union($this->hasMany('App\Job','agency_id'));
+        
     }
 
     public function city() {
