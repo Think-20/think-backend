@@ -154,12 +154,12 @@ class Task extends Model
 
             ActivityHelper::swapActivities($task1, $task2);
 
-            $message1 = 'Mudança de agenda de ' . $task1->job_activity->description . ' da ';
-            $message1 .= $task1->getTaskName();
+            $message1 = 'Mudança de agenda de ' . $task1->getTaskName() . ' da ';
+            $message1 .= $task1->job->getJobName();
             $message1 .= ' para ' . (new DateTime($task1->available_date))->format('d/m/Y') . ' para ' . $task1->responsible->name;
 
-            $message2 = 'Mudança de agenda de ' . $task2->job_activity->description . ' da ';
-            $message2 .= $task2->getTaskName();
+            $message2 = 'Mudança de agenda de ' . $task2->getTaskName() . ' da ';
+            $message2 .= $task2->job->getJobName();
             $message2 .= ' para ' . (new DateTime($task2->available_date))->format('d/m/Y') . ' para ' . $task2->responsible->name;
 
             Notification::createAndNotify(User::logged()->employee, [
@@ -320,7 +320,7 @@ class Task extends Model
         }
     }
 
-    public function saveItems($verifyScheduleBlock)
+    public function saveItems($verifyScheduleBlock = true)
     {
         $date = new DateTime($this->available_date);
         $duration = $this->duration;
