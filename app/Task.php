@@ -461,6 +461,9 @@ class Task extends Model
         $responsibleArrayId = isset($params['responsible_array']) && !empty($params['responsible_array']) ? array_map(function($v) {
             return $v['id'];
         }, $params['responsible_array']) : null;
+        $departmentArrayId = isset($params['department_array']) && !empty($params['department_array']) ? array_map(function($v) {
+            return $v['id'];
+        }, $params['department_array']) : null;
 
         $tasks = Task::with(
             'items', 'responsible', 'job_activity', 'job', 'job.client', 'job.job_type', 
@@ -497,6 +500,12 @@ class Task extends Model
 
         if( ! is_null($responsibleArrayId) ) {
             $tasks->whereIn('responsible_id', $responsibleArrayId);
+        }
+
+        if( ! is_null($departmentArrayId) ) {
+            $tasks->whereHas('responsible', function($query) use ($departmentArrayId) {
+                $query->whereIn('department_id', $departmentArrayId);
+            });
         }
 
         if ( ! is_null($clientName) ) {
