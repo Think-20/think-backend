@@ -634,8 +634,8 @@ class Job extends Model
     public function creation_responsible() {
         foreach($this->tasks as $task) {
             if($task->job_activity->description == 'Projeto'
-            || $task->job_activity->description == 'Modificação'
-            || $task->job_activity->description == 'Opção'
+            #|| $task->job_activity->description == 'Modificação'
+            #|| $task->job_activity->description == 'Opção'
             || $task->job_activity->description == 'Outsider') {
                 $this->creation_responsible = $task->responsible;
                 $this->available_date_creation = $task->available_date;
