@@ -655,13 +655,17 @@ class Task extends Model
     public static function remove($id)
     {
         $task = Task::find($id);
-        $childs = Task::where('task_id', '=', $task->id)->get();
-        
-        if($childs->count() > 0) {
-            throw new \Exception('Por favor, delete a tarefa anterior primeiro.');
+
+        if($task == null) {
+            return;
         }
 
         $oldTask = clone $task;
+        $childs = Task::where('task_id', '=', $task->id)->get();
+        
+        foreach($childs as $child) {
+            Task::remove($child->id);
+        }
         
         $message = $task->getTaskName() . ' de ';
         $message .= $task->job->getJobName();
@@ -677,26 +681,36 @@ class Task extends Model
             'message' => $message
         ]), 'Deleção de tarefa', $task->id);
 
+
         $task->items()->delete();
+        $task->budget()->delete();
+
+        foreach($task->project_files as $projectFile) {
+            ProjectFile::remove($projectFile->id);
+        }
+
         $task->delete();
-        
         Task::modifyReopened($oldTask);
     }
 
     public static function removeMyTask($id)
     {
         $task = Task::find($id);
+
+        if($task == null) {
+            return;
+        }
+
         $oldTask = clone $task;
         $childs = Task::where('task_id', '=', $task->id)->get();
         
-        if($childs->count() > 0) {
-            throw new \Exception('Por favor, delete a tarefa anterior primeiro.');
+        foreach($childs as $child) {
+            Task::remove($child->id);
         }
 
         if($task->job->attendance_id != User::logged()->employee->id) {
             throw new \Exception('Você não tem permissão para remover esse job.');
         }
-
 
         $message = $task->getTaskName() . ' de ';
         $message .= $task->job->getJobName();
@@ -713,8 +727,13 @@ class Task extends Model
         ]), 'Deleção de tarefa', $task->id);
 
         $task->items()->delete();
+        $task->budget()->delete();
+
+        foreach($task->project_files as $projectFile) {
+            ProjectFile::remove($projectFile->id);
+        }
+
         $task->delete();
-        
         Task::modifyReopened($oldTask);
     }
 

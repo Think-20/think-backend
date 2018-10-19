@@ -136,12 +136,10 @@ class ProjectFile extends Model {
     */
 
     public static function remove($id) {
-        $task = $project_file->task;
-
-        $project_file = ProjectFile::find($id);
-        $project_file->delete();
-        $project_file->deleteFile();
-
+        $projectFile = ProjectFile::find($id);
+        $task = $projectFile->task;
+        $projectFile->deleteFile();
+        $projectFile->delete();
         $task->updateProjectFileDone();
     }
 
