@@ -7,6 +7,8 @@ use Exception;
 use Response;
 
 use DB;
+use PDF;
+use DateTime;
 
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
@@ -96,6 +98,16 @@ class TaskController extends Controller
             'message' => $message,
             'status' => $status,
          ]), 200);
+    }
+
+    public static function memorialPdf() {
+        $id = 521;
+        $task = Task::find($id);
+
+        setlocale(LC_TIME, 'pt_BR', 'pt_BR.utf-8', 'pt_BR.utf-8', 'portuguese');
+
+        return PDF::loadView('pdf.memorial', ['task' => $task])
+        ->stream($task->job->getJobName() . ' - Memorial descritivo.pdf');
     }
 
     public static function remove(int $id) {

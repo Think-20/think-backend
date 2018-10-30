@@ -48,12 +48,7 @@ Route::get('/test', function () {
 });
 */
 
-Route::get('/prazo', function () {
-    $tasks = \App\Task::all();
-    foreach($tasks as $task) {
-        $task->updateProjectFileDone();
-    }
-});
+Route::get('/memorial', 'TaskController@memorialPdf');
 
 Route::post('/login', 'UserController@login')->name('login');
 Route::post('/logout', 'UserController@logout')->name('logout');
