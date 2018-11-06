@@ -57,7 +57,7 @@ class UserNotification extends Model
         ->where('user_notification.user_id', '=', User::logged()->id)
         ->where('received', '=', '1')
         ->orderBy('notification.date', 'desc')
-        ->limit(100)
+        ->limit(60)
         ->get();
      
         return [

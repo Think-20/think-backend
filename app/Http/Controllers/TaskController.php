@@ -100,13 +100,15 @@ class TaskController extends Controller
          ]), 200);
     }
 
-    public static function memorialPdf() {
-        $id = 521;
+    public static function memorialPdf($id) {
         $task = Task::find($id);
 
         setlocale(LC_TIME, 'pt_BR', 'pt_BR.utf-8', 'pt_BR.utf-8', 'portuguese');
 
-        return PDF::loadView('pdf.memorial', ['task' => $task])
+        return PDF::loadView('pdf.memorial', [
+            'task' => $task,
+            'bg' => base64_encode(file_get_contents(resource_path() . '/assets/images/timbrado.jpg'))
+        ])
         ->stream($task->job->getJobName() . ' - Memorial descritivo.pdf');
     }
 

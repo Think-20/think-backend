@@ -7,7 +7,10 @@
             }
             body {
                 padding: 60px 50px;
-                background-color: #f5f5f5;
+                background-color: #f1f1ef;
+                background-image: url('data:image/jpg;base64,{{ $bg }}');
+                background-position: top left;
+                background-repeat: no-repeat;
                 font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif !important;
             }
 
@@ -72,15 +75,15 @@
         . ucwords(strftime('%B', strtotime($task->available_date))) . ' de ' 
         . strftime('%Y', strtotime($task->available_date)) }}</p>
         <p class="space-down">
-            <strong>Á {{ $task->job->client->name }}</strong>
-            <br>Att. Sr(a). {{ $task->job->client->contacts[0]->name }}
+            <strong>Á {{ ($task->job->not_client) ? $task->job->agency->name : $task->job->client->name }}</strong>
+            <br>Att. Sr(a). {{ ($task->job->not_client) ? $task->job->agency->contacts[0]->name : $task->job->client->contacts[0]->name }}
         </p>
         <br>
         <p class="center space-down">
             <strong>PROPOSTA E MEMORIAL DESCRITIVO DE PROJETO, MONTAGEM E DESMONTAGEM DE STAND</strong>
         </p>
         <div class="space-down">
-            <p>Stand: {{ $task->job->client->fantasy_name }}</p>
+            <p>Stand: {{ ($task->job->not_client) ? $task->job->not_client : $task->job->client->fantasy_name }}</p>
             <p>Área: -</p>
             <p>Evento: {{ $task->job->event }}</p>
             <p>Local: {{ $task->job->place }}</p>

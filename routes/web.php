@@ -48,8 +48,6 @@ Route::get('/test', function () {
 });
 */
 
-Route::get('/memorial', 'TaskController@memorialPdf');
-
 Route::post('/login', 'UserController@login')->name('login');
 Route::post('/logout', 'UserController@logout')->name('logout');
 
@@ -287,6 +285,8 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/tasks/get/{id}', 'TaskController@get');
     Route::put('/task/edit-available-date', 'TaskController@editAvailableDate');
     Route::delete('/task/remove/{id}', 'TaskController@remove');
+    
+    Route::get('/task/memorial/{id}', 'TaskController@memorialPdf');
 
     Route::post('/my-task/save', 'TaskController@save');
     Route::post('/my-tasks/filter', 'TaskController@filterMyTask');
