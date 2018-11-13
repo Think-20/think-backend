@@ -90,6 +90,10 @@ class ItemCategoryController extends Controller
         return $items;
     }
 
+    public static function itemsGroupByCategory() {
+        return ItemCategory::itemsGroupByCategory();
+    }
+
     public static function filter($query) {
         return ItemCategory::filter($query);
     }

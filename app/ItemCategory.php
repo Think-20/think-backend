@@ -18,7 +18,7 @@ class ItemCategory extends Model
     public static function edit(array $data) {
         $id = $data['id'];
         $itemCategory = ItemCategory::find($id);
-        $itemCategory->item_category_id = isset($data['item_category']['id']) ? $data['item_category']['id'] : null;
+        $itemCategory->item_category_id = isset($data['itemCategory']['id']) ? $data['itemCategory']['id'] : null;
 
         if($itemCategory->id == $itemCategory->item_category_id) {
             throw new Exception('Não é possível cadastrar uma categoria sendo a própria subcategoria.');
@@ -29,12 +29,20 @@ class ItemCategory extends Model
 
     public static function insert(array $data) {
         $itemCategory = new ItemCategory($data);
-        $itemCategory->item_category_id = isset($data['item_category']['id']) ? $data['item_category']['id'] : null;
+        $itemCategory->item_category_id = isset($data['itemCategory']['id']) ? $data['itemCategory']['id'] : null;
         $itemCategory->save();
     }
 
     public static function list() {
         return ItemCategory::orderBy('description', 'asc')->get();
+    }
+
+    public static function itemsGroupByCategory() {
+        $categories = ItemCategory::with('item_categories', 'items')
+        ->whereNull('item_category_id')
+        ->orderBy('description', 'asc')->get();
+
+        return $categories;
     }
 
     public static function remove($id) {
@@ -55,5 +63,14 @@ class ItemCategory extends Model
 
     public function itemCategory() {
         return $this->belongsTo('App\ItemCategory', 'item_category_id');
+    }
+
+    public function item_categories() {
+        return $this->hasMany('App\ItemCategory', 'item_category_id')
+        ->with('item_categories', 'items');
+    }
+
+    public function items() {
+        return $this->hasMany('App\Item', 'item_category_id');
     }
 }

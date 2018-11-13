@@ -244,6 +244,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/item-categories/all', 'ItemCategoryController@all');
     Route::get('/item-categories/get/{id}', 'ItemCategoryController@get');
     Route::get('/item-categories/filter/{query}', 'ItemCategoryController@filter');
+    Route::get('/item-categories/items-group-by-category', 'ItemCategoryController@itemsGroupByCategory');
 
     Route::post('/item/save', 'ItemController@save');
     Route::put('/item/edit', 'ItemController@edit');
