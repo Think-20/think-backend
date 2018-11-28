@@ -1,1 +1,0 @@
-insert into functionality values (96, '/item-categories/items-group-by-category', 'Visualizar categorias de item e suas derivações');

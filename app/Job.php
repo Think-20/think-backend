@@ -411,10 +411,18 @@ class Job extends Model
         $job->job_activity;
         $job->job_type;
         $job->client;
+
+        if($job->client)
+            $job->client->contacts;
+
         $job->main_expectation;
         $job->levels;
         $job->how_come;
         $job->agency;
+
+        if($job->agency)
+            $job->agency->contacts;
+            
         $job->attendance;
         $job->competition;
         $job->files;
@@ -423,7 +431,6 @@ class Job extends Model
         $job->history();
         //$job->briefing ? $job->briefing->get() : null;
         //$job->budget ? $job->budget->get() : null;
-
         return $job;
     }
 
