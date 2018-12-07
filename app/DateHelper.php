@@ -105,15 +105,15 @@ class DateHelper {
         return $newDate;
     }
 
-    public static function sum(DateTime $date, $interval) {
+    public static function sum(DateTime $date, $interval = 1) {
         $newDate = clone $date;
-        $newDate->add(new DateInterval('P1D'));
+        $newDate->add(new DateInterval('P' . $interval . 'D'));
         return $newDate;
     }
 
     public static function sub(DateTime $date, $interval) {
         $newDate = clone $date;
-        $newDate->sub(new DateInterval('P1D'));
+        $newDate->sub(new DateInterval('P' . $interval . 'D'));
         return $newDate;
     }
 

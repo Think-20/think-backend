@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Response;
 use Exception;
 use DateTime;
+use App\DateHelper;
 
 class ScheduleBlockController extends Controller
 {
@@ -48,9 +49,11 @@ class ScheduleBlockController extends Controller
 
     public static function valid() {
         $date = new DateTime();
+        $date1 = DateHelper::sub(new DateTime(), 31);
+        $date2 = DateHelper::sum(new DateTime(), 31);
 
-        return ScheduleBlock::where('date', '>=', $date->format('Y-m') . '-01')
-        ->where('date', '<=', $date->format('Y-m') . '-31')
+        return ScheduleBlock::where('date', '>=', $date1->format('Y-m') . '-01')
+        ->where('date', '<=', $date2->format('Y-m') . '-31')
         ->get();
     }
 
