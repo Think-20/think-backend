@@ -19,7 +19,7 @@ class Client extends Model implements Contactable
     protected $fillable = [
         'name', 'fantasy_name', 'ie', 'cnpj', 'mainphone', 'secundaryphone', 'site', 'rate', 'note',
         'street', 'number', 'neighborhood', 'complement', 'cep', 'city_id', 
-        'employee_id', 'client_type_id', 'client_status_id', 'comission_id'
+        'employee_id', 'client_type_id', 'client_status_id', 'comission_id', 'external'
     ];
 
     public function checkCnpj() {
@@ -27,8 +27,15 @@ class Client extends Model implements Contactable
         ->where('id', '<>', $this->id)
         ->get();
 
-        if($duplicateClient->count() > 0) {
+        $duplicateName = Client::where('name', '=', $this->name)
+        ->where('id', '<>', $this->id)
+        ->get();
+
+        if($duplicateClient->count() > 0 && $this->external == 0) {
             throw new \Exception('O CNPJ já está cadastrado.');
+        }
+        else if($duplicateName->count() > 0 && $this->external == 1) {
+            throw new \Exception('Essa razão social já está cadastrada.');
         }
 
         return true;
@@ -501,7 +508,6 @@ class Client extends Model implements Contactable
     
     public function setCnpjAttribute($value) {
         Validator::field('CNPJ', $value)
-            ->required()
             ->minLength(18)
             ->maxLength(18);
 
