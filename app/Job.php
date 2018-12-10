@@ -132,8 +132,14 @@ class Job extends Model
         $job = Job::find($id);
         $oldJob = clone $job;
         $job->levels()->detach();
+        $createNotification = true;
         
-        foreach($job->tasks as $task) {        
+        foreach($job->tasks as $task) {      
+            Task::remove($task->id);
+            $createNotification = false;
+        }
+
+        if($createNotification) {
             $message = $task->job_activity->description . ' de ';
             $message .= $task->job->getJobName();
             $message .= ' removido';
@@ -147,8 +153,6 @@ class Job extends Model
                 'user_id' => $task->job->attendance->user->id,
                 'message' => $message
             ]), 'Deleção de job', $task->id);
-
-            Task::remove($task->id);
         }
 
         $job->deleteFiles();
