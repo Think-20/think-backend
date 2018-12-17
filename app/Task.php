@@ -264,7 +264,7 @@ class Task extends Model
         ]));
         
         if($verifyScheduleBlock && $recursiveScheduleBlock) {
-            Task::checkScheduleBlock($task->available_date, true);
+            Task::checkScheduleBlock($task->available_date, $task->responsible, true);
         }
 
         $task->save();
@@ -293,8 +293,8 @@ class Task extends Model
         return $task;
     }
 
-    public static function checkScheduleBlock($availableDate, $exception = false) {
-        $blocked = ScheduleBlock::where('date', '=', $availableDate)->first() != null;
+    public static function checkScheduleBlock(string $availableDate, Employee $responsible, $exception = false) {
+        $blocked = ScheduleBlock::checkIfBlocked($availableDate, $responsible->id);
 
         if(!$blocked) return false;
         if($exception) throw new \Exception('Você não pode agendar nesta data, está bloqueada.');
@@ -327,7 +327,7 @@ class Task extends Model
         $tempDuration = (float) $duration;
 
         for ($i = 0; $i < $duration; $i++) {
-            if($verifyScheduleBlock && Task::checkScheduleBlock($date)) {
+            if($verifyScheduleBlock && Task::checkScheduleBlock($date->format('Y-m-d'), $this->responsible)) {
                 $date = DateHelper::sumUtil($date, 1);
                 $this->duration = $duration - $tempDuration;
                 $this->save();
