@@ -14,8 +14,8 @@ class ScheduleBlockController extends Controller
         $scheduleBlock = null;
 
         try {
-            $scheduleBlock = ScheduleBlock::insert($request->all());
-            $message = 'Data registrada com sucesso!';
+            $scheduleBlock = ScheduleBlock::saveOrRemove($request->all());
+            $message = 'Registrado com sucesso!';
             $status = true;
         } catch(Exception $e) {
             $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
@@ -47,6 +47,10 @@ class ScheduleBlockController extends Controller
 
     public static function valid() {
         return ScheduleBlock::valid();
+    }
+
+    public static function myValid() {
+        return ScheduleBlock::myValid();
     }
 
     public static function all() {

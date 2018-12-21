@@ -35,6 +35,7 @@ class Employee extends Model implements NotifierInterface
 
         foreach($employees as $employee) {
             $employee->department;
+            $employee->user;
         }
 
         return $employees;

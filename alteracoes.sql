@@ -8,3 +8,5 @@ create table schedule_block_user (
 );
 
 insert into schedule_block_user (schedule_id, user_id) select schedule_block.id, user.id from user inner join schedule_block order by user.id, schedule_block.date;
+
+insert into functionality values (97, '/my-schedule-blocks/valid', 'Obter somente datas bloqueadas para o próprio usuário');

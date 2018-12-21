@@ -306,4 +306,5 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::delete('/schedule-block/remove/{id}', 'ScheduleBlockController@remove');
     Route::post('/schedule-blocks/all', 'ScheduleBlockController@all');
     Route::get('/schedule-blocks/valid', 'ScheduleBlockController@valid');
+    Route::get('/my-schedule-blocks/valid', 'ScheduleBlockController@myValid');
 });
