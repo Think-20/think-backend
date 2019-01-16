@@ -193,11 +193,21 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/notifications/recents', 'NotificationController@recents');
     Route::get('/notifications/listen', 'NotificationController@listen');
     Route::put('/notifications/read', 'NotificationController@read');
+
+    Route::post('/departments/all', 'DepartmentController@all');
+    Route::post('/departments/filter', 'DepartmentController@filter');
+
+    Route::post('/positions/all', 'PositionController@all');
+    Route::post('/positions/filter', 'PositionController@filter');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {
-    Route::get('/employees/all', 'EmployeeController@all');
-    Route::get('/employees/filter/{query}', 'EmployeeController@filter');
+    Route::post('/employees/all', 'EmployeeController@all');
+    Route::post('/employees/filter', 'EmployeeController@filter');
+    Route::get('/employees/get/{id}', 'EmployeeController@get');
+    Route::put('/employee/edit', 'EmployeeController@edit');
+    Route::delete('/employee/remove/{id}', 'EmployeeController@remove');
+
     Route::post('/employees/office-hours/register/another', 'TimecardController@registerAnother');
     Route::post('/employees/office-hours/register/yourself', 'TimecardController@registerYourself');
     Route::post('/employees/office-hours/show/another', 'TimecardController@showAnother');

@@ -13,7 +13,7 @@ inner join employee e on e.department_id IN (1,2)
 left join user u on u.employee_id = e.id
 where (f.id >= 1 AND f.id <= 18) OR (f.id >= 25 AND f.id <= 51) 
 OR (f.id >= 63 AND f.id <= 67) OR (f.id >= 71 AND f.id <= 74) 
-OR (f.id >= 85 AND f.id <= 96) OR (f.id IN(59,61,69,77,78,79,83));
+OR (f.id >= 85 AND f.id <= 96) OR (f.id IN(59,61,69,77,78,79,83,98,99,100,101));
 
 #Telas e permissões para produção
 insert into display_user (display_id, user_id) 
@@ -87,8 +87,5 @@ insert into notification_rule select null, n.id, u.id from notification_type n i
 
 /* ------------------ Rafaela --------------------- */
 insert into user_functionality (user_id, functionality_id) values (14, 73), (14, 74);
-
-/* ------------------ Efetuar logoff ----------- */
-update user set lastAccess = null;
 
 
