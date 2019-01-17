@@ -55,6 +55,23 @@ Route::post('/logout', 'UserController@logout')->name('logout');
     Construir authenticate request para imagens 
     http://blog.jsgoupil.com/request-image-files-with-angular-2-and-an-bearer-access-token/
 */
+Route::get('/assets/images/temp/{filename}', function ($filename)
+{
+    $path = sys_get_temp_dir() . '/' . $filename;
+
+    if (!File::exists($path)) {
+        abort(404);
+    }
+
+    $file = File::get($path);
+    $type = File::mimeType($path);
+
+    $response = Response::make($file, 200);
+    $response->header("Content-Type", $type);
+
+    return $response;
+});
+
 Route::get('/assets/images/{filename}', function ($filename)
 {
     $path = resource_path('assets/images/' . $filename);
@@ -205,6 +222,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/employees/all', 'EmployeeController@all');
     Route::post('/employees/filter', 'EmployeeController@filter');
     Route::get('/employees/get/{id}', 'EmployeeController@get');
+    Route::post('/employee/save', 'EmployeeController@save');
     Route::put('/employee/edit', 'EmployeeController@edit');
     Route::delete('/employee/remove/{id}', 'EmployeeController@remove');
 

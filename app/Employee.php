@@ -29,6 +29,38 @@ class Employee extends Model implements NotifierInterface
 
     public function getLogo(): string {
         return '/assets/images/users/' . $this->user;
+    }
+
+    public function getImageNameGeneration() {
+        return $this->image . '_id_' . $this->id;
+    }
+
+    public function moveFile() {
+        if($this->image == 'sem-foto.jpg' || $this->image == 'users/sem-foto.jpg') return;
+
+        $browserFiles = [];
+        $path = resource_path('assets/images/users/');
+
+        if(!is_dir($path)) {
+            mkdir($path);
+        }
+
+        if(is_file(sys_get_temp_dir() . '/' .  $this->image)) {
+            rename(sys_get_temp_dir() . '/' .  $this->image, $path . '/' . $this->getImageNameGeneration());
+            $this->image = 'users/' . $this->getImageNameGeneration();
+            $this->save();
+        }
+    }    
+
+    public function removeFile() {
+        if($this->image == 'sem-foto.jpg' || $this->image == 'users/sem-foto.jpg') return;
+
+        $path = resource_path('assets/images/');
+        $file = $path . $this->image;
+
+        if(is_file($file)) {
+            unlink($file);
+        }
     }    
 
     public static function list() {
@@ -90,10 +122,17 @@ class Employee extends Model implements NotifierInterface
         
         try {
             $id = $data['id'];
+            $image = isset($data['image']) ? $data['image'] : null;
             $employee = Employee::find($id);
             $employee->makeVisible('payment');
+            $employee->image = isset($data['image']) ? $data['image'] : 'sem-foto.jpg';
             $employee->department_id = isset($data['department']['id']) ? $data['department']['id'] : null;
             $employee->position_id = isset($data['position']['id']) ? $data['position']['id'] : null;
+            
+            if($employee->image != $employee->getImageNameGeneration()) {
+                $employee->moveFile();
+            }
+            
             $employee->update($data);
             DB::commit();
         } catch(\Exception $e) {
@@ -109,7 +148,10 @@ class Employee extends Model implements NotifierInterface
             $employee = new Employee($data);
             $employee->department_id = isset($data['department']['id']) ? $data['department']['id'] : null;
             $employee->position_id = isset($data['position']['id']) ? $data['position']['id'] : null;
+            $employee->updated_by = User::logged()->id;
+            $employee->image = isset($data['image']) ? $data['image'] : 'sem-foto.jpg';
             $employee->save();
+            $employee->moveFile();
             DB::commit();
             return $employee;
         } catch(\Exception $e) {
@@ -124,6 +166,7 @@ class Employee extends Model implements NotifierInterface
         try {
             $employee = Employee::find($id);
             $employee->delete();
+            $employee->removeFile();
             DB::commit();
         } catch(\Exception $e) {
             DB::rollBack();
