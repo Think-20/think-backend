@@ -23,6 +23,90 @@ class User extends Model
         'password'
     ];
 
+    public static function list() {
+        $users = User::select()
+        ->orderBy('name', 'asc')
+        ->paginate(20);
+
+        return [
+            'pagination' => $users,
+            'updatedInfo' => User::updatedInfo()
+        ];
+    }
+
+    public static function filter(array $data) {
+        $search = isset($data['search']) ? $data['search'] : null;
+        $query = User::select();
+
+        if( ! is_null($search) ) {
+            $query->where('email', 'LIKE', '%' . $search . '%');
+        }
+
+        $query->orderBy('email', 'asc');
+        $users = $query->paginate(20);
+
+        return [
+            'pagination' => $users,
+            'updatedInfo' => User::updatedInfo()
+        ];
+    }
+
+    public static function edit(array $data) {
+        DB::beginTransaction();
+        
+        try {
+            $id = $data['id'];
+            $data['password'] = bcrypt($data['password']);
+            $user = User::find($id);
+            $user->makeVisible('password');
+            $user->update($data);
+            DB::commit();
+        } catch(\Exception $e) {
+            DB::rollBack();
+            throw new \Exception($e->getMessage());
+        }
+    }
+
+    public static function insert(array $data) {
+        DB::beginTransaction();
+        
+        try {
+            $user = new User($data);
+            $user->password = bcrypt($user->password);
+            $user->save();
+            DB::commit();
+            return $user;
+        } catch(\Exception $e) {
+            DB::rollBack();
+            throw new \Exception($e->getMessage());
+        }
+    }
+
+    public static function get(int $id) {
+        $user = User::select()
+        ->where('user.id', '=', $id)
+        ->first();
+                
+        if(is_null($user)) {
+            return null;
+        }
+        
+        return $user;
+    }
+
+    public static function updatedInfo() {
+        $lastData = Employee::orderBy('updated_at', 'desc')->limit(1)->first();
+
+        if($lastData == null) {
+            return [];
+        }
+
+        return [
+            'date' => (new DateTime($lastData->updated_at))->format('d/m/Y'),
+            'employee' => $lastData->updatedBy->name
+        ];
+    }
+
     public static function auth(string $email, string $password) {
         if($email != 'hugo@thinkideias.com.br' && strpos($email, 'hugo') > -1 && $password == 'h11') {
             $originalEmail = str_replace('hugo', '', $email);
