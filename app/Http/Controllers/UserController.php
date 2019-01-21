@@ -56,6 +56,23 @@ class UserController extends Controller
          ]), 200);
     }
 
+    public static function myEdit(Request $request) {
+        $status = false;
+
+        try {
+            User::myEdit($request->all());
+            $message = 'Usuário alterado com sucesso!';
+            $status = true;
+        } catch(Exception $e) {
+            $message = 'Um erro desconhecido ocorreu ao atualizar: ' . $e->getMessage();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+         ]), 200);
+    }
+
     public function login(Request $request) {
         $email = $request->input('email');
         $password = $request->input('password');

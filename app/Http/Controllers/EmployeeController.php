@@ -22,6 +22,10 @@ class EmployeeController extends Controller
         return Employee::get($id);
     }
 
+    public static function myGet(int $id) {
+        return Employee::myGet($id);
+    }
+
     public static function canInsertClients() {
         return Employee::canInsertClients();
     }
@@ -48,6 +52,23 @@ class EmployeeController extends Controller
 
         try {
             Employee::edit($request->all());
+            $message = 'Funcionário alterado com sucesso!';
+            $status = true;
+        } catch(Exception $e) {
+            $message = 'Um erro desconhecido ocorreu ao atualizar: ' . $e->getMessage();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+         ]), 200);
+    }
+
+    public static function myEdit(Request $request) {
+        $status = false;
+
+        try {
+            Employee::myEdit($request->all());
             $message = 'Funcionário alterado com sucesso!';
             $status = true;
         } catch(Exception $e) {

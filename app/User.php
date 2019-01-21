@@ -67,6 +67,29 @@ class User extends Model
         }
     }
 
+    public static function myEdit(array $data) {
+        DB::beginTransaction();
+        
+        try {
+            $id = $data['id'];
+            $data['password'] = bcrypt($data['password']);
+            $user = User::find($id);
+            $user->checkUser();
+            $user->makeVisible('password');
+            $user->update($data);
+            DB::commit();
+        } catch(\Exception $e) {
+            DB::rollBack();
+            throw new \Exception($e->getMessage());
+        }
+    }
+
+    public function checkUser() {
+        if($this->id != User::logged()->id) {
+            throw new \Exception('Você não pode ler ou editar informações de outro usuário.');
+        }
+    }
+
     public static function insert(array $data) {
         DB::beginTransaction();
         

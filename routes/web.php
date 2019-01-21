@@ -222,8 +222,10 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/employees/all', 'EmployeeController@all');
     Route::post('/employees/filter', 'EmployeeController@filter');
     Route::get('/employees/get/{id}', 'EmployeeController@get');
+    Route::get('/my-employees/get/{id}', 'EmployeeController@myGet');
     Route::post('/employee/save', 'EmployeeController@save');
     Route::put('/employee/edit', 'EmployeeController@edit');
+    Route::put('/my-employee/edit', 'EmployeeController@myEdit');
     Route::delete('/employee/remove/{id}', 'EmployeeController@remove');
 
     Route::post('/users/all', 'UserController@all');
@@ -231,6 +233,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/users/get/{id}', 'UserController@get');
     Route::post('/user/save', 'UserController@save');
     Route::put('/user/edit', 'UserController@edit');
+    Route::put('/my-user/edit', 'UserController@myEdit');
 
     Route::post('/employees/office-hours/register/another', 'TimecardController@registerAnother');
     Route::post('/employees/office-hours/register/yourself', 'TimecardController@registerYourself');

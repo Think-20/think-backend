@@ -115,8 +115,6 @@ class Employee extends Model implements NotifierInterface
         ];
     }
 
-    
-
     public static function edit(array $data) {
         DB::beginTransaction();
         
@@ -138,6 +136,38 @@ class Employee extends Model implements NotifierInterface
         } catch(\Exception $e) {
             DB::rollBack();
             throw new \Exception($e->getMessage());
+        }
+    }
+
+    public static function myEdit(array $data) {
+        DB::beginTransaction();
+        
+        try {
+            $id = $data['id'];
+            $image = isset($data['image']) ? $data['image'] : null;
+            $name = isset($data['name']) ? $data['name'] : null;
+
+            $employee = Employee::find($id);
+            $employee->checkUser();            
+            $employee->image = isset($data['image']) ? $data['image'] : 'sem-foto.jpg';
+            
+            if($employee->image != $employee->getImageNameGeneration()) {
+                $employee->moveFile();
+            }
+            
+            $employee->update([
+                'name' => $name
+            ]);
+            DB::commit();
+        } catch(\Exception $e) {
+            DB::rollBack();
+            throw new \Exception($e->getMessage());
+        }
+    }
+
+    public function checkUser() {
+        if($this->user->id != User::logged()->id) {
+            throw new \Exception('Desculpe, você não pode ler ou editar informações de outro usuário.');
         }
     }
 
@@ -165,6 +195,7 @@ class Employee extends Model implements NotifierInterface
         
         try {
             $employee = Employee::find($id);
+            $employee->user()->delete();
             $employee->delete();
             $employee->removeFile();
             DB::commit();
@@ -178,6 +209,21 @@ class Employee extends Model implements NotifierInterface
         $employee = Employee::with('user', 'position', 'department', 'updatedBy')
         ->where('employee.id', '=', $id)
         ->first();
+                
+        if(is_null($employee)) {
+            return null;
+        }
+
+        $employee->makeVisible('payment');
+        return $employee;
+    }
+
+    public static function myGet(int $id) {
+        $employee = Employee::with('user', 'position', 'department', 'updatedBy')
+        ->where('employee.id', '=', $id)
+        ->first();
+
+        $employee->checkUser(); 
                 
         if(is_null($employee)) {
             return null;
