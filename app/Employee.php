@@ -192,10 +192,16 @@ class Employee extends Model implements NotifierInterface
 
     public static function remove($id) {
         DB::beginTransaction();
+        throw new \Exception('Essa função está temporariamente desabilitada.');
         
         try {
             $employee = Employee::find($id);
-            $employee->user()->delete();
+            $employee->user->notifications()->delete();
+            $employee->user->scheduleBlocks()->delete();
+            $employee->user->notificationRules()->delete();
+            $employee->user->functionalities()->detach();
+            $employee->user->displays()->detach();
+            $employee->user->delete();
             $employee->delete();
             $employee->removeFile();
             DB::commit();

@@ -138,7 +138,7 @@ class User extends Model
             $foundUser->employee;
             $foundUser->employee->department;
             $foundUser->employee->position;
-            $foundUser->displays();
+            $foundUser->getDisplays();
             return $foundUser;
         } 
 
@@ -152,7 +152,7 @@ class User extends Model
         $foundUser->employee;
         $foundUser->employee->department;
         $foundUser->employee->position;
-        $foundUser->displays();
+        $foundUser->getDisplays();
 
         return $foundUser;
     }
@@ -167,7 +167,7 @@ class User extends Model
         $currentUser->lastAccess = new DateTime('now');
         $currentUser->save();
     }
-
+ 
     public static function tokenCompare(string $token, User $currentUser) {
         if($token !== User::generateToken($currentUser)) {
             return false;
@@ -185,7 +185,7 @@ class User extends Model
         return User::find($userId);
     }
 
-    public function displays() {
+    public function getDisplays() {
         $displays = DB::select("select d.url as url, IF(du.user_id is null, 'N', 'Y') as 
         access from display d left join display_user du on du.display_id = d.id and user_id = :user_id 
         or du.display_id is null;", ['user_id' => $this->id]);
@@ -193,8 +193,24 @@ class User extends Model
         $this->displays = $displays;
     }
 
+    public function notifications() {
+        return $this->hasMany('App\UserNotification', 'user_id');
+    }
+
+    public function scheduleBlocks() {
+        return $this->hasMany('App\ScheduleBlockUser', 'user_id');
+    }
+
+    public function notificationRules() {
+        return $this->hasMany('App\NotificationRule', 'user_id');
+    }
+
     public function employee() {
         return $this->belongsTo('App\Employee', 'employee_id');
+    }
+
+    public function displays() {
+        return $this->belongsToMany('App\Display', 'display_user', 'user_id', 'display_id');
     }
 
     public function functionalities() {

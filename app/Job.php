@@ -139,7 +139,7 @@ class Job extends Model
             $createNotification = false;
         }
 
-        if($createNotification) {
+        if($createNotification && !is_null($task)) {
             $message = $task->job_activity->description . ' de ';
             $message .= $task->job->getJobName();
             $message .= ' removido';
