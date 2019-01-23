@@ -234,6 +234,20 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/user/save', 'UserController@save');
     Route::put('/user/edit', 'UserController@edit');
     Route::put('/my-user/edit', 'UserController@myEdit');
+    
+    Route::post('/displays/all', 'DisplayController@all');
+    Route::post('/displays/filter', 'DisplayController@filter');
+    Route::get('/displays/get/{id}', 'DisplayController@get');
+    Route::post('/display/save', 'DisplayController@save');
+    Route::put('/display/edit', 'DisplayController@edit');
+    Route::delete('/display/remove/{id}', 'DisplayController@remove');
+    
+    Route::post('/functionalities/all', 'FunctionalityController@all');
+    Route::post('/functionalities/filter', 'FunctionalityController@filter');
+    Route::get('/functionalities/get/{id}', 'FunctionalityController@get');
+    Route::post('/functionality/save', 'FunctionalityController@save');
+    Route::put('/functionality/edit', 'FunctionalityController@edit');
+    Route::delete('/functionality/remove/{id}', 'FunctionalityController@remove');
 
     Route::post('/employees/office-hours/register/another', 'TimecardController@registerAnother');
     Route::post('/employees/office-hours/register/yourself', 'TimecardController@registerYourself');
