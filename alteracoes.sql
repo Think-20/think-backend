@@ -1,19 +1,22 @@
-insert into functionality values (110, '/display/save', 'Cadastrar um acesso');
-insert into functionality values (111, '/display/edit', 'Editar um acesso');
-insert into functionality values (112, '/display/remove/{id}', 'Deletar um acesso');
-insert into functionality values (113, '/displays/all', 'Listar todos os acesso');
-insert into functionality values (114, '/displays/get/{id}', 'Visualizar informações de um acesso');
-insert into functionality values (115, '/displays/filter', 'Filtrar um acesso');
+insert into functionality (id, url, description) values (122, '/user/edit-permission', 'Editar as permissões');
 
-alter table display add column created_at datetime default current_timestamp;
-alter table display add column updated_at datetime default current_timestamp on update current_timestamp;
+delete from display_user where display_id = 16;
+delete from display where id = 16;
 
-insert into functionality values (116, '/functionality/save', 'Cadastrar uma rota');
-insert into functionality values (117, '/functionality/edit', 'Editar uma rota');
-insert into functionality values (118, '/functionality/remove/{id}', 'Deletar uma rota');
-insert into functionality values (119, '/functionalities/all', 'Listar todos as rotas');
-insert into functionality values (120, '/functionalities/get/{id}', 'Visualizar informações de uma rota');
-insert into functionality values (121, '/functionalities/filter', 'Filtrar uma rota');
+delete from display_user where display_id = 27;
+delete from display where id = 27;
 
-alter table functionality add column created_at datetime default current_timestamp;
-alter table functionality add column updated_at datetime default current_timestamp on update current_timestamp;
+delete from display_user where display_id = 34;
+delete from display where id = 34;
+
+delete from display_user where display_id = 1;
+delete from display where id = 1;
+
+delete from display_user where display_id = 6;
+delete from display where id = 6;
+
+delete from display_user where display_id = 11;
+delete from display where id = 11;
+
+delete from display_user where display_id = 22;
+delete from display where id = 22;

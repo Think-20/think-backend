@@ -16,6 +16,7 @@ class Display extends Model
     ];
 
     public static function filter(array $data) {
+        $paginate = isset($data['paginate']) ? $data['paginate'] : true;
         $search = isset($data['search']) ? $data['search'] : null;
         $query = Display::select();
 
@@ -25,7 +26,12 @@ class Display extends Model
         }
 
         $query->orderBy('description', 'asc');
-        $displays = $query->paginate(20);
+
+        if($paginate) {
+            $displays = $query->paginate(20);
+        } else {
+            $displays = [ 'data' => $query->get() ];
+        }
 
         return [
             'pagination' => $displays,
@@ -33,9 +39,15 @@ class Display extends Model
         ];
     }
 
-    public static function list() {
-        $displays = Display::orderBy('description', 'asc')
-        ->paginate(20);
+    public static function list(array $data) {
+        $paginate = isset($data['paginate']) ? $data['paginate'] : true;
+        $query = Display::orderBy('description', 'asc');
+
+        if($paginate) {
+            $displays = $query->paginate(20);
+        } else {
+            $displays = $query->get();
+        }       
 
         return [
             'pagination' => $displays,

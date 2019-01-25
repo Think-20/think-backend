@@ -16,6 +16,7 @@ class Functionality extends Model
     ];
 
     public static function filter(array $data) {
+        $paginate = isset($data['paginate']) ? $data['paginate'] : true;
         $search = isset($data['search']) ? $data['search'] : null;
         $query = Functionality::select();
 
@@ -25,7 +26,12 @@ class Functionality extends Model
         }
 
         $query->orderBy('description', 'asc');
-        $functionalities = $query->paginate(20);
+
+        if($paginate) {
+            $functionalities = $query->paginate(20);
+        } else {
+            $functionalities = [ 'data' => $query->get() ];
+        }
 
         return [
             'pagination' => $functionalities,
@@ -33,9 +39,15 @@ class Functionality extends Model
         ];
     }
 
-    public static function list() {
-        $functionalities = Functionality::orderBy('description', 'asc')
-        ->paginate(20);
+    public static function list(array $data) {
+        $paginate = isset($data['paginate']) ? $data['paginate'] : true;
+        $query = Functionality::orderBy('description', 'asc');
+
+        if($paginate) {
+            $functionalities = $query->paginate(20);
+        } else {
+            $functionalities = $query->get();
+        }       
 
         return [
             'pagination' => $functionalities,

@@ -67,6 +67,36 @@ class User extends Model
         }
     }
 
+    public static function editPermission(array $data) {
+        DB::beginTransaction();
+        
+        try {
+            $id = isset($data['id']) ? $data['id'] : '';
+            $userId = isset($data['userId']) ? $data['userId'] : '';
+            $displays = isset($data['displays']) ? $data['displays'] : [];
+            $functionalities = isset($data['functionalities']) ? $data['functionalities'] : [];
+            
+            $user = User::findOrFail($id);
+            $user->updateDisplays($displays);
+            $user->updateFunctionalities($functionalities);
+
+            DB::commit();
+        } catch(\Exception $e) {
+            DB::rollBack();
+            throw new \Exception($e->getMessage());
+        }
+    }
+
+    public function updateDisplays($displays) {
+        $this->displays()->detach();
+        $this->displays()->sync($displays);
+    }
+
+    public function updateFunctionalities($functionalities) {
+        $this->functionalities()->detach();
+        $this->functionalities()->sync($functionalities);
+    }
+
     public static function myEdit(array $data) {
         DB::beginTransaction();
         

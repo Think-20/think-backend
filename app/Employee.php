@@ -90,6 +90,7 @@ class Employee extends Model implements NotifierInterface
 
     public static function filter(array $data) {
         $search = isset($data['search']) ? $data['search'] : null;
+        $paginate = isset($data['paginate']) ? $data['paginate'] : true;
         $departmentId = isset($data['department']['id']) ? $data['department']['id'] : null;
         $positionId = isset($data['position']['id']) ? $data['position']['id'] : null;
         $query = Employee::with('user', 'position', 'department');
@@ -107,7 +108,12 @@ class Employee extends Model implements NotifierInterface
         }
 
         $query->orderBy('name', 'asc');
-        $employees = $query->paginate(20);
+
+        if($paginate) {
+            $employees = $query->paginate(20);
+        } else {
+            $employees = [ 'data' => $query->get() ];
+        }
 
         return [
             'pagination' => $employees,
@@ -212,7 +218,9 @@ class Employee extends Model implements NotifierInterface
     }
 
     public static function get(int $id) {
-        $employee = Employee::with('user', 'position', 'department', 'updatedBy')
+        $employee = Employee::with([
+            'user', 'user.functionalities', 'user.displays', 'position', 'department', 'updatedBy'
+        ])
         ->where('employee.id', '=', $id)
         ->first();
                 

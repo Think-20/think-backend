@@ -10,8 +10,8 @@ use DB;
 
 class DisplayController extends Controller
 {
-    public static function all() {
-        return Display::list();
+    public static function all(Request $request) {
+        return Display::list($request->all());
     }
 
     public static function filter(Request $request) {

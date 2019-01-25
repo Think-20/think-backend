@@ -234,6 +234,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/user/save', 'UserController@save');
     Route::put('/user/edit', 'UserController@edit');
     Route::put('/my-user/edit', 'UserController@myEdit');
+    Route::put('/user/edit-permission', 'UserController@editPermission');
     
     Route::post('/displays/all', 'DisplayController@all');
     Route::post('/displays/filter', 'DisplayController@filter');

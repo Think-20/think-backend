@@ -10,8 +10,8 @@ use DB;
 
 class FunctionalityController extends Controller
 {
-    public static function all() {
-        return Functionality::list();
+    public static function all(Request $request) {
+        return Functionality::list($request->all());
     }
 
     public static function filter(Request $request) {
