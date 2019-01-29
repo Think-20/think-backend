@@ -332,7 +332,7 @@ class Timecard extends Model
     }
 
     public function employee() {
-        return $this->belongsTo('App\Employee', 'employee_id');
+        return $this->belongsTo('App\Employee', 'employee_id')->withTrashed();
     }
 
     public function approved_user() {

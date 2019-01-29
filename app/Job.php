@@ -742,7 +742,7 @@ class Job extends Model
     }
 
     public function attendance() {
-        return $this->belongsTo('App\Employee', 'attendance_id');
+        return $this->belongsTo('App\Employee', 'attendance_id')->withTrashed();
     }
 
     public function competition() {

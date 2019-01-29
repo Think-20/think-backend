@@ -69,6 +69,6 @@ class Notification extends Model
     }
 
     public function notifier() {
-        return $this->morphTo();
+        return $this->morphTo()->withTrashed();
     }
 }

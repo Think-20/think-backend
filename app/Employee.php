@@ -3,12 +3,15 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 use DateTime;
 use DB;
 
 class Employee extends Model implements NotifierInterface
 {
+    use SoftDeletes;
+
     protected $table = 'employee';
 
     protected $fillable = [
@@ -17,6 +20,10 @@ class Employee extends Model implements NotifierInterface
 
     protected $hidden = [
         'payment'
+    ];
+
+    protected $dates = [
+        'deleted_at', 'created_at', 'updated_at'
     ];
 
     public function getOficialId(): int {
@@ -64,9 +71,16 @@ class Employee extends Model implements NotifierInterface
     }    
 
     public static function list() {
-        $employees = Employee::with('user', 'position', 'department')
-        ->orderBy('name', 'asc')
-        ->paginate(20);
+        $deleted = isset($data['deleted']) ? $data['deleted'] : null;
+
+        $query = Employee::with('user', 'position', 'department')
+        ->orderBy('name', 'asc');
+
+        if($deleted) {
+            $query->withTrashed();
+        }
+
+        $employees = $query->paginate(20);
 
         return [
             'pagination' => $employees,
@@ -90,6 +104,7 @@ class Employee extends Model implements NotifierInterface
 
     public static function filter(array $data) {
         $search = isset($data['search']) ? $data['search'] : null;
+        $deleted = isset($data['deleted']) ? $data['deleted'] : null;
         $paginate = isset($data['paginate']) ? $data['paginate'] : true;
         $departmentId = isset($data['department']['id']) ? $data['department']['id'] : null;
         $positionId = isset($data['position']['id']) ? $data['position']['id'] : null;
@@ -108,6 +123,10 @@ class Employee extends Model implements NotifierInterface
         }
 
         $query->orderBy('name', 'asc');
+
+        if($deleted) {
+            $query->withTrashed();
+        }
 
         if($paginate) {
             $employees = $query->paginate(20);
@@ -196,6 +215,25 @@ class Employee extends Model implements NotifierInterface
         }
     }
 
+    public static function toggleDeleted($id) {
+        DB::beginTransaction();
+        
+        try {
+            $employee = Employee::withTrashed()->find($id);
+
+            if($employee->trashed()) {
+                $employee->restore();
+            } else {
+                $employee->delete();
+            }
+            DB::commit();
+        } catch(\Exception $e) {
+            DB::rollBack();
+            throw new \Exception($e->getMessage());
+        }
+    }
+
+    /*
     public static function remove($id) {
         DB::beginTransaction();
         throw new \Exception('Essa função está temporariamente desabilitada.');
@@ -216,6 +254,7 @@ class Employee extends Model implements NotifierInterface
             throw new \Exception($e->getMessage());
         }
     }
+    */
 
     public static function get(int $id) {
         $employee = Employee::with([
@@ -269,7 +308,7 @@ class Employee extends Model implements NotifierInterface
     }
 
     public function updatedBy() {
-        return $this->belongsTo('App\Employee', 'updated_by');
+        return $this->belongsTo('App\Employee', 'updated_by')->withTrashed();
     }
 
     public function department() {

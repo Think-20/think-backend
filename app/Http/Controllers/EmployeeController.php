@@ -81,17 +81,17 @@ class EmployeeController extends Controller
          ]), 200);
     }
 
-    public static function remove(int $id) {
+    public static function toggleDeleted(int $id) {
         $status = false;
 
         try {
-            $employee = Employee::remove($id);
-            $message = 'Funcionário deletado com sucesso!';
+            $employee = Employee::toggleDeleted($id);
+            $message = 'Funcionário alterado com sucesso!';
             $status = true;
         } catch(QueryException $queryException) {
-            $message = 'Um erro ocorreu ao deletar no banco de dados. ' . $queryException->getMessage();
+            $message = 'Um erro ocorreu ao alterar no banco de dados. ' . $queryException->getMessage();
         } catch(Exception $e) {
-            $message = 'Um erro desconhecido ocorreu ao deletar: ' . $e->getMessage();
+            $message = 'Um erro desconhecido ocorreu ao alterar: ' . $e->getMessage();
         }
 
         return Response::make(json_encode([

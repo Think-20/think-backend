@@ -613,7 +613,7 @@ class Client extends Model implements Contactable
     }
 
     public function employee() {
-        return $this->belongsTo('App\Employee', 'employee_id');
+        return $this->belongsTo('App\Employee', 'employee_id')->withTrashed();
     }
 
     public function type() {

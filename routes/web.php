@@ -226,7 +226,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/employee/save', 'EmployeeController@save');
     Route::put('/employee/edit', 'EmployeeController@edit');
     Route::put('/my-employee/edit', 'EmployeeController@myEdit');
-    Route::delete('/employee/remove/{id}', 'EmployeeController@remove');
+    Route::delete('/employee/toggle-deleted/{id}', 'EmployeeController@toggleDeleted');
 
     Route::post('/users/all', 'UserController@all');
     Route::post('/users/filter', 'UserController@filter');

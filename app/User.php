@@ -174,12 +174,13 @@ class User extends Model
 
         $foundUser = User::where('email', '=', $email)->first();
         
-        if(is_null($foundUser) || !Hash::check($password, $foundUser->password)) {
+        if(is_null($foundUser) 
+            || !Hash::check($password, $foundUser->password) 
+            || $foundUser->employee->deleted_at != null) {
             return null;
         }
 
         $foundUser->functionalities;
-        $foundUser->employee;
         $foundUser->employee->department;
         $foundUser->employee->position;
         $foundUser->getDisplays();
@@ -236,7 +237,7 @@ class User extends Model
     }
 
     public function employee() {
-        return $this->belongsTo('App\Employee', 'employee_id');
+        return $this->belongsTo('App\Employee', 'employee_id')->withTrashed();
     }
 
     public function displays() {
