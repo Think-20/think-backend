@@ -131,6 +131,8 @@ class Provider extends Model implements Contactable, HasBankAccount
 
         return $providers;
     }
+
+    public function logContactChanges(array $data) { }
     
     public static function checkData(array $data, $editMode = false) {
         if(!isset($data['state']['id'])) {

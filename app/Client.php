@@ -66,6 +66,7 @@ class Client extends Model implements Contactable
         try {
             $id = $data['id'];
             $client = Client::find($id);
+            $client->logIfAttendanceChanges($data);
             $client->checkCnpj();
             $client->city_id = isset($data['city']['id']) ? $data['city']['id'] : null;
             $client->employee_id = isset($data['employee']['id']) ? $data['employee']['id'] : null;
@@ -87,6 +88,25 @@ class Client extends Model implements Contactable
         } catch(\Exception $e) {
             DB::rollBack();
             throw new \Exception($e->getMessage());
+        }
+    }
+
+    public function logContactChanges(array $data) {
+        LogClient::insert($data);
+    }
+
+    public function logIfAttendanceChanges(array $data) {
+        $employee_id = isset($data['employee']['id']) ? $data['employee']['id'] : '';
+
+        if($employee_id != '' && $employee_id != $this->employee_id) {
+            $description = 'O atendimento foi alterado de ' . $this->employee->name;
+            $description .= ' para ' . Employee::find($employee_id)->name;
+
+            LogClient::insert([
+                'client_id' => $this->id,
+                'description' => $description,
+                'type' => 'Alteração de atendimento'
+            ]);
         }
     }
 
@@ -147,7 +167,7 @@ class Client extends Model implements Contactable
 
     public static function get(int $id) {
         $client = Client::with('contacts')
-        ->with('city', 'city.state', 'employee', 'type', 'comission', 'status')
+        ->with('city', 'city.state', 'employee', 'type', 'comission', 'status', 'logs')
         ->where('client.id', '=', $id)->first();  
                 
         if(is_null($client)) {
@@ -423,7 +443,7 @@ class Client extends Model implements Contactable
 
     public static function getMyClient(int $id) {
         $client = Client::with('contacts')
-        ->with('city', 'city.state', 'employee', 'type', 'comission', 'status')
+        ->with('city', 'city.state', 'employee', 'type', 'comission', 'status', 'logs')
         ->where('client.id', '=', $id)->first();  
                 
         if(is_null($client)) {
@@ -618,6 +638,10 @@ class Client extends Model implements Contactable
 
     public function type() {
         return $this->belongsTo('App\ClientType', 'client_type_id');
+    }
+
+    public function logs() {
+        return $this->hasMany('App\LogClient', 'client_id');
     }
 
     public function comission() {

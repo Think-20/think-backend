@@ -24,11 +24,16 @@ class Contact extends Model
             //Exists, update
             if(isset($contact['id'])) {
                 $contactIds[] = $contact['id'];
-                Contact::edit($contact);
+                Contact::edit($contact, $contactable);
             } 
             //Create because not found
             else {
-                Contact::insert($contact, $contactable);
+                $contact = Contact::insert($contact, $contactable);
+                $contactable->logContactChanges([
+                    'client_id' => $contactable->id,
+                    'description' => 'O contato ' . $contact->name . ' foi criado',
+                    'type' => 'Criação de contato'
+                ]);
             }
         }
 
@@ -39,13 +44,28 @@ class Contact extends Model
         foreach($oldContacts as $contact) {
             if(!in_array($contact->id, $contactIds)) {
                 $contactable->contacts()->detach($contact);
+                $contactable->logContactChanges([
+                    'client_id' => $contactable->id,
+                    'description' => 'O contato ' . $contact->name . ' foi removido',
+                    'type' => 'Deleção de contato'
+                ]);
                 $contact->delete();
             }
         }
     }
 
-    public static function edit($data) {
+    public static function edit(array $data, Contactable $contactable) {
         $contact = Contact::find($data['id']);
+
+        if( count( array_diff($data, $contact->toArray()) ) == 0 ) {
+            return;
+        }
+
+        $contactable->logContactChanges([
+            'client_id' => $contactable->id,
+            'description' => 'O contato ' . $contact->name . ' foi alterado',
+            'type' => 'Alteração de contato'
+        ]);
         $contact->update($data);
     }
 
