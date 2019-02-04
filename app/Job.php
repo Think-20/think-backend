@@ -212,6 +212,8 @@ class Job extends Model
         $jobActivitiesMode = isset($params['job_activities_mode']) ? $params['job_activities_mode'] : 'IN';
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
         $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'created_at';
+        $initialDate = isset($params['initial_date']) ? substr($params['initial_date'], 0, 10) : null;
+        $finalDate = isset($params['final_date']) ? substr($params['final_date'], 0, 10) : null;
         $status = isset($params['status']) ? $params['status'] : null;
         $clientName = isset($params['clientName']) ? $params['clientName'] : null;
         $attendanceId = isset($params['attendance']['id']) ? $params['attendance']['id'] : null;
@@ -254,16 +256,30 @@ class Job extends Model
             $jobs->leftJoin('task', function($query) use ($jobActivities) {
                 $query->on('task.job_id', '=', 'job.id');
             });
+
             if($jobActivitiesMode == 'IN') {
                $jobs->whereIn('task.job_activity_id', $jobActivities);
             } else {
                 $jobs->whereNotIn('task.job_activity_id', $jobActivities);
             }
+
             $jobs->distinct('job.id');
         }
 
         if($orderBy == 'created_at') {
             $jobs->orderBy('job.created_at', 'DESC');
+        }
+
+        if( ! is_null($initialDate) ) {
+            $jobs->whereHas('creation', function($query) use ($initialDate) {
+                $query->where('available_date', '>=', $initialDate);
+            });
+        }
+
+        if( ! is_null($finalDate) ) {
+            $jobs->whereHas('creation', function($query) use ($finalDate) {
+                $query->where('available_date', '<=', $finalDate);
+            });
         }
 
         if($paginate) {
