@@ -15,39 +15,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-/*
-Route::get('/mod', function () {
-    $jobs = App\Job::all();
-    foreach ($jobs as $job) { 
-        foreach($job->tasks as $task) {
-            App\Task::modifyReopened($task);
-        }
-    }
-});
-
-Route::get('/test', function () {
-    $estimated_time = 1;
-
-    $arr = App\ActivityHelper::calculateNextDate(
-        '2018-07-04',
-        
-        App\Employee::where('name', 'LIKE', 'Rafaela%')
-            ->get(),
-
-        $estimated_time,
-
-        App\Budget::where('available_date', '>=', '2018-06-04')
-            ->where('available_date', '<=', '2018-08-04')
-            ->orderBy('available_date', 'ASC')
-            ->orderBy('responsible_id', 'ASC')
-            ->limit(30)
-            ->get()
-    );
-
-    dd($arr);
-});
-*/
-
 Route::post('/login', 'UserController@login')->name('login');
 Route::post('/logout', 'UserController@logout')->name('logout');
 
@@ -140,14 +107,6 @@ Route::get('/project-files/view/{id}', function ($id)
 
     return $response;
 });
-
-/*
-Route::get('/pass', function() {
-    dd( [
-        'Marcelo' => bcrypt('m2633'),
-    ]);
-});
-*/
 
 Route::group(['middleware' => ['auth.api']], function() {
 
@@ -359,4 +318,11 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/schedule-blocks/all', 'ScheduleBlockController@all');
     Route::get('/schedule-blocks/valid', 'ScheduleBlockController@valid');
     Route::get('/my-schedule-blocks/valid', 'ScheduleBlockController@myValid');
+
+    Route::post('/places/all', 'PlaceController@all');
+    Route::post('/places/filter', 'PlaceController@filter');
+    Route::get('/places/get/{id}', 'PlaceController@get');
+    Route::post('/place/save', 'PlaceController@save');
+    Route::put('/place/edit', 'PlaceController@edit');
+    Route::delete('/place/remove/{id}', 'PlaceController@remove');
 });
