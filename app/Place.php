@@ -123,7 +123,15 @@ class Place extends Model
     }
 
     public function city() {
-        return $this->belongTo('App\City', 'city_id');
+        return $this->belongsTo('App\City', 'city_id');
+    }
+
+    public function getCepAttribute($value) {
+        return mask(str_pad($value, 8, '0', STR_PAD_LEFT), '#####-###');
+    }
+    
+    public function setCepAttribute($value) {
+        $this->attributes['cep'] = preg_replace('/[^0-9]+/', '', $value);
     }
     
 }
