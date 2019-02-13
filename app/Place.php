@@ -60,8 +60,10 @@ class Place extends Model
         try {
             $id = $data['id'];
             $place = Place::find($id);
+            $place->fill($data);
+            $place->checkIfDuplicate();
             $place->city_id = isset($data['city']['id']) ? $data['city']['id'] : null;
-            $place->update($data);
+            $place->update();
             DB::commit();
         } catch(\Exception $e) {
             DB::rollBack();
@@ -74,6 +76,7 @@ class Place extends Model
         
         try {
             $place = new Place($data);
+            $place->checkIfDuplicate();
             $place->city_id = isset($data['city']['id']) ? $data['city']['id'] : null;
             $place->save();
             DB::commit();
@@ -82,6 +85,18 @@ class Place extends Model
             DB::rollBack();
             throw new \Exception($e->getMessage());
         }
+    }
+
+    public function checkIfDuplicate() {
+        $query = Place::where('name', '=', $this->name);
+        if($this->id != null) {
+            $query->where('id', '<>', $this->id);
+        }
+        $found = $query->get()->count() > 0 ? true : false;
+
+        if(!$found) return true;
+
+        throw new \Exception('Já existe um local cadastrado com o mesmo nome.');
     }
 
     public static function remove($id) {

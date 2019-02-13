@@ -325,4 +325,11 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/place/save', 'PlaceController@save');
     Route::put('/place/edit', 'PlaceController@edit');
     Route::delete('/place/remove/{id}', 'PlaceController@remove');
+
+    Route::post('/events/all', 'EventController@all');
+    Route::post('/events/filter', 'EventController@filter');
+    Route::get('/events/get/{id}', 'EventController@get');
+    Route::post('/event/save', 'EventController@save');
+    Route::put('/event/edit', 'EventController@edit');
+    Route::delete('/event/remove/{id}', 'EventController@remove');
 });
