@@ -22,6 +22,17 @@ class EventController extends Controller
         return Event::get($id);
     }
 
+    public static function downloadFile($id, $type, $file) {
+        try {
+            $fileFound = Event::downloadFile($id, $type, $file);
+            $status = true;
+            return Response::make(file_get_contents($fileFound), 200, ['Content-Type' => mime_content_type($fileFound)]);
+        } catch(Exception $e) {
+            $message = 'Um erro ocorreu ao abrir o arquivo: ' . $e->getMessage();
+            return Response::make($message, 404);
+        }
+    }
+
     public static function save(Request $request) {
         $status = false;
 

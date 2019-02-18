@@ -11,20 +11,27 @@ class Event extends Model
 {
     protected $table = 'event';
 
+    protected static $files = [
+        'plan', 'manual', 'regulation'
+    ];
+
     protected $fillable = [
-        'description', 'place_id', 'edition', 'note', 'ini_date', 'fin_date', 'ini_hour', 'fin_hour'
+        'name', 'place_id', 'edition', 'note', 'ini_date', 'fin_date', 'ini_hour', 'fin_hour', 
+        'employee_id', 'phone', 'organizer', 'email', 'site', 'plan', 'manual', 'regulation',
+        'ini_date_mounting', 'fin_date_mounting', 'ini_hour_mounting', 'fin_hour_mounting',
+        'ini_date_unmounting', 'fin_date_unmounting', 'ini_hour_unmounting', 'fin_hour_unmounting',
     ];
 
     public static function filter(array $data) {
         $paginate = isset($data['paginate']) ? $data['paginate'] : true;
         $search = isset($data['search']) ? $data['search'] : null;
-        $query = Event::with('place');
+        $query = Event::with('place', 'employee');
 
         if( ! is_null($search) ) {
-            $query->where('description', 'LIKE', '%' . $search . '%');
+            $query->where('name', 'LIKE', '%' . $search . '%');
         }
 
-        $query->orderBy('description', 'asc');
+        $query->orderBy('name', 'asc');
 
         if($paginate) {
             $events = $query->paginate(20);
@@ -40,7 +47,7 @@ class Event extends Model
 
     public static function list(array $data) {
         $paginate = isset($data['paginate']) ? $data['paginate'] : true;
-        $query = Event::with('place')->orderBy('description', 'asc');
+        $query = Event::with('place', 'employee')->orderBy('name', 'asc');
 
         if($paginate) {
             $events = $query->paginate(20);
@@ -60,7 +67,9 @@ class Event extends Model
         try {
             $id = $data['id'];
             $event = Event::find($id);
+            $oldEvent = Event::find($id);
             $event->fill($data);
+            $event->editFiles($oldEvent);
             $event->checkIfDuplicate();
             $event->place_id = isset($data['place']['id']) ? $data['place']['id'] : null;
             $event->update();
@@ -78,6 +87,8 @@ class Event extends Model
             $event = new Event($data);
             $event->checkIfDuplicate();
             $event->place_id = isset($data['place']['id']) ? $data['place']['id'] : null;
+            $event->employee_id = User::logged()->employee_id;
+            $event->saveFiles();
             $event->save();
             DB::commit();
             return $event;
@@ -87,25 +98,13 @@ class Event extends Model
         }
     }
 
-    public function checkIfDuplicate() {
-        $query = Event::where('description', '=', $this->description)
-        ->where('edition', '=', $this->edition);
-        if($this->id != null) {
-            $query->where('id', '<>', $this->id);
-        }
-        $found = $query->count() > 0 ? true : false;
-
-        if(!$found) return true;
-
-        throw new \Exception('Já existe um evento com essa descrição e edição cadastrado.');
-    }
-
     public static function remove($id) {
         DB::beginTransaction();
         
         try {
             $event = Event::find($id);
             $event->delete();
+            $event->deleteFiles();
             DB::commit();
         } catch(\Exception $e) {
             DB::rollBack();
@@ -114,7 +113,7 @@ class Event extends Model
     }
 
     public static function get(int $id) {
-        $event = Event::with('place')
+        $event = Event::with('place', 'employee')
         ->where('event.id', '=', $id)
         ->first();
                 
@@ -138,6 +137,87 @@ class Event extends Model
         ];
     }
 
+    public function checkIfDuplicate() {
+        $query = Event::where('name', '=', $this->name)
+        ->where('edition', '=', $this->edition);
+        if($this->id != null) {
+            $query->where('id', '<>', $this->id);
+        }
+        $found = $query->count() > 0 ? true : false;
+
+        if(!$found) return true;
+
+        throw new \Exception('Já existe um evento com essa descrição e edição cadastrado.');
+    }
+
+    public static function downloadFile($id, $type, $file) {
+        $event = Event::find($id);
+        $user = User::logged();
+
+        if(is_null($event)) {
+            throw new \Exception('O evento solicitado não existe.');
+        }
+
+        $path = resource_path('assets/files/events/') . $event->id . '/' . $file;
+        FileHelper::checkIfExists($path);
+        return $path;
+    }
+    
+    public function saveFiles() {
+        $path = resource_path('assets/files/events/') . $this->id;
+
+        if(!is_dir($path)) {
+            mkdir($path);
+        }
+
+        foreach(Event::$files as $fileType) {
+            $hash = sha1($this->{$fileType} . time());
+            rename(sys_get_temp_dir() . '/' .  $this->{$fileType}, $path . '/' . $hash);
+            $this->{$fileType} = $hash;
+            $this->save();
+        }
+    }
+
+    public function editFiles(Event $oldEvent) {
+        $path = resource_path('assets/files/events/') . $oldEvent->id;
+        $originalArray = [];
+        $changesArray = [];
+
+        $originalArray = array_filter($oldEvent->toArray(), function($var) {
+            return in_array($var, Event::$files);
+        }, ARRAY_FILTER_USE_KEY);
+
+        $changesArray = array_filter($this->toArray(), function($var) {
+            return in_array($var, Event::$files);
+        }, ARRAY_FILTER_USE_KEY);
+
+        $diffArray = array_diff($changesArray, $originalArray);   
+
+        if(!is_dir($path)) {
+            mkdir($path);
+        }     
+
+        foreach($diffArray as $key => $file) {
+            $hash = sha1($file . time());
+            rename(sys_get_temp_dir() . '/' .  $file, $path . '/' . $hash);
+            $this->{$key} = $hash;
+            $this->save();
+
+            try {
+                unlink($path . '/' . $originalArray[$key]);
+            } catch(\Exception $e) {}
+        }
+    }
+
+    public function deleteFiles() {
+        $path = resource_path('assets/files/events/') . $this->id;
+        foreach(Event::$files as $file) {
+            try {
+                unlink($path . '/' . $this->{$file});
+            } catch(\Exception $e) {}
+        } 
+    }
+
     public function setIniDateAttribute($value) {
         $this->attributes['ini_date'] = substr($value, 0, 10);
     }
@@ -146,7 +226,43 @@ class Event extends Model
         $this->attributes['fin_date'] = substr($value, 0, 10);
     }
 
+    public function setIniDateMountingAttribute($value) {
+        $this->attributes['ini_date_mounting'] = substr($value, 0, 10);
+    }
+
+    public function setFinDateMountingAttribute($value) {
+        $this->attributes['fin_date_mounting'] = substr($value, 0, 10);
+    }
+
+    public function setIniDateUnmountingAttribute($value) {
+        $this->attributes['ini_date_unmounting'] = substr($value, 0, 10);
+    }
+
+    public function setFinDateUnmountingAttribute($value) {
+        $this->attributes['fin_date_unmounting'] = substr($value, 0, 10);
+    }
+
+    public function getPhoneAttribute($value) {
+        $phone = null;
+
+        if(strlen($value) == 10) {
+            $phone = mask($value, '(##) ####-####');
+        } else if(strlen($value) == 11) {
+            $phone = mask($value, '(##) ####-#####');
+        }
+
+        return $phone;
+    }
+
+    public function setPhoneAttribute($value) {
+        $this->attributes['phone'] = (int) preg_replace('/[^0-9]+/', '', $value);
+    }
+
     public function place() {
         return $this->belongsTo('App\Place', 'place_id');
+    }
+
+    public function employee() {
+        return $this->belongsTo('App\Employee', 'employee_id');
     }
 }

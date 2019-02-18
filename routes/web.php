@@ -332,4 +332,5 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/event/save', 'EventController@save');
     Route::put('/event/edit', 'EventController@edit');
     Route::delete('/event/remove/{id}', 'EventController@remove');
+    Route::get('/event/download/{id}/{type}/{file}', 'EventController@downloadFile');
 });
