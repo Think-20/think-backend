@@ -28,3 +28,5 @@ alter table event add column ini_date_unmounting date not null after fin_hour;
 
 insert into functionality (id, url, description) values 
 (135, '/event/download/{id}/{type}/{file}', 'Download de arquivos de evento');
+
+alter table job add column event_id int after event;

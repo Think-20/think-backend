@@ -113,7 +113,7 @@ class Event extends Model
     }
 
     public static function get(int $id) {
-        $event = Event::with('place', 'employee')
+        $event = Event::with('place', 'employee', 'jobs')
         ->where('event.id', '=', $id)
         ->first();
                 
@@ -256,6 +256,11 @@ class Event extends Model
 
     public function setPhoneAttribute($value) {
         $this->attributes['phone'] = (int) preg_replace('/[^0-9]+/', '', $value);
+    }
+
+    public function jobs() {
+        return $this->hasMany('App\Job', 'event_id')
+        ->with('client', 'agency', 'creation', 'attendance', 'status');
     }
 
     public function place() {
