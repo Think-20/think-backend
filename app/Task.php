@@ -294,7 +294,7 @@ class Task extends Model
     }
 
     public static function checkScheduleBlock(string $availableDate, Employee $responsible, $exception = false) {
-        $blocked = ScheduleBlock::checkIfBlocked($availableDate, $responsible->id);
+        $blocked = ScheduleBlock::checkIfBlocked($availableDate, $responsible->user->id);
 
         if(!$blocked) return false;
         if($exception) throw new \Exception('Você não pode agendar nesta data, está bloqueada.');
