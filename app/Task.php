@@ -328,7 +328,7 @@ class Task extends Model
 
         for ($i = 0; $i < $duration; $i++) {
             if($verifyScheduleBlock && Task::checkScheduleBlock($date->format('Y-m-d'), $this->responsible)) {
-                $date = DateHelper::sumUtil($date, 1);
+                $date = ScheduleBlock::sumUtilNonBlocked($date, $this->responsible->user, 1);
                 $this->duration = $duration - $tempDuration;
                 $this->save();
                 $this->insertContinuation($date, $tempDuration);

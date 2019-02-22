@@ -45,6 +45,16 @@ class ScheduleBlock extends Model
         return $scheduleBlock;
     }
 
+    public static function sumUtilNonBlocked(DateTime $date, User $user, $interval) {
+        $date = DateHelper::sumUtil($date, $interval);
+
+        while(ScheduleBlock::checkIfBlocked($date->format('Y-m-d'), $user->id)) {
+            $date = DateHelper::sumUtil($date, $interval);
+        }
+
+        return $date;
+    }
+
     public static function checkIfBlocked(string $availableDate, $userId) {
         return ScheduleBlock::with('blocks')
         ->where('date', '=', $availableDate)
