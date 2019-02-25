@@ -194,8 +194,11 @@ class Job extends Model
             $job->client;
             $job->status;
         }
-
-        return $jobs;
+        
+        return [
+            'pagination' => $jobs,
+            'updatedInfo' => Job::updatedInfo()
+        ];
     }
 
     public static function get(int $id) {
@@ -310,8 +313,11 @@ class Job extends Model
             }
             $page = $paginate->currentPage();
             $total = $paginate->total();
-
-            return $paginate;
+            
+            return [
+                'pagination' => $paginate,
+                'updatedInfo' => Job::updatedInfo()
+            ];
         } else {
             $result = $jobs->get();
             foreach($result as $job) {
@@ -319,11 +325,14 @@ class Job extends Model
             }
             $total = $jobs->count();
             $page = 0;
-
+            
             return [
-                'data' => $result,
-                'total' => $total,
-                'page' => $page
+                'pagination' => [
+                    'data' => $result,
+                    'total' => $total,
+                    'page' => $page
+                ],
+                'updatedInfo' => Job::updatedInfo()
             ];
         }
     }
@@ -440,7 +449,10 @@ class Job extends Model
             $job->status;
         }
 
-        return $jobs;
+        return [
+            'pagination' => $jobs,
+            'updatedInfo' => Job::updatedInfo()
+        ];
     }
 
     public static function getMyJob(int $id) {
@@ -545,7 +557,10 @@ class Job extends Model
             $page = $paginate->currentPage();
             $total = $paginate->total();
 
-            return $paginate;
+            return [
+                'pagination' => $paginate,
+                'updatedInfo' => Job::updatedInfo()
+            ];
         } else {
             $result = $jobs->get();
             foreach($result as $job) {
@@ -555,11 +570,27 @@ class Job extends Model
             $page = 0;
 
             return [
-                'data' => $result,
-                'total' => $total,
-                'page' => $page
+                'pagination' => [
+                    'data' => $result,
+                    'total' => $total,
+                    'page' => $page
+                ],
+                'updatedInfo' => Job::updatedInfo()
             ];
         }
+    }
+    
+    public static function updatedInfo() {
+        $lastData = Job::orderBy('updated_at', 'desc')->limit(1)->first();
+
+        if($lastData == null) {
+            return [];
+        }
+
+        return [
+            'date' => (new DateTime($lastData->updated_at))->format('d/m/Y'),
+            'employee' => $lastData->attendance->name
+        ];
     }
 
     public static function generateCode() {
