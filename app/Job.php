@@ -48,6 +48,7 @@ class Job extends Model
     public static function edit(array $data) {
         $id = $data['id'];
         $job = Job::find($id);
+        $oldJob = clone $job;
 
         isset($data['agency']['id']) ? $job->agency_id = $data['agency']['id'] : null;
         isset($data['client']['id']) ? $job->client_id = $data['client']['id'] : null;
@@ -60,6 +61,7 @@ class Job extends Model
 
         $job->save();
         $job->update($data);
+        $job->notifyIfStatusChange($oldJob);
 
         $arrayLevels = !isset($data['levels']) ? [] : $data['levels'];
         $job->saveLevels($arrayLevels);
@@ -68,6 +70,25 @@ class Job extends Model
         $job->editFiles($arrayFiles);
 
         return $job;
+    }
+
+    public function notifyIfStatusChange(Job $oldJob) {
+        if($oldJob->status_id == $this->status_id) return;
+
+        $task = $this->tasks[0];
+        $message = $task->job_activity->description . ' de ';
+        $message .= $this->getJobName();
+        $message .= ' teve o status alterado para ' . $this->status->description;
+
+        Notification::createAndNotify(User::logged()->employee, [
+            'message' => $message
+        ], NotificationSpecial::createMulti([
+            'user_id' => $task->responsible->user->id,
+            'message' => $message,
+        ], [
+            'user_id' => $this->attendance->user->id,
+            'message' => $message
+        ]), 'Alteração de job', $task->id);
     }
 
     public static function insert(array $data) {
@@ -314,6 +335,7 @@ class Job extends Model
 
         $id = $data['id'];
         $job = Job::find($id);
+        $oldJob = clone $job;
         $agency_id = isset($data['agency']['id']) ? $data['agency']['id'] : null;
         $client_id = isset($data['client']['id']) ? $data['client']['id'] : null;
 
@@ -321,7 +343,6 @@ class Job extends Model
             throw new \Exception('Você não tem permissão para editar esse job.');
         }
 
-        $oldJob = clone $job;
         $job->update(
             array_merge($data, [
                 'job_activity_id' => $data['job_activity']['id'],
@@ -334,6 +355,7 @@ class Job extends Model
                 'competition_id' => $data['competition']['id']
             ])
         );
+        $job->notifyIfStatusChange($oldJob);
 
         $arrayLevels = !isset($data['levels']) ? [] : $data['levels'];
         $job->saveLevels($arrayLevels);
