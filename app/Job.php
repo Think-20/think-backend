@@ -160,7 +160,7 @@ class Job extends Model
             $createNotification = false;
         }
 
-        if($createNotification && !is_null($task)) {
+        if($createNotification && isset($task)) {
             $message = $task->job_activity->description . ' de ';
             $message .= $task->job->getJobName();
             $message .= ' removido';
@@ -422,9 +422,27 @@ class Job extends Model
         $oldJob = clone $job;
         $job->levels()->detach();
         
-        foreach($job->tasks as $task) {
-            $task->items()->delete();
-            $task->delete();
+        $createNotification = true;
+        
+        foreach($job->tasks as $task) {      
+            Task::remove($task->id);
+            $createNotification = false;
+        }
+
+        if($createNotification && isset($task)) {
+            $message = $task->job_activity->description . ' de ';
+            $message .= $task->job->getJobName();
+            $message .= ' removido';
+    
+            Notification::createAndNotify(User::logged()->employee, [
+                'message' => $message
+            ], NotificationSpecial::createMulti([
+                'user_id' => $task->responsible->user->id,
+                'message' => $message,
+            ], [
+                'user_id' => $task->job->attendance->user->id,
+                'message' => $message
+            ]), 'Deleção de job', $task->id);
         }
 
         $job->deleteFiles();
