@@ -141,6 +141,10 @@ class Place extends Model
         return $this->belongsTo('App\City', 'city_id');
     }
 
+    public function setNameAttribute($value) {
+        $this->attributes['name'] = ucwords(strtolower($value));
+    }
+
     public function getCepAttribute($value) {
         return mask(str_pad($value, 8, '0', STR_PAD_LEFT), '#####-###');
     }

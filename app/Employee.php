@@ -286,6 +286,10 @@ class Employee extends Model implements NotifierInterface
         return $employee;
     }
 
+    public function setNameAttribute($value) {
+        $this->attributes['name'] = ucwords(strtolower($value));
+    }
+
     public static function updatedInfo() {
         $lastData = Employee::orderBy('updated_at', 'desc')->limit(1)->first();
 

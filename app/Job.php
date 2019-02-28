@@ -862,6 +862,18 @@ class Job extends Model
         return $this->hasMany('App\JobFile', 'job_id');
     }
 
+    public function setNotClientAttribute($value) {
+        $this->attributes['not_client'] = ucwords(strtolower($value));
+    }
+
+    public function setEventAttribute($value) {
+        $this->attributes['event'] = ucwords(strtolower($value));
+    }
+
+    public function setLastProviderAttribute($value) {
+        $this->attributes['last_provider'] = ucwords(strtolower($value));
+    }
+
     public function setBudget_valueAttribute($value) {
         $this->attributes['budget_value'] = (float) str_replace(',', '.', str_replace('.', '', $value));
     }
