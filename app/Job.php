@@ -61,7 +61,7 @@ class Job extends Model
 
         $job->save();
         $job->update($data);
-        $job->notifyIfStatusChange($oldJob);
+        $job->statusChange($oldJob);
 
         $arrayLevels = !isset($data['levels']) ? [] : $data['levels'];
         $job->saveLevels($arrayLevels);
@@ -72,9 +72,15 @@ class Job extends Model
         return $job;
     }
 
-    public function notifyIfStatusChange(Job $oldJob) {
+    public function statusChange(Job $oldJob) {
         if($oldJob->status_id == $this->status_id) return;
 
+        $this->notifyStatusChange();
+        $this->status_updated_at = (new DateTime())->format('y-m-d');
+        $this->update();
+    }
+
+    public function notifyStatusChange() {
         $task = $this->tasks[0];
         $message = $task->job_activity->description . ' de ';
         $message .= $this->getJobName();
