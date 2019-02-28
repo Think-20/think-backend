@@ -18,7 +18,7 @@ class Job extends Model
         'code', 
         'job_activity_id', 'client_id', 'event', 'deadline', 'job_type_id', 'agency_id', 'attendance_id',
         'rate', 'competition_id', 'last_provider', 'not_client', 'how_come_id', 'approval_expectation_rate', 
-        'main_expectation_id', 'budget_value', 'status_id', 'note', 'place'
+        'main_expectation_id', 'budget_value', 'status_id', 'note', 'place', 'area', 'moments'
     ];
 
     protected $dates = [
@@ -876,6 +876,10 @@ class Job extends Model
 
     public function setBudget_valueAttribute($value) {
         $this->attributes['budget_value'] = (float) str_replace(',', '.', str_replace('.', '', $value));
+    }
+
+    public function setAreaAttribute($value) {
+        $this->attributes['area'] = (float) str_replace(',', '.', str_replace('.', '', $value));
     }
 
     public function setDeadlineAttribute($value) {
