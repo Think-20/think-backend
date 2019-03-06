@@ -11,4 +11,8 @@ class JobActivity extends Model
     protected $fillable = [
         'description'
     ];
+
+    public static function getOpportunities() {
+        return JobActivity::whereIn('description', ['Projeto'])->get();
+    }
 }

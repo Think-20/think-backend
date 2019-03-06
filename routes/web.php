@@ -275,6 +275,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/jobs/get/{id}', 'JobController@get');
     Route::post('/jobs/filter', 'JobController@filter');
     Route::get('/job/download/{id}/{type}/{file}', 'JobController@downloadFile');
+    Route::post('/jobs/performance-lite', 'JobController@performanceLite');
 
     Route::post('/my-job/save', 'JobController@saveMyJob');
     Route::put('/my-job/edit', 'JobController@editMyJob');

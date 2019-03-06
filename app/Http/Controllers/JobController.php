@@ -11,6 +11,7 @@ use DB;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
 use App\FileHelper;
+use App\JobActivity;
 
 class JobController extends Controller
 {
@@ -146,6 +147,10 @@ class JobController extends Controller
 
     public static function filter(Request $request) {
         return Job::filter($request->all());
+    }
+
+    public static function performanceLite(Request $request) {
+        return Job::performanceLite($request->all());
     }
 
     public static function myEditAvailableDate(Request $request) {

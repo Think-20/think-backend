@@ -802,6 +802,18 @@ class Job extends Model
         $this->history = $approved . '/' . $total;
     }
 
+    public static function performanceLite(array $data) {
+        $initial_date = isset($data['initial_date']) ? substr($data['initial_date'], 0, 10) : null;
+        $final_date = isset($data['final_date']) ? substr($data['final_date'], 0, 10) : null;
+        
+        $query = Job::select(DB::raw('SUM(budget_value) as opportunity_value, COUNT(id) as opportunity_quantity'))
+        ->whereIn('job_activity_id', JobActivity::getOpportunities()->map(function($jA) { return $jA->id; }))
+        ->where('created_at', '>=', $initial_date)
+        ->where('created_at', '<=', $final_date);
+
+        return $query->first();
+    }
+
     public function stand() {
         return $this->hasOne('App\Stand', 'job_id');
     }
