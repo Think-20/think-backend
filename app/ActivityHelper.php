@@ -179,12 +179,22 @@ class ActivityHelper
 
             $items = $items->get();
             
-            //$blockedDates = ScheduleBlock::whereIn('date', $dates)->get();
-            //if($items->count() == 0 && $blockedDates->count() == 0) {
+            $blockedDates = ScheduleBlock::leftJoin('schedule_block_user', 'schedule_block.id', '=', 'schedule_block_user.schedule_id')
+            ->leftJoin('user', 'user.id', '=', 'schedule_block_user.user_id')
+            ->leftJoin('employee', 'employee.id', '=', 'user.employee_id')
+            ->whereIn('date', $dates)
+            ->where('employee.id', '=', $professionalId)
+            ->get();
+            
+            if($items->count() == 0 && $blockedDates->count() == 0) {
+                $availableProfessionals[] = $professionalId;
+            }
 
+            /* Desativado, checagem de datas bloqueadas
             if($items->count() == 0) {
                 $availableProfessionals[] = $professionalId;
             }
+            */
         }
 
         return $availableProfessionals;
