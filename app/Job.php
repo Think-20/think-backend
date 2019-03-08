@@ -370,7 +370,8 @@ class Job extends Model
                 'competition_id' => $data['competition']['id']
             ])
         );
-        $job->notifyIfStatusChange($oldJob);
+        
+        $job->statusChange($oldJob);
 
         $arrayLevels = !isset($data['levels']) ? [] : $data['levels'];
         $job->saveLevels($arrayLevels);
