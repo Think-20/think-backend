@@ -146,7 +146,7 @@ class Employee extends Model implements NotifierInterface
         try {
             $id = $data['id'];
             $image = isset($data['image']) ? $data['image'] : null;
-            $employee = Employee::find($id);
+            $employee = Employee::withTrashed()->find($id);
             $employee->makeVisible('payment');
             $employee->image = isset($data['image']) ? $data['image'] : 'sem-foto.jpg';
             $employee->department_id = isset($data['department']['id']) ? $data['department']['id'] : null;
@@ -172,7 +172,7 @@ class Employee extends Model implements NotifierInterface
             $image = isset($data['image']) ? $data['image'] : null;
             $name = isset($data['name']) ? $data['name'] : null;
 
-            $employee = Employee::find($id);
+            $employee = Employee::withTrashed()->find($id);
             $employee->checkUser();            
             $employee->image = isset($data['image']) ? $data['image'] : 'sem-foto.jpg';
             
@@ -261,6 +261,7 @@ class Employee extends Model implements NotifierInterface
             'user', 'user.functionalities', 'user.displays', 'position', 'department', 'updatedBy'
         ])
         ->where('employee.id', '=', $id)
+        ->withTrashed()
         ->first();
                 
         if(is_null($employee)) {
@@ -274,6 +275,7 @@ class Employee extends Model implements NotifierInterface
     public static function myGet(int $id) {
         $employee = Employee::with('user', 'position', 'department', 'updatedBy')
         ->where('employee.id', '=', $id)
+        ->withTrashed()
         ->first();
 
         $employee->checkUser(); 
