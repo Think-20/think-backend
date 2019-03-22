@@ -5,6 +5,7 @@ namespace App;
 use Illuminate\Database\Eloquent\Model;
 
 use DB;
+use DateTime;
 use App\Interfaces\Contactable;
 use App\Interfaces\HasBankAccount;
 
@@ -19,16 +20,14 @@ class Provider extends Model implements Contactable, HasBankAccount
     ];
 
     public static function list() {
-        $providers = Provider::select()
+        $providers = Provider::with('employee', 'person_type')
         ->orderBy('fantasy_name', 'asc')
-        ->get();
+        ->paginate(20);
 
-        foreach($providers as $provider) {
-            $provider->employee;
-            $provider->person_type;
-        }
-
-        return $providers;
+        return [
+            'pagination' => $providers,
+            'updatedInfo' => Provider::updatedInfo()
+        ];
     }
 
     public static function edit(array $data) {
@@ -116,20 +115,34 @@ class Provider extends Model implements Contactable, HasBankAccount
         return $provider;
     }
 
-    public static function filter($query) {
-        $providers = Provider::where('name', 'like', $query . '%')
-            ->orWhere('fantasy_name', 'like', $query . '%')
-            ->orWhere('cnpj', 'like', $query . '%')
-            ->orWhere('cpf', 'like', $query . '%')
-            ->orderBy('fantasy_name', 'asc')
-            ->get();
+    public static function updatedInfo() {
+        $lastData = Provider::orderBy('updated_at', 'desc')->limit(1)->first();
 
-        foreach($providers as $provider) {
-            $provider->employee;
-            $provider->person_type;
+        if($lastData == null) {
+            return [];
         }
 
-        return $providers;
+        return [
+            'date' => (new DateTime($lastData->updated_at))->format('d/m/Y'),
+            'employee' => $lastData->employee->name
+        ];
+    }
+
+    public static function filter(array $data) {
+        $search = isset($data['search']) ? $data['search'] : null;
+
+        $providers = Provider::with('employee', 'person_type')
+            ->where('name', 'like', $search . '%')
+            ->orWhere('fantasy_name', 'like', $search . '%')
+            ->orWhere('cnpj', 'like', $search . '%')
+            ->orWhere('cpf', 'like', $search . '%')
+            ->orderBy('fantasy_name', 'asc')
+            ->paginate(5);
+
+        return [
+            'pagination' => $providers,
+            'updatedInfo' => Provider::updatedInfo()
+        ];
     }
 
     public function logContactChanges(array $data) { }

@@ -1,2 +1,1 @@
-insert into display (id,url,description) values (45, '/performance-lite', 'Relatório de performance (lite)');
-insert into functionality (id,url,description) values (136, '/jobs/performance-lite', 'Relatório de performance (lite)');
+update functionality set url = '/providers/filter' where id = 38;

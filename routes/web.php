@@ -238,9 +238,9 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/provider/save', 'ProviderController@save');
     Route::put('/provider/edit', 'ProviderController@edit');
     Route::delete('/provider/remove/{id}', 'ProviderController@remove');
-    Route::get('/providers/all', 'ProviderController@all');
+    Route::post('/providers/all', 'ProviderController@all');
     Route::get('/providers/get/{id}', 'ProviderController@get');
-    Route::get('/providers/filter/{query}', 'ProviderController@filter');
+    Route::post('/providers/filter', 'ProviderController@filter');
 
     Route::post('/cost-category/save', 'CostCategoryController@save');
     Route::put('/cost-category/edit', 'CostCategoryController@edit');

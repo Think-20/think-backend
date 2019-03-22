@@ -84,7 +84,7 @@ class ProviderController extends Controller
         return Provider::list();
     }
 
-    public static function filter($query) {
-        return Provider::filter($query);
+    public static function filter(Request $request) {
+        return Provider::filter($request->all());
     }
 }
