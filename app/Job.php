@@ -806,13 +806,42 @@ class Job extends Model
     public static function performanceLite(array $data) {
         $initial_date = isset($data['initial_date']) ? substr($data['initial_date'], 0, 10) : null;
         $final_date = isset($data['final_date']) ? substr($data['final_date'], 0, 10) : null;
+        $time_to_analyze = isset($data['time_to_analyze']) ? $data['time_to_analyze'] : null;
         
-        $query = Job::select(DB::raw('SUM(budget_value) as opportunity_value, COUNT(id) as opportunity_quantity'))
+        $firstDayMonth = (new DateTime('now'))->format('Y-m') . '-01';
+        $lastDayMonth = (new DateTime('now'))->format('Y-m') . '-31';
+        
+        $firstDayYear = (new DateTime('now'))->format('Y') . '-01-01';
+        $lastDayYear = (new DateTime('now'))->format('Y') . '-12-31';
+
+        $opportunityQuery = Job::select(DB::raw('SUM(budget_value) as value, COUNT(id) as quantity'))
         ->whereIn('job_activity_id', JobActivity::getOpportunities()->map(function($jA) { return $jA->id; }))
         ->where('created_at', '>=', $initial_date)
         ->where('created_at', '<=', $final_date);
+        
+        $monthlyTendency = Job::select(DB::raw('COUNT(id) as quantity_total, SUM(status_id=3) as quantity_approved,
+        SUM(budget_value) as budget_total, SUM(case when status_id=3 then budget_value else 0 end) as budget_approved'))
+        ->whereIn('job_activity_id', JobActivity::getOpportunities()->map(function($jA) { return $jA->id; }))
+        ->where('created_at', '>=', DateHelper::subUtil(new DateTime, $time_to_analyze)->format('Y-m-d'));
+        
+        $monthlyApproval = Job::select(DB::raw('COUNT(id) as quantity_total, SUM(status_id=3) as quantity_approved,
+        SUM(case when status_id=3 then budget_value else 0 end) as budget_approved'))
+        ->whereIn('job_activity_id', JobActivity::getOpportunitiesAndOthers()->map(function($jA) { return $jA->id; }))
+        ->where('created_at', '>=', $firstDayMonth)
+        ->where('created_at', '<=', $lastDayMonth);
+        
+        $consolidatedAnnual = Job::select(DB::raw('COUNT(id) as quantity_total, SUM(status_id=3) as quantity_approved, 
+        SUM(case when status_id=3 then budget_value else 0 end) as budget_approved'))
+        ->whereIn('job_activity_id', JobActivity::getOpportunitiesAndOthers()->map(function($jA) { return $jA->id; }))
+        ->where('created_at', '>=', $firstDayYear)
+        ->where('created_at', '<=', $lastDayYear);
 
-        return $query->first();
+        return [
+            'opportunity' => $opportunityQuery->first(),
+            'tendency' => $monthlyTendency->first(),
+            'monthly_approval' => $monthlyApproval->first(),
+            'consolidated_annual' => $consolidatedAnnual->first()
+        ];
     }
 
     public function stand() {

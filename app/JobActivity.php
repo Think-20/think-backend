@@ -15,4 +15,8 @@ class JobActivity extends Model
     public static function getOpportunities() {
         return JobActivity::whereIn('description', ['Projeto'])->get();
     }
+
+    public static function getOpportunitiesAndOthers() {
+        return JobActivity::whereIn('description', ['Projeto', 'Orçamento', 'Outsider'])->get();
+    }
 }
