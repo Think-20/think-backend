@@ -88,7 +88,7 @@ class Employee extends Model implements NotifierInterface
         ];
     }
 
-    public static function canInsertClients(array $data) {
+    public static function canInsertClients(array $data = []) {
         $deleted = isset($data['deleted']) && $data['deleted'] === 'true' ? true : false;
         $insertClients = Functionality::where('description', '=', 'Cadastrar um cliente')->first();
         $insertMyClients = Functionality::where('description', '=', 'Cadastrar um cliente (atendimento)')->first();
