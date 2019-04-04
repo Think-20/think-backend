@@ -88,18 +88,24 @@ class Employee extends Model implements NotifierInterface
         ];
     }
 
-    public static function canInsertClients() {
+    public static function canInsertClients(array $data) {
+        $deleted = isset($data['deleted']) && $data['deleted'] === 'true' ? true : false;
         $insertClients = Functionality::where('description', '=', 'Cadastrar um cliente')->first();
         $insertMyClients = Functionality::where('description', '=', 'Cadastrar um cliente (atendimento)')->first();
 
-        return Employee::select('employee.id', 'employee.name', 'employee.position_id', 'employee.department_id')
+        $employees = Employee::select('employee.id', 'employee.name', 'employee.position_id', 'employee.department_id')
         ->join('user', 'user.employee_id', '=', 'employee.id')
         ->join('user_functionality', 'user_functionality.user_id', '=', 'user.id')
         ->where('user_functionality.functionality_id', '=', $insertClients->id)
         ->orWhere('user_functionality.functionality_id', '=', $insertMyClients->id)
         ->orderBy('name', 'asc')
-        ->distinct()
-        ->get();
+        ->distinct();
+
+        if($deleted) {
+            $employees->withTrashed();
+        }
+
+        return $employees->get();
     }
 
     public static function filter(array $data) {

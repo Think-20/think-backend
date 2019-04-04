@@ -26,8 +26,8 @@ class EmployeeController extends Controller
         return Employee::myGet($id);
     }
 
-    public static function canInsertClients() {
-        return Employee::canInsertClients();
+    public static function canInsertClients(Request $request) {
+        return Employee::canInsertClients($request->all());
     }
 
     public static function save(Request $request) {
