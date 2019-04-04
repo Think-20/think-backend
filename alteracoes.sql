@@ -1,1 +1,0 @@
-update functionality set url = '/providers/filter' where id = 38;
