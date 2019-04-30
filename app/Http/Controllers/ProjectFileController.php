@@ -37,7 +37,7 @@ class ProjectFileController extends Controller
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-            'project_file' => $project_file
+            'files' => $project_file
          ]), 200);
     }
 
@@ -64,7 +64,7 @@ class ProjectFileController extends Controller
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-            'project_files' => $projectFiles
+            'files' => $projectFiles
          ]), 200);
     }
 
