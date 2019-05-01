@@ -56,9 +56,11 @@ class ScheduleBlock extends Model
     }
 
     public static function checkIfBlocked(string $availableDate, $userId) {
-        return $scheduleBlock = ScheduleBlock::with(['blocks' => function($query) use ($userId) {
+        $sb = $scheduleBlock = ScheduleBlock::with(['blocks' => function($query) use ($userId) {
             $query->where('user_id', '=', $userId);
-        }])->where('date', '=', $availableDate)->first() != null;
+        }])->where('date', '=', $availableDate)->first();
+
+        return $sb != null && count($sb->blocks) > 0;
     }
     
     public static function valid() {
