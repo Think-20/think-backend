@@ -17,6 +17,6 @@ class UploadFileController extends Controller
             $names[] = $file->getClientOriginalName();
         }
         
-        return ['names' => $names];
+        return Response::make(json_encode(['names' => $names]), 200);
     }
 }

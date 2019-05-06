@@ -108,6 +108,24 @@ Route::get('/project-files/view/{id}', function ($id)
     return $response;
 });
 
+Route::get('/specification-files/view/{id}', function ($id)
+{
+    $specificationFile = App\SpecificationFile::find($id);
+    $path = resource_path('/assets/files/specification-files/' . $specificationFile->name);
+
+    if (!File::exists($path)) {
+        abort(404);
+    }
+
+    $file = File::get($path);
+    $type = File::mimeType($path);
+
+    $response = Response::make($file, 200);
+    $response->header("Content-Type", $type);
+
+    return $response;
+});
+
 Route::group(['middleware' => ['auth.api']], function() {
 
     Route::post('/upload-file', 'UploadFileController@upload');
@@ -313,6 +331,11 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::delete('/project-files/remove/{id}', 'ProjectFileController@remove');
     Route::get('/project-files/download/{id}', 'ProjectFileController@downloadFile');
     Route::get('/project-files/download-all/{taskId}', 'ProjectFileController@downloadAll');
+
+    Route::post('/specification-files/save-multiple', 'SpecificationFileController@saveMultiple');
+    Route::delete('/specification-files/remove/{id}', 'SpecificationFileController@remove');
+    Route::get('/specification-files/download/{id}', 'SpecificationFileController@downloadFile');
+    Route::get('/specification-files/download-all/{taskId}', 'SpecificationFileController@downloadAll');
     
     Route::post('/schedule-block/save', 'ScheduleBlockController@save');
     Route::delete('/schedule-block/remove/{id}', 'ScheduleBlockController@remove');

@@ -2,7 +2,9 @@
 
 namespace App;
 
+use Illuminate\Database\Eloquent\Collection;
+
 interface TaskInterface {
-    public function getResponsibleList();
+    public function getResponsibleList(): Collection;
     public function getMaxCapability();
 }

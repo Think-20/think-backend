@@ -729,7 +729,8 @@ class Job extends Model
     }
 
     public function tasks() {
-        return $this->hasMany('App\Task', 'job_id')->with('project_files', 'project_files.responsible', 
+        return $this->hasMany('App\Task', 'job_id')->with('project_files', 'project_files.responsible',
+        'specification_files', 'specification_files.responsible',
         'budget', 'budget.responsible', 'task', 'task.job_activity');
     }
 

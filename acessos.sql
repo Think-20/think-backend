@@ -14,7 +14,7 @@ left join user u on u.employee_id = e.id
 where (f.id >= 1 AND f.id <= 18) OR (f.id >= 25 AND f.id <= 51) 
 OR (f.id >= 63 AND f.id <= 67) OR (f.id >= 71 AND f.id <= 74) 
 OR (f.id >= 85 AND f.id <= 96) OR (f.id IN(59,61,69,77,78,79,83))
-OR (f.id >= 98 AND f.id <= 106) OR (f.id >= 110 AND f.id <= 136);
+OR (f.id >= 98 AND f.id <= 106) OR (f.id >= 110 AND f.id <= 140);
 
 #Telas e permissões para produção
 insert into display_user (display_id, user_id) 
@@ -46,7 +46,8 @@ left join user u on u.employee_id = e.id
 where f.id = 4 OR f.id = 6 OR (f.id >= 19 AND f.id <= 20)
 OR (f.id >= 23 AND f.id <= 23) OR (f.id >= 31 AND f.id <= 32) 
 OR f.id = 39 OR (f.id IN (52,53,55,56,57,58)) OR (f.id IN(60,62,68,70,71,72,80,78,82,89,90))
-OR (f.id IN (93,95,96,97)) OR (f.id >= 107 AND f.id <= 109) OR (f.id >= 123 AND f.id <= 135);
+OR (f.id IN (93,95,96,97)) OR (f.id >= 107 AND f.id <= 109) OR (f.id >= 123 AND f.id <= 135)
+OR (f.id >= 137 AND f.id <= 140);
 
 #Telas e permissões para criação
 insert into display_user (display_id, user_id) 
@@ -74,7 +75,8 @@ select f.id, u.id from functionality f
 inner join employee e on e.department_id IN (6)
 left join user u on u.employee_id = e.id
 where (f.id IN (31,55,56,57,49,51)) OR (f.id IN(60,62,68,81,89,90))
-OR (f.id IN (93,95,96,97)) OR (f.id >= 107 AND f.id <= 109);
+OR (f.id IN (93,95,96,97)) OR (f.id >= 107 AND f.id <= 109)
+OR (f.id >= 139 AND f.id <= 140);
 
 delete from user_functionality where user_id = 27;
 delete from display_user where user_id = 27;

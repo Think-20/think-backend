@@ -22,7 +22,8 @@ class Budget extends Model {
         ]));
 
         $budget->save();
-        
+        $budget->responsible;
+
         return $budget;
     }
 

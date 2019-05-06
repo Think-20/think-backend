@@ -4,7 +4,6 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 use DateTime;
-use DateInterval;
 
 class Task extends Model
 {
@@ -246,6 +245,35 @@ class Task extends Model
         ];
         
         Task::insert($data, $this->job->attendance, false);
+    }
+
+    public function insertBudget() {
+        $date = ScheduleBlock::sumUtilNonBlocked(new DateTime('now'), $this->job->attendance->user, 1);
+        $jobActivity = JobActivity::where('description', '=', 'Orçamento')->first();
+        $taskBuilder = TaskFactory::build('Orçamento');
+        $arr = ActivityHelper::calculateNextDate($date->format('Y-m-d'), $jobActivity, $taskBuilder->getResponsibleList(), 1);
+
+        $count = Task::where('job_activity_id', '=', $jobActivity->id)
+        ->where('task_id', '=', $this->id)
+        ->get()
+        ->count();
+
+        if($count > 0) {
+            return;
+        }
+
+        $responsible = $arr['available_responsibles'][0];
+
+        $data = [
+            'responsible' => ['id' => $responsible->id],
+            'job' => ['id' => $this->job->id],
+            'job_activity' => ['id' => $jobActivity->id],
+            'duration' => 1,
+            'available_date' => $arr['date'],
+            'task' => ['id' => $this->id]
+        ];
+        
+        Task::insert($data, $responsible, false);
     }
 
     public static function insert(array $data, NotifierInterface $notifier = null, $recursiveScheduleBlock = true)
@@ -689,6 +717,10 @@ class Task extends Model
             ProjectFile::remove($projectFile->id);
         }
 
+        foreach($task->specification_files as $specificationFile) {
+            SpecificationFile::remove($specificationFile->id);
+        }
+
         $task->delete();
         Task::modifyReopened($oldTask);
     }
@@ -731,6 +763,10 @@ class Task extends Model
 
         foreach($task->project_files as $projectFile) {
             ProjectFile::remove($projectFile->id);
+        }
+
+        foreach($task->specification_files as $specificationFile) {
+            SpecificationFile::remove($specificationFile->id);
         }
 
         $task->delete();
@@ -784,6 +820,11 @@ class Task extends Model
     public function project_files()
     {
         return $this->hasMany('App\ProjectFile', 'task_id');
+    }
+
+    public function specification_files()
+    {
+        return $this->hasMany('App\SpecificationFile', 'task_id');
     }
 
     public function setDurationAttribute($value)
