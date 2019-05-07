@@ -75,7 +75,6 @@ class ScheduleBlock extends Model
     }
 
     public static function myValid() {
-        $date = new DateTime();
         $date1 = DateHelper::sub(new DateTime(), 31);
         $date2 = DateHelper::sum(new DateTime(), 31);
         $userId = User::logged()->id;

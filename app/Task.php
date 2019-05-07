@@ -18,11 +18,16 @@ class Task extends Model
         return trim($this->job_activity->description . ' ' . $pad);
     }
 
-    public static function getNextAvailableDate($availableDate, $estimatedTime, $jobActivity)
+    public static function getNextAvailableDate(string $availableDate, int $estimatedTime, string $jobActivity)
     {
         $taskBuild = TaskFactory::build($jobActivity);
         $jobActivity = JobActivity::where('description', '=', $jobActivity)->first();
         $responsibles = $taskBuild->getResponsibleList();
+
+        if( $taskBuild->reachedLimit(new DateTime($availableDate)) ) {
+            $availableDateTime = $taskBuild->generateNewSuggestDate();
+            $availableDate = $availableDateTime->format('Y-m-d');
+        }        
 
         $arr = ActivityHelper::calculateNextDate($availableDate, $jobActivity, $responsibles, $estimatedTime);
 
@@ -249,10 +254,9 @@ class Task extends Model
 
     public function insertBudget() {
         $date = ScheduleBlock::sumUtilNonBlocked(new DateTime('now'), $this->job->attendance->user, 1);
-        $jobActivity = JobActivity::where('description', '=', 'Orçamento')->first();
-        $taskBuilder = TaskFactory::build('Orçamento');
-        $arr = ActivityHelper::calculateNextDate($date->format('Y-m-d'), $jobActivity, $taskBuilder->getResponsibleList(), 1);
+        $arr = Task::getNextAvailableDate($date->format('Y-m-d'), 1, 'Orçamento');       
 
+        $jobActivity = JobActivity::where('description', '=', 'Orçamento')->first();
         $count = Task::where('job_activity_id', '=', $jobActivity->id)
         ->where('task_id', '=', $this->id)
         ->get()
@@ -263,13 +267,12 @@ class Task extends Model
         }
 
         $responsible = $arr['available_responsibles'][0];
-
         $data = [
             'responsible' => ['id' => $responsible->id],
             'job' => ['id' => $this->job->id],
             'job_activity' => ['id' => $jobActivity->id],
             'duration' => 1,
-            'available_date' => $arr['date'],
+            'available_date' => $arr['available_date'],
             'task' => ['id' => $this->id]
         ];
         
