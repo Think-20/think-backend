@@ -72,9 +72,9 @@ class SpecificationFile extends Model {
         $specificationFile = $specification_files[0];
         $task1 = $specificationFile->task;
 
-        $message1 = $specificationFile->responsible->name . ': Entrega de ' . $task1->getTaskName() . ' da ';
+        $message1 = $specificationFile->responsible->name . ': Entrega de Memorial Descritivo da ';
         $message1 .= $task1->job->getJobName();
-        $message1 .= ' para ' . $task1->job->attendance->name;
+        $message1 .= ' para ' . $task1->responsible->name;
 
         $notificationCount = Notification::where('message', '=', $message1)
             ->where('info', '=', $task1->id)
@@ -111,7 +111,9 @@ class SpecificationFile extends Model {
         $specification_file->save();
         $specification_file->moveFile();
 
-        $specification_file->task->insertBudget();
+        if(Task::find($task_id)->job->job_activity->description != 'Orçamento') {
+            $specification_file->task->insertBudget();
+        }        
         //$specification_file->task->updateSpecificationFileDone();
         
         return $specification_file;

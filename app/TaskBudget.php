@@ -29,7 +29,13 @@ class TaskBudget implements TaskInterface {
             return true;
         }
 
-        if($tasks->count() > 0 && $tasks->job->sum('budget_value') >= $limitValue) {
+        $jobs = new Collection();
+
+        foreach($tasks as $task) {
+            $jobs->add($task->job);
+        }
+
+        if($tasks->count() > 0 && $jobs->sum('budget_value') >= $limitValue) {
             return true;
         }
 
