@@ -77,12 +77,7 @@ class ProjectFile extends Model {
         $message1 .= $task1->job->getJobName();
         $message1 .= ' para ' . $task1->job->attendance->name;
 
-        $notificationCount = Notification::where('message', '=', $message1)
-            ->where('info', '=', $task1->id)
-            ->get()
-            ->count();
-
-        if($notificationCount == 0) {
+        if( !Notification::hasPrevious($message1, 'Entrega de projeto', $task1->id) ) {
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message1
             ], NotificationSpecial::createMulti([

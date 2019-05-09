@@ -72,22 +72,17 @@ class SpecificationFile extends Model {
         $specificationFile = $specification_files[0];
         $task1 = $specificationFile->task;
 
-        $message1 = $specificationFile->responsible->name . ': Entrega de Memorial Descritivo da ';
+        $message1 = $specificationFile->responsible->name . ': Entrega de memorial descritivo da ';
         $message1 .= $task1->job->getJobName();
         $message1 .= ' para ' . $task1->responsible->name;
 
-        $notificationCount = Notification::where('message', '=', $message1)
-            ->where('info', '=', $task1->id)
-            ->get()
-            ->count();
-
-        if($notificationCount == 0) {
+        if( !Notification::hasPrevious($message1, 'Entrega de memorial', $task1->id) ) {
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message1
             ], NotificationSpecial::createMulti([
                 'user_id' => $task1->job->attendance->user->id,
                 'message' => $message1
-            ]), 'Entrega de projeto', $task1->id);
+            ]), 'Entrega de memorial', $task1->id);
         }
 
         return $specification_files;

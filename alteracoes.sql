@@ -18,3 +18,4 @@ insert into functionality values (137, '/specification-files/save-multiple', 'Up
 insert into functionality values (138, '/specification-files/remove/{id}', 'Remoção de arquivos de memorial para entrega', now(), now());
 insert into functionality values (139, '/specification-files/download/{id}', 'Download de arquivos de memorial para entrega', now(), now());
 insert into functionality values (140, '/specification-files/download-all/{taskId}', 'Download de todos os arquivos do memorial', now(), now());
+insert into notification_type values (17, 'Entrega de memorial', 6, 1);

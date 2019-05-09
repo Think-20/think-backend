@@ -20,6 +20,13 @@ class Notification extends Model
         Notification::emit(NotificationType::findByDescription($type), $notifier, $data, $notificationSpecial, $info);
     }
 
+    public static function hasPrevious(string $message, string $type, $info): bool {
+        return Notification::where('message', '=', $message)
+            ->where('info', '=', $info)
+            ->where('type_id', '=', NotificationType::findByDescription($type)->id)
+            ->count() > 0;
+    }
+
     protected static function emit(NotificationType $type, NotifierInterface $notifier, array $data, array $notificationSpecial, $info) {
         if($type->active == 0) return;
 
