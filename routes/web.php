@@ -179,7 +179,7 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/briefing-how-comes/filter/{query}', 'BriefingHowComeController@filter');
     
     Route::get('/jobs/load-form', 'JobController@loadForm');
-    Route::get('/tasks/get-next-available-date/{availableDate}/{estimatedTime}/{jobActivity}', 'TaskController@getNextAvailableDate');
+    Route::get('/tasks/get-next-available-date/{availableDate}/{estimatedTime}/{jobActivity}/{budgetValue}', 'TaskController@getNextAvailableDate');
     Route::post('/tasks/get-available-dates', 'TaskController@getNextAvailableDates');
     Route::get('/tasks/updated-info', 'TaskController@updatedInfo');
 

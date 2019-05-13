@@ -18,11 +18,15 @@ class TaskCreation implements TaskInterface {
         return $this->getResponsibleList()->count();
     }
 
-    public function reachedLimit(DateTime $date): bool {
-        return false;
+    public function reachedLimit(DateTime $date, $budgetValue): bool {
+        return true;
     }
 
-    public function generateNewSuggestDate(): DateTime {
+    public function generateNewSuggestDate(DateTime $date, $budgetValue): DateTime {
         return new DateTime();
+    }
+
+    public function responsiblesByReachedLimit(): Collection {
+        return new Collection;
     }
 }

@@ -18,16 +18,11 @@ class Task extends Model
         return trim($this->job_activity->description . ' ' . $pad);
     }
 
-    public static function getNextAvailableDate(string $availableDate, int $estimatedTime, string $jobActivity)
+    public static function getNextAvailableDate(string $availableDate, int $estimatedTime, string $jobActivity, $budgetValue)
     {
         $taskBuild = TaskFactory::build($jobActivity);
         $jobActivity = JobActivity::where('description', '=', $jobActivity)->first();
         $responsibles = $taskBuild->getResponsibleList();
-
-        if( $taskBuild->reachedLimit(new DateTime($availableDate)) ) {
-            $availableDateTime = $taskBuild->generateNewSuggestDate();
-            $availableDate = $availableDateTime->format('Y-m-d');
-        }        
 
         $arr = ActivityHelper::calculateNextDate($availableDate, $jobActivity, $responsibles, $estimatedTime);
 
@@ -41,12 +36,13 @@ class Task extends Model
     public static function getNextAvailableDates(array $data)
     {
         $jobActivityId = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
+        $budgetValue = isset($data['budget_value']) ? $data['budget_value'] : 0;
         $duration = isset($data['duration']) ? $data['duration'] : 1;
         $onlyEmployeeId = isset($data['only_employee']['id']) ? $data['only_employee']['id'] : null;
         $jobActivity = JobActivity::findOrFail($jobActivityId);
         $taskBuild = TaskFactory::build($jobActivity->description);
         $responsibles = $taskBuild->getResponsibleList();
-
+        
         if( ! is_null($onlyEmployeeId) ) {
             $responsibles = $responsibles->filter(function($responsible) use ($onlyEmployeeId) {
                 return $responsible->id == $onlyEmployeeId;
@@ -61,8 +57,8 @@ class Task extends Model
         }
 
         $arr = [];
-        while($iniDate->format('Y-m-d') <= $finDate->format('Y-m-d')) {
-            $arr[] = ActivityHelper::calculateNextDate($iniDate->format('Y-m-d'), $jobActivity, $responsibles, $duration);
+        while($iniDate->format('Y-m-d') <= $finDate->format('Y-m-d')) {            
+            $arr[] = ActivityHelper::calculateNextDate($iniDate->format('Y-m-d'), $jobActivity, $responsibles, $duration, null, $budgetValue);
             $iniDate = DateHelper::nextUtil($iniDate, 1);
         }
         
@@ -254,7 +250,7 @@ class Task extends Model
 
     public function insertBudget() {
         $date = ScheduleBlock::sumUtilNonBlocked(new DateTime('now'), $this->job->attendance->user, 1);
-        $arr = Task::getNextAvailableDate($date->format('Y-m-d'), 1, 'Orçamento');       
+        $arr = Task::getNextAvailableDate($date->format('Y-m-d'), 1, 'Orçamento', $this->job->budget_value);       
 
         $jobActivity = JobActivity::where('description', '=', 'Orçamento')->first();
         $count = Task::where('job_activity_id', '=', $jobActivity->id)

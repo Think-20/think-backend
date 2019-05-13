@@ -98,7 +98,7 @@ class ActivityHelper
 
     }
 
-    public static function calculateNextDate($initialDate, JobActivity $jobActivity, Collection $professionalList, $duration, $taskIdIgnore = null)
+    public static function calculateNextDate($initialDate, JobActivity $jobActivity, Collection $professionalList, $duration, $taskIdIgnore = null, $budgetValue = 0)
     {
         $date = new DateTime($initialDate);
         $now = new DateTime('now');
@@ -115,7 +115,6 @@ class ActivityHelper
         }
         
         $date = DateHelper::nextUtilIfNotUtil(DateHelper::subUtil($date, 1));
-        $professionalId = -1;
         $professionalIn = [];
         $availableProfessionals = [];
 
@@ -125,6 +124,7 @@ class ActivityHelper
 
         do {
             $date = DateHelper::sumUtil($date, 1);
+
             $items = TaskItem::select()
                 ->leftJoin('task', 'task.id', '=', 'task_item.task_id')
                 ->where('date', '=', $date->format('Y-m-d'))
@@ -135,10 +135,21 @@ class ActivityHelper
             }
 
             $items = $items->get();
+            $forceByCustomRules = false;
 
-            $groupedItems = ActivityHelper::groupItemsByProfessional($items, $professionalList);
-            $professionalIdsInThisDate = ActivityHelper::getAvailableProfessionalInThisDate($groupedItems);
-            $availableProfessionals = ActivityHelper::verifyProfessionalWithDuration($groupedItems, $date, $jobActivity, $professionalIdsInThisDate, $duration, $taskIdIgnore);
+            $taskBuild = TaskFactory::build($jobActivity->description);
+
+            /* Verifica se alcançou o limite do dia, se não continua pelo método padrão */
+            if( !$taskBuild->reachedLimit($date, $budgetValue) ) {
+                $forceByCustomRules = true;
+                $professionalIdsInThisDate = $taskBuild->responsiblesByReachedLimit()->pluck('id')->all();
+            } else {
+                $groupedItems = ActivityHelper::groupItemsByProfessional($items, $professionalList);
+                $professionalIdsInThisDate = ActivityHelper::getAvailableProfessionalInThisDate($groupedItems);
+            }        
+
+            $availableProfessionals = ActivityHelper::verifyProfessionalWithDuration($date, 
+                $professionalIdsInThisDate, $duration, $taskIdIgnore, $forceByCustomRules);
         } while (count($availableProfessionals) == 0);
         
         return [
@@ -155,7 +166,7 @@ class ActivityHelper
         return true;
     }
 
-    protected static function verifyProfessionalWithDuration(array $groupedItems, DateTime $date, JobActivity $jobActivity, array $professionalIds, $duration, $taskIdIgnore)
+    protected static function verifyProfessionalWithDuration(DateTime $date, array $professionalIds, $duration, $taskIdIgnore, bool $forceByCustomRules = false)
     {
         $availableProfessionals = [];
 
@@ -187,6 +198,10 @@ class ActivityHelper
             ->get();
             
             if($items->count() == 0 && $blockedDates->count() == 0) {
+                $availableProfessionals[] = $professionalId;
+            }
+            
+            if($items->count() > 0 && $blockedDates->count() == 0 && $forceByCustomRules) {
                 $availableProfessionals[] = $professionalId;
             }
 
