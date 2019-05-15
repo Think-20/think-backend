@@ -530,6 +530,10 @@ class Job extends Model
         ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels',
         'how_come', 'agency', 'attendance', 'competition', 'files', 'status', 'creation', 'tasks');
 
+        $jobs->whereHas('attendance', function($query) {
+            $query->where('id', '=', User::logged()->employee->id);
+        });
+
         if ( ! is_null($clientName) ) {
             $jobs->whereHas('client', function($query) use ($clientName) {
                 $query->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
@@ -537,12 +541,6 @@ class Job extends Model
             });         
             $jobs->orWhere('not_client', 'LIKE', '%' . $clientName . '%');
         }
-
-        $jobs->whereHas('attendance', function($query) {
-            $query->where('id', '=', User::logged()->employee->id);
-        })->orWhereHas('tasks', function($query) {
-            $query->where('responsible_id', '=', User::logged()->employee->id);
-        });         
 
         if ( ! is_null($creationId) ) {
             $jobs->whereHas('creation', function($query) use ($creationId) {
