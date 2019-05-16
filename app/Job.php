@@ -139,11 +139,11 @@ class Job extends Model
 
         switch($type) {
             case 'job': {
-                $path = resource_path('assets/files/jobs/') . $job->id . '/' . $file;
+                $path = env('FILES_FOLDER') . '/jobs/' . $job->id . '/' . $file;
                 break;
             }
             case 'stand': {
-                $path = resource_path('assets/files/stands/') . $job->briefing->stand->id . '/' . $job->briefing->stand->{$file};
+                $path = env('FILES_FOLDER') . '/stands/' . $job->briefing->stand->id . '/' . $job->briefing->stand->{$file};
                 break;
             } 
             default: {
@@ -404,10 +404,10 @@ class Job extends Model
 
         switch($type) {
             case 'job': {
-                $path = resource_path('assets/files/jobs/') . $job->id . '/' . $file;
+                $path = env('FILES_FOLDER') . '/jobs/' . $job->id . '/' . $file;
             }
             case 'stand': {
-                $path = resource_path('assets/files/stands/') . $job->stand->id . '/' . $job->stand->{$file};
+                $path = env('FILES_FOLDER') . '/stands/' . $job->stand->id . '/' . $job->stand->{$file};
             } 
             default: {
                 throw new \Exception('O tipo de arquivo solicitado não existe. ' . $type);
@@ -630,7 +630,7 @@ class Job extends Model
     }
 
     public function saveFiles(array $data) {
-        $path = resource_path('assets/files/jobs/') . $this->id;
+        $path = env('FILES_FOLDER') . '/jobs/' . $this->id;
 
         if(!is_dir($path)) {
             mkdir($path);
@@ -647,7 +647,7 @@ class Job extends Model
 
     public function editFiles(array $data) {
         $browserFiles = [];
-        $path = resource_path('assets/files/jobs/') . $this->id;
+        $path = env('FILES_FOLDER') . '/jobs/' . $this->id;
 
         if(!is_dir($path)) {
             mkdir($path);
@@ -683,7 +683,7 @@ class Job extends Model
     }
 
     public function deleteFiles() {
-        $path = resource_path('assets/files/jobs/') . $this->id;
+        $path = env('FILES_FOLDER') . '/jobs/' . $this->id;
         foreach($this->files as $file) {
             try {
                 unlink($path . '/' . $file->filename);

@@ -158,13 +158,13 @@ class Event extends Model
             throw new \Exception('O evento solicitado não existe.');
         }
 
-        $path = resource_path('assets/files/events/') . $event->id . '/' . $file;
+        $path = env('FILES_FOLDER') . '/events/' . $event->id . '/' . $file;
         FileHelper::checkIfExists($path);
         return $path;
     }
     
     public function saveFiles() {
-        $path = resource_path('assets/files/events/') . $this->id;
+        $path = env('FILES_FOLDER') . '/events/' . $this->id;
 
         if(!is_dir($path)) {
             mkdir($path);
@@ -179,7 +179,7 @@ class Event extends Model
     }
 
     public function editFiles(Event $oldEvent) {
-        $path = resource_path('assets/files/events/') . $oldEvent->id;
+        $path = env('FILES_FOLDER') . '/events/' . $oldEvent->id;
         $originalArray = [];
         $changesArray = [];
 
@@ -210,7 +210,7 @@ class Event extends Model
     }
 
     public function deleteFiles() {
-        $path = resource_path('assets/files/events/') . $this->id;
+        $path = env('FILES_FOLDER') . '/events/' . $this->id;
         foreach(Event::$files as $file) {
             try {
                 unlink($path . '/' . $this->{$file});

@@ -93,7 +93,7 @@ Route::get('/assets/images/users/{filename}', function ($filename)
 Route::get('/project-files/view/{id}', function ($id)
 {
     $projectFile = App\ProjectFile::find($id);
-    $path = resource_path('/assets/files/project-files/' . $projectFile->name);
+    $path = env('FILES_FOLDER') . '/project-files/' . $projectFile->name;
 
     if (!File::exists($path)) {
         abort(404);
@@ -111,7 +111,7 @@ Route::get('/project-files/view/{id}', function ($id)
 Route::get('/specification-files/view/{id}', function ($id)
 {
     $specificationFile = App\SpecificationFile::find($id);
-    $path = resource_path('/assets/files/specification-files/' . $specificationFile->name);
+    $path = env('FILES_FOLDER') . '/specification-files/' . $specificationFile->name;
 
     if (!File::exists($path)) {
         abort(404);

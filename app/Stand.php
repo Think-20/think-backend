@@ -82,7 +82,7 @@ class Stand extends Model
     }
 
     public function saveFiles($data) {
-        $path = resource_path('assets/files/stands/') . $this->id;
+        $path = env('FILES_FOLDER') . '/stands/' . $this->id;
         $files = Stand::fileArrayFields();
 
         foreach($files as $file => $field) {
@@ -100,7 +100,7 @@ class Stand extends Model
 
     public function editFiles(Stand $oldStand, $data) {
         $updatedFiles = [];
-        $path = resource_path('assets/files/stands/') . $this->id;
+        $path = env('FILES_FOLDER') . '/stands/' . $this->id;
         $files = Stand::fileArrayFields();
 
         foreach($files as $file => $field) {    
@@ -131,7 +131,7 @@ class Stand extends Model
         $stand->delete();
 
         try {
-            $path = resource_path('assets/files/stands/') . $oldStand->id;
+            $path = env('FILES_FOLDER') . '/stands/' . $oldStand->id;
             unlink($path . '/' . $oldStand->plan);
             unlink($path . '/' . $oldStand->regulation);
             rmdir($path);

@@ -13,7 +13,7 @@ class SpecificationFile extends Model {
     ];
 
     public function moveFile() {
-        $path = resource_path('assets/files/specification-files');
+        $path = env('FILES_FOLDER') . '/specification-files';
 
         if(!is_dir($path)) {
             mkdir($path);
@@ -31,7 +31,7 @@ class SpecificationFile extends Model {
             throw new \Exception('O arquivo solicitado não existe.');
         }
 
-        $path = resource_path('assets/files/specification-files/') . $specificationFile->name;
+        $path = env('FILES_FOLDER') . '/specification-files/' . $specificationFile->name;
 
         FileHelper::checkIfExists($path);
         return $path;
@@ -50,7 +50,7 @@ class SpecificationFile extends Model {
         foreach($specificationFiles as $specificationFile) {
             $name = $specificationFile->name;
             $original_name = $specificationFile->name . '.' . $specificationFile->type;
-            $pathFile = resource_path('assets/files/specification-files/') . $name;
+            $pathFile = env('FILES_FOLDER') . '/specification-files/' . $name;
             $zip->addFile($pathFile, $original_name);
             //$paths[] = $pathFile;
         }
@@ -124,7 +124,7 @@ class SpecificationFile extends Model {
 
 
     public function deleteFile() {
-        $path = resource_path('assets/files/specification-files');
+        $path = env('FILES_FOLDER') . '/specification-files';
         $file = $path . '/' . $this->name;
 
         if(is_file($file)) {

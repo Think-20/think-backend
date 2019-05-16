@@ -14,7 +14,7 @@ class ProjectFile extends Model {
 
     public function moveFile() {
         $browserFiles = [];
-        $path = resource_path('assets/files/project-files');
+        $path = env('FILES_FOLDER') . '/project-files';
 
         if(!is_dir($path)) {
             mkdir($path);
@@ -32,7 +32,7 @@ class ProjectFile extends Model {
             throw new \Exception('O arquivo solicitado não existe.');
         }
 
-        $path = resource_path('assets/files/project-files/') . $projectFile->name;
+        $path = env('FILES_FOLDER') . '/project-files/' . $projectFile->name;
 
         FileHelper::checkIfExists($path);
         return $path;
@@ -51,7 +51,7 @@ class ProjectFile extends Model {
         foreach($projectFiles as $projectFile) {
             $name = $projectFile->name;
             $original_name = $projectFile->name . '.' . $projectFile->type;
-            $pathFile = resource_path('assets/files/project-files/') . $name;
+            $pathFile = env('FILES_FOLDER') . '/project-files/' . $name;
             $zip->addFile($pathFile, $original_name);
             //$paths[] = $pathFile;
         }
@@ -141,7 +141,7 @@ class ProjectFile extends Model {
 
     public function deleteFile() {
         $browserFiles = [];
-        $path = resource_path('assets/files/project-files');
+        $path = env('FILES_FOLDER') . '/project-files';
         $file = $path . '/' . $this->name;
 
         if(is_file($file)) {
