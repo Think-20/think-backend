@@ -1,1 +1,0 @@
-UPDATE users SET lastAccess = NULL WHERE id = 2;
