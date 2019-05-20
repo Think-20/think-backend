@@ -1,0 +1,1 @@
+UPDATE functionality SET url = '/cost-categories/filter' where id = 12;

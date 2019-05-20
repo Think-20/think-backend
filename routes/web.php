@@ -263,9 +263,9 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/cost-category/save', 'CostCategoryController@save');
     Route::put('/cost-category/edit', 'CostCategoryController@edit');
     Route::delete('/cost-category/remove/{id}', 'CostCategoryController@remove');
-    Route::get('/cost-categories/all', 'CostCategoryController@all');
+    Route::post('/cost-categories/all', 'CostCategoryController@all');
     Route::get('/cost-categories/get/{id}', 'CostCategoryController@get');
-    Route::get('/cost-categories/filter/{query}', 'CostCategoryController@filter');
+    Route::post('/cost-categories/filter', 'CostCategoryController@filter');
 
     Route::post('/item-category/save', 'ItemCategoryController@save');
     Route::put('/item-category/edit', 'ItemCategoryController@edit');
