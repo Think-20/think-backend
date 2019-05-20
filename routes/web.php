@@ -278,9 +278,9 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/item/save', 'ItemController@save');
     Route::put('/item/edit', 'ItemController@edit');
     Route::delete('/item/remove/{id}', 'ItemController@remove');
-    Route::get('/items/all', 'ItemController@all');
+    Route::post('/items/all', 'ItemController@all');
     Route::get('/items/get/{id}', 'ItemController@get');
-    Route::get('/items/filter/{query}', 'ItemController@filter');
+    Route::post('/items/filter', 'ItemController@filter');
     Route::post('/item/save-pricing/{id}', 'ItemController@savePricing');
     Route::delete('/item/{itemId}/remove-pricing/{pricingId}', 'ItemController@removePricing');
     Route::post('/item/save-child-item/{id}', 'ItemController@saveChildItem');
