@@ -270,9 +270,9 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/item-category/save', 'ItemCategoryController@save');
     Route::put('/item-category/edit', 'ItemCategoryController@edit');
     Route::delete('/item-category/remove/{id}', 'ItemCategoryController@remove');
-    Route::get('/item-categories/all', 'ItemCategoryController@all');
+    Route::post('/item-categories/all', 'ItemCategoryController@all');
     Route::get('/item-categories/get/{id}', 'ItemCategoryController@get');
-    Route::get('/item-categories/filter/{query}', 'ItemCategoryController@filter');
+    Route::post('/item-categories/filter', 'ItemCategoryController@filter');
     Route::get('/item-categories/items-group-by-category', 'ItemCategoryController@itemsGroupByCategory');
 
     Route::post('/item/save', 'ItemController@save');

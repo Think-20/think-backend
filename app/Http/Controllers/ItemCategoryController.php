@@ -80,21 +80,15 @@ class ItemCategoryController extends Controller
         return ItemCategory::get($id);
     }
 
-    public static function all() {
-        $items = ItemCategory::list();
-
-        foreach($items as $item) {
-            $item->itemCategory;
-        }
-
-        return $items;
+    public static function all(Request $request) {
+        return ItemCategory::list($request->all());
     }
 
     public static function itemsGroupByCategory() {
         return ItemCategory::itemsGroupByCategory();
     }
 
-    public static function filter($query) {
-        return ItemCategory::filter($query);
+    public static function filter(Request $request) {
+        return ItemCategory::filter($request->all());
     }
 }

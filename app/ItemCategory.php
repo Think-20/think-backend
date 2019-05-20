@@ -33,8 +33,19 @@ class ItemCategory extends Model
         $itemCategory->save();
     }
 
-    public static function list() {
-        return ItemCategory::orderBy('description', 'asc')->get();
+    public static function list(array $data)
+    {
+        $itemCategories = ItemCategory::with('itemCategory')->orderBy('description', 'asc')->get();
+
+        return [
+            'pagination' => $itemCategories,
+            'updatedInfo' => ItemCategory::updatedInfo()
+        ];
+    }
+
+    public static function updatedInfo()
+    {
+        return [];
     }
 
     public static function itemsGroupByCategory() {
@@ -56,9 +67,36 @@ class ItemCategory extends Model
         return $itemCategory;
     }
 
-    public static function filter($query) {
-        return ItemCategory::where('description', 'like', $query . '%')
-            ->get();
+    public static function filter(array $params)
+    {
+        $paginate = isset($params['paginate']) ? $params['paginate'] : true;
+        $description = isset($params['search']) ? $params['search'] : '';
+
+        $itemCategories = ItemCategory::where('description', 'like', $description . '%');
+
+        if ($paginate) {
+            $paginate = $itemCategories->paginate(50);
+            $page = $paginate->currentPage();
+            $total = $paginate->total();
+
+            return [
+                'pagination' => $paginate,
+                'updatedInfo' => ItemCategory::updatedInfo()
+            ];
+        } else {
+            $result = $itemCategories->get();
+            $total = $itemCategories->count();
+            $page = 0;
+
+            return [
+                'pagination' => [
+                    'data' => $result,
+                    'total' => $total,
+                    'page' => $page
+                ],
+                'updatedInfo' => ItemCategory::updatedInfo()
+            ];
+        }
     }
 
     public function itemCategory() {
