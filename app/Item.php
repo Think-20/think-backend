@@ -103,7 +103,7 @@ class Item extends Model
 
     public static function list(array $data)
     {
-        $items = Item::with('item_category', 'cost_category', 'item')->orderBy('name', 'asc')->get();
+        $items = Item::with('item_category', 'cost_category', 'item_type')->orderBy('name', 'asc')->get();
 
         return [
             'pagination' => $items,
@@ -146,7 +146,7 @@ class Item extends Model
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
         $search = isset($params['search']) ? $params['search'] : '';
 
-        $items = Item::with('item_category', 'cost_category', 'item')
+        $items = Item::with('item_category', 'cost_category', 'item_type')
         ->where('name', 'like', $search . '%')
         ->orWhere('description', 'like', $search . '%');
 
