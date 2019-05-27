@@ -9,7 +9,7 @@ class JobActivity extends Model
     protected $table = 'job_activity';
 
     protected $fillable = [
-        'description'
+        'description', 'show', 'no_params', 'redirect_after_save'
     ];
 
     public static function getOpportunities() {

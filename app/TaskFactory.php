@@ -13,7 +13,7 @@ abstract class TaskFactory {
         } else if($type == 'Memorial descritivo') {
             return new TaskMemorial;
         } else {
-            throw new \Exception('Nenhum tipo de tarefa selecionado.');
+            return new TaskOthers;
         }
     }
 }

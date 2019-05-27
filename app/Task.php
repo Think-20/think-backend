@@ -283,6 +283,10 @@ class Task extends Model
         $task_id = isset($data['task']['id']) ? $data['task']['id'] : null;
         $verifyScheduleBlock = isset($data['verify_schedule_block']) ? $data['verify_schedule_block'] : true;
 
+        if( empty($data['available_date']) ) {
+            unset($data['available_date']);
+        }
+
         $task = new Task(array_merge($data, [
             'responsible_id' => $responsible_id,
             'job_id' => $job_id,
@@ -290,33 +294,35 @@ class Task extends Model
             'task_id' => $task_id,
         ]));
         
-        if($verifyScheduleBlock && $recursiveScheduleBlock) {
+        if($verifyScheduleBlock && $recursiveScheduleBlock && $task->available_date != null) {
             Task::checkScheduleBlock($task->available_date, $task->responsible, true);
         }
 
         $task->save();
-        $task->saveItems($verifyScheduleBlock);
 
-        $message = $task->getTaskName() . ' da ';
-        $message .= $task->job->getJobName();
-        $message .= ' agendado em ' . (new DateTime($task->available_date))->format('d/m/Y') . ' para ' . $task->responsible->name;
+        if($task->available_date != null) {
+            $task->saveItems($verifyScheduleBlock);
 
-        if($notifier == null) {
-            $notifier = User::logged()->employee;
+            $message = $task->getTaskName() . ' da ';
+            $message .= $task->job->getJobName();
+            $message .= ' agendado em ' . (new DateTime($task->available_date))->format('d/m/Y') . ' para ' . $task->responsible->name;
+
+            if($notifier == null) {
+                $notifier = User::logged()->employee;
+            }
+
+            Notification::createAndNotify($notifier, [
+                'message' => $message
+            ], NotificationSpecial::createMulti([
+                'user_id' => $task->responsible->user->id,
+                'message' => $message
+            ], [
+                'user_id' => $task->job->attendance->user->id,
+                'message' => $message
+            ]), 'Cadastro de tarefa', $task->id);
         }
 
-        Notification::createAndNotify($notifier, [
-            'message' => $message
-        ], NotificationSpecial::createMulti([
-            'user_id' => $task->responsible->user->id,
-            'message' => $message
-        ], [
-            'user_id' => $task->job->attendance->user->id,
-            'message' => $message
-        ]), 'Cadastro de tarefa', $task->id);
-
         Task::modifyReopened($task);
-
         return $task;
     }
 
@@ -332,7 +338,7 @@ class Task extends Model
     public static function modifyReopened(Task $task) {
         $description = $task->job_activity->description;
 
-        if(in_array($description, ['Projeto', 'Outsider'])) {
+        if(in_array($description, ['Projeto', 'Outsider', 'Criação externa'])) {
             $sum = 0;
         } else {
             $sum = 1;    
@@ -427,7 +433,7 @@ class Task extends Model
         if($oldDuration != $task->duration) {
             $message = 'Duração de ' . strtolower($task->getTaskName()) . ' da ';
             $message .= $task->job->getJobName();
-            $message .= ' alterada de ' . ((int) $oldDuration) . ' para ' . ((int) $task->duration) . ' dia(s)'; 
+            $message .= ' alterada de ' . strval((int) $oldDuration) . ' para ' . strval((int) $task->duration) . ' dia(s)'; 
 
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
