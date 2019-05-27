@@ -347,14 +347,14 @@ class Task extends Model
         }
     }
 
-    public function saveItems($verifyScheduleBlock = true)
+    public function saveItems($verifyScheduleBlock = true, $exception = false)
     {
         $date = new DateTime($this->available_date);
         $duration = $this->duration;
         $tempDuration = (float) $duration;
 
         for ($i = 0; $i < $duration; $i++) {
-            if($verifyScheduleBlock && Task::checkScheduleBlock($date->format('Y-m-d'), $this->responsible)) {
+            if($verifyScheduleBlock && Task::checkScheduleBlock($date->format('Y-m-d'), $this->responsible, $exception)) {
                 $date = ScheduleBlock::sumUtilNonBlocked($date, $this->responsible->user, 1);
                 $this->duration = $duration - $tempDuration;
                 $this->save();
@@ -403,7 +403,7 @@ class Task extends Model
 
         $task = Task::find($id);
         $task->deleteItems();
-        $task->saveItems();
+        $task->saveItems(true, true);
 
         if($oldResponsibleId != $task->responsible_id) {
             $message = 'Responsável de ' . strtolower($task->getTaskName()) . ' da ';
