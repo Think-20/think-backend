@@ -29,4 +29,8 @@ class TaskCreation implements TaskInterface {
     public function responsiblesByReachedLimit(): Collection {
         return new Collection;
     }
+
+    public function getMaxBudgetValue(): float {
+        return 0.0;
+    }
 }

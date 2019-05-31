@@ -27,4 +27,8 @@ class TaskOthers implements TaskInterface {
     public function generateNewSuggestDate(DateTime $date, $budgetValue): DateTime {
         return new DateTime();
     }
+
+    public function getMaxBudgetValue(): float {
+        return 0.0;
+    }
 }

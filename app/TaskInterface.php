@@ -10,5 +10,6 @@ interface TaskInterface {
     public function responsiblesByReachedLimit(): Collection;
     public function getMaxCapability();
     public function reachedLimit(DateTime $date, $budgetValue): bool;
+    public function getMaxBudgetValue(): float;
     public function generateNewSuggestDate(DateTime $date, $budgetValue): DateTime;
 }

@@ -45,7 +45,7 @@ inner join employee e on e.department_id IN (4)
 left join user u on u.employee_id = e.id
 where f.id = 4 OR f.id = 6 OR (f.id >= 19 AND f.id <= 20)
 OR (f.id >= 23 AND f.id <= 23) OR (f.id >= 31 AND f.id <= 32) 
-OR f.id = 39 OR (f.id IN (52,53,55,56,57,58)) OR (f.id IN(60,62,68,70,71,72,80,78,82,89,90))
+OR f.id = 39 OR (f.id IN (52,53,55,56,57,58)) OR (f.id IN(60,62,68,70,71,72,80,78,82,87,89,90))
 OR (f.id IN (93,95,96,97)) OR (f.id >= 107 AND f.id <= 109) OR (f.id >= 123 AND f.id <= 135)
 OR (f.id >= 137 AND f.id <= 140);
 

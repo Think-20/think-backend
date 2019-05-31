@@ -207,7 +207,7 @@ class Task extends Model
         return true;
     }
 
-    public function insertContinuation(DateTime $date, $duration) {
+    public function insertContinuation(DateTime $date, $duration, $tempBudget) {
         $availableDate = $date->format('Y-m-d');
         $jobActivity = JobActivity::where('description', '=', 'Continuação')->first();
 
@@ -353,10 +353,44 @@ class Task extends Model
         }
     }
 
+    public function calcDurationBudget(): array {
+        $taskBudget = new TaskBudget();
+        $responsible = $this->responsible;
+        $jobValue = $this->job->budget_value;
+        $duration = 0;
+        $durationArray = [];
+        $date = new DateTime($this->available_date);
+
+        while($jobValue > 0) {
+            $space = $taskBudget->quantityAvailable($date, $responsible);
+            $date = ScheduleBlock::sumUtilNonBlocked($date, $responsible->user, 1);
+            $jobValue = $jobValue - $space;
+            $durationArray[$duration] = abs($jobValue);
+            $duration++;
+        }
+        
+        return $durationArray;
+    }
+
     public function saveItems($verifyScheduleBlock = true, $exception = false)
     {
+        $jobActivity = $this->job_activity;
+        $jobActivityPrevious = $this->task != null ? $this->task->job_activity->description : '';
         $date = new DateTime($this->available_date);
-        $duration = $this->duration;
+        $durationArray = [];
+
+        if($jobActivity->description == 'Orçamento' 
+        || ($jobActivity == 'Continuação' && $jobActivityPrevious == 'Orçamento')) {
+            $durationArray = $this->calcDurationBudget();
+            $duration = count($durationArray);
+            $this->duration = $duration;
+            $this->save();
+            $tempBudget = $this->job->budget_value;
+        } else {
+            $duration = $this->duration;
+            $tempBudget = 0;
+        }
+
         $tempDuration = (float) $duration;
 
         for ($i = 0; $i < $duration; $i++) {
@@ -364,17 +398,23 @@ class Task extends Model
                 $date = ScheduleBlock::sumUtilNonBlocked($date, $this->responsible->user, 1);
                 $this->duration = $duration - $tempDuration;
                 $this->save();
-                $this->insertContinuation($date, $tempDuration);
+                $this->insertContinuation($date, $tempDuration, $tempBudget);
                 return;
             }
 
-            $fator = (float) $tempDuration >= 1
+            $durationFator = (float) $tempDuration >= 1
                 ? 1
                 : $tempDuration;
 
-            $tempDuration = (float) $tempDuration - $fator;
+            //A fazer - decrementar o saldo diário para orçamento
+            $budgetFator = (float) $tempBudget == 0
+                ? 0
+                : $durationArray[$i];
+
+            $tempDuration = (float) $tempDuration - $durationFator;
             TaskItem::insert([
-                'duration' => $fator,
+                'budget_value' => $budgetFator,
+                'duration' => $durationFator,
                 'date' => $date->format('Y-m-d'),
                 'task_id' => $this->id
             ]);

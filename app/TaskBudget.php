@@ -25,41 +25,64 @@ class TaskBudget implements TaskInterface {
     public function reachedLimit(DateTime $date, $budgetValue): bool {
         $this->availableResponsibles = new Collection();
 
-        $limitValue = 400000;
+        $limitValue = $this->getMaxBudgetValue();
         $jobActivity = JobActivity::where('description', '=', 'Orçamento')->first();
         $responsibles = TaskBudget::getResponsibleList();
 
-        $tasks = Task::with('job', 'responsible')
-        ->where('available_date', '=', $date->format('Y-m-d'))
-        ->where('job_activity_id', '=', $jobActivity->id)
-        ->whereIn('responsible_id', $responsibles->pluck('id')->all())
+        $taskItems = TaskItem::with('task', 'task.job', 'task.responsible')
+        ->where('task_item.date', '=', $date->format('Y-m-d'))
+        ->whereHas('task', function ($query) use ($jobActivity, $responsibles) {
+            $query->where('task.job_activity_id', '=', $jobActivity->id);
+            $query->whereIn('task.responsible_id', $responsibles->pluck('id')->all());
+        })
         ->get();
 
-        if($tasks->count() == 0) {
+        if($taskItems->count() == 0) {
             $this->availableResponsibles = $this->getResponsibleList();
         }
 
-        $grouped = $tasks->groupBy('responsible_id');
+        $grouped = $taskItems->groupBy('task.responsible_id');
 
-        foreach($grouped as $key => $tasks) {
-            if($tasks->count() >= 5) {
-                return true;
+        foreach($grouped as $key => $items) {    
+            $itemsSum = 0;
+    
+            foreach($items as $item) {
+                $itemsSum = $itemsSum + $item->budget_value;
             }
     
-            $jobs = new Collection();
-    
-            foreach($tasks as $task) {
-                $jobs->add($task->job);
-            }
-    
-            if($tasks->count() > 0 && ($jobs->sum('budget_value') + $budgetValue) > $limitValue) {
+            if($itemsSum == $limitValue) {
                 return true;
             }
 
-            $this->availableResponsibles->add($tasks[0]->responsible);
+            $this->availableResponsibles->add($items[0]->task->responsible);
         }
 
         return false;
+    }
+
+    public function quantityAvailable(DateTime $date, Employee $responsible): float {
+        $limitValue = $this->getMaxBudgetValue();
+        $jobActivity = JobActivity::where('description', '=', 'Orçamento')->first();
+
+        $taskItems = TaskItem::with('task', 'task.job')
+        ->where('task_item.date', '=', $date->format('Y-m-d'))
+        ->whereHas('task', function ($query) use ($jobActivity, $responsible) {
+            $query->where('task.job_activity_id', '=', $jobActivity->id);
+            $query->where('task.responsible_id', $responsible->id);
+        })
+        ->get();
+ 
+        $itemsSum = 0.0;
+
+        foreach($taskItems as $item) {   
+            $itemsSum = $itemsSum + $item->budget_value;
+        }
+
+        return $limitValue - $itemsSum;
+    }
+
+    public function getMaxBudgetValue(): float {
+        return 400000.0;
     }
 
     public function generateNewSuggestDate(DateTime $date, $budgetValue): DateTime {
