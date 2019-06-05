@@ -46,7 +46,7 @@ class Employee extends Model implements NotifierInterface
         if($this->image == 'sem-foto.jpg' || $this->image == 'users/sem-foto.jpg') return;
 
         $browserFiles = [];
-        $path = resource_path('assets/images/users/');
+        $path = public_path('assets/images/users/');
 
         if(!is_dir($path)) {
             mkdir($path);
@@ -62,7 +62,7 @@ class Employee extends Model implements NotifierInterface
     public function removeFile() {
         if($this->image == 'sem-foto.jpg' || $this->image == 'users/sem-foto.jpg') return;
 
-        $path = resource_path('assets/images/');
+        $path = public_path('assets/images/');
         $file = $path . $this->image;
 
         if(is_file($file)) {

@@ -39,57 +39,6 @@ Route::get('/assets/images/temp/{filename}', function ($filename)
     return $response;
 });
 
-Route::get('/assets/images/{filename}', function ($filename)
-{
-    $path = resource_path('assets/images/' . $filename);
-
-    if (!File::exists($path)) {
-        abort(404);
-    }
-
-    $file = File::get($path);
-    $type = File::mimeType($path);
-
-    $response = Response::make($file, 200);
-    $response->header("Content-Type", $type);
-
-    return $response;
-});
-
-Route::get('/assets/images/logo/{filename}', function ($filename)
-{
-    $path = resource_path('assets/images/logo/' . $filename);
-
-    if (!File::exists($path)) {
-        abort(404);
-    }
-
-    $file = File::get($path);
-    $type = File::mimeType($path);
-
-    $response = Response::make($file, 200);
-    $response->header("Content-Type", $type);
-
-    return $response;
-});
-
-Route::get('/assets/images/users/{filename}', function ($filename)
-{
-    $path = resource_path('assets/images/users/' . $filename);
-
-    if (!File::exists($path)) {
-        abort(404);
-    }
-
-    $file = File::get($path);
-    $type = File::mimeType($path);
-
-    $response = Response::make($file, 200);
-    $response->header("Content-Type", $type);
-
-    return $response;
-});
-
 Route::get('/project-files/view/{id}', function ($id)
 {
     $projectFile = App\ProjectFile::find($id);

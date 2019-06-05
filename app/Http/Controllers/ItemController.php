@@ -115,7 +115,7 @@ class ItemController extends Controller
     public static function image(Request $request) {
         $file = $request->file('image');
         $name = md5(time()) . $file->getClientOriginalExtension();
-        $file->move(resource_path('assets/images'), $name);
+        $file->move(public_path('assets/images'), $name);
 
         return ['name' => $name];
     }

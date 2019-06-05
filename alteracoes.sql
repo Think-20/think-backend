@@ -1,1 +1,0 @@
-alter table task_item add column budget_value decimal(13,2) default 0;
