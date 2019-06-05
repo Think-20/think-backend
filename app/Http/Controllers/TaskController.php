@@ -107,7 +107,7 @@ class TaskController extends Controller
 
         return PDF::loadView('pdf.memorial', [
             'task' => $task,
-            'bg' => base64_encode(file_get_contents(resource_path() . '/assets/images/timbrado.jpg'))
+            'bg' => base64_encode(file_get_contents(public_path() . '/assets/images/timbrado.jpg'))
         ])
         ->stream($task->job->getJobName() . ' - Memorial descritivo.pdf');
     }

@@ -3,6 +3,7 @@
 header('Access-Control-Allow-Origin: *');  
 header('Access-Control-Allow-Methods: GET, PUT, POST, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-XSRF-TOKEN, Origin, User, Authorization');
+header('Access-Control-Max-Age: 86400');
 
 function mask($val, $mask)
 {
