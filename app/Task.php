@@ -18,6 +18,12 @@ class Task extends Model
         return trim($this->job_activity->description . ' ' . $pad);
     }
 
+    public static function responsiblesByActivity($jobActivityId) {
+        $jobActivity = JobActivity::find($jobActivityId);
+        $taskBuild = TaskFactory::build($jobActivity->description);        
+        return $taskBuild->getResponsibleList();
+    }
+
     public static function getNextAvailableDate(string $availableDate, int $estimatedTime, string $jobActivity, $budgetValue)
     {
         $taskBuild = TaskFactory::build($jobActivity);
@@ -338,7 +344,7 @@ class Task extends Model
     public static function modifyReopened(Task $task) {
         $description = $task->job_activity->description;
 
-        if(in_array($description, ['Projeto', 'Outsider', 'Projeto externo'])) {
+        if(in_array($description, ['Projeto', 'Outsider', 'Projeto externo', 'Orçamento'])) {
             $sum = 0;
         } else {
             $sum = 1;    

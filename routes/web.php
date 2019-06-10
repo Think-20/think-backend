@@ -130,6 +130,7 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/jobs/load-form', 'JobController@loadForm');
     Route::get('/tasks/get-next-available-date/{availableDate}/{estimatedTime}/{jobActivity}/{budgetValue}', 'TaskController@getNextAvailableDate');
     Route::post('/tasks/get-available-dates', 'TaskController@getNextAvailableDates');
+    Route::get('/tasks/{jobActivityId}/responsibles', 'TaskController@responsiblesByActivity');
     Route::get('/tasks/updated-info', 'TaskController@updatedInfo');
 
     Route::get('/notifications/all', 'NotificationController@all');
