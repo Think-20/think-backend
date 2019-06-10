@@ -1,0 +1,1 @@
+UPDATE task SET reopened = 0 where job_activity_id = 2;

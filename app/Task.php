@@ -344,7 +344,7 @@ class Task extends Model
     public static function modifyReopened(Task $task) {
         $description = $task->job_activity->description;
 
-        if(in_array($description, ['Projeto', 'Outsider', 'Projeto externo'])) {
+        if(in_array($description, ['Projeto', 'Outsider', 'Projeto externo', 'Orçamento'])) {
             $sum = 0;
         } else {
             $sum = 1;    
