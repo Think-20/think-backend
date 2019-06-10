@@ -12,6 +12,8 @@ abstract class TaskFactory {
             return new TaskDetailing;
         } else if($type == 'Memorial descritivo') {
             return new TaskMemorial;
+        } else if($type == 'Projeto externo') {
+            return new TaskExternalProject;
         } else {
             return new TaskOthers;
         }

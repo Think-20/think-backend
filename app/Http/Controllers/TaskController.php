@@ -112,6 +112,10 @@ class TaskController extends Controller
         ->stream($task->job->getJobName() . ' - Memorial descritivo.pdf');
     }
 
+    public static function responsiblesByActivity($jobActivityId) {
+        return Task::responsiblesByActivity($jobActivityId);
+    }
+
     public static function remove(int $id) {
         DB::beginTransaction();
         $status = false;
