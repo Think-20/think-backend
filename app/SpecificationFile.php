@@ -72,9 +72,8 @@ class SpecificationFile extends Model {
         $specificationFile = $specification_files[0];
         $task1 = $specificationFile->task;
 
-        $message1 = $specificationFile->responsible->name . ': Entrega de memorial descritivo da ';
+        $message1 = 'Entrega de memorial descritivo da ';
         $message1 .= $task1->job->getJobName();
-        $message1 .= ' para ' . $task1->responsible->name;
 
         if( !Notification::hasPrevious($message1, 'Entrega de memorial', $task1->id) ) {
             Notification::createAndNotify(User::logged()->employee, [

@@ -73,9 +73,14 @@ class ProjectFile extends Model {
         $projectFile = $project_files[0];
         $task1 = $projectFile->task;
 
-        $message1 = $projectFile->responsible->name . ': Entrega de ' . $task1->getTaskName() . ' da ';
-        $message1 .= $task1->job->getJobName();
-        $message1 .= ' para ' . $task1->job->attendance->name;
+        if($task1->job_activity->description != 'Projeto externo') {
+            $message1 = $projectFile->responsible->name . ': Entrega de ' . $task1->getTaskName() . ' da ';
+            $message1 .= $task1->job->getJobName();
+            $message1 .= ' para ' . $task1->job->attendance->name;
+        } else {
+            $message1 = $task1->job->attendance->name . ': Entrega de ' . $task1->getTaskName() . ' da ';
+            $message1 .= $task1->job->getJobName();
+        }
 
         if( !Notification::hasPrevious($message1, 'Entrega de projeto', $task1->id) ) {
             Notification::createAndNotify(User::logged()->employee, [
