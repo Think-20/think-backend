@@ -1,1 +1,1 @@
-UPDATE task SET reopened = 0 where job_activity_id = 2;
+ALTER TABLE task CHANGE COLUMN project_file_done done tinyint(1) not null default 0;

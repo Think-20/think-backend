@@ -93,6 +93,16 @@ class ProjectFile extends Model {
 
         return $project_files;
     }
+    
+    public function updateDone(Task $task) {
+        if($task->project_files->count() > 0) {
+            $task->done = 1;
+        } else {
+            $task->done = 0;
+        }
+
+        $task->save();
+    }
 
     public static function insert(array $data) {
         $original_name = isset($data['original_name']) ? $data['original_name'] : null;
@@ -112,8 +122,10 @@ class ProjectFile extends Model {
         $project_file->save();
         $project_file->moveFile();
 
-        $project_file->task->insertMemorial();
-        $project_file->task->updateProjectFileDone();
+        $task = $project_file->task;
+
+        $task->insertMemorial();
+        $project_file->updateDone($task);
         
         return $project_file;
     }
@@ -140,7 +152,7 @@ class ProjectFile extends Model {
         $task = $projectFile->task;
         $projectFile->deleteFile();
         $projectFile->delete();
-        $task->updateProjectFileDone();
+        $projectFile->updateDone($task);
     }
 
 
