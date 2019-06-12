@@ -89,7 +89,8 @@ delete from notification_rule;
 insert into notification_rule select null, n.id, u.id from notification_type n inner join user u;
 
 
-/* ------------------ Rafaela --------------------- */
+/* ------------------ Acessos orçamento para Pamela e Rafaela --------------------- */
 insert into user_functionality (user_id, functionality_id) values (14, 73), (14, 74);
+insert into user_functionality (user_id, functionality_id) values (4, 73), (4, 74);
 
 
