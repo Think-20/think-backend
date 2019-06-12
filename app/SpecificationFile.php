@@ -105,10 +105,11 @@ class SpecificationFile extends Model {
         $specification_file->save();
         $specification_file->moveFile();
 
-        if(Task::find($task_id)->job->job_activity->description != 'Orçamento') {
+        $task = Task::find($task_id);
+        if($task->job->job_activity->description != 'Orçamento') {
             $specification_file->task->insertBudget();
         }        
-        //$specification_file->task->updateSpecificationFileDone();
+        $specification_file->updateDone($task);
         
         return $specification_file;
     }
@@ -118,9 +119,18 @@ class SpecificationFile extends Model {
         $task = $specificationFile->task;
         $specificationFile->deleteFile();
         $specificationFile->delete();
-        //$task->updateSpecificationFileDone();
+        $specificationFile->updateDone($task);
     }
 
+    public function updateDone(Task $task) {
+        if($task->specification_files->count() > 0) {
+            $task->done = 1;
+        } else {
+            $task->done = 0;
+        }
+
+        $task->save();
+    }
 
     public function deleteFile() {
         $path = env('FILES_FOLDER') . '/specification-files';
