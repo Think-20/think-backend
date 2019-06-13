@@ -16,6 +16,7 @@ Route::get('/', function () {
 });
 
 Route::post('/login', 'UserController@login')->name('login');
+Route::get('/check-token', 'UserController@checkToken')->name('checkToken');
 Route::post('/logout', 'UserController@logout')->name('logout');
 
 /*  
