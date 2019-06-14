@@ -19,6 +19,10 @@ Route::post('/login', 'UserController@login')->name('login');
 Route::get('/check-token', 'UserController@checkToken')->name('checkToken');
 Route::post('/logout', 'UserController@logout')->name('logout');
 
+Route::get('/notify-past', function() {
+    return (new App\CreateNotifyPastTasks())->test();
+});
+
 /*  
     Construir authenticate request para imagens 
     http://blog.jsgoupil.com/request-image-files-with-angular-2-and-an-bearer-access-token/
@@ -272,6 +276,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
 
     Route::post('/my-task/save', 'TaskController@save');
     Route::post('/my-tasks/filter', 'TaskController@filterMyTask');
+    Route::get('/my-tasks/get/{id}', 'TaskController@getMyTask');
     Route::put('/my-task/edit-available-date', 'TaskController@myEditAvailableDate');
     Route::delete('/my-task/remove/{id}', 'TaskController@removeMyTask');
     

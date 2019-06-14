@@ -661,6 +661,19 @@ class Task extends Model
         ];
     }
 
+    public static function getMyTask($id)
+    {
+        $task = Task::findOrFail($id);
+
+        if($task->responsible->user->id != User::logged()->id) return;
+
+        $task->responsible;
+        $task->job;
+        $task->items;
+        $task->job_activity;
+        return $task;
+    }
+
     public static function filterMyTask($params)
     {
         $user = User::logged();

@@ -4,6 +4,7 @@ namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use App\CreateNotifyPastTasks;
 
 class Kernel extends ConsoleKernel
 {
@@ -26,6 +27,7 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')
         //          ->hourly();
+        $schedule->call(new CreateNotifyPastTasks)->dailyAt('00:00');
     }
 
     /**

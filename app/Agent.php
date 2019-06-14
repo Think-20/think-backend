@@ -34,7 +34,7 @@ class Agent extends Model implements NotifierInterface
         return '';
     }
 
-    public static function automatic() {
+    public static function automatic(): Agent {
         return Agent::all()->first();
     }
 
