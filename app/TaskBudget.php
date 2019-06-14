@@ -78,7 +78,9 @@ class TaskBudget implements TaskInterface {
             $itemsSum = $itemsSum + $item->budget_value;
         }
 
-        return $limitValue - $itemsSum;
+        $quantity = $limitValue - $itemsSum;
+
+        return $quantity >= 0 ? $quantity : 0;
     }
 
     public function getMaxBudgetValue(): float {
