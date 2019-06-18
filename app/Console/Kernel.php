@@ -27,7 +27,9 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')
         //          ->hourly();
-        $schedule->call(new CreateNotifyPastTasks)->dailyAt('00:00');
+        $schedule->call(function() {
+            new CreateNotifyPastTasks;
+        })->dailyAt('00:00');
     }
 
     /**
