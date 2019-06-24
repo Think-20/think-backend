@@ -359,10 +359,12 @@ class Task extends Model
 
         while($jobValue > 0) {
             $space = $taskBudget->quantityAvailable($date, $responsible);
-            $date = ScheduleBlock::sumUtilNonBlocked($date, $responsible->user, 1);
+            $diff = $jobValue - $space;
+            $durationArray[$duration] = $diff <= 0 ? $jobValue : $space;
             $jobValue = $jobValue - $space;
-            $durationArray[$duration] = abs($jobValue);
+
             $duration++;
+            $date = ScheduleBlock::sumUtilNonBlocked($date, $responsible->user, 1);
         }
         
         return $durationArray;
