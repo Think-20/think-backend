@@ -103,7 +103,7 @@ class ActivityHelper
         $date = new DateTime($initialDate);
         $now = new DateTime('now');
 
-        if($date->format('Y-m-d') <= $now->format('Y-m-d')) {
+        if($date->format('Y-m-d') < $now->format('Y-m-d')) {
             $date = DateHelper::sumUtil($now, 1);
         }        
 
