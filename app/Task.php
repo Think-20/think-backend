@@ -220,7 +220,7 @@ class Task extends Model
     }
 
     public function insertMemorial() {
-        $date = ScheduleBlock::sumUtilNonBlocked(new DateTime('now'), $this->job->attendance->user, 1);
+        $date = ScheduleBlock::sumUtilNonBlocked(DateHelper::subUtil(new DateTime('now'), 1), $this->job->attendance->user, 1);
         $jobActivity = JobActivity::where('description', '=', 'Memorial descritivo')->first();
 
         $count = Task::where('job_activity_id', '=', $jobActivity->id)
