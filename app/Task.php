@@ -245,7 +245,7 @@ class Task extends Model
     }
 
     public function insertBudget() {
-        $date = ScheduleBlock::sumUtilNonBlocked(new DateTime('now'), $this->job->attendance->user, 1);
+        $date = ScheduleBlock::sumUtilNonBlocked(DateHelper::subUtil(new DateTime('now'), 1), $this->job->attendance->user, 1);
         $arr = Task::getNextAvailableDate($date->format('Y-m-d'), 1, 'Orçamento', $this->job->budget_value);       
 
         $jobActivity = JobActivity::where('description', '=', 'Orçamento')->first();
