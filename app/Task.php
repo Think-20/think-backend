@@ -447,7 +447,7 @@ class Task extends Model
 
         $task = Task::find($id);
         $task->deleteItems();
-        $task->saveItems(true, true);
+        $task->saveItems(true);
 
         if($oldResponsibleId != $task->responsible_id) {
             $message = 'Responsável de ' . strtolower($task->getTaskName()) . ' da ';
