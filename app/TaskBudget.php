@@ -39,6 +39,8 @@ class TaskBudget implements TaskInterface {
 
         if($taskItems->count() == 0) {
             $this->availableResponsibles = $this->getResponsibleList();
+        } else if($taskItems->count() == 5) {
+            return true;
         }
 
         $grouped = $taskItems->groupBy('task.responsible_id');
