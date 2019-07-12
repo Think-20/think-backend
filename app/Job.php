@@ -721,6 +721,10 @@ class Job extends Model
             throw new \Exception('Agencia/cliente do job não informado!');
         }
 
+        if(!isset($data['client']['id']) && empty($data['not_client'])) {
+            throw new \Exception('Cliente do job não informado!');
+        }
+
         if(!isset($data['competition']['id'])) {
             throw new \Exception('Concorrência do job não informada!');
         }
