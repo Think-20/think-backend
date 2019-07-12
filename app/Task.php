@@ -705,6 +705,7 @@ class Task extends Model
             foreach($paginate as $task) {
                 $task->job = Job::get($task->job_id);
                 $task->items;
+                $task->task;
                 $task->responsible;
                 $task->job_activity;
             }
@@ -719,6 +720,7 @@ class Task extends Model
                 $task->job = Job::get($task->job_id);
                 $task->responsible;
                 $task->items;
+                $task->task;
                 $task->job_activity;
             }
 
@@ -865,7 +867,7 @@ class Task extends Model
 
     public function task()
     {
-        return $this->belongsTo('App\Task', 'task_id');
+        return $this->belongsTo('App\Task', 'task_id')->with('job_activity');
     }
 
     public function budget()
