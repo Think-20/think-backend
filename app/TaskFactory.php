@@ -14,6 +14,8 @@ abstract class TaskFactory {
             return new TaskMemorial;
         } else if($type == 'Projeto externo') {
             return new TaskExternalProject;
+        } else if($type == 'Modificação de orçamento') {
+            return new TaskBudgetModify;
         } else {
             return new TaskOthers;
         }

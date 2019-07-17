@@ -271,6 +271,33 @@ class Task extends Model
         Task::insert($data, $responsible, false);
     }
 
+    public function insertBudgetModify() {
+        $date = ScheduleBlock::sumUtilNonBlocked(DateHelper::subUtil(new DateTime('now'), 1), $this->job->attendance->user, 1);
+        $arr = Task::getNextAvailableDate($date->format('Y-m-d'), 1, 'Modificação de orçamento', $this->job->budget_value);       
+
+        $jobActivity = JobActivity::where('description', '=', 'Modificação de orçamento')->first();
+        $count = Task::where('job_activity_id', '=', $jobActivity->id)
+        ->where('task_id', '=', $this->id)
+        ->get()
+        ->count();
+
+        if($count > 0) {
+            return;
+        }
+
+        $responsible = $arr['available_responsibles'][0];
+        $data = [
+            'responsible' => ['id' => $responsible->id],
+            'job' => ['id' => $this->job->id],
+            'job_activity' => ['id' => $jobActivity->id],
+            'duration' => 1,
+            'available_date' => $arr['available_date'],
+            'task' => ['id' => $this->id]
+        ];
+        
+        Task::insert($data, $responsible, false);
+    }
+
     public static function insert(array $data, NotifierInterface $notifier = null, $recursiveScheduleBlock = true)
     {
         $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
