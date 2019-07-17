@@ -510,7 +510,7 @@ class Client extends Model implements Contactable
             ->minLength(3)
             ->maxLength(50);
 
-        $this->attributes['fantasy_name'] = ucwords(strtolower($value));
+        $this->attributes['fantasy_name'] = ucwords(mb_strtolower($value));
     }
     
     public function setNameAttribute($value) {

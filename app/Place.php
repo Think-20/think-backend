@@ -142,7 +142,7 @@ class Place extends Model
     }
 
     public function setNameAttribute($value) {
-        $this->attributes['name'] = ucwords(strtolower($value));
+        $this->attributes['name'] = ucwords(mb_strtolower($value));
     }
 
     public function getCepAttribute($value) {

@@ -917,15 +917,15 @@ class Job extends Model
     }
 
     public function setNotClientAttribute($value) {
-        $this->attributes['not_client'] = ucwords(strtolower($value));
+        $this->attributes['not_client'] = ucwords(mb_strtolower($value));
     }
 
     public function setEventAttribute($value) {
-        $this->attributes['event'] = ucwords(strtolower($value));
+        $this->attributes['event'] = ucwords(mb_strtolower($value));
     }
 
     public function setLastProviderAttribute($value) {
-        $this->attributes['last_provider'] = ucwords(strtolower($value));
+        $this->attributes['last_provider'] = ucwords(mb_strtolower($value));
     }
 
     public function setBudget_valueAttribute($value) {
