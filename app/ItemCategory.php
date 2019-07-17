@@ -18,7 +18,7 @@ class ItemCategory extends Model
     public static function edit(array $data) {
         $id = $data['id'];
         $itemCategory = ItemCategory::find($id);
-        $itemCategory->item_category_id = isset($data['itemCategory']['id']) ? $data['itemCategory']['id'] : null;
+        $itemCategory->item_category_id = isset($data['item_category']['id']) ? $data['item_category']['id'] : null;
 
         if($itemCategory->id == $itemCategory->item_category_id) {
             throw new Exception('Não é possível cadastrar uma categoria sendo a própria subcategoria.');
@@ -29,7 +29,7 @@ class ItemCategory extends Model
 
     public static function insert(array $data) {
         $itemCategory = new ItemCategory($data);
-        $itemCategory->item_category_id = isset($data['itemCategory']['id']) ? $data['itemCategory']['id'] : null;
+        $itemCategory->item_category_id = isset($data['item_category']['id']) ? $data['item_category']['id'] : null;
         $itemCategory->save();
     }
 
@@ -63,7 +63,7 @@ class ItemCategory extends Model
 
     public static function get(int $id) {
         $itemCategory = ItemCategory::find($id);
-        $itemCategory->itemCategory;
+        $itemCategory->item_category;
         return $itemCategory;
     }
 
