@@ -474,7 +474,20 @@ class Task extends Model
 
         $task = Task::find($id);
         $task->deleteItems();
-        $task->saveItems(true);
+
+        //Rotina para burlar a edição via ADM para orçamento que tem duração por valor
+        if($task->job_activity->description == 'Orçamento') {
+            $task->job_activity_id = 1;
+            $task->save();
+            $task = Task::find($id);
+            $task->saveItems(true);
+            $task->job_activity_id = 2;
+            $task->save();
+            $task = Task::find($id);
+        } else {
+            $task->saveItems(true);            
+        }
+
 
         if($oldResponsibleId != $task->responsible_id) {
             $message = 'Responsável de ' . strtolower($task->getTaskName()) . ' da ';
@@ -496,7 +509,7 @@ class Task extends Model
         }
 
         if($oldDuration != $task->duration) {
-            $message = 'Duração de ' . strtolower($task->getTaskName()) . ' da ';
+            $message = 'Duração de ' . mb_strtolower($task->getTaskName()) . ' da ';
             $message .= $task->job->getJobName();
             $message .= ' alterada de ' . strval((int) $oldDuration) . ' para ' . strval((int) $task->duration) . ' dia(s)'; 
 
