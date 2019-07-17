@@ -490,7 +490,7 @@ class Task extends Model
 
 
         if($oldResponsibleId != $task->responsible_id) {
-            $message = 'Responsável de ' . strtolower($task->getTaskName()) . ' da ';
+            $message = 'Responsável de ' . mb_strtolower($task->getTaskName()) . ' da ';
             $message .= $task->job->getJobName();
             $message .= ' alterado de ' . $oldResponsible . ' para ' . $task->responsible->name; 
 
@@ -525,7 +525,7 @@ class Task extends Model
         }
 
         if($oldDate != $task->available_date) {
-            $message = 'Data de ' . strtolower($task->getTaskName()) . ' da ';
+            $message = 'Data de ' . mb_strtolower($task->getTaskName()) . ' da ';
             $message .= $task->job->getJobName();
             $message .= ' alterada de ' . (new DateTime($oldDate))->format('d/m/Y') . ' para ' . (new DateTime($task->available_date))->format('d/m/Y');
 
