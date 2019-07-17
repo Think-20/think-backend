@@ -35,7 +35,7 @@ class ItemCategory extends Model
 
     public static function list(array $data)
     {
-        $itemCategories = ItemCategory::with('itemCategory')->orderBy('description', 'asc')->get();
+        $itemCategories = ItemCategory::with('item_category')->orderBy('description', 'asc')->get();
 
         return [
             'pagination' => $itemCategories,
@@ -72,7 +72,8 @@ class ItemCategory extends Model
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
         $description = isset($params['search']) ? $params['search'] : '';
 
-        $itemCategories = ItemCategory::where('description', 'like', $description . '%');
+        $itemCategories = ItemCategory::with('item_category')
+        ->where('description', 'like', $description . '%');
 
         if ($paginate) {
             $paginate = $itemCategories->paginate(50);
@@ -99,7 +100,7 @@ class ItemCategory extends Model
         }
     }
 
-    public function itemCategory() {
+    public function item_category() {
         return $this->belongsTo('App\ItemCategory', 'item_category_id');
     }
 
