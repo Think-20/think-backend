@@ -15,8 +15,8 @@ use Illuminate\Database\QueryException;
 
 class TaskController extends Controller
 {    
-    public static function getNextAvailableDate($availableDate, $estimatedTime, $jobActivity, $budgetValue) {
-        return Response::make(json_encode(Task::getNextAvailableDate($availableDate, $estimatedTime, $jobActivity, $budgetValue)), 200); 
+    public static function getNextAvailableDate($availableDate, $jobActivity) {
+        return Response::make(json_encode(Task::getNextAvailableDate($availableDate, $jobActivity)), 200); 
     }
 
     public static function getNextAvailableDates(Request $request) {

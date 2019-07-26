@@ -12,9 +12,7 @@
 */
 
 Route::get('/', function () {
-    //return view('welcome');
-    
-    return App\TaskHelper::getAvailableDates(new DateTime('now'), App\DateHelper::sumUtil(new DateTime(), 30), App\JobActivity::find(1));
+    return abort(404);
 });
 
 Route::post('/login', 'UserController@login')->name('login');

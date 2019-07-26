@@ -9,19 +9,38 @@ use stdClass;
 
 class TaskHelper
 {
-    public static function getAvailableDates(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity) 
+    public static function getDates(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity, array $onlyEmployees) 
     {
-        return TaskHelper::checkNextAvailableDates($initialDate, $finalDate, $jobActivity);
+        $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity);
+        $itemsWithSpecificEmployees = TaskHelper::filterByEmployees($items, $onlyEmployees);
+
+        return $itemsWithSpecificEmployees;
+    }
+
+    public static function filterByEmployees(Collection $items, array $onlyEmployees): Collection {
+        if(count($onlyEmployees) == 0) return $items;
+
+        return $items->filter(function($item) use ($onlyEmployees) {
+            return in_array($item->responsible_id, $onlyEmployees);
+        });
     }
 
     public static function getNextAvailableDate(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity) 
     {
-        $datesAvailable = TaskHelper::checkNextAvailableDates($initialDate, $finalDate, $jobActivity->responsibles);
-        return $datesAvailable->first();
+        do {
+            $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity->responsibles);
+            $initialDate = DateHelper::sumUtil($initialDate, 30);
+            $finalDate = DateHelper::sumUtil($initialDate, 30);
+            $availableDates = $items->filter(function($item) {
+                return $item->status == 'true';
+            });
+        } while($availableDates->count() == 0);
+
+        return $items->first();
     }
 
     public static function completeDates(DateTime $initialDate, DateTime $finalDate, Collection $employees): Collection {
-        $availableDates = new Collection();
+        $items = new Collection();
         $initialDate = DateHelper::sumUtil(DateHelper::sub($initialDate, 1), 1);
 
         while($initialDate->format('Y-m-d') < $finalDate->format('Y-m-d')) {
@@ -32,17 +51,17 @@ class TaskHelper
                 $std->date = $initialDate->format('Y-m-d');
                 $std->responsible_id = $employee->id;
                 $std->user_id = $employee->user->id;
-                $availableDates->push($std);
+                $items->push($std);
             }
 
             $initialDate = DateHelper::sumUtil($initialDate, 1);
         }
 
-        return $availableDates;
+        return $items;
     }
 
-    public static function checkNextAvailableDates(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity): Collection {
-        $availableDates = new Collection();
+    public static function checkNextDates(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity) : Collection {
+        $items = new Collection();
         $itemsForVerification = TaskHelper::getItemsForVerification($initialDate, $finalDate, $jobActivity)
         ->map(function($item) {
             $std = new stdClass();
@@ -65,10 +84,10 @@ class TaskHelper
                 $item->status = 'false';
                 $item->message = $e->getMessage();
             }        
-            $availableDates->push($item);
+            $items->push($item);
         }
 
-        return $availableDates;
+        return $items;
     }
 
     public static function checkIfDateAvailable($item, JobActivity $jobActivity): void {

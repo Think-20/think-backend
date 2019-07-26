@@ -20,57 +20,33 @@ class Task extends Model
 
     public static function responsiblesByActivity($jobActivityId) {
         $jobActivity = JobActivity::find($jobActivityId);
-        $taskBuild = TaskFactory::build($jobActivity->description);        
-        return $taskBuild->getResponsibleList();
+        return $jobActivity->responsibles;
     }
 
-    public static function getNextAvailableDate(string $availableDate, int $estimatedTime, string $jobActivity, $budgetValue)
+    public static function getNextAvailableDate(string $availableDate, string $jobActivity)
     {
-        $taskBuild = TaskFactory::build($jobActivity);
+        $initialDate = new DateTime($availableDate);
+        $finalDate = DateHelper::sumUtil($initialDate, 30);
         $jobActivity = JobActivity::where('description', '=', $jobActivity)->first();
-        $responsibles = $taskBuild->getResponsibleList();
-
-        $arr = ActivityHelper::calculateNextDate($availableDate, $jobActivity, $responsibles, $estimatedTime);
 
         return [
-            'available_date' => $arr['date'],
-            'available_responsibles' => $arr['available_responsibles'],
-            'responsibles' => $responsibles
-        ];
+            'items' => TaskHelper::getNextAvailableDate($initialDate, $finalDate, $jobActivity),
+            'responsibles' => $jobActivity->responsibles
+        ]; 
     }
 
     public static function getNextAvailableDates(array $data)
     {
         $jobActivityId = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
-        $budgetValue = isset($data['budget_value']) ? $data['budget_value'] : 0;
-        $duration = isset($data['duration']) ? $data['duration'] : 1;
-        $onlyEmployeeId = isset($data['only_employee']['id']) ? $data['only_employee']['id'] : null;
-        $jobActivity = JobActivity::findOrFail($jobActivityId);
-        $taskBuild = TaskFactory::build($jobActivity->description);
-        $responsibles = $taskBuild->getResponsibleList();
-        
-        if( ! is_null($onlyEmployeeId) ) {
-            $responsibles = $responsibles->filter(function($responsible) use ($onlyEmployeeId) {
-                return $responsible->id == $onlyEmployeeId;
-            });
-        }
+        $onlyEmployees = isset($data['only_employee']['id']) ? [ $data['only_employee']['id'] ] : [];
 
-        $iniDate = isset($data['iniDate']) ? new DateTime($data['iniDate']) : null;
-        $finDate = isset($data['finDate']) ? new DateTime($data['finDate']) : null;
+        $jobActivity = JobActivity::find($jobActivityId);
+        $initialDate = isset($data['initialDate']) ? new DateTime($data['initialDate']) : null;
+        $finalDate = isset($data['finalDate']) ? new DateTime($data['finalDate']) : DateHelper::sumUtil($initialDate, 30);
 
-        if(DateHelper::dateInPast($iniDate, new DateTime('now'))) {
-            $iniDate = new DateTime('now');
-        }
-
-        $arr = [];
-        while($iniDate->format('Y-m-d') <= $finDate->format('Y-m-d')) {            
-            $arr[] = ActivityHelper::calculateNextDate($iniDate->format('Y-m-d'), $jobActivity, $responsibles, $duration, null, $budgetValue);
-            $iniDate = DateHelper::nextUtil($iniDate, 1);
-        }
-        
         return [
-            'dates' => $arr,
-            'responsibles' => $taskBuild->getResponsibleList()
+            'items' => TaskHelper::getDates($initialDate, $finalDate, $jobActivity, $onlyEmployees),
+            'responsibles' => $jobActivity->responsibles
         ];
     }
 
