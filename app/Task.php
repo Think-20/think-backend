@@ -9,7 +9,7 @@ class Task extends Model
 {
     protected $table = 'task';
     protected $fillable = [
-        'job_id', 'responsible_id', 'available_date', 'job_activity_id', 'duration',
+        'job_id', 'responsible_id', 'job_activity_id', 'duration',
         'reopened', 'task_id', 'done'
     ];
 
@@ -280,11 +280,7 @@ class Task extends Model
         $job_id = isset($data['job']['id']) ? $data['job']['id'] : null;
         $job_activity_id = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
         $task_id = isset($data['task']['id']) ? $data['task']['id'] : null;
-        $verifyScheduleBlock = isset($data['verify_schedule_block']) ? $data['verify_schedule_block'] : true;
-
-        if( empty($data['available_date']) ) {
-            unset($data['available_date']);
-        }
+        $items = isset($data['task']['items']) ? $data['task']['items'] : [];
 
         $task = new Task(array_merge($data, [
             'responsible_id' => $responsible_id,
@@ -292,19 +288,14 @@ class Task extends Model
             'job_activity_id' => $job_activity_id,
             'task_id' => $task_id,
         ]));
-        
-        if($verifyScheduleBlock && $recursiveScheduleBlock && $task->available_date != null) {
-            Task::checkScheduleBlock($task->available_date, $task->responsible, true);
-        }
 
         $task->save();
+        TaskItem::insertAll($task, $items);
 
-        if($task->available_date != null) {
-            $task->saveItems($verifyScheduleBlock);
-
+        if($task->initialDate() != null) {
             $message = $task->getTaskName() . ' da ';
             $message .= $task->job->getJobName();
-            $message .= ' agendado em ' . (new DateTime($task->available_date))->format('d/m/Y') . ' para ' . $task->responsible->name;
+            $message .= ' agendado em ' . (new DateTime($task->initialDate()))->format('d/m/Y') . ' para ' . $task->responsible->name;
 
             if($notifier == null) {
                 $notifier = User::logged()->employee;
@@ -325,6 +316,10 @@ class Task extends Model
         return $task;
     }
 
+    public function initialDate() {
+        return $this->items->count() == 0 ? null : $this->items->first()->date;
+    }
+
     public static function checkScheduleBlock(string $availableDate, Employee $responsible, $exception = false) {
         $blocked = ScheduleBlock::checkIfBlocked($availableDate, $responsible->user->id);
 
@@ -335,16 +330,14 @@ class Task extends Model
     }
 
     public static function modifyReopened(Task $task) {
-        $description = $task->job_activity->description;
-
-        if(in_array($description, ['Projeto', 'Outsider', 'Projeto externo', 'Orçamento'])) {
-            $sum = 0;
-        } else {
-            $sum = 1;    
+        if($task->job_activity->counter == 0) {
+            return;
         }
+
+        $sum = 1;    
         
         foreach($task->job->tasks as $t) {
-            if($t->job_activity->description == $description) {
+            if($t->job_activity->description == $task->job_activity->description) {
                 $t->reopened = $sum;
                 $t->save();
                 $sum++;
@@ -358,7 +351,7 @@ class Task extends Model
         $jobValue = $this->job->budget_value;
         $duration = 0;
         $durationArray = [];
-        $date = new DateTime($this->available_date);
+        $date = new DateTime($this->initialDate());
 
         while($jobValue > 0) {
             $space = $taskBudget->quantityAvailable($date, $responsible);
@@ -373,55 +366,8 @@ class Task extends Model
         return $durationArray;
     }
 
-    public function saveItems($verifyScheduleBlock = true, $exception = false)
-    {
-        $jobActivity = $this->job_activity;
-        $jobActivityPrevious = $this->task != null ? $this->task->job_activity->description : '';
-        $date = new DateTime($this->available_date);
-        $durationArray = [];
-
-        if($jobActivity->description == 'Orçamento' 
-        || ($jobActivity == 'Continuação' && $jobActivityPrevious == 'Orçamento')) {
-            $durationArray = $this->calcDurationBudget();
-            $duration = count($durationArray);
-            $this->duration = $duration;
-            $this->save();
-            $tempBudget = $this->job->budget_value;
-        } else {
-            $duration = $this->duration;
-            $tempBudget = 0;
-        }
-
-        $tempDuration = (float) $duration;
-
-        for ($i = 0; $i < $duration; $i++) {
-            if($verifyScheduleBlock && Task::checkScheduleBlock($date->format('Y-m-d'), $this->responsible, $exception)) {
-                $date = ScheduleBlock::sumUtilNonBlocked($date, $this->responsible->user, 1);
-                $this->duration = $duration - $tempDuration;
-                $this->save();
-                $this->insertContinuation($date, $tempDuration, $tempBudget);
-                return;
-            }
-
-            $durationFator = (float) $tempDuration >= 1
-                ? 1
-                : $tempDuration;
-
-            //A fazer - decrementar o saldo diário para orçamento
-            $budgetFator = (float) $tempBudget == 0
-                ? 0
-                : $durationArray[$i];
-
-            $tempDuration = (float) $tempDuration - $durationFator;
-            TaskItem::insert([
-                'budget_value' => $budgetFator,
-                'duration' => $durationFator,
-                'date' => $date->format('Y-m-d'),
-                'task_id' => $this->id
-            ]);
-            $date = DateHelper::sumUtil($date, 1);
-        }
-
+    public function saveItems() {
+        
     }
 
     public function deleteItems()
@@ -440,7 +386,7 @@ class Task extends Model
         $oldResponsible = $task->responsible->name;
         $oldResponsibleId = $task->responsible->id;
         $oldDuration = $task->duration;
-        $oldDate = $task->available_date;
+        $oldDate = $task->initialDate();
 
         $task->update(
             array_merge($data, [
@@ -500,10 +446,10 @@ class Task extends Model
             ]), 'Alteração de tarefa', $task->id);
         }
 
-        if($oldDate != $task->available_date) {
+        if($oldDate != $task->initialDate()) {
             $message = 'Data de ' . mb_strtolower($task->getTaskName()) . ' da ';
             $message .= $task->job->getJobName();
-            $message .= ' alterada de ' . (new DateTime($oldDate))->format('d/m/Y') . ' para ' . (new DateTime($task->available_date))->format('d/m/Y');
+            $message .= ' alterada de ' . (new DateTime($oldDate))->format('d/m/Y') . ' para ' . (new DateTime($task->initialDate()))->format('d/m/Y');
 
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
@@ -552,101 +498,102 @@ class Task extends Model
             return $v['id'];
         }, $params['department_array']) : null;
 
-        $tasks = Task::with(
-            'items', 'responsible', 'job_activity', 'job', 'job.client', 'job.job_type', 
-            'job.status', 'job.agency', 'job.attendance', 'job.job_activity', 'task', 'task.job_activity'
+        $taskItems = TaskItem::with(
+            'task', 'task.responsible', 'task.job_activity', 'task.job', 'task.job.client', 'task.job.job_type', 
+            'task.job.status', 'task.job.agency', 'task.job.attendance', 'task.job.job_activity', 'task.task', 
+            'task.task.job_activity', 'task.items'
         );
 
         if (!is_null($iniDate) && !is_null($finDate)) {
-            $sql = '(task.available_date >= "' . $iniDate . '"';
-            $sql .= ' AND task.available_date <= "' . $finDate . '")';
-            $tasks->whereRaw($sql);
+            $sql = '(task_item.date >= "' . $iniDate . '"';
+            $sql .= ' AND task_item.date <= "' . $finDate . '")';
+            $taskItems->whereRaw($sql);
         }
 
         if( ! is_null($attendanceArrayId) ) {
-            $tasks->whereHas('job.attendance', function($query) use ($attendanceArrayId) {
+            $taskItems->whereHas('task.job.attendance', function($query) use ($attendanceArrayId) {
                 $query->whereIn('id', $attendanceArrayId);
             });   
         }
 
         if( ! is_null($jobTypeArrayId) ) {
-            $tasks->whereHas('job.job_type', function($query) use ($jobTypeArrayId) {
+            $taskItems->whereHas('task.job.job_type', function($query) use ($jobTypeArrayId) {
                 $query->whereIn('id', $jobTypeArrayId);
             });   
         }
 
         if( ! is_null($statusArrayId) ) {
-            $tasks->whereHas('job', function($query) use ($statusArrayId) {
+            $taskItems->whereHas('task.job', function($query) use ($statusArrayId) {
                 $query->whereIn('status_id', $statusArrayId);
             });   
         }
 
         if( ! is_null($jobActivityArrayId) ) {
-            $tasks->whereIn('job_activity_id', $jobActivityArrayId);
+            $taskItems->whereIn('task.job_activity_id', $jobActivityArrayId);
         }
 
         if( ! is_null($responsibleArrayId) ) {
-            $tasks->whereIn('responsible_id', $responsibleArrayId);
+            $taskItems->whereIn('task.responsible_id', $responsibleArrayId);
         }
 
         if( ! is_null($departmentArrayId) ) {
-            $tasks->whereHas('responsible', function($query) use ($departmentArrayId) {
+            $taskItems->whereHas('task.responsible', function($query) use ($departmentArrayId) {
                 $query->whereIn('department_id', $departmentArrayId);
             });
         }
 
         if ( ! is_null($clientName) ) {
-            $tasks->whereHas('job.client', function($query) use ($clientName) {
+            $taskItems->whereHas('task.job.client', function($query) use ($clientName) {
                 $query->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
                 $query->orWhere('name', 'LIKE', '%' . $clientName . '%');
             });  
-            $tasks->orWhereHas('job', function($query) use ($clientName) {
+            $taskItems->orWhereHas('task.job', function($query) use ($clientName) {
                 $query->where('not_client', 'LIKE', '%' . $clientName . '%');
             });        
         }
 
         if ( ! is_null($attendanceId) ) {
-            $tasks->whereHas('job.attendance', function($query) use ($attendanceId) {
+            $taskItems->whereHas('task.job.attendance', function($query) use ($attendanceId) {
                 $query->where('id', '=', $attendanceId);
             });         
         }
 
         if ( ! is_null($jobTypeId) ) {
-            $tasks->whereHas('job.job_type', function($query) use ($jobTypeId) {
+            $taskItems->whereHas('task.job.job_type', function($query) use ($jobTypeId) {
                 $query->where('id', '=', $jobTypeId);
             });         
         }
 
         if ( ! is_null($jobActivityId) ) {
-            $tasks->whereHas('job.job_activity', function($query) use ($jobActivityId) {
+            $taskItems->whereHas('task.job.job_activity', function($query) use ($jobActivityId) {
                 $query->where('id', '=', $jobActivityId);
             });         
         }
 
         if ( ! is_null($creationId) ) {
-            $tasks->where('responsible_id', '=', $creationId);      
+            $taskItems->where('task.responsible_id', '=', $creationId);      
         }
 
         if ( ! is_null($responsibleId) ) {
-            $tasks->where('responsible_id', '=', $responsibleId);      
+            $taskItems->where('task.responsible_id', '=', $responsibleId);      
         }
 
         if( ! is_null($status) ) {
-            $tasks->whereHas('job', function($query) use ($status) {
+            $taskItems->whereHas('task.job', function($query) use ($status) {
                 $query->where('status_id', '=', $status);
             });
         }
 
-        $tasks->orderBy('task.available_date', 'ASC');
+        $taskItems->orderBy('task_item.date', 'ASC');
 
         if ($paginate) {
-            $paginate = $tasks->paginate(50);
+            $paginate = $taskItems->paginate(50);
             $result = $paginate->items();
             $page = $paginate->currentPage();
             $total = $paginate->total();
         } else {
-            $result = $tasks->get();
-            $total = $tasks->count();
+            $result = $taskItems->get();
+            $total = $taskItems->count();
             $page = 0;
         }
 
@@ -904,9 +851,5 @@ class Task extends Model
     public function setDurationAttribute($value)
     {
         $this->attributes['duration'] = (float)str_replace(',', '.', $value);
-    }
-
-    public function setAvailableDateAttribute($value) {
-        $this->attributes['available_date'] = substr($value, 0, 10);
     }
 }

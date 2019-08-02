@@ -14,12 +14,28 @@ class TaskItem extends Model
         'date', 'task_id', 'duration', 'budget_value'
     ];
 
-    public static function insert(array $data) {
-        return TaskItem::create($data);
+    public static function insert(Task $task, array $data) {
+        return TaskItem::create(array_merge($data, [ 'task_id' => $task->id ]));
+    }
+
+    public static function insertAll(Task $task, array $items) {
+        foreach($items as $item) {
+            $item = (object) $item;
+            TaskItem::insert($task, [
+                'date' => $item->date,
+                //Se a duração for 0, data livre, se for 0.5, data com 0.5 livre, etc.
+                'duration' => (1 - $item->duration),
+                'budget_value' => $item->budget_value,
+            ]);
+        }
     }
 
     public function setBudget_valueAttribute($value) {
         $this->attributes['budget_value'] = (float) str_replace(',', '.', str_replace('.', '', $value));
+    }
+
+    public function setDateAttribute($value) {
+        $this->attributes['date'] = substr($value, 0, 10);
     }
 
     public function task() {

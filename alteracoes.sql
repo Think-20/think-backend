@@ -37,3 +37,8 @@ ALTER TABLE job_activity ADD COLUMN min_duration DOUBLE(3,2) DEFAULT 0;
 ALTER TABLE job_activity ADD COLUMN max_duration DOUBLE(4,2) DEFAULT 0;
 ALTER TABLE job_activity ADD COLUMN max_budget_value_per_day DOUBLE(12,2) DEFAULT 0;
 ALTER TABLE job_activity ADD COLUMN max_duration_value_per_day DOUBLE(4,2) DEFAULT 1;
+ALTER TABLE job_activity ADD COLUMN next_period TINYINT(1) DEFAULT 1;
+ALTER TABLE job_activity ADD COLUMN next_day TINYINT(1) DEFAULT 1;
+ALTER TABLE job_activity ADD COLUMN counter TINYINT(1) DEFAULT 0;
+
+ALTER TABLE task DROP COLUMN available_date;
