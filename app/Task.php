@@ -505,9 +505,8 @@ class Task extends Model
         );
 
         if (!is_null($iniDate) && !is_null($finDate)) {
-            $sql = '(task_item.date >= "' . $iniDate . '"';
-            $sql .= ' AND task_item.date <= "' . $finDate . '")';
-            $taskItems->whereRaw($sql);
+            $taskItems->where('task_item.date', '>=', $iniDate);
+            $taskItems->where('task_item.date', '<=', $finDate);
         }
 
         if( ! is_null($attendanceArrayId) ) {

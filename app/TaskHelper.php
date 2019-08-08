@@ -72,6 +72,7 @@ class TaskHelper
             $std->user_id = $item->user_id;
             return $std;
         });
+
         $completeDates = TaskHelper::completeDates($initialDate, $finalDate, $jobActivity->responsibles);
         $unionItems = TaskHelper::merge($completeDates->toBase(), $itemsForVerification->toBase());
 
@@ -139,17 +140,21 @@ class TaskHelper
     }
 
     public static function merge(\Illuminate\Support\Collection $completeDates, \Illuminate\Support\Collection $itemsForVerification) {
-        foreach($itemsForVerification as $item) {
-            $completeDates = $completeDates->map(function($completeDate) use ($item) {
-                if($completeDate->date == $item->date 
-                && $completeDate->responsible_id == $item->responsible_id) {
-                    return $item;
-                } else {
-                    return $completeDate;
-                }
+        $dates = new Collection();
+        
+        foreach($completeDates as $completeDate) {
+            $filteredItems = $itemsForVerification->filter(function($item) use ($completeDate) {
+                return $completeDate->date == $item->date 
+                    && $completeDate->responsible_id == $item->responsible_id;
             });
+
+            if($filteredItems->count() > 0) {
+                $dates->push($filteredItems->first());
+            } else {
+                $dates->push($completeDate);                
+            }
         }
 
-        return $completeDates;
+        return $dates;
     }
 }
