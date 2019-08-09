@@ -96,6 +96,8 @@ class TaskHelper
         TaskHelper::checkBudgetValue($item, $jobActivity);
         TaskHelper::checkBlocked($item);
         TaskHelper::checkOnlyNextDay($item, $jobActivity);
+        TaskHelper::checkPeriod($item, $jobActivity);
+        TaskHelper::checkOldDate($item, $jobActivity);
     }
 
     public static function checkDuration($item, JobActivity $jobActivity) {
@@ -121,6 +123,23 @@ class TaskHelper
 
         throw new Exception('Não é permitido agendar ' . mb_strtolower($jobActivity->description) . 
         ' no mesmo dia');
+    }
+
+    public static function checkPeriod($item, JobActivity $jobActivity) {
+        $today = new DateTime('now');
+        $hourMinute = (int) $today->format('Hi');
+        
+        if($jobActivity->next_period == 0) return;
+        if($hourMinute < 1200 || $item->date != $today->format('Y-m-d')) return;
+
+        throw new Exception('Não é permitido agendar ' . mb_strtolower($jobActivity->description) . 
+        ' no mesmo período');
+    }
+
+    public static function checkOldDate($item, JobActivity $jobActivity) {
+        if($item->date >= (new DateTime('now'))->format('Y-m-d')) return;
+
+        throw new Exception('Não é permitido agendar em datas anteriores');
     }
 
     public static function checkBlocked($item) {

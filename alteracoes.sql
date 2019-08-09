@@ -1,3 +1,5 @@
+INSERT INTO job_activity (id, description) VALUES (16, 'Opção de orçamento');
+
 CREATE TABLE job_activity_employee (
 	id int not null auto_increment primary key,
     job_activity_id int not null,
@@ -63,9 +65,9 @@ UPDATE `job_activity` SET `master` = 0, `show` = 1, `no_params` = 0, `only_edit`
 WHERE description = 'Outsider';
 
 
-/*  */
+/* Somente edição não aparece na inserção */
 UPDATE `job_activity` SET `master` = 0, `show` = 0, `no_params` = 0, `only_edit` = 1, `redirect_after_save` = NULL,
-`fixed_duration` = 0.2, `min_duration` = 4, `max_duration` = 10, `max_budget_value_per_day` = 400000, `max_duration_value_per_day` = 1,
+`fixed_duration` = 0.2, `min_duration` = 0, `max_duration` = 0, `max_budget_value_per_day` = 400000, `max_duration_value_per_day` = 1,
 `next_period` = 1, `next_day` = 0, `counter` = 1
 WHERE description = 'Orçamento';
 
