@@ -95,6 +95,7 @@ class TaskHelper
         TaskHelper::checkDuration($item, $jobActivity);
         TaskHelper::checkBudgetValue($item, $jobActivity);
         TaskHelper::checkBlocked($item);
+        TaskHelper::checkOnlyNextDay($item, $jobActivity);
     }
 
     public static function checkDuration($item, JobActivity $jobActivity) {
@@ -111,6 +112,15 @@ class TaskHelper
 
         throw new Exception('O orçamento da data ' . (new DateTime($item->date))->format('d/m/Y') . 
         ' está completo para o responsável');
+    }
+
+    public static function checkOnlyNextDay($item, JobActivity $jobActivity) {
+        if($jobActivity->next_day == 0 
+            || $item->date != (new DateTime('now'))->format('Y-m-d')
+        ) return;
+
+        throw new Exception('Não é permitido agendar ' . mb_strtolower($jobActivity->description) . 
+        ' no mesmo dia');
     }
 
     public static function checkBlocked($item) {

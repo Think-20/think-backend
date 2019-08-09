@@ -48,18 +48,31 @@ LIMIT 0, 50000
 
 -- Date: 2019-08-08 09:02
 */
+
+
+/* Testado o limite das durações (min_duration, max_duration), max_duration_value_per_day = somatória de valores < 1 */
 UPDATE `job_activity` SET `master` = 0, `show` = 1, `no_params` = 0, `only_edit` = 0, `redirect_after_save` = NULL,
-`fixed_duration` = 0, `min_duration` = 1, `max_duration` = 4, `max_budget_value_per_day` = 0, `max_duration_value_per_day` = 1,
+`fixed_duration` = 0, `min_duration` = 1, `max_duration` = 3, `max_budget_value_per_day` = 0, `max_duration_value_per_day` = 1,
 `next_period` = 0, `next_day` = 1, `counter` = 0
 WHERE description = 'Projeto';
 
+/* Testado o limite das durações (min_duration, max_duration), max_duration_value_per_day = somatória de valores < 1 */
+UPDATE `job_activity` SET `master` = 0, `show` = 1, `no_params` = 0, `only_edit` = 0, `redirect_after_save` = NULL,
+`fixed_duration` = 0, `min_duration` = 4, `max_duration` = 10, `max_budget_value_per_day` = 0, `max_duration_value_per_day` = 1,
+`next_period` = 0, `next_day` = 1, `counter` = 0
+WHERE description = 'Outsider';
+
+
+/*  */
+UPDATE `job_activity` SET `master` = 0, `show` = 0, `no_params` = 0, `only_edit` = 1, `redirect_after_save` = NULL,
+`fixed_duration` = 0.2, `min_duration` = 4, `max_duration` = 10, `max_budget_value_per_day` = 400000, `max_duration_value_per_day` = 1,
+`next_period` = 1, `next_day` = 0, `counter` = 1
+WHERE description = 'Orçamento';
 
 /*
-INSERT INTO `job_activity` (`id`,`description`,`master`,`show`,`no_params`,`only_edit`,`redirect_after_save`,`fixed_duration`,`min_duration`,`max_duration`,`max_budget_value_per_day`,`max_duration_value_per_day`,`next_period`,`next_day`,`counter`) VALUES (2,'Orçamento',1,1,0,0,NULL,0.00,0.00,0.00,0.00,1.00,1,1,0);
 INSERT INTO `job_activity` (`id`,`description`,`master`,`show`,`no_params`,`only_edit`,`redirect_after_save`,`fixed_duration`,`min_duration`,`max_duration`,`max_budget_value_per_day`,`max_duration_value_per_day`,`next_period`,`next_day`,`counter`) VALUES (8,'Modificação',0,1,0,0,NULL,0.00,0.00,0.00,0.00,1.00,1,1,0);
 INSERT INTO `job_activity` (`id`,`description`,`master`,`show`,`no_params`,`only_edit`,`redirect_after_save`,`fixed_duration`,`min_duration`,`max_duration`,`max_budget_value_per_day`,`max_duration_value_per_day`,`next_period`,`next_day`,`counter`) VALUES (9,'Opção',0,1,0,0,NULL,0.00,0.00,0.00,0.00,1.00,1,1,0);
 INSERT INTO `job_activity` (`id`,`description`,`master`,`show`,`no_params`,`only_edit`,`redirect_after_save`,`fixed_duration`,`min_duration`,`max_duration`,`max_budget_value_per_day`,`max_duration_value_per_day`,`next_period`,`next_day`,`counter`) VALUES (10,'Detalhamento',0,1,0,0,NULL,0.00,0.00,0.00,0.00,1.00,1,1,0);
-INSERT INTO `job_activity` (`id`,`description`,`master`,`show`,`no_params`,`only_edit`,`redirect_after_save`,`fixed_duration`,`min_duration`,`max_duration`,`max_budget_value_per_day`,`max_duration_value_per_day`,`next_period`,`next_day`,`counter`) VALUES (11,'Outsider',0,1,0,0,NULL,0.00,0.00,0.00,0.00,1.00,1,1,0);
 INSERT INTO `job_activity` (`id`,`description`,`master`,`show`,`no_params`,`only_edit`,`redirect_after_save`,`fixed_duration`,`min_duration`,`max_duration`,`max_budget_value_per_day`,`max_duration_value_per_day`,`next_period`,`next_day`,`counter`) VALUES (12,'Continuação',1,1,0,0,NULL,0.00,0.00,0.00,0.00,1.00,1,1,0);
 INSERT INTO `job_activity` (`id`,`description`,`master`,`show`,`no_params`,`only_edit`,`redirect_after_save`,`fixed_duration`,`min_duration`,`max_duration`,`max_budget_value_per_day`,`max_duration_value_per_day`,`next_period`,`next_day`,`counter`) VALUES (13,'Memorial descritivo',1,0,0,0,NULL,0.00,0.00,0.00,0.00,1.00,1,1,0);
 INSERT INTO `job_activity` (`id`,`description`,`master`,`show`,`no_params`,`only_edit`,`redirect_after_save`,`fixed_duration`,`min_duration`,`max_duration`,`max_budget_value_per_day`,`max_duration_value_per_day`,`next_period`,`next_day`,`counter`) VALUES (14,'Projeto externo',0,1,1,0,'/jobs/edit/:id?tab=project',0.00,0.00,0.00,0.00,1.00,1,1,0);
