@@ -107,7 +107,7 @@ class ProjectFile extends Model {
     public static function insert(array $data) {
         $original_name = isset($data['original_name']) ? $data['original_name'] : null;
         $task_id = isset($data['task']['id']) ? $data['task']['id'] : null;
-        $responsible_id = User::logged()->employee->id;
+        $responsible = User::logged()->employee;
         $tempPath = sys_get_temp_dir() . '/' .  $original_name;
         $name = sha1($tempPath . time());
         $type = (new \SplFileInfo($tempPath))->getExtension();
@@ -116,7 +116,7 @@ class ProjectFile extends Model {
             'task_id' => $task_id,
             'name' => $name,
             'type' => $type,
-            'responsible_id' => $responsible_id
+            'responsible_id' => $responsible->id
         ]));
 
         $project_file->save();
@@ -124,7 +124,9 @@ class ProjectFile extends Model {
 
         $task = $project_file->task;
 
-        $task->insertMemorial();
+        $newJobActivity = JobActivity::where('description', '=', 'Memorial descritivo')->first();
+
+        $task->insertAutomatic($newJobActivity, $task->job->attendance, $task->job->attendance);
         $project_file->updateDone($task);
         
         return $project_file;

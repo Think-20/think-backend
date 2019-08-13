@@ -25,18 +25,21 @@ class TaskHelper
         });
     }
 
-    public static function getNextAvailableDate(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity) 
+    public static function getNextAvailableDate(DateTime $initialDate, JobActivity $jobActivity, Employee $onlyResponsible = null) 
     {
         do {
-            $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity->responsibles);
-            $initialDate = DateHelper::sumUtil($initialDate, 30);
             $finalDate = DateHelper::sumUtil($initialDate, 30);
-            $availableDates = $items->filter(function($item) {
+            $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity);
+            $initialDate = DateHelper::sumUtil($initialDate, 30);
+            $availableDates = $items->filter(function($item) use ($onlyResponsible) {
+                if($onlyResponsible != null) {
+                    return $item->status == 'true' && $item->responsible_id == $onlyResponsible->id;
+                }
                 return $item->status == 'true';
             });
         } while($availableDates->count() == 0);
 
-        return $items->first();
+        return $availableDates->first();
     }
 
     public static function completeDates(DateTime $initialDate, DateTime $finalDate, Collection $employees): Collection {

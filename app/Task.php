@@ -4,12 +4,13 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 use DateTime;
+use Illuminate\Support\Collection;
 
 class Task extends Model
 {
     protected $table = 'task';
     protected $fillable = [
-        'job_id', 'responsible_id', 'job_activity_id', 'duration',
+        'job_id', 'responsible_id', 'job_activity_id',
         'reopened', 'task_id', 'done'
     ];
 
@@ -26,13 +27,9 @@ class Task extends Model
     public static function getNextAvailableDate(string $availableDate, string $jobActivity)
     {
         $initialDate = new DateTime($availableDate);
-        $finalDate = DateHelper::sumUtil($initialDate, 30);
         $jobActivity = JobActivity::where('description', '=', $jobActivity)->first();
 
-        return [
-            'items' => TaskHelper::getNextAvailableDate($initialDate, $finalDate, $jobActivity),
-            'responsibles' => $jobActivity->responsibles
-        ]; 
+        return TaskHelper::getNextAvailableDate($initialDate, $jobActivity);
     }
 
     public static function getNextAvailableDates(array $data)
@@ -179,109 +176,37 @@ class Task extends Model
         return true;
     }
 
-    public function insertContinuation(DateTime $date, $duration, $tempBudget) {
-        $availableDate = $date->format('Y-m-d');
-        $jobActivity = JobActivity::where('description', '=', 'Continuação')->first();
+    public function insertAutomatic(JobActivity $jobActivity, NotifierInterface $notifier = null, Employee $onlyResponsible = null) {
+        $date = new DateTime('now');
+        $items = new Collection();
+        $items->push(TaskHelper::getNextAvailableDate($date, $jobActivity, $onlyResponsible));
+        $responsible = Employee::find($items->first()->responsible_id);
 
         $data = [
-            'responsible' => ['id' => $this->responsible_id],
+            'responsible' => [ 'id' => $responsible->id ],
             'job' => ['id' => $this->job->id],
             'job_activity' => ['id' => $jobActivity->id],
-            'duration' => $duration,
-            'available_date' => $availableDate,
-            'task' => ['id' => $this->id]
+            'items' => $items->toArray(),
+            'task' => [
+                'id' => $this->id,             
+            ]
         ];
         
-        Task::insert($data);
+        $notifier = $notifier != null ? $notifier : $responsible;
+        Task::insert($data, $notifier);
     }
 
-    public function insertMemorial() {
-        $date = ScheduleBlock::sumUtilNonBlocked(DateHelper::subUtil(new DateTime('now'), 1), $this->job->attendance->user, 1);
-        $jobActivity = JobActivity::where('description', '=', 'Memorial descritivo')->first();
-
-        $count = Task::where('job_activity_id', '=', $jobActivity->id)
-        ->where('task_id', '=', $this->id)
-        ->get()
-        ->count();
-
-        if($count > 0) {
-            return;
-        }
-
-        $data = [
-            'responsible' => ['id' => $this->job->attendance_id],
-            'job' => ['id' => $this->job->id],
-            'job_activity' => ['id' => $jobActivity->id],
-            'duration' => 1,
-            'available_date' => $date->format('Y-m-d'),
-            'task' => ['id' => $this->id]
-        ];
-        
-        Task::insert($data, $this->job->attendance, false);
-    }
-
-    public function insertBudget() {
-        $date = ScheduleBlock::sumUtilNonBlocked(DateHelper::subUtil(new DateTime('now'), 1), $this->job->attendance->user, 1);
-        $arr = Task::getNextAvailableDate($date->format('Y-m-d'), 1, 'Orçamento', $this->job->budget_value);       
-
-        $jobActivity = JobActivity::where('description', '=', 'Orçamento')->first();
-        $count = Task::where('job_activity_id', '=', $jobActivity->id)
-        ->where('task_id', '=', $this->id)
-        ->get()
-        ->count();
-
-        if($count > 0) {
-            return;
-        }
-
-        $responsible = $arr['available_responsibles'][0];
-        $data = [
-            'responsible' => ['id' => $responsible->id],
-            'job' => ['id' => $this->job->id],
-            'job_activity' => ['id' => $jobActivity->id],
-            'duration' => 1,
-            'available_date' => $arr['available_date'],
-            'task' => ['id' => $this->id]
-        ];
-        
-        Task::insert($data, $responsible, false);
-    }
-
-    public function insertBudgetModify() {
-        $date = ScheduleBlock::sumUtilNonBlocked(DateHelper::subUtil(new DateTime('now'), 1), $this->job->attendance->user, 1);
-        $arr = Task::getNextAvailableDate($date->format('Y-m-d'), 1, 'Modificação de orçamento', $this->job->budget_value);       
-
-        $jobActivity = JobActivity::where('description', '=', 'Modificação de orçamento')->first();
-        $count = Task::where('job_activity_id', '=', $jobActivity->id)
-        ->where('task_id', '=', $this->id)
-        ->get()
-        ->count();
-
-        if($count > 0) {
-            return;
-        }
-
-        $responsible = $arr['available_responsibles'][0];
-        $data = [
-            'responsible' => ['id' => $responsible->id],
-            'job' => ['id' => $this->job->id],
-            'job_activity' => ['id' => $jobActivity->id],
-            'duration' => 1,
-            'available_date' => $arr['available_date'],
-            'task' => ['id' => $this->id]
-        ];
-        
-        Task::insert($data, $responsible, false);
-    }
-
-    public static function insert(array $data, NotifierInterface $notifier = null, $recursiveScheduleBlock = true)
+    public static function insert(array $data, NotifierInterface $notifier = null)
     {
         $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
         $job_id = isset($data['job']['id']) ? $data['job']['id'] : null;
         $job_activity_id = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
         $task_id = isset($data['task']['id']) ? $data['task']['id'] : null;
-        $items = isset($data['task']['items']) ? $data['task']['items'] : [];
+        $items = isset($data['items']) ? collect($data['items'])->map(function ($item) {
+            return (object) $item;
+        }) : collect([]);
 
+        $jobActivity = JobActivity::find($job_activity_id);
         $task = new Task(array_merge($data, [
             'responsible_id' => $responsible_id,
             'job_id' => $job_id,
@@ -289,8 +214,12 @@ class Task extends Model
             'task_id' => $task_id,
         ]));
 
+        $items = $task->appendItemsByBudget($items, $jobActivity);
+        $items = $task->fixItemsByFixedDuration($items, $jobActivity);
+        $items = $task->fixItemsByMaxDurationValuePerDay($items, $jobActivity);
+
         $task->save();
-        TaskItem::insertAll($task, $items);
+        TaskItem::insertAll($task, $items->toArray());
 
         if($task->initialDate() != null) {
             $message = $task->getTaskName() . ' da ';
@@ -320,15 +249,6 @@ class Task extends Model
         return $this->items->count() == 0 ? null : $this->items->first()->date;
     }
 
-    public static function checkScheduleBlock(string $availableDate, Employee $responsible, $exception = false) {
-        $blocked = ScheduleBlock::checkIfBlocked($availableDate, $responsible->user->id);
-
-        if(!$blocked) return false;
-        if($exception) throw new \Exception('Você não pode agendar nesta data, está bloqueada.');
-
-        return true;
-    }
-
     public static function modifyReopened(Task $task) {
         if($task->job_activity->counter == 0) {
             return;
@@ -345,25 +265,56 @@ class Task extends Model
         }
     }
 
-    public function calcDurationBudget(): array {
-        $taskBudget = new TaskBudget();
-        $responsible = $this->responsible;
-        $jobValue = $this->job->budget_value;
-        $duration = 0;
-        $durationArray = [];
-        $date = new DateTime($this->initialDate());
+    public function fixItemsByFixedDuration(Collection $items, JobActivity $jobActivity): Collection {
+        if($jobActivity->fixed_duration === 0) 
+            return $items;
 
-        while($jobValue > 0) {
-            $space = $taskBudget->quantityAvailable($date, $responsible);
-            $diff = $jobValue - $space;
-            $durationArray[$duration] = $diff <= 0 ? $jobValue : $space;
-            $jobValue = $jobValue - $space;
-
-            $duration++;
-            $date = ScheduleBlock::sumUtilNonBlocked($date, $responsible->user, 1);
+        foreach($items as $item) {
+            $item->duration = $jobActivity->fixed_duration;
         }
         
-        return $durationArray;
+        return $items;
+    }
+
+    public function fixItemsByMaxDurationValuePerDay(Collection $items, JobActivity $jobActivity): Collection {
+        if($jobActivity->max_duration_value_per_day === 0 
+            || $jobActivity->fixed_duration != 0) 
+            return $items;
+
+        foreach($items as $item) {
+            /* Usando o máximo permitido, se uso for 0, usar 1. Se uso for 0.3, usar 0.7 */
+            $item->duration = (1 - $item->duration);
+        }
+        
+        return $items;
+    }
+
+    public function appendItemsByBudget(Collection $items, JobActivity $jobActivity): Collection {
+        $maxValuePerDay = (float) $jobActivity->max_budget_value_per_day;
+
+        if($maxValuePerDay == 0) 
+            return $items;
+
+        $nextItem = $items->pop();
+        $responsible = Employee::find($nextItem->responsible_id);
+        $jobValue = (float) $this->job->budget_value;
+
+        do {
+            $usedInThisDate = (float) $nextItem->budget_value;
+
+            if($usedInThisDate < $maxValuePerDay) {
+                $availableInThisDate = $maxValuePerDay - $usedInThisDate;
+                $available = $jobValue > $availableInThisDate ? $availableInThisDate : $jobValue;
+                $nextItem->budget_value = $available;
+                $jobValue = $jobValue <= $available ? 0 : $jobValue - $available;
+                $items->push($nextItem);
+            }
+
+            $date = DateHelper::sumUtil(new DateTime($nextItem->date), 1);
+            $nextItem = TaskHelper::getNextAvailableDate($date, $jobActivity, $responsible);
+        } while($jobValue > 0);
+
+        return $items;
     }
 
     public function saveItems() {
@@ -809,7 +760,7 @@ class Task extends Model
 
     public function items()
     {
-        return $this->hasMany('App\TaskItem', 'task_id');
+        return $this->hasMany('App\TaskItem', 'task_id')->orderBy('task_item.date', 'ASC');
     }
 
     public function job()

@@ -23,8 +23,7 @@ class TaskItem extends Model
             $item = (object) $item;
             TaskItem::insert($task, [
                 'date' => $item->date,
-                //Se a duração for 0, data livre, se for 0.5, data com 0.5 livre, etc.
-                'duration' => (1 - $item->duration),
+                'duration' => $item->duration,
                 'budget_value' => $item->budget_value,
             ]);
         }

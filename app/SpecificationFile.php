@@ -106,13 +106,10 @@ class SpecificationFile extends Model {
         $specification_file->moveFile();
 
         $task = Task::find($task_id);
-        if($task->task->job_activity->description == 'Projeto externo') {
-            $specification_file->task->insertBudget();
-        } else if($task->task->job_activity->description == 'Projeto') {
-            $specification_file->task->insertBudget();
-        } else if($task->task->job_activity->description == 'Modificação') {
-            $specification_file->task->insertBudgetModify();
-        }        
+
+        $newJobActivity = JobActivity::where('description', '=', 'Orçamento')->first();
+        $task->insertAutomatic($newJobActivity);
+
         $specification_file->updateDone($task);
         
         return $specification_file;
