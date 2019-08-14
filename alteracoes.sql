@@ -76,13 +76,11 @@ UPDATE task_item
 LEFT JOIN task ON task.id = task_item.task_id
 SET task_item.duration = 0.2 WHERE task.job_activity_id = 2;
 
-
 /* Somente edição não aparece na inserção, fixed_duration automático - OK */
 UPDATE `job_activity` SET `master` = 0, `show` = 0, `no_params` = 0, `only_edit` = 1, `redirect_after_save` = NULL,
 `fixed_duration` = 1, `min_duration` = 0, `max_duration` = 0, `max_budget_value_per_day` = 0, `max_duration_value_per_day` = 0,
 `next_period` = 0, `next_day` = 0, `counter` = 1
 WHERE description = 'Memorial descritivo';
-
 
 /* Testar fixed_duration????  max_duration_value_per_day = somatória de valores < 1 */
 UPDATE `job_activity` SET `master` = 0, `show` = 1, `no_params` = 0, `only_edit` = 0, `redirect_after_save` = NULL,
