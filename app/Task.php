@@ -30,7 +30,16 @@ class Task extends Model
         $jobActivity = JobActivity::where('description', '=', $jobActivity)->first();
         $responsibles = $taskBuild->getResponsibleList();
 
-        $arr = ActivityHelper::calculateNextDate($availableDate, $jobActivity, $responsibles, $estimatedTime);
+        $date = new DateTime($availableDate);
+        $today = new DateTime('now');
+
+        if($date->format('Y-m-d') == $today->format('Y-m-d')
+            && $today->format('Hi') > '1200' 
+            && in_array($jobActivity->description, ['Orçamento', 'Modificação de orçamento', 'Opção de orçamento'])) {
+            $date = new DateTime('tomorrow');
+        }
+
+        $arr = ActivityHelper::calculateNextDate($date->format('Y-m-d'), $jobActivity, $responsibles, $estimatedTime);
 
         return [
             'available_date' => $arr['date'],
@@ -60,6 +69,15 @@ class Task extends Model
 
         if(DateHelper::dateInPast($iniDate, new DateTime('now'))) {
             $iniDate = new DateTime('now');
+        }
+
+        $date = new DateTime($iniDate->format('Y-m-d'));
+        $today = new DateTime('now');
+
+        if($date->format('Y-m-d') == $today->format('Y-m-d')
+            && $today->format('Hi') > '1200' 
+            && in_array($jobActivity->description, ['Orçamento', 'Modificação de orçamento', 'Opção de orçamento'])) {
+            $iniDate = new DateTime('tomorrow');
         }
 
         $arr = [];
@@ -246,13 +264,6 @@ class Task extends Model
 
     public function insertBudget() {
         $date = ScheduleBlock::sumUtilNonBlocked(DateHelper::subUtil(new DateTime('now'), 1), $this->job->attendance->user, 1);
-        $today = new DateTime('now');
-
-        if($date->format('Y-m-d') == $today->format('Y-m-d')
-            && $today->format('Hi') > '1200') {
-            $date = ScheduleBlock::sumUtilNonBlocked(DateHelper::subUtil(new DateTime('tomorrow'), 1), $this->job->attendance->user, 1);
-        }
-
         $arr = Task::getNextAvailableDate($date->format('Y-m-d'), 1, 'Orçamento', $this->job->budget_value);       
 
         $jobActivity = JobActivity::where('description', '=', 'Orçamento')->first();
@@ -386,7 +397,9 @@ class Task extends Model
     public function calcDurationBudget(): array {
         $taskBudget = new TaskBudget();
         $responsible = $this->responsible;
-        $jobValue = $this->job->budget_value;
+        $jobActivity = $this->job_activity;
+        $jobValue = $jobActivity->description != 'Modificação de orçamento'
+            ? $this->job->budget_value : round($this->job->budget_value * 0.3, 2);
         $duration = 0;
         $durationArray = [];
         $date = new DateTime($this->available_date);
@@ -411,13 +424,15 @@ class Task extends Model
         $date = new DateTime($this->available_date);
         $durationArray = [];
 
-        if($jobActivity->description == 'Orçamento' 
+        if($jobActivity->description == 'Orçamento' || $jobActivity->description == 'Modificação de orçamento'
+        || $jobActivity->description == 'Opção de orçamento'  
         || ($jobActivity == 'Continuação' && $jobActivityPrevious == 'Orçamento')) {
             $durationArray = $this->calcDurationBudget();
             $duration = count($durationArray);
             $this->duration = $duration;
             $this->save();
-            $tempBudget = $this->job->budget_value;
+            $tempBudget = $jobActivity->description != 'Modificação de orçamento'
+                ? $this->job->budget_value : round($this->job->budget_value * 0.3, 2);
         } else {
             $duration = $this->duration;
             $tempBudget = 0;

@@ -5,7 +5,7 @@ namespace App;
 use Illuminate\Database\Eloquent\Collection;
 use DateTime;
 
-class TaskBudget implements TaskInterface {
+class TaskBudgetOption implements TaskInterface {
     protected $availableResponsibles;
 
     public function getResponsibleList(): Collection {
@@ -40,9 +40,13 @@ class TaskBudget implements TaskInterface {
         })
         ->get();
 
+        $options = $taskItems->filter(function($item) {
+            return $item->task->job_activity->description == 'Opção de orçamento';
+        });
+
         if($taskItems->count() == 0) {
             $this->availableResponsibles = $this->getResponsibleList();
-        } else if($taskItems->count() == 5) {
+        } else if($options->count() == 2) {
             return true;
         }
 
@@ -71,12 +75,13 @@ class TaskBudget implements TaskInterface {
         ->orWhere('description', '=', 'Modificação de orçamento')
         ->orWhere('description', '=', 'Opção de orçamento')
         ->get();
+        $responsibles = TaskBudget::getResponsibleList();
 
-        $taskItems = TaskItem::with('task', 'task.job')
+        $taskItems = TaskItem::with('task', 'task.job', 'task.responsible', 'task.job_activity')
         ->where('task_item.date', '=', $date->format('Y-m-d'))
-        ->whereHas('task', function ($query) use ($jobActivities, $responsible) {
+        ->whereHas('task', function ($query) use ($jobActivities, $responsibles) {
             $query->whereIn('task.job_activity_id', $jobActivities->pluck('id')->all());
-            $query->where('task.responsible_id', $responsible->id);
+            $query->whereIn('task.responsible_id', $responsibles->pluck('id')->all());
         })
         ->get();
  

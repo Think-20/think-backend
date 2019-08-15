@@ -16,6 +16,8 @@ abstract class TaskFactory {
             return new TaskExternalProject;
         } else if($type == 'Modificação de orçamento') {
             return new TaskBudgetModify;
+        }  else if($type == 'Opção de orçamento') {
+            return new TaskBudgetOption;
         } else {
             return new TaskOthers;
         }

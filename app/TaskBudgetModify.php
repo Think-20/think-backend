@@ -26,20 +26,27 @@ class TaskBudgetModify implements TaskInterface {
         $this->availableResponsibles = new Collection();
 
         $limitValue = $this->getMaxBudgetValue();
-        $jobActivity = JobActivity::where('description', '=', 'Modificação de orçamento')->first();
-        $responsibles = TaskBudgetModify::getResponsibleList();
+        $jobActivities = JobActivity::where('description', '=', 'Orçamento')
+        ->orWhere('description', '=', 'Modificação de orçamento')
+        ->orWhere('description', '=', 'Opção de orçamento')
+        ->get();
+        $responsibles = $this->getResponsibleList();
 
-        $taskItems = TaskItem::with('task', 'task.job', 'task.responsible')
+        $taskItems = TaskItem::with('task', 'task.job', 'task.responsible', 'task.job_activity')
         ->where('task_item.date', '=', $date->format('Y-m-d'))
-        ->whereHas('task', function ($query) use ($jobActivity, $responsibles) {
-            $query->where('task.job_activity_id', '=', $jobActivity->id);
+        ->whereHas('task', function ($query) use ($jobActivities, $responsibles) {
+            $query->whereIn('task.job_activity_id', $jobActivities->pluck('id')->all());
             $query->whereIn('task.responsible_id', $responsibles->pluck('id')->all());
         })
         ->get();
 
+        $modify = $taskItems->filter(function($item) {
+            return $item->task->job_activity->description == 'Modificação de orçamento';
+        });
+
         if($taskItems->count() == 0) {
             $this->availableResponsibles = $this->getResponsibleList();
-        } else if($taskItems->count() == 2) {
+        } else if($modify->count() == 2) {
             return true;
         }
 
@@ -49,10 +56,10 @@ class TaskBudgetModify implements TaskInterface {
             $itemsSum = 0;
     
             foreach($items as $item) {
-                $itemsSum++;
+                $itemsSum = $itemsSum + $item->budget_value;
             }
     
-            if($itemsSum >= 2) {
+            if($itemsSum == $limitValue) {
                 return true;
             }
 
@@ -62,8 +69,34 @@ class TaskBudgetModify implements TaskInterface {
         return false;
     }
 
+    public function quantityAvailable(DateTime $date, Employee $responsible): float {
+        $limitValue = $this->getMaxBudgetValue();
+        $jobActivities = JobActivity::where('description', '=', 'Orçamento')
+        ->orWhere('description', '=', 'Modificação de orçamento')
+        ->orWhere('description', '=', 'Opção de orçamento')
+        ->get();
+
+        $taskItems = TaskItem::with('task', 'task.job')
+        ->where('task_item.date', '=', $date->format('Y-m-d'))
+        ->whereHas('task', function ($query) use ($jobActivities, $responsible) {
+            $query->whereIn('task.job_activity_id', $jobActivities->pluck('id')->all());
+            $query->where('task.responsible_id', $responsible->id);
+        })
+        ->get();
+ 
+        $itemsSum = 0.0;
+
+        foreach($taskItems as $item) {   
+            $itemsSum = $itemsSum + $item->budget_value;
+        }
+
+        $quantity = $limitValue - $itemsSum;
+
+        return $quantity >= 0 ? $quantity : 0;
+    }
+
     public function getMaxBudgetValue(): float {
-        return 0.0;
+        return 400000.0;
     }
 
     public function generateNewSuggestDate(DateTime $date, $budgetValue): DateTime {
