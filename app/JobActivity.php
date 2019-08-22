@@ -10,9 +10,10 @@ class JobActivity extends Model
     protected $table = 'job_activity';
 
     protected $fillable = [
-        'description', 'show', 'no_params', 'only_edit', 'redirect_after_save',
+        'description', 'initial', 'no_params', 'redirect_after_save',
         'fixed_duration', 'min_duration', 'max_duration', 'max_budget_value_per_day',
-        'max_duration_value_per_day'
+        'max_duration_value_per_day', 'modify_id', 'option_id',
+
     ];
 
     public static function getOpportunities() {
@@ -25,5 +26,13 @@ class JobActivity extends Model
 
     public function responsibles() {
         return $this->belongsToMany('App\Employee', 'job_activity_employee')->with('user');
+    }
+
+    public function modify() {
+        return $this->belongsTo('App\JobActivity', 'modify_id');
+    }
+
+    public function option() {
+        return $this->belongsTo('App\JobActivity', 'option_id');
     }
 }

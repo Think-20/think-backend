@@ -154,7 +154,7 @@ class TaskHelper
     }
 
     public static function getItemsForVerification(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity): Collection {
-        return TaskItem::selectRaw('date, responsible_id, SUM(task_item.duration) as duration,
+        $itemsForVerification = TaskItem::selectRaw('date, responsible_id, SUM(task_item.duration) as duration,
         SUM(task_item.budget_value) as budget_value, user.id as user_id')
         ->join('task', 'task.id', 'task_item.task_id')
         ->join('employee', 'employee.id', 'task.responsible_id')
@@ -167,8 +167,20 @@ class TaskHelper
                 return $employee->id; 
             }
         ))
-        ->groupBy('task_item.date', 'task.responsible_id', 'user.id')
-        ->get();
+        ->groupBy('task_item.date', 'task.responsible_id', 'user.id');
+
+        if($jobActivity->share_max_budget_value_per_day == 1) {
+            //TO DO: Quando for projeto, modificação, outsider, opção, etc... 
+            //devem compartilhar o saldo de duration
+            //Mas quando for de orçamento não, nesse caso
+            //devem compartilhar o saldo de orçamento
+            $jobActivity->modify->id;
+            $jobActivity->option->id;
+        }
+
+        dd($itemsForVerification->get());
+
+        return $itemsForVerification->get();
     }
 
     public static function merge(\Illuminate\Support\Collection $completeDates, \Illuminate\Support\Collection $itemsForVerification) {

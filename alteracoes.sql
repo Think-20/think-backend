@@ -44,7 +44,9 @@ ALTER TABLE job_activity ADD COLUMN next_period TINYINT(1) DEFAULT 1;
 ALTER TABLE job_activity ADD COLUMN next_day TINYINT(1) DEFAULT 1;
 ALTER TABLE job_activity ADD COLUMN counter TINYINT(1) DEFAULT 0;
 ALTER TABLE job_activity ADD COLUMN initial int DEFAULT 0;  
-ALTER TABLE job_activity ADD COLUMN share_max_budget_value_per_day int DEFAULT 0;  
+
+ALTER TABLE job_activity ADD COLUMN share_max_budget_with_children int DEFAULT 0;  
+ALTER TABLE job_activity ADD COLUMN share_max_duration_with_children int DEFAULT 1;  
 
 ALTER TABLE job_activity ADD COLUMN `modification_id` INT DEFAULT NULL;
 ALTER TABLE job_activity ADD CONSTRAINT `fk_modification_id_job_activity_id` FOREIGN KEY(modification_id) REFERENCES job_activity(id);
@@ -84,7 +86,7 @@ WHERE description = 'Outsider';
 /* Somente edição não aparece na inserção, fixed_duration OK, max_budget_value_per_day OK, max_duration_value_per_day OK next_period OK! */
 UPDATE `job_activity` SET `no_params` = 0, `redirect_after_save` = NULL, `modification_id` = 15, `option_id` = 16,
 `fixed_duration` = 0.2, `min_duration` = 0, `max_duration` = 0, `max_budget_value_per_day` = 400000, `max_duration_value_per_day` = 1,
-`next_period` = 1, `next_day` = 0, `counter` = 1, `share_max_budget_value_per_day` = 1
+`next_period` = 1, `next_day` = 0, `counter` = 1, `share_max_budget_with_children` = 1, `share_max_duration_with_children` = 0
 WHERE description = 'Orçamento';
 
 /* Habilitando espaço nos orçamentos antigos */
