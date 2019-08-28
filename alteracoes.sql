@@ -36,6 +36,7 @@ INSERT INTO job_activity_employee SELECT NULL, 13, id FROM employee WHERE depart
 
 
 ALTER TABLE job_activity ADD COLUMN fixed_duration DOUBLE(3,2) DEFAULT 0;
+ALTER TABLE job_activity ADD COLUMN fixed_budget_value DOUBLE(3,2) DEFAULT 0;
 ALTER TABLE job_activity ADD COLUMN min_duration DOUBLE(3,2) DEFAULT 0;
 ALTER TABLE job_activity ADD COLUMN max_duration DOUBLE(4,2) DEFAULT 0;
 ALTER TABLE job_activity ADD COLUMN max_budget_value_per_day DOUBLE(12,2) DEFAULT 0;
@@ -44,9 +45,6 @@ ALTER TABLE job_activity ADD COLUMN next_period TINYINT(1) DEFAULT 1;
 ALTER TABLE job_activity ADD COLUMN next_day TINYINT(1) DEFAULT 1;
 ALTER TABLE job_activity ADD COLUMN counter TINYINT(1) DEFAULT 0;
 ALTER TABLE job_activity ADD COLUMN initial int DEFAULT 0;  
-
-ALTER TABLE job_activity ADD COLUMN share_max_budget_with_children int DEFAULT 0;  
-ALTER TABLE job_activity ADD COLUMN share_max_duration_with_children int DEFAULT 1;  
 
 ALTER TABLE job_activity ADD COLUMN `modification_id` INT DEFAULT NULL;
 ALTER TABLE job_activity ADD CONSTRAINT `fk_modification_id_job_activity_id` FOREIGN KEY(modification_id) REFERENCES job_activity(id);
@@ -64,11 +62,11 @@ VALUES(0, NULL, 0, 0, 0, 0, 1, 0, 1, 1, 'Opção de outsider');
 
 INSERT INTO `job_activity` (`no_params`, `redirect_after_save`, `fixed_duration`, `min_duration`, `max_duration`, `max_budget_value_per_day`,
 `max_duration_value_per_day`, `next_period`, `next_day`, `counter`, `description`) 
-VALUES(0, NULL, 1, 0, 0, 0, 1, 0, 1, 1, 'Modificação de projeto externo');
+VALUES(0, NULL, 0, 0, 0, 0, 0, 0, 0, 1, 'Modificação de projeto externo');
 
 INSERT INTO `job_activity` (`no_params`, `redirect_after_save`, `fixed_duration`, `min_duration`, `max_duration`, `max_budget_value_per_day`,
 `max_duration_value_per_day`, `next_period`, `next_day`, `counter`, `description`) 
-VALUES(0, NULL, 0, 0, 0, 0, 1, 0, 1, 1, 'Opção de projeto externo');
+VALUES(0, NULL, 0, 0, 0, 0, 0, 0, 0, 1, 'Opção de projeto externo');
 
 /* Testado o limite das durações (min_duration, max_duration), max_duration_value_per_day = somatória de valores < 1 */
 UPDATE `job_activity` SET `no_params` = 0, `redirect_after_save` = NULL, `modification_id` = 8, `option_id` = 9,
@@ -86,13 +84,8 @@ WHERE description = 'Outsider';
 /* Somente edição não aparece na inserção, fixed_duration OK, max_budget_value_per_day OK, max_duration_value_per_day OK next_period OK! */
 UPDATE `job_activity` SET `no_params` = 0, `redirect_after_save` = NULL, `modification_id` = 15, `option_id` = 16,
 `fixed_duration` = 0.2, `min_duration` = 0, `max_duration` = 0, `max_budget_value_per_day` = 400000, `max_duration_value_per_day` = 1,
-`next_period` = 1, `next_day` = 0, `counter` = 1, `share_max_budget_with_children` = 1, `share_max_duration_with_children` = 0
+`next_period` = 1, `next_day` = 0, `counter` = 1, `fixed_budget_value` = 1
 WHERE description = 'Orçamento';
-
-/* Habilitando espaço nos orçamentos antigos */
-UPDATE task_item 
-LEFT JOIN task ON task.id = task_item.task_id
-SET task_item.duration = 0.2 WHERE task.job_activity_id = 2;
 
 /* Somente edição não aparece na inserção, fixed_duration automático - OK */
 UPDATE `job_activity` SET `no_params` = 0, `redirect_after_save` = NULL,
@@ -124,12 +117,12 @@ WHERE description = 'Detalhamento';
 
 UPDATE `job_activity` SET `no_params` = 0, `redirect_after_save` = NULL,
 `fixed_duration` = 0.5, `min_duration` = 0, `max_duration` = 0, `max_budget_value_per_day` = 0, `max_duration_value_per_day` = 1,
-`next_period` = 1, `next_day` = 0, `counter` = 1
+`next_period` = 1, `next_day` = 0, `counter` = 1, `fixed_budget_value` = 0.3
 WHERE description = 'Modificação de orçamento';
 
 UPDATE `job_activity` SET `redirect_after_save` = NULL,
 `fixed_duration` = 0.5, `min_duration` = 0, `max_duration` = 0, `max_budget_value_per_day` = 0, `max_duration_value_per_day` = 1,
-`next_period` = 1, `next_day` = 0, `counter` = 1
+`next_period` = 1, `next_day` = 0, `counter` = 1, `fixed_budget_value` = 1
 WHERE description = 'Opção de orçamento';
 
 UPDATE `job_activity` SET `no_params` = 0, `redirect_after_save` = NULL,
@@ -143,3 +136,65 @@ ALTER TABLE task DROP COLUMN duration;
 ALTER TABLE job_activity DROP COLUMN `show`;
 ALTER TABLE job_activity DROP COLUMN `master`;
 ALTER TABLE job_activity DROP COLUMN `only_edit`;
+
+CREATE TABLE job_activity_share_budget (
+	id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    from_id INT NOT NULL,
+    to_id INT NOT NULL,
+    
+    UNIQUE(from_id, to_id),
+	CONSTRAINT `fk_from_id_job_activity_id` FOREIGN KEY(from_id) REFERENCES job_activity(id),
+    CONSTRAINT `fk_to_id_job_activity_id` FOREIGN KEY(to_id) REFERENCES job_activity(id)
+);
+
+INSERT INTO job_activity_share_budget (from_id, to_id) SELECT j1.id as j1id, j2.id as j2id FROM job_activity j1 
+INNER JOIN job_activity j2 ON (j1.description IN 
+('Orçamento', 'Modificação de orçamento', 'Opção de orçamento'))
+AND (j2.description IN 
+('Orçamento', 'Modificação de orçamento', 'Opção de orçamento'))
+WHERE j1.id <> j2.id
+ORDER BY j1.id;
+
+
+
+CREATE TABLE job_activity_share_duration (
+	id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    from_id INT NOT NULL,
+    to_id INT NOT NULL,
+    
+    UNIQUE(from_id, to_id),
+	CONSTRAINT `fk_from_id_duration_job_activity_id` FOREIGN KEY(from_id) REFERENCES job_activity(id),
+    CONSTRAINT `fk_to_id_duration_job_activity_id` FOREIGN KEY(to_id) REFERENCES job_activity(id)
+);
+
+
+
+INSERT INTO job_activity_share_duration (from_id, to_id)SELECT j1.id as j1id, j2.id as j2id FROM job_activity j1 
+INNER JOIN job_activity j2 ON (j1.description IN 
+('Projeto', 'Modificação de projeto', 'Opção de projeto','Outsider', 'Modificação de outsider', 'Opção de outsider',
+'Projeto externo', 'Modificação de projeto externo', 'Opção de projeto externo')
+AND (j2.description IN 
+('Projeto', 'Modificação de projeto', 'Opção de projeto','Outsider', 'Modificação de outsider', 'Opção de outsider',
+'Projeto externo', 'Modificação de projeto externo', 'Opção de projeto externo')))
+WHERE j1.id <> j2.id
+ORDER BY j1.id;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

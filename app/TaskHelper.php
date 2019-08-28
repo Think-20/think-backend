@@ -153,9 +153,9 @@ class TaskHelper
         ' está bloqueada para o responsável');
     }
 
-    public static function getItemsForVerification(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity): Collection {
-        $itemsForVerification = TaskItem::selectRaw('date, responsible_id, SUM(task_item.duration) as duration,
-        SUM(task_item.budget_value) as budget_value, user.id as user_id')
+    public static function getItemsForVerification(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity): \Illuminate\Support\Collection {
+        $itemsForVerification = TaskItem::selectRaw('date, responsible_id, duration,
+        budget_value, user.id as user_id, job_activity_id')
         ->join('task', 'task.id', 'task_item.task_id')
         ->join('employee', 'employee.id', 'task.responsible_id')
         ->join('user', 'user.employee_id', 'employee.id')
@@ -166,21 +166,63 @@ class TaskHelper
             { 
                 return $employee->id; 
             }
-        ))
-        ->groupBy('task_item.date', 'task.responsible_id', 'user.id');
+        ));
 
-        if($jobActivity->share_max_budget_value_per_day == 1) {
-            //TO DO: Quando for projeto, modificação, outsider, opção, etc... 
-            //devem compartilhar o saldo de duration
-            //Mas quando for de orçamento não, nesse caso
-            //devem compartilhar o saldo de orçamento
-            $jobActivity->modify->id;
-            $jobActivity->option->id;
+        $jobActivityIdsToCompound = [ $jobActivity->id ];
+        $idsBudgetShared = $jobActivity->share_budget->map(function($budgetShared) {
+            return $budgetShared->to_id;
+        })->toArray();
+        $idsDurationShared = $jobActivity->share_duration->map(function($durationShared) {
+            return $durationShared->to_id;
+        })->toArray();
+        
+        if(count($idsBudgetShared) > 0) {
+            $jobActivityIdsToCompound = array_merge($jobActivityIdsToCompound, $idsBudgetShared);
         }
 
-        dd($itemsForVerification->get());
+        if(count($idsDurationShared) > 0) {
+            $jobActivityIdsToCompound = array_merge($jobActivityIdsToCompound, $idsDurationShared);
+        }
 
-        return $itemsForVerification->get();
+        $itemsForVerification->whereIn('job_activity_id', $jobActivityIdsToCompound);
+        
+        /* Garantir que o próprio ID buscado existe para agrupar na soma */
+        $idsBudgetShared[] = $jobActivity->id;
+        $idsDurationShared[] = $jobActivity->id;
+
+        return TaskHelper::group($itemsForVerification->get()->toBase(), $idsBudgetShared, $idsDurationShared);
+    }
+
+    public static function group(\Illuminate\Support\Collection $collection, array $idsBudgetShared, $idsDurationShared) {
+        if($collection->count() === 0) 
+            return $collection;
+
+        $newCollection = new Collection();
+
+        $date = $collection[0]->date;
+        $responsible_id = $collection[0]->responsible_id;
+        $duration = 0;
+        $budget_value = 0;
+        $finalKey = $collection->count() - 1;
+
+        foreach($collection as $key => $item) {
+            $duration += in_array($item->job_activity_id, $idsDurationShared) ? $item->duration : 0;
+            $budget_value += in_array($item->job_activity_id, $idsBudgetShared) ? $item->budget_value : 0;
+
+            if( ($responsible_id != $item->responsible_id)
+                || ($date != $item->date)
+                || ($key == $finalKey) ) 
+            {
+                $item->duration = $duration;
+                $item->budget_value = $budget_value;
+
+                $newCollection->push($item);
+
+                $duration = 0;
+                $budget_value = 0;
+            }
+        }
+        return $newCollection;
     }
 
     public static function merge(\Illuminate\Support\Collection $completeDates, \Illuminate\Support\Collection $itemsForVerification) {

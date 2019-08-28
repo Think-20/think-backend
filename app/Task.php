@@ -290,14 +290,23 @@ class Task extends Model
     }
 
     public function appendItemsByBudget(Collection $items, JobActivity $jobActivity): Collection {
-        $maxValuePerDay = (float) $jobActivity->max_budget_value_per_day;
-
-        if($maxValuePerDay == 0) 
+        $fixedBudgetValue = (float) $jobActivity->fixed_budget_value;
+        
+        if($fixedBudgetValue == 0) 
             return $items;
+
+        $idsBudgetShared = $jobActivity->share_budget->map(function($budgetShared) {
+            return $budgetShared->to_id;
+        })->toArray();
+        $idsBudgetShared[] = $jobActivity->id;
+        $maxValuePerDay = JobActivity::whereIn('id', $idsBudgetShared)
+        ->get()
+        ->sum('max_budget_value_per_day');
 
         $nextItem = $items->pop();
         $responsible = Employee::find($nextItem->responsible_id);
-        $jobValue = (float) $this->job->budget_value;
+        //100%, 30% do valor, conforme o parâmetro fixed_budget_value
+        $jobValue = (float) $this->job->budget_value * $jobActivity->fixed_budget_value;
 
         do {
             $usedInThisDate = (float) $nextItem->budget_value;
@@ -330,8 +339,6 @@ class Task extends Model
     {
         $id = $data['id'];
         $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
-        //$job_id = isset($data['job']['id']) ? $data['job']['id'] : null;
-        //$job_activity_id = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
         $task = Task::find($id);
         $oldDuration = $task->duration;
         $oldResponsible = $task->responsible->name;
@@ -780,7 +787,8 @@ class Task extends Model
 
     public function task()
     {
-        return $this->belongsTo('App\Task', 'task_id')->with('job_activity');
+        return $this->belongsTo('App\Task', 'task_id')
+            ->with('job_activity', 'job_activity.modify', 'job_activity.option');
     }
 
     public function budget()

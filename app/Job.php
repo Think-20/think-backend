@@ -34,7 +34,7 @@ class Job extends Model
 
     public static function loadForm() {
         return [
-            'job_activities' => JobActivity::all(),
+            'job_activities' => JobActivity::list(),
             'job_types' => JobType::all(),
             'attendances' => Employee::canInsertClients(),
             'competitions' => JobCompetition::all(),
@@ -732,7 +732,7 @@ class Job extends Model
 
     public function tasks() {
         return $this->hasMany('App\Task', 'job_id')->with('project_files', 'project_files.responsible',
-        'specification_files', 'specification_files.responsible',
+        'specification_files', 'specification_files.responsible', 'job_activity.modify', 'job_activity.option',
         'budget', 'budget.responsible', 'task', 'task.job_activity');
     }
 
