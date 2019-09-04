@@ -9,9 +9,9 @@ use stdClass;
 
 class TaskHelper
 {
-    public static function getDates(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity, array $onlyEmployees) 
+    public static function getDates(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity, array $onlyEmployees, \Illuminate\Support\Collection $excludeItemIds = null) 
     {
-        $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity);
+        $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity, $excludeItemIds);
         $itemsWithSpecificEmployees = TaskHelper::filterByEmployees($items, $onlyEmployees);
 
         return $itemsWithSpecificEmployees;
@@ -25,12 +25,12 @@ class TaskHelper
         });
     }
 
-    public static function getNextAvailableDate(DateTime $initialDate, JobActivity $jobActivity, Employee $onlyResponsible = null) 
+    public static function getNextAvailableDate(DateTime $initialDate, JobActivity $jobActivity, Employee $onlyResponsible = null, \Illuminate\Support\Collection $excludeItemIds = null) 
     {
         do {
-            $finalDate = DateHelper::sumUtil($initialDate, 30);
-            $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity);
-            $initialDate = DateHelper::sumUtil($initialDate, 30);
+            $finalDate = DateHelper::sumUtil($initialDate, 1);
+            $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity, $excludeItemIds);
+            $initialDate = DateHelper::sumUtil($initialDate, 1);
             $availableDates = $items->filter(function($item) use ($onlyResponsible) {
                 if($onlyResponsible != null) {
                     return $item->status == 'true' && $item->responsible_id == $onlyResponsible->id;
@@ -46,7 +46,7 @@ class TaskHelper
         $items = new Collection();
         $initialDate = DateHelper::sumUtil(DateHelper::sub($initialDate, 1), 1);
 
-        while($initialDate->format('Y-m-d') < $finalDate->format('Y-m-d')) {
+        while($initialDate->format('Y-m-d') <= $finalDate->format('Y-m-d')) {
             foreach($employees as $employee) {
                 $std = new stdClass();
                 $std->duration = 0;
@@ -63,9 +63,9 @@ class TaskHelper
         return $items;
     }
 
-    public static function checkNextDates(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity) : Collection {
+    public static function checkNextDates(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity, \Illuminate\Support\Collection $excludeItemIds) : Collection {
         $items = new Collection();
-        $itemsForVerification = TaskHelper::getItemsForVerification($initialDate, $finalDate, $jobActivity)
+        $itemsForVerification = TaskHelper::getItemsForVerification($initialDate, $finalDate, $jobActivity, $excludeItemIds)
         ->map(function($item) {
             $std = new stdClass();
             $std->duration = $item->duration;
@@ -153,7 +153,7 @@ class TaskHelper
         ' está bloqueada para o responsável');
     }
 
-    public static function getItemsForVerification(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity): \Illuminate\Support\Collection {
+    public static function getItemsForVerification(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity, \Illuminate\Support\Collection $excludeItemIds): \Illuminate\Support\Collection {
         $itemsForVerification = TaskItem::selectRaw('date, responsible_id, duration,
         budget_value, user.id as user_id, job_activity_id')
         ->join('task', 'task.id', 'task_item.task_id')
@@ -166,7 +166,8 @@ class TaskHelper
             { 
                 return $employee->id; 
             }
-        ));
+        ))
+        ->whereNotIn('task_item.id', $excludeItemIds);
 
         $jobActivityIdsToCompound = [ $jobActivity->id ];
         $idsBudgetShared = $jobActivity->share_budget->map(function($budgetShared) {
@@ -211,7 +212,9 @@ class TaskHelper
 
             if( ($responsible_id != $item->responsible_id)
                 || ($date != $item->date)
-                || ($key == $finalKey) ) 
+                || ($key == $finalKey)
+                || ($key == 0 && $responsible_id != $collection[$key + 1]->responsible_id)
+                || ($key == 0 && $date != $collection[$key + 1]->date) ) 
             {
                 $item->duration = $duration;
                 $item->budget_value = $budget_value;

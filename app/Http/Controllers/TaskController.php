@@ -82,7 +82,7 @@ class TaskController extends Controller
 
         try {
             $task = Task::editAvailableDate($data);
-            $message = 'Cronograma alterado com sucesso!';
+            $message = 'Agenda alterada com sucesso!';
             $status = true;
             DB::commit();
         } catch(QueryException $queryException) {
