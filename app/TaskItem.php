@@ -32,9 +32,6 @@ class TaskItem extends Model
             if ($itemTask1->task_id == $itemTask2->task_id)
                 throw new Exception('Os itens não podem pertencer a mesma tarefa!');
 
-            if ($itemTask1->duration != $itemTask2->duration)
-                throw new Exception('As durações dos itens devem ser iguais!');
-
             $nextDates2 = TaskHelper::getDates(
                 new DateTime($itemTask1->date),
                 new DateTime($itemTask1->date),

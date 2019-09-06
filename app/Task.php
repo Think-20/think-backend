@@ -57,15 +57,24 @@ class Task extends Model
         $itemTask1 = isset($data['taskItem1']) ? $data['taskItem1'] : null;
         $itemTask2 = isset($data['taskItem2']) ? $data['taskItem2'] : null;
         $onlyItem = isset($data['onlyItem']) ? $data['onlyItem'] : null;
+        $date1 = $itemTask2['date'];
+        $date2 = $itemTask1['date'];
 
-        if (isset($itemTask1['id']) && isset($itemTask2['id']) 
-            && isset($itemTask1['task']['id']) && isset($itemTask2['task']['id'])) {
+        if (
+            isset($itemTask1['id']) && isset($itemTask2['id'])
+            && isset($itemTask1['task']['id']) && isset($itemTask2['task']['id'])
+        ) {
+            $task1 = Task::find($itemTask1['task']['id']);
+            $task2 = Task::find($itemTask2['task']['id']);
+
             if ($onlyItem) {
                 TaskItem::swapItems($itemTask1['id'], $itemTask2['id']);
-                return;
+                Task::notifySwapItems($task1, $date1, $task2, $date2);
+                return true;
             }
             Task::swapTasks($itemTask1['task']['id'], $itemTask2['task']['id']);
-            return;
+            Task::notifySwapTasks($task1, $task2);
+            return true;
         }
 
         if ($itemTask1['id'] == null) {
@@ -80,69 +89,13 @@ class Task extends Model
 
         if ($onlyItem) {
             TaskItem::swapItems($itemTask1['id'], null, $itemTask2['date']);
-            return;
+            Task::notifySwapItems($task1, $date1);
+            return true;
         }
+        $task1 = Task::find($itemTask1['task']['id']);
         Task::swapTasks($itemTask1['task']['id'], null, $itemTask2['date']);
-        return;
+        Task::notifySwapTasks($task1, null);
 
-        //TO DO: implementar notificações
-
-        /*
-
-        if (($task1->job->attendance_id != $task2->job->attendance_id) || $task1->job->attendance_id != User::logged()->employee->id) {
-            throw new \Exception('Você não pode alterar uma tarefa que não pertence a você.');
-        }
-
-        if($onlyItem) {
-            
-        }
-
-        dd($itemTask1, $itemTask2);
-        
-
-        $message1 = 'Mudança de agenda de ' . $task1->getTaskName() . ' da ';
-        $message1 .= $task1->job->getJobName();
-        $message1 .= ' para ' . (new DateTime($task1->available_date))->format('d/m/Y') . ' para ' . $task1->responsible->name;
-
-        $message2 = 'Mudança de agenda de ' . $task2->getTaskName() . ' da ';
-        $message2 .= $task2->job->getJobName();
-        $message2 .= ' para ' . (new DateTime($task2->available_date))->format('d/m/Y') . ' para ' . $task2->responsible->name;
-
-        Notification::createAndNotify(User::logged()->employee, [
-            'message' => $message1
-        ], NotificationSpecial::createMulti([
-            'user_id' => $task1->responsible->user->id,
-            'message' => $message1
-        ], [
-            'user_id' => $task1->job->attendance->user->id,
-            'message' => $message1
-        ]), 'Alteração de tarefa', $task1->id);
-
-        Notification::createAndNotify(User::logged()->employee, [
-            'message' => $message2
-        ], NotificationSpecial::createMulti([
-            'user_id' => $task2->responsible->user->id,
-            'message' => $message2
-        ], [
-            'user_id' => $task2->job->attendance->user->id,
-            'message' => $message2
-        ]), 'Alteração de tarefa', $task2->id);
-
-        $message = 'Mudança de agenda de ' . $task->getTaskName() . ' da ';
-        $message .= $task->job->getJobName();
-        $message .= ' para ' . (new DateTime($task->available_date))->format('d/m/Y') . ' para ' . $task->responsible->name;
-
-        Notification::createAndNotify(User::logged()->employee, [
-            'message' => $message
-        ], NotificationSpecial::createMulti([
-            'user_id' => $task->responsible->user->id,
-            'message' => $message
-        ], [
-            'user_id' => $task->job->attendance->user->id,
-            'message' => $message
-        ]), 'Alteração de tarefa', $task->id);
-
-        */
         return true;
     }
 
@@ -157,7 +110,7 @@ class Task extends Model
         $task1->items()->delete();
         $ids = $items1->pluck('id')->toArray();
 
-        if($task2Id != null) {
+        if ($task2Id != null) {
             $task2 = Task::find($task2Id);
             $items2 = $task2->items;
             $duration2 = (float) $task2->items->sum('duration');
@@ -206,7 +159,7 @@ class Task extends Model
         $task1->saveItems($newItems1);
 
 
-        if($task2Id != null) {
+        if ($task2Id != null) {
             $dates2 = TaskHelper::getDates(
                 new DateTime($items2->first()->date),
                 new DateTime($items2->first()->date),
@@ -249,40 +202,26 @@ class Task extends Model
         }
     }
 
-    public static function myEditAvailableDate(array $data)
+    public static function notifySwapTasks($task1, $task2 = null)
     {
-        //TO DO: implementar troca de itens para atendimento
-        $task = null;
+        $message1 = 'Mudança de agenda de ' . $task1->getTaskName() . ' da ';
+        $message1 .= $task1->job->getJobName();
+        $message1 .= ' para ' . (new DateTime($task1->getAvailableDate()))->format('d/m/Y') . ' para ' . $task1->responsible->name;
 
-        if (isset($data['task1']['id']) && isset($data['task2']['id'])) {
-            $oTask1 = (object) $data['task1'];
-            $oTask2 = (object) $data['task2'];
-            $task1 = Task::find($oTask1->id);
-            $task2 = Task::find($oTask2->id);
+        Notification::createAndNotify(User::logged()->employee, [
+            'message' => $message1
+        ], NotificationSpecial::createMulti([
+            'user_id' => $task1->responsible->user->id,
+            'message' => $message1
+        ], [
+            'user_id' => $task1->job->attendance->user->id,
+            'message' => $message1
+        ]), 'Alteração de tarefa', $task1->id);
 
-            if (($task1->job->attendance_id != $task2->job->attendance_id) || $task1->job->attendance_id != User::logged()->employee->id) {
-                throw new \Exception('Você não pode alterar uma tarefa que não pertence a você.');
-            }
-
-            ActivityHelper::swapActivities($task1, $task2);
-
-            $message1 = 'Mudança de agenda de ' . $task1->getTaskName() . ' da ';
-            $message1 .= $task1->job->getJobName();
-            $message1 .= ' para ' . (new DateTime($task1->available_date))->format('d/m/Y') . ' para ' . $task1->responsible->name;
-
+        if ($task2 != null) {
             $message2 = 'Mudança de agenda de ' . $task2->getTaskName() . ' da ';
             $message2 .= $task2->job->getJobName();
-            $message2 .= ' para ' . (new DateTime($task2->available_date))->format('d/m/Y') . ' para ' . $task2->responsible->name;
-
-            Notification::createAndNotify(User::logged()->employee, [
-                'message' => $message1
-            ], NotificationSpecial::createMulti([
-                'user_id' => $task1->responsible->user->id,
-                'message' => $message1
-            ], [
-                'user_id' => $task1->job->attendance->user->id,
-                'message' => $message1
-            ]), 'Alteração de tarefa', $task1->id);
+            $message2 .= ' para ' . (new DateTime($task2->getAvailableDate()))->format('d/m/Y') . ' para ' . $task2->responsible->name;
 
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message2
@@ -293,29 +232,63 @@ class Task extends Model
                 'user_id' => $task2->job->attendance->user->id,
                 'message' => $message2
             ]), 'Alteração de tarefa', $task2->id);
-        } else {
-            $task = ActivityHelper::moveActivity($data['task1'], $data['task2']);
+        }
+    }
 
-            if ($task->job->attendance_id != User::logged()->employee->id) {
-                throw new \Exception('Você não pode alterar uma tarefa que não pertence a você.');
-            }
+    public function getAvailableDate() {
+        return $this->items->count() > 0 ? $this->items[0]->date : null;
+    }
 
-            $message = 'Mudança de agenda de ' . $task->getTaskName() . ' da ';
-            $message .= $task->job->getJobName();
-            $message .= ' para ' . (new DateTime($task->available_date))->format('d/m/Y') . ' para ' . $task->responsible->name;
+    public static function notifySwapItems($task1, $date1, $task2 = null, $date2 = null)
+    {
+        $message1 = 'Mudança de agenda de item de ' . $task1->getTaskName() . ' da ';
+        $message1 .= $task1->job->getJobName();
+        $message1 .= ' para ' . (new DateTime($date1))->format('d/m/Y') . ' para ' . $task1->responsible->name;
+
+        Notification::createAndNotify(User::logged()->employee, [
+            'message' => $message1
+        ], NotificationSpecial::createMulti([
+            'user_id' => $task1->responsible->user->id,
+            'message' => $message1
+        ], [
+            'user_id' => $task1->job->attendance->user->id,
+            'message' => $message1
+        ]), 'Alteração de tarefa', $task1->id);
+
+        if ($task2 != null) {
+            $message2 = 'Mudança de agenda de item ' . $task2->getTaskName() . ' da ';
+            $message2 .= $task2->job->getJobName();
+            $message2 .= ' para ' . (new DateTime($date2))->format('d/m/Y') . ' para ' . $task2->responsible->name;
 
             Notification::createAndNotify(User::logged()->employee, [
-                'message' => $message
+                'message' => $message2
             ], NotificationSpecial::createMulti([
-                'user_id' => $task->responsible->user->id,
-                'message' => $message
+                'user_id' => $task2->responsible->user->id,
+                'message' => $message2
             ], [
-                'user_id' => $task->job->attendance->user->id,
-                'message' => $message
-            ]), 'Alteração de tarefa', $task->id);
+                'user_id' => $task2->job->attendance->user->id,
+                'message' => $message2
+            ]), 'Alteração de tarefa', $task2->id);
+        }
+    }
+
+    public static function myEditAvailableDate(array $data)
+    {
+        $itemTask1 = isset($data['taskItem1']) ? $data['taskItem1'] : null;
+        $itemTask2 = isset($data['taskItem2']) ? $data['taskItem2'] : null;
+
+        $task1 = $itemTask1 != null ? Task::find($itemTask1['task']['id']) : null;
+        $task2 = $itemTask2 != null ? Task::find($itemTask2['task']['id']) : null;
+
+        if ($task1 != null && $task1->job->attendance_id != User::logged()->employee->id) {
+            throw new \Exception('Você não pode alterar uma tarefa que não pertence a você.');
         }
 
-        return true;
+        if ($task2 != null && $task2->job->attendance_id != User::logged()->employee->id) {
+            throw new \Exception('Você não pode alterar uma tarefa que não pertence a você.');
+        }
+
+        return Task::editAvailableDate($data);
     }
 
     public function insertAutomatic(JobActivity $jobActivity, NotifierInterface $notifier = null, Employee $onlyResponsible = null)
