@@ -68,7 +68,11 @@ class ActivityHelper
             throw new \Exception('Você não pode trocar por uma data menor que a de hoje.');
         }
 
-        $arr = ActivityHelper::calculateNextDate($nextDate, $task->job_activity, $task->type()->getResponsibleList(), $task->duration, $task->id);
+        $responsibleList = $task->job_activity->description == 'Modificação' 
+            ? Employee::where('id', $task->responsible_id)->get() 
+            : $task->type()->getResponsibleList();
+
+        $arr = ActivityHelper::calculateNextDate($nextDate, $task->job_activity, $responsibleList, $task->duration, $task->id);
 
         /* Teste com calculadora de datas */
         if (!DateHelper::compare(new DateTime($arr['date']), new DateTime($nextDate))) {
