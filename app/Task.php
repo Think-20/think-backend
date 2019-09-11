@@ -205,6 +205,7 @@ class Task extends Model
 
     public static function notifySwapTasks($task1, $task2 = null)
     {
+        $task1 = Task::find($task1->id);
         $message1 = 'Mudança de agenda de ' . $task1->getTaskName() . ' da ';
         $message1 .= $task1->job->getJobName();
         $message1 .= ' para ' . (new DateTime($task1->getAvailableDate()))->format('d/m/Y') . ' para ' . $task1->responsible->name;
@@ -220,6 +221,7 @@ class Task extends Model
         ]), 'Alteração de tarefa', $task1->id);
 
         if ($task2 != null) {
+            $task2 = Task::find($task2->id);
             $message2 = 'Mudança de agenda de ' . $task2->getTaskName() . ' da ';
             $message2 .= $task2->job->getJobName();
             $message2 .= ' para ' . (new DateTime($task2->getAvailableDate()))->format('d/m/Y') . ' para ' . $task2->responsible->name;
@@ -238,6 +240,10 @@ class Task extends Model
 
     public function getAvailableDate() {
         return $this->items->count() > 0 ? $this->items[0]->date : null;
+    }
+
+    public function getDuration() {
+        return $this->items->sum('duration');
     }
 
     public static function notifySwapItems($task1, $date1, $task2 = null, $date2 = null)
@@ -322,8 +328,8 @@ class Task extends Model
         $items = isset($data['items']) ? collect($data['items'])->map(function ($item) {
             return (object) $item;
         }) : collect([]);
+        $admin = isset($data['admin']) ? $data['admin'] : false;
 
-        $jobActivity = JobActivity::find($job_activity_id);
         $task = new Task(array_merge($data, [
             'responsible_id' => $responsible_id,
             'job_id' => $job_id,
@@ -331,7 +337,7 @@ class Task extends Model
             'task_id' => $task_id,
         ]));
 
-        $task->saveItems($items);
+        $task->saveItems($items, !$admin);
 
         if ($task->initialDate() != null) {
             $message = $task->getTaskName() . ' da ';
@@ -445,12 +451,19 @@ class Task extends Model
         return $items;
     }
 
-    public function saveItems(Collection $items)
+    public function saveItems(Collection $items, $check = true)
     {
         $jobActivity = $this->job_activity;
-        $items = $this->appendItemsByBudget($items, $jobActivity);
-        $items = $this->fixItemsByFixedDuration($items, $jobActivity);
-        $items = $this->fixItemsByMaxDurationValuePerDay($items, $jobActivity);
+
+        if($check) {
+            $items = $this->appendItemsByBudget($items, $jobActivity);
+            $items = $this->fixItemsByFixedDuration($items, $jobActivity);
+            $items = $this->fixItemsByMaxDurationValuePerDay($items, $jobActivity);
+        } else {
+            $items->each(function($item) {
+                $item->force = 1;
+            });
+        }        
 
         $this->save();
         TaskItem::insertAll($this, $items->toArray());
@@ -465,12 +478,20 @@ class Task extends Model
     {
         $id = $data['id'];
         $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
+        $items = isset($data['items']) ? collect($data['items'])->map(function ($item) {
+            return (object) $item;
+        }) : collect([]);
+        $admin = isset($data['admin']) ? $data['admin'] : false;
+
         $task = Task::find($id);
-        $oldDuration = $task->duration;
+
         $oldResponsible = $task->responsible->name;
         $oldResponsibleId = $task->responsible->id;
-        $oldDuration = $task->duration;
+        $oldDuration = $task->getDuration();
         $oldDate = $task->initialDate();
+
+        $task->deleteItems();
+        $task->saveItems($items, !$admin);
 
         $task->update(
             array_merge($data, [
@@ -479,21 +500,6 @@ class Task extends Model
         );
 
         $task = Task::find($id);
-        $task->deleteItems();
-
-        //Rotina para burlar a edição via ADM para orçamento que tem duração por valor
-        if ($task->job_activity->description == 'Orçamento') {
-            $task->job_activity_id = 1;
-            $task->save();
-            $task = Task::find($id);
-            $task->saveItems(true);
-            $task->job_activity_id = 2;
-            $task->save();
-            $task = Task::find($id);
-        } else {
-            $task->saveItems(true);
-        }
-
 
         if ($oldResponsibleId != $task->responsible_id) {
             $message = 'Responsável de ' . mb_strtolower($task->getTaskName()) . ' da ';
@@ -514,10 +520,10 @@ class Task extends Model
             ]), 'Alteração de tarefa', $task->id);
         }
 
-        if ($oldDuration != $task->duration) {
+        if ($oldDuration != $task->getDuration()) {
             $message = 'Duração de ' . mb_strtolower($task->getTaskName()) . ' da ';
             $message .= $task->job->getJobName();
-            $message .= ' alterada de ' . strval((int) $oldDuration) . ' para ' . strval((int) $task->duration) . ' dia(s)';
+            $message .= ' alterada de ' . strval((int) $oldDuration) . ' para ' . strval((int) $task->getDuration()) . ' dia(s)';
 
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message

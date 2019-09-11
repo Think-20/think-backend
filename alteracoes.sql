@@ -132,6 +132,7 @@ WHERE description = 'Continuação';
 
 ALTER TABLE task DROP COLUMN available_date;
 ALTER TABLE task DROP COLUMN duration;
+ALTER TABLE task_item ADD COLUMN `force` TINYINT(1) DEFAULT 0;
 
 ALTER TABLE job_activity DROP COLUMN `show`;
 ALTER TABLE job_activity DROP COLUMN `master`;

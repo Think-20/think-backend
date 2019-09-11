@@ -13,7 +13,7 @@ class TaskItem extends Model
     protected $table = 'task_item';
 
     protected $fillable = [
-        'date', 'task_id', 'duration', 'budget_value'
+        'date', 'task_id', 'duration', 'budget_value', 'force'
     ];
 
     public static function swapItems($itemTask1Id, $itemTask2Id = null, $targetDate = null)
