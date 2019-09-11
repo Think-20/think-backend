@@ -11,7 +11,7 @@ class TaskHelper
 {
     public static function getDates(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity, array $onlyEmployees, \Illuminate\Support\Collection $excludeItemIds = null) 
     {
-        $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity, $excludeItemIds);
+        $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity, new Collection($excludeItemIds));
         $itemsWithSpecificEmployees = TaskHelper::filterByEmployees($items, $onlyEmployees);
 
         return $itemsWithSpecificEmployees;
