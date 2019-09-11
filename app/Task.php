@@ -88,6 +88,7 @@ class Task extends Model
         }
 
         if ($onlyItem) {
+            $task1 = Task::find($itemTask1['task']['id']);
             TaskItem::swapItems($itemTask1['id'], null, $itemTask2['date']);
             Task::notifySwapItems($task1, $date1);
             return true;
