@@ -937,7 +937,7 @@ class Task extends Model
     public function task()
     {
         return $this->belongsTo('App\Task', 'task_id')
-            ->with('job_activity', 'job_activity.modify', 'job_activity.option');
+            ->with('job_activity', 'job_activity.modification', 'job_activity.option');
     }
 
     public function budget()
