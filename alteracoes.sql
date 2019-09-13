@@ -191,13 +191,42 @@ AND (j2.description IN
 WHERE j1.id <> j2.id
 ORDER BY j1.id;
 
+#Orçamentos com 0.2 de duração
+UPDATE task_item ti 
+LEFT JOIN task t ON t.id = ti.task_id
+SET duration = 0.2
+WHERE t.job_activity_id = 2;
+
+#Modificação de orçamento | opção com 0.5 de duração
+UPDATE task_item ti 
+LEFT JOIN task t ON t.id = ti.task_id
+SET duration = 0.2
+WHERE t.job_activity_id = 15 OR t.job_activity_id = 16;
 
 
+#Migrar os itens das continuações para as tarefas originais detectadas
+UPDATE task_item ti 
+LEFT JOIN task t ON t.id = ti.task_id
+SET ti.task_id = t.task_id
+WHERE t.job_activity_id = 12 AND t.task_id IS NOT NULL;
+
+DELETE FROM task WHERE id = 1194;
+DELETE FROM task WHERE job_activity_id = 12 AND task_id IS NOT NULL;
 
 
+#Migrar os itens das continuações sem tarefas originais detectadas
+UPDATE task_item ti 
+LEFT JOIN task t ON t.id = ti.task_id
+LEFT JOIN job j ON t.job_id = j.id
+LEFT JOIN task t2 ON t2.job_id = j.id
+LEFT JOIN job_activity ja ON ja.id = t2.job_activity_id
+SET ti.task_id = t2.id
+WHERE t.job_activity_id = 12 
+AND ja.initial = 1
+AND t.task_id IS NULL;
 
-
-
+DELETE FROM task WHERE job_activity_id = 12;
+DELETE FROM job_activity WHERE id = 12;
 
 
 
