@@ -753,7 +753,7 @@ class Job extends Model
             #|| $task->job_activity->description == 'Opção'
             || $task->job_activity->description == 'Outsider') {
                 $this->creation_responsible = $task->responsible;
-                $this->available_date = $task->available_date;
+                $this->available_date = $task->getAvailableDate();
             }
         }
     }
@@ -762,7 +762,7 @@ class Job extends Model
         foreach($this->tasks as $task) {
             if($task->job_activity->description == 'Orçamento') {
                 $this->budget_responsible = $task->responsible;
-                $this->available_date = $task->available_date;
+                $this->available_date = $task->getAvailableDate();
             }
         }
     }
