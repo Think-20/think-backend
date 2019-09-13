@@ -49,6 +49,33 @@ class TaskController extends Controller
          ]), 200);
     }
 
+    public static function insertDerived(Request $request) {
+        $data = $request->all();
+        $status = false;
+        $task = null;
+
+        DB::beginTransaction();
+
+        try {
+            $task = Task::insertDerived($data);
+            $message = 'Agenda cadastrada com sucesso!';
+            DB::commit();
+            $status = true;
+        } 
+        /* Catch com FileException tamanho máximo */
+        catch(Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
+             //. $e->getFile() . $e->getLine();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+            'task' => $task
+         ]), 200);
+    }
+
     public static function edit(Request $request) {
         DB::beginTransaction();
         $status = false;

@@ -77,7 +77,13 @@ class TaskHelper
             return $std;
         });
 
-        $completeDates = TaskHelper::completeDates($initialDate, $finalDate, $jobActivity->responsibles);
+        $responsibles = $jobActivity->responsibles;
+
+        if($responsibles->count() === 0) {
+            throw new Exception('Não há responsáveis para essa atividade.');
+        }
+
+        $completeDates = TaskHelper::completeDates($initialDate, $finalDate, $responsibles);
         $unionItems = TaskHelper::merge($completeDates->toBase(), $itemsForVerification->toBase());
 
         foreach($unionItems as $item) {

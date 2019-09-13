@@ -51,6 +51,22 @@ class Task extends Model
         ];
     }
 
+    public static function insertDerived(array $data)
+    {
+        $taskId = isset($data['task']['id']) ? $data['task']['id'] : null;
+        $jobActivityId = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
+
+        if ($taskId == null || $jobActivityId == null) {
+            throw new Exception('Uma tarefa e uma atividade devem ser passados como parâmetro');
+        }
+
+        $task = Task::find($taskId);
+        $jobActivity = JobActivity::find($jobActivityId);
+        $insertedTask = $task->insertAutomatic($jobActivity);
+        $insertedTask->items;
+        return $insertedTask;
+    }
+
     public static function editAvailableDate(array $data)
     {
         $itemTask1 = isset($data['taskItem1']) ? $data['taskItem1'] : null;
@@ -153,7 +169,7 @@ class Task extends Model
                 $responsibleId = $nextDate->responsible_id;
 
             $duration1 = $duration1 - TaskItem::durationSub((float) $nextDate->duration);
-            $initialDate = DateHelper::sumUtil($initialDate, 1);
+            $initialDate = DateHelper::sumUtil(new DateTime($nextDate->date), 1);
             $newItems1->push($nextDate);
         }
         $task1->responsible_id = $responsibleId;
@@ -196,7 +212,7 @@ class Task extends Model
                     $responsibleId = $nextDate->responsible_id;
 
                 $duration2 = $duration2 - TaskItem::durationSub((float) $nextDate->duration);
-                $initialDate = DateHelper::sumUtil($initialDate, 1);
+                $initialDate = DateHelper::sumUtil(new DateTime($nextDate->date), 1);
                 $newItems2->push($nextDate);
             }
             $task2->responsible_id = $responsibleId;
@@ -306,7 +322,31 @@ class Task extends Model
     {
         $date = new DateTime('now');
         $items = new Collection();
-        $items->push(TaskHelper::getNextAvailableDate($date, $jobActivity, $onlyResponsible, null, $this->job));
+
+        if ($jobActivity->fixed_duration == 0) {
+            $duration = $this->job->initialTask()->getDuration();
+            $responsibleId = 0;
+
+            while ($duration > 0) {
+                $nextDate = TaskHelper::getNextAvailableDate(
+                    $date,
+                    $jobActivity,
+                    $responsibleId != 0 ? Employee::find($responsibleId) : null,
+                    collect(),
+                    $this->job
+                );
+
+                if ($responsibleId == 0)
+                    $responsibleId = $nextDate->responsible_id;
+
+                $duration = $duration - TaskItem::durationSub((float) $nextDate->duration);
+                $date = DateHelper::sumUtil(new DateTime($nextDate->date), 1);
+                $items->push($nextDate);
+            }
+        } else {
+            $items->push(TaskHelper::getNextAvailableDate($date, $jobActivity, $onlyResponsible, new Collection(), $this->job));
+        }
+
         $responsible = Employee::find($items->first()->responsible_id);
 
         $data = [
@@ -320,7 +360,7 @@ class Task extends Model
         ];
 
         $notifier = $notifier != null ? $notifier : $responsible;
-        Task::insert($data, $notifier);
+        return Task::insert($data, $notifier);
     }
 
     public static function insert(array $data, NotifierInterface $notifier = null)
@@ -632,13 +672,13 @@ class Task extends Model
         }
 
         if (!is_null($jobActivityArrayId)) {
-            $taskItems->whereHas('task', function($query) use ($jobActivityArrayId) {
+            $taskItems->whereHas('task', function ($query) use ($jobActivityArrayId) {
                 $query->whereIn('task.job_activity_id', $jobActivityArrayId);
             });
         }
 
         if (!is_null($responsibleArrayId)) {
-            $taskItems->whereHas('task', function($query) use ($responsibleArrayId) {
+            $taskItems->whereHas('task', function ($query) use ($responsibleArrayId) {
                 $query->whereIn('task.responsible_id', $responsibleArrayId);
             });
         }
@@ -678,13 +718,13 @@ class Task extends Model
         }
 
         if (!is_null($creationId)) {
-            $taskItems->whereHas('task', function($query) use ($creationId) {
+            $taskItems->whereHas('task', function ($query) use ($creationId) {
                 $query->where('responsible_id', $creationId);
             });
         }
 
         if (!is_null($responsibleId)) {
-            $taskItems->whereHas('task', function($query) use ($responsibleId) {
+            $taskItems->whereHas('task', function ($query) use ($responsibleId) {
                 $query->where('responsible_id', $responsibleId);
             });
         }
@@ -761,14 +801,14 @@ class Task extends Model
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
 
-        $tasks = Task::select('task.*')->with(['items' => function ($query) { 
+        $tasks = Task::select('task.*')->with(['items' => function ($query) {
             $query->first();
         }])
-        ->leftJoin('job', 'job.id', '=', 'task.job_id')
-        ->where(function ($query) use ($user) {
-            $query->where('job.attendance_id', '=', $user->employee->id);
-            $query->orWhere('task.responsible_id', '=', $user->employee->id);
-        });
+            ->leftJoin('job', 'job.id', '=', 'task.job_id')
+            ->where(function ($query) use ($user) {
+                $query->where('job.attendance_id', '=', $user->employee->id);
+                $query->orWhere('task.responsible_id', '=', $user->employee->id);
+            });
 
         if (!is_null($iniDate) && !is_null($finDate)) {
             $sql = '(task_item.date >= "' . $iniDate . '"';

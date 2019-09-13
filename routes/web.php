@@ -137,6 +137,7 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::post('/tasks/get-available-dates', 'TaskController@getNextAvailableDates');
     Route::get('/tasks/{jobActivityId}/responsibles', 'TaskController@responsiblesByActivity');
     Route::get('/tasks/updated-info', 'TaskController@updatedInfo');
+    Route::post('/task/insert-derived', 'TaskController@insertDerived');
 
     Route::get('/notifications/all', 'NotificationController@all');
     Route::get('/notifications/recents', 'NotificationController@recents');

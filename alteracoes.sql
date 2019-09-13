@@ -17,7 +17,15 @@ SELECT NULL, 8, id FROM employee WHERE department_id = 5 AND schedule_active = 1
 UNION 
 SELECT NULL, 9, id FROM employee WHERE department_id = 5 AND schedule_active = 1
 UNION 
-SELECT NULL, 11, id FROM employee WHERE department_id = 5 AND schedule_active = 1;
+SELECT NULL, 11, id FROM employee WHERE department_id = 5 AND schedule_active = 1
+UNION 
+SELECT NULL, 17, id FROM employee WHERE department_id = 5 AND schedule_active = 1
+UNION 
+SELECT NULL, 18, id FROM employee WHERE department_id = 5 AND schedule_active = 1
+UNION 
+SELECT NULL, 19, id FROM employee WHERE department_id = 5 AND schedule_active = 1
+UNION 
+SELECT NULL, 20, id FROM employee WHERE department_id = 5 AND schedule_active = 1;
 
 #Criação de responsáveis por orçamento
 INSERT INTO job_activity_employee SELECT NULL, 2, id FROM employee WHERE department_id = 6 AND schedule_active = 1 AND position_id = 6 and id = 21
@@ -32,7 +40,7 @@ SELECT NULL, 16, id FROM employee WHERE department_id = 6 AND schedule_active = 
 INSERT INTO job_activity_employee SELECT NULL, 13, id FROM employee WHERE department_id = 4 AND schedule_active = 1;
 
 #Criação de responsáveis por detalhamento
-INSERT INTO job_activity_employee SELECT NULL, 13, id FROM employee WHERE department_id = 6 AND schedule_active = 1 AND position_id = 8;
+INSERT INTO job_activity_employee SELECT NULL, 10, id FROM employee WHERE department_id = 6 AND schedule_active = 1 AND position_id = 8;
 
 
 ALTER TABLE job_activity ADD COLUMN fixed_duration DOUBLE(3,2) DEFAULT 0;
