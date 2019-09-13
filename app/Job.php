@@ -252,7 +252,10 @@ class Job extends Model
 
         $jobs = Job::selectRaw('job.*')
         ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels',
-        'how_come', 'agency', 'attendance', 'competition', 'files', 'status', 'creation');
+        'how_come', 'agency', 'attendance', 'competition', 'files', 'status', 'creation',
+        ['creation.items' => function($query) {
+            $query->limit(1);
+        }]);
 
         if ( ! is_null($clientName) ) {
             $jobs->whereHas('client', function($query) use ($clientName) {
@@ -301,14 +304,14 @@ class Job extends Model
         }
 
         if( ! is_null($initialDate) ) {
-            $jobs->whereHas('creation', function($query) use ($initialDate) {
-                $query->where('available_date', '>=', $initialDate);
+            $jobs->whereHas('creation.items', function($query) use ($initialDate) {
+                $query->where('creation.items.date', '>=', $initialDate);
             });
         }
 
         if( ! is_null($finalDate) ) {
-            $jobs->whereHas('creation', function($query) use ($finalDate) {
-                $query->where('available_date', '<=', $finalDate);
+            $jobs->whereHas('creation.items', function($query) use ($finalDate) {
+                $query->where('creation.items.date', '<=', $finalDate);
             });
         }
 

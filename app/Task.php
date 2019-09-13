@@ -240,11 +240,13 @@ class Task extends Model
         }
     }
 
-    public function getAvailableDate() {
+    public function getAvailableDate()
+    {
         return $this->items->count() > 0 ? $this->items[0]->date : null;
     }
 
-    public function getDuration() {
+    public function getDuration()
+    {
         return $this->items->sum('duration');
     }
 
@@ -457,15 +459,15 @@ class Task extends Model
     {
         $jobActivity = $this->job_activity;
 
-        if($check) {
+        if ($check) {
             $items = $this->appendItemsByBudget($items, $jobActivity);
             $items = $this->fixItemsByFixedDuration($items, $jobActivity);
             $items = $this->fixItemsByMaxDurationValuePerDay($items, $jobActivity);
         } else {
-            $items->each(function($item) {
+            $items->each(function ($item) {
                 $item->force = 1;
             });
-        }        
+        }
 
         $this->save();
         TaskItem::insertAll($this, $items->toArray());
@@ -630,11 +632,15 @@ class Task extends Model
         }
 
         if (!is_null($jobActivityArrayId)) {
-            $taskItems->whereIn('task.job_activity_id', $jobActivityArrayId);
+            $taskItems->whereHas('task', function($query) use ($jobActivityArrayId) {
+                $query->whereIn('task.job_activity_id', $jobActivityArrayId);
+            });
         }
 
         if (!is_null($responsibleArrayId)) {
-            $taskItems->whereIn('task.responsible_id', $responsibleArrayId);
+            $taskItems->whereHas('task', function($query) use ($responsibleArrayId) {
+                $query->whereIn('task.responsible_id', $responsibleArrayId);
+            });
         }
 
         if (!is_null($departmentArrayId)) {
@@ -672,11 +678,15 @@ class Task extends Model
         }
 
         if (!is_null($creationId)) {
-            $taskItems->where('task.responsible_id', '=', $creationId);
+            $taskItems->whereHas('task', function($query) use ($creationId) {
+                $query->where('responsible_id', $creationId);
+            });
         }
 
         if (!is_null($responsibleId)) {
-            $taskItems->where('task.responsible_id', '=', $responsibleId);
+            $taskItems->whereHas('task', function($query) use ($responsibleId) {
+                $query->where('responsible_id', $responsibleId);
+            });
         }
 
         if (!is_null($status)) {
@@ -751,20 +761,22 @@ class Task extends Model
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
 
-        $tasks = Task::select('task.*')
-            ->leftJoin('job', 'job.id', '=', 'task.job_id')
-            ->where(function ($query) use ($user) {
-                $query->where('job.attendance_id', '=', $user->employee->id);
-                $query->orWhere('task.responsible_id', '=', $user->employee->id);
-            });
+        $tasks = Task::select('task.*')->with(['items' => function ($query) { 
+            $query->first();
+        }])
+        ->leftJoin('job', 'job.id', '=', 'task.job_id')
+        ->where(function ($query) use ($user) {
+            $query->where('job.attendance_id', '=', $user->employee->id);
+            $query->orWhere('task.responsible_id', '=', $user->employee->id);
+        });
 
         if (!is_null($iniDate) && !is_null($finDate)) {
-            $sql = '(task.available_date >= "' . $iniDate . '"';
-            $sql .= ' AND task.available_date <= "' . $finDate . '")';
+            $sql = '(task_item.date >= "' . $iniDate . '"';
+            $sql .= ' AND task_item.date <= "' . $finDate . '")';
             $tasks->whereRaw($sql);
         }
 
-        $tasks->orderBy('task.available_date', 'ASC');
+        $tasks->orderBy('task_item.date', 'ASC');
 
         if ($paginate) {
             $paginate = $tasks->paginate(50);

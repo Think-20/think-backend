@@ -16,8 +16,11 @@ class CreateNotifyPastTasks {
 
         $yesterday = DateHelper::sub(new DateTime(), 1)->format('Y-m-d');
 
-        $tasks = Task::where('done', '=', '0')
-        ->whereRaw('DATE_ADD(available_date, INTERVAL duration DAY) = "' . $yesterday . '"')
+        $tasks = Task::with(['items' => function($query) {
+            $query->limit(1);
+        }])
+        ->where('done', '=', '0')
+        ->whereRaw('DATE_ADD(task_item.date, INTERVAL duration DAY) = "' . $yesterday . '"')
         ->whereIn('job_activity_id', $jobActivities->map(function($jobActivity) {
             return $jobActivity->id;
         }))->get();

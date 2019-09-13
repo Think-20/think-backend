@@ -71,9 +71,9 @@
         </style>
     </head>
     <body>
-        <p class="space-down">São Paulo, {{ strftime('%d', strtotime($task->available_date)) . ' de ' 
-        . ucwords(strftime('%B', strtotime($task->available_date))) . ' de ' 
-        . strftime('%Y', strtotime($task->available_date)) }}</p>
+        <p class="space-down">São Paulo, {{ strftime('%d', strtotime($task->getAvailableDate())) . ' de ' 
+        . ucwords(strftime('%B', strtotime($task->getAvailableDate()))) . ' de ' 
+        . strftime('%Y', strtotime($task->getAvailableDate())) }}</p>
         <p class="space-down">
             <strong>Á {{ ($task->job->not_client) ? $task->job->agency->name : $task->job->client->name }}</strong>
             <br>Att. Sr(a). {{ ($task->job->not_client) ? $task->job->agency->contacts[0]->name : $task->job->client->contacts[0]->name }}
