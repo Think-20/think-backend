@@ -9,9 +9,10 @@ use stdClass;
 
 class TaskHelper
 {
-    public static function getDates(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity, array $onlyEmployees, \Illuminate\Support\Collection $excludeItemIds = null) 
+    public static function getDates(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity, 
+        array $onlyEmployees, \Illuminate\Support\Collection $excludeItemIds = null, Job $job = null) 
     {
-        $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity, new Collection($excludeItemIds));
+        $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity, new Collection($excludeItemIds), $job);
         $itemsWithSpecificEmployees = TaskHelper::filterByEmployees($items, $onlyEmployees);
 
         return $itemsWithSpecificEmployees;
@@ -25,11 +26,11 @@ class TaskHelper
         });
     }
 
-    public static function getNextAvailableDate(DateTime $initialDate, JobActivity $jobActivity, Employee $onlyResponsible = null, \Illuminate\Support\Collection $excludeItemIds = null) 
+    public static function getNextAvailableDate(DateTime $initialDate, JobActivity $jobActivity, Employee $onlyResponsible = null, \Illuminate\Support\Collection $excludeItemIds = null, Job $job = null) 
     {
         do {
             $finalDate = DateHelper::sumUtil($initialDate, 1);
-            $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity, $excludeItemIds);
+            $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity, $excludeItemIds, $job);
             $initialDate = DateHelper::sumUtil($initialDate, 1);
             $availableDates = $items->filter(function($item) use ($onlyResponsible) {
                 if($onlyResponsible != null) {
@@ -63,7 +64,7 @@ class TaskHelper
         return $items;
     }
 
-    public static function checkNextDates(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity, \Illuminate\Support\Collection $excludeItemIds) : Collection {
+    public static function checkNextDates(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity, \Illuminate\Support\Collection $excludeItemIds, Job $job = null) : Collection {
         $items = new Collection();
         $itemsForVerification = TaskHelper::getItemsForVerification($initialDate, $finalDate, $jobActivity, $excludeItemIds)
         ->map(function($item) {
@@ -81,7 +82,7 @@ class TaskHelper
 
         foreach($unionItems as $item) {
             try {
-                TaskHelper::checkIfDateAvailable($item, $jobActivity);
+                TaskHelper::checkIfDateAvailable($item, $jobActivity, $job);
                 $item->status = 'true';
                 $item->message = '';
             } catch(Exception $e) {
@@ -94,13 +95,16 @@ class TaskHelper
         return $items;
     }
 
-    public static function checkIfDateAvailable($item, JobActivity $jobActivity): void {
+    public static function checkIfDateAvailable($item, JobActivity $jobActivity, Job $job = null): void {
         TaskHelper::checkDuration($item, $jobActivity);
         TaskHelper::checkBudgetValue($item, $jobActivity);
         TaskHelper::checkBlocked($item);
         TaskHelper::checkOnlyNextDay($item, $jobActivity);
         TaskHelper::checkPeriod($item, $jobActivity);
         TaskHelper::checkOldDate($item, $jobActivity);
+
+        if($job != null)
+            TaskHelper::checkKeepResponsible($item, $jobActivity, $job);
     }
 
     public static function checkDuration($item, JobActivity $jobActivity) {
@@ -151,6 +155,13 @@ class TaskHelper
 
         throw new Exception('A data ' . (new DateTime($item->date))->format('d/m/Y') . 
         ' está bloqueada para o responsável');
+    }
+
+    public static function checkKeepResponsible($item, JobActivity $jobActivity, Job $job = null) {
+        if($jobActivity->keep_responsible == 0 || $job->initialTask()->responsible_id == $item->responsible_id) 
+            return;
+
+        throw new Exception('A atividade exige manter o responsável inicial.');
     }
 
     public static function getItemsForVerification(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity, \Illuminate\Support\Collection $excludeItemIds): \Illuminate\Support\Collection {

@@ -856,6 +856,14 @@ class Job extends Model
         ];
     }
 
+    public function initialTask(): Task {
+        return Task::with(['job_activity' => function($query) {
+            $query->where('initial', '1');
+        }])
+        ->where('job_id', $this->id)
+        ->first();
+    }
+
     public function stand() {
         return $this->hasOne('App\Stand', 'job_id');
     }

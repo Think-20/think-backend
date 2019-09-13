@@ -12,7 +12,8 @@ class JobActivity extends Model
     protected $fillable = [
         'description', 'initial', 'no_params', 'redirect_after_save',
         'fixed_duration', 'min_duration', 'max_duration', 'max_budget_value_per_day',
-        'max_duration_value_per_day', 'modify_id', 'option_id', 'fixed_budget_value'
+        'max_duration_value_per_day', 'modify_id', 'option_id', 'fixed_budget_value',
+        'keep_responsible'
     ];
 
     public static function list() {

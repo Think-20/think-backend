@@ -45,6 +45,7 @@ ALTER TABLE job_activity ADD COLUMN next_period TINYINT(1) DEFAULT 1;
 ALTER TABLE job_activity ADD COLUMN next_day TINYINT(1) DEFAULT 1;
 ALTER TABLE job_activity ADD COLUMN counter TINYINT(1) DEFAULT 0;
 ALTER TABLE job_activity ADD COLUMN initial int DEFAULT 0;  
+ALTER TABLE job_activity ADD COLUMN keep_responsible TINYINT(1) DEFAULT 0;
 
 ALTER TABLE job_activity ADD COLUMN `modification_id` INT DEFAULT NULL;
 ALTER TABLE job_activity ADD CONSTRAINT `fk_modification_id_job_activity_id` FOREIGN KEY(modification_id) REFERENCES job_activity(id);
@@ -129,6 +130,8 @@ UPDATE `job_activity` SET `no_params` = 0, `redirect_after_save` = NULL,
 `fixed_duration` = 0, `min_duration` = 0, `max_duration` = 0, `max_budget_value_per_day` = 0, `max_duration_value_per_day` = 1,
 `next_period` = 0, `next_day` = 1, `counter` = 1
 WHERE description = 'Continuação';
+
+UPDATE job_activity SET keep_responsible = 1 WHERE description LIKE '%modificação%' OR description LIKE '%opção%';
 
 ALTER TABLE task DROP COLUMN available_date;
 ALTER TABLE task DROP COLUMN duration;

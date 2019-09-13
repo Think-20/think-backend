@@ -8,7 +8,6 @@ use Response;
 
 use DB;
 use PDF;
-use DateTime;
 
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;

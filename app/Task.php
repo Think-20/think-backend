@@ -4,7 +4,6 @@ namespace App;
 
 use DateTime;
 use Exception;
-use stdClass;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
@@ -121,11 +120,12 @@ class Task extends Model
         }
 
         $dates1 = TaskHelper::getDates(
-            new DateTime($items1->first()->date),
-            new DateTime($items1->first()->date),
+            new DateTime($targetDate),
+            new DateTime($targetDate),
             $task1->job_activity,
             [],
-            collect($ids)
+            collect($ids),
+            $task1->job
         );
 
         $datesAvailable1 = $dates1->filter(function ($item) {
@@ -145,7 +145,8 @@ class Task extends Model
                 $initialDate,
                 $task1->job_activity,
                 $responsibleId != 0 ? Employee::find($responsibleId) : null,
-                collect($ids)
+                collect($ids),
+                $task1->job
             );
 
             if ($responsibleId == 0)
@@ -166,7 +167,8 @@ class Task extends Model
                 new DateTime($items2->first()->date),
                 $task2->job_activity,
                 [],
-                collect($ids)
+                collect($ids),
+                $task2->job
             );
 
             $datesAvailable2 = $dates2->filter(function ($item) {
@@ -187,7 +189,7 @@ class Task extends Model
                     $task2->job_activity,
                     $responsibleId != 0 ? Employee::find($responsibleId) : null,
                     collect($ids),
-                    true
+                    $task2->job
                 );
 
                 if ($responsibleId == 0)
@@ -302,7 +304,7 @@ class Task extends Model
     {
         $date = new DateTime('now');
         $items = new Collection();
-        $items->push(TaskHelper::getNextAvailableDate($date, $jobActivity, $onlyResponsible));
+        $items->push(TaskHelper::getNextAvailableDate($date, $jobActivity, $onlyResponsible, null, $this->job));
         $responsible = Employee::find($items->first()->responsible_id);
 
         $data = [
@@ -901,6 +903,7 @@ class Task extends Model
         $task = Task::findOrFail($id);
         $task->responsible;
         $task->job;
+        $task->duration = $task->getDuration();
         $task->items;
         $task->job_activity;
         return $task;
