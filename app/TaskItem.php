@@ -71,13 +71,13 @@ class TaskItem extends Model
             throw new Exception($item->message);
         }
 
-        $itemTask1->date = $targetDate;
-        $itemTask1->save();
-
         if ($itemTask2Id != null) {
             $itemTask2->date = $itemTask1->date;
             $itemTask2->save();
         }
+
+        $itemTask1->date = $targetDate;
+        $itemTask1->save();
     }
 
     public static function insert(Task $task, array $data)
