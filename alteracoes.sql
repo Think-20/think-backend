@@ -1,3 +1,31 @@
+ALTER TABLE job_activity ADD COLUMN fixed_duration DOUBLE(3,2) DEFAULT 0;
+ALTER TABLE job_activity ADD COLUMN fixed_budget_value DOUBLE(3,2) DEFAULT 0;
+ALTER TABLE job_activity ADD COLUMN min_duration DOUBLE(3,2) DEFAULT 0;
+ALTER TABLE job_activity ADD COLUMN max_duration DOUBLE(4,2) DEFAULT 0;
+ALTER TABLE job_activity ADD COLUMN max_budget_value_per_day DOUBLE(12,2) DEFAULT 0;
+ALTER TABLE job_activity ADD COLUMN max_duration_value_per_day DOUBLE(4,2) DEFAULT 1;
+ALTER TABLE job_activity ADD COLUMN next_period TINYINT(1) DEFAULT 1;
+ALTER TABLE job_activity ADD COLUMN next_day TINYINT(1) DEFAULT 1;
+ALTER TABLE job_activity ADD COLUMN counter TINYINT(1) DEFAULT 0;
+ALTER TABLE job_activity ADD COLUMN initial int DEFAULT 0;  
+ALTER TABLE job_activity ADD COLUMN keep_responsible TINYINT(1) DEFAULT 0;
+
+INSERT INTO `job_activity` (`no_params`, `redirect_after_save`, `fixed_duration`, `min_duration`, `max_duration`, `max_budget_value_per_day`,
+`max_duration_value_per_day`, `next_period`, `next_day`, `counter`, `description`) 
+VALUES(0, NULL, 1, 0, 0, 0, 1, 0, 1, 1, 'Modificação de outsider');
+
+INSERT INTO `job_activity` (`no_params`, `redirect_after_save`, `fixed_duration`, `min_duration`, `max_duration`, `max_budget_value_per_day`,
+`max_duration_value_per_day`, `next_period`, `next_day`, `counter`, `description`) 
+VALUES(0, NULL, 0, 0, 0, 0, 1, 0, 1, 1, 'Opção de outsider');
+
+INSERT INTO `job_activity` (`no_params`, `redirect_after_save`, `fixed_duration`, `min_duration`, `max_duration`, `max_budget_value_per_day`,
+`max_duration_value_per_day`, `next_period`, `next_day`, `counter`, `description`) 
+VALUES(0, NULL, 0, 0, 0, 0, 0, 0, 0, 1, 'Modificação de projeto externo');
+
+INSERT INTO `job_activity` (`no_params`, `redirect_after_save`, `fixed_duration`, `min_duration`, `max_duration`, `max_budget_value_per_day`,
+`max_duration_value_per_day`, `next_period`, `next_day`, `counter`, `description`) 
+VALUES(0, NULL, 0, 0, 0, 0, 0, 0, 0, 1, 'Opção de projeto externo');
+
 DROP TABLE IF EXISTS job_activity_employee;
 
 CREATE TABLE job_activity_employee (
@@ -42,40 +70,11 @@ INSERT INTO job_activity_employee SELECT NULL, 13, id FROM employee WHERE depart
 #Criação de responsáveis por detalhamento
 INSERT INTO job_activity_employee SELECT NULL, 10, id FROM employee WHERE department_id = 6 AND schedule_active = 1 AND position_id = 8;
 
-
-ALTER TABLE job_activity ADD COLUMN fixed_duration DOUBLE(3,2) DEFAULT 0;
-ALTER TABLE job_activity ADD COLUMN fixed_budget_value DOUBLE(3,2) DEFAULT 0;
-ALTER TABLE job_activity ADD COLUMN min_duration DOUBLE(3,2) DEFAULT 0;
-ALTER TABLE job_activity ADD COLUMN max_duration DOUBLE(4,2) DEFAULT 0;
-ALTER TABLE job_activity ADD COLUMN max_budget_value_per_day DOUBLE(12,2) DEFAULT 0;
-ALTER TABLE job_activity ADD COLUMN max_duration_value_per_day DOUBLE(4,2) DEFAULT 1;
-ALTER TABLE job_activity ADD COLUMN next_period TINYINT(1) DEFAULT 1;
-ALTER TABLE job_activity ADD COLUMN next_day TINYINT(1) DEFAULT 1;
-ALTER TABLE job_activity ADD COLUMN counter TINYINT(1) DEFAULT 0;
-ALTER TABLE job_activity ADD COLUMN initial int DEFAULT 0;  
-ALTER TABLE job_activity ADD COLUMN keep_responsible TINYINT(1) DEFAULT 0;
-
 ALTER TABLE job_activity ADD COLUMN `modification_id` INT DEFAULT NULL;
 ALTER TABLE job_activity ADD CONSTRAINT `fk_modification_id_job_activity_id` FOREIGN KEY(modification_id) REFERENCES job_activity(id);
 
 ALTER TABLE job_activity ADD COLUMN `option_id` INT DEFAULT NULL;
 ALTER TABLE job_activity ADD CONSTRAINT `fk_option_id_job_activity_id` FOREIGN KEY(option_id) REFERENCES job_activity(id);
-
-INSERT INTO `job_activity` (`no_params`, `redirect_after_save`, `fixed_duration`, `min_duration`, `max_duration`, `max_budget_value_per_day`,
-`max_duration_value_per_day`, `next_period`, `next_day`, `counter`, `description`) 
-VALUES(0, NULL, 1, 0, 0, 0, 1, 0, 1, 1, 'Modificação de outsider');
-
-INSERT INTO `job_activity` (`no_params`, `redirect_after_save`, `fixed_duration`, `min_duration`, `max_duration`, `max_budget_value_per_day`,
-`max_duration_value_per_day`, `next_period`, `next_day`, `counter`, `description`) 
-VALUES(0, NULL, 0, 0, 0, 0, 1, 0, 1, 1, 'Opção de outsider');
-
-INSERT INTO `job_activity` (`no_params`, `redirect_after_save`, `fixed_duration`, `min_duration`, `max_duration`, `max_budget_value_per_day`,
-`max_duration_value_per_day`, `next_period`, `next_day`, `counter`, `description`) 
-VALUES(0, NULL, 0, 0, 0, 0, 0, 0, 0, 1, 'Modificação de projeto externo');
-
-INSERT INTO `job_activity` (`no_params`, `redirect_after_save`, `fixed_duration`, `min_duration`, `max_duration`, `max_budget_value_per_day`,
-`max_duration_value_per_day`, `next_period`, `next_day`, `counter`, `description`) 
-VALUES(0, NULL, 0, 0, 0, 0, 0, 0, 0, 1, 'Opção de projeto externo');
 
 /* Testado o limite das durações (min_duration, max_duration), max_duration_value_per_day = somatória de valores < 1 */
 UPDATE `job_activity` SET `no_params` = 0, `redirect_after_save` = NULL, `modification_id` = 8, `option_id` = 9,
