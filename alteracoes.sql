@@ -227,6 +227,8 @@ AND t.task_id IS NULL;
 DELETE FROM task WHERE job_activity_id = 12;
 DELETE FROM job_activity WHERE id = 12;
 
+INSERT INTO display (url, description) VALUES ('/schedule/new?adminmode', 'Habilita modo administrativo para agenda de datas não consecutivas');
+
 
 
 

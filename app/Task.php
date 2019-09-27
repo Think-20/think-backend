@@ -304,8 +304,10 @@ class Task extends Model
         $itemTask1 = isset($data['taskItem1']) ? $data['taskItem1'] : null;
         $itemTask2 = isset($data['taskItem2']) ? $data['taskItem2'] : null;
 
-        $task1 = $itemTask1 != null ? Task::find($itemTask1['task']['id']) : null;
-        $task2 = $itemTask2 != null ? Task::find($itemTask2['task']['id']) : null;
+        $task1 = $itemTask1 != null ? 
+            (isset($itemTask1['task']['id']) ? Task::find($itemTask1['task']['id']) : null) : null;
+        $task2 = $itemTask2 != null ? 
+            (isset($itemTask2['task']['id']) ? Task::find($itemTask2['task']['id']) : null) : null;
 
         if ($task1 != null && $task1->job->attendance_id != User::logged()->employee->id) {
             throw new \Exception('Você não pode alterar uma tarefa que não pertence a você.');
