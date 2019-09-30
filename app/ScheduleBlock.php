@@ -66,7 +66,7 @@ class ScheduleBlock extends Model
     public static function valid() {
         $date = new DateTime();
         $date1 = DateHelper::sub(new DateTime(), 31);
-        $date2 = DateHelper::sum(new DateTime(), 31);
+        $date2 = DateHelper::sum(new DateTime(), 90);
 
         return ScheduleBlock::with('blocks')
         ->where('date', '>=', $date1->format('Y-m') . '-01')
