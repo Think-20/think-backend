@@ -49,7 +49,7 @@ class TaskItem extends Model
             if ($datesAvailable2->count() == 0) {
                 throw new Exception($item->message);
             }
-            
+
             $targetDate = $itemTask2->date;
         }
 
@@ -269,48 +269,46 @@ class TaskItem extends Model
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
 
-        $tasks = Task::select('task.*')->with(['items' => function ($query) {
-            $query->first();
-        }])
-            ->leftJoin('job', 'job.id', '=', 'task.job_id')
-            ->where(function ($query) use ($user) {
-                $query->where('job.attendance_id', '=', $user->employee->id);
-                $query->orWhere('task.responsible_id', '=', $user->employee->id);
+        $tasks = TaskItem::with(
+            'task',
+            'task.items',
+            'task.responsible',
+            'task.job_activity',
+            'task.job',
+            'task.job.client',
+            'task.job.job_type',
+            'task.job.status',
+            'task.job.agency',
+            'task.job.attendance',
+            'task.job.job_activity',
+            'task.task',
+            'task.task.job_activity'
+        );
+
+        if ($user->employee->department->description == 'Atendimento') {
+            $tasks->whereHas('job', function ($query) use ($user) {
+                $query->where('attendance_id', '=', $user->employee->id);
             });
+        } else {
+            $tasks->whereHas('task', function ($query) use ($user) {
+                $query->where('responsible_id', '=', $user->employee->id);
+            });
+        }
 
         if (!is_null($iniDate) && !is_null($finDate)) {
-            $sql = '(task_item.date >= "' . $iniDate . '"';
-            $sql .= ' AND task_item.date <= "' . $finDate . '")';
-            $tasks->whereRaw($sql);
+            $tasks->where('task_item.date', '>=', $iniDate);
+            $tasks->where('task_item.date', '<=', $finDate);
         }
 
         $tasks->orderBy('task_item.date', 'ASC');
 
         if ($paginate) {
             $paginate = $tasks->paginate(50);
-
-            foreach ($paginate as $task) {
-                $task->job = Job::get($task->job_id);
-                $task->items;
-                $task->task;
-                $task->responsible;
-                $task->job_activity;
-            }
-
             $result = $paginate->items();
             $page = $paginate->currentPage();
             $total = $paginate->total();
         } else {
             $result = $tasks->get();
-
-            foreach ($result as $task) {
-                $task->job = Job::get($task->job_id);
-                $task->responsible;
-                $task->items;
-                $task->task;
-                $task->job_activity;
-            }
-
             $total = $tasks->count();
             $page = 0;
         }
