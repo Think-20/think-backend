@@ -123,12 +123,17 @@ class ProjectFile extends Model {
         $project_file->moveFile();
 
         $task = $project_file->task;
-
         $newJobActivity = JobActivity::where('description', '=', 'Memorial descritivo')->first();
 
-        $task->insertAutomatic($newJobActivity, $task->job->attendance, $task->job->attendance);
+        $count = Task::where('task_id', $task->id)
+        ->where('job_activity_id', $newJobActivity->id)
+        ->count();
+
+        if($count == 0) {
+            $task->insertAutomatic($newJobActivity, $task->job->attendance, $task->job->attendance);
+        }
+
         $project_file->updateDone($task);
-        
         return $project_file;
     }
 

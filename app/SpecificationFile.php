@@ -108,7 +108,14 @@ class SpecificationFile extends Model {
         $task = Task::find($task_id);
 
         $newJobActivity = JobActivity::where('description', '=', 'Orçamento')->first();
-        $task->insertAutomatic($newJobActivity);
+
+        $count = Task::where('task_id', $task->id)
+        ->where('job_activity_id', $newJobActivity->id)
+        ->count();
+
+        if($count == 0) {
+            $task->insertAutomatic($newJobActivity);
+        }
 
         $specification_file->updateDone($task);
         
