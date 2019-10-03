@@ -2,124 +2,247 @@
 
 namespace App;
 
-use Illuminate\Database\Eloquent\Model;
 use DateTime;
+use Exception;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
+
 
 class Task extends Model
 {
     protected $table = 'task';
     protected $fillable = [
-        'job_id', 'responsible_id', 'available_date', 'job_activity_id', 'duration',
+        'job_id', 'responsible_id', 'job_activity_id',
         'reopened', 'task_id', 'done'
     ];
 
-    public function getTaskName() {
+    public function getTaskName()
+    {
         $pad = $this->reopened > 0 ? str_pad($this->reopened, 2, '0', \STR_PAD_LEFT) : '';
         return trim($this->job_activity->description . ' ' . $pad);
     }
 
-    public static function responsiblesByActivity($jobActivityId) {
+    public static function responsiblesByActivity($jobActivityId)
+    {
         $jobActivity = JobActivity::find($jobActivityId);
-        $taskBuild = TaskFactory::build($jobActivity->description);        
-        return $taskBuild->getResponsibleList();
+        return $jobActivity->responsibles;
     }
 
-    public static function getNextAvailableDate(string $availableDate, int $estimatedTime, string $jobActivity, $budgetValue)
+    public static function getNextAvailableDate(string $availableDate, string $jobActivity)
     {
-        $taskBuild = TaskFactory::build($jobActivity);
+        $initialDate = new DateTime($availableDate);
         $jobActivity = JobActivity::where('description', '=', $jobActivity)->first();
-        $responsibles = $taskBuild->getResponsibleList();
 
-        $date = new DateTime($availableDate);
-        $today = new DateTime('now');
-
-        if($date->format('Y-m-d') == $today->format('Y-m-d')
-            && $today->format('Hi') > '1200' 
-            && in_array($jobActivity->description, ['Orçamento', 'Modificação de orçamento', 'Opção de orçamento'])) {
-            $date = new DateTime('tomorrow');
-        }
-
-        $arr = ActivityHelper::calculateNextDate($date->format('Y-m-d'), $jobActivity, $responsibles, $estimatedTime);
-
-        return [
-            'available_date' => $arr['date'],
-            'available_responsibles' => $arr['available_responsibles'],
-            'responsibles' => $responsibles
-        ];
+        return TaskHelper::getNextAvailableDate($initialDate, $jobActivity);
     }
 
     public static function getNextAvailableDates(array $data)
     {
         $jobActivityId = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
-        $budgetValue = isset($data['budget_value']) ? $data['budget_value'] : 0;
-        $duration = isset($data['duration']) ? $data['duration'] : 1;
-        $onlyEmployeeId = isset($data['only_employee']['id']) ? $data['only_employee']['id'] : null;
-        $jobActivity = JobActivity::findOrFail($jobActivityId);
-        $taskBuild = TaskFactory::build($jobActivity->description);
-        $responsibles = $taskBuild->getResponsibleList();
-        
-        if( ! is_null($onlyEmployeeId) ) {
-            $responsibles = $responsibles->filter(function($responsible) use ($onlyEmployeeId) {
-                return $responsible->id == $onlyEmployeeId;
-            });
-        }
+        $onlyEmployees = isset($data['only_employee']['id']) ? [$data['only_employee']['id']] : [];
 
-        $iniDate = isset($data['iniDate']) ? new DateTime($data['iniDate']) : null;
-        $finDate = isset($data['finDate']) ? new DateTime($data['finDate']) : null;
+        $jobActivity = JobActivity::find($jobActivityId);
+        $initialDate = isset($data['initialDate']) ? new DateTime($data['initialDate']) : null;
+        $finalDate = isset($data['finalDate']) ? new DateTime($data['finalDate']) : DateHelper::sumUtil($initialDate, 30);
 
-        if(DateHelper::dateInPast($iniDate, new DateTime('now'))) {
-            $iniDate = new DateTime('now');
-        }
-
-        $date = new DateTime($iniDate->format('Y-m-d'));
-        $today = new DateTime('now');
-
-        if($date->format('Y-m-d') == $today->format('Y-m-d')
-            && $today->format('Hi') > '1200' 
-            && in_array($jobActivity->description, ['Orçamento', 'Modificação de orçamento', 'Opção de orçamento'])) {
-            $iniDate = new DateTime('tomorrow');
-        }
-
-        $arr = [];
-        while($iniDate->format('Y-m-d') <= $finDate->format('Y-m-d')) {            
-            $arr[] = ActivityHelper::calculateNextDate($iniDate->format('Y-m-d'), $jobActivity, $responsibles, $duration, null, $budgetValue);
-            $iniDate = DateHelper::nextUtil($iniDate, 1);
-        }
-        
         return [
-            'dates' => $arr,
-            'responsibles' => $taskBuild->getResponsibleList()
+            'items' => TaskHelper::getDates($initialDate, $finalDate, $jobActivity, $onlyEmployees),
+            'responsibles' => $jobActivity->responsibles
         ];
+    }
+
+    public static function insertDerived(array $data)
+    {
+        $taskId = isset($data['task']['id']) ? $data['task']['id'] : null;
+        $jobActivityId = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
+
+        if ($taskId == null || $jobActivityId == null) {
+            throw new Exception('Uma tarefa e uma atividade devem ser passados como parâmetro');
+        }
+
+        $task = Task::find($taskId);
+        $jobActivity = JobActivity::find($jobActivityId);
+        $insertedTask = $task->insertAutomatic($jobActivity);
+        $insertedTask->items;
+        return $insertedTask;
     }
 
     public static function editAvailableDate(array $data)
     {
-        $task = null;
-        
-        if( isset($data['task1']['id']) && isset($data['task2']['id']) ) {
-            $oTask1 = (object) $data['task1'];
-            $oTask2 = (object) $data['task2'];
-            $task1 = Task::find($oTask1->id);
-            $task2 = Task::find($oTask2->id);
-            ActivityHelper::swapActivities($task1, $task2);
+        $itemTask1 = isset($data['taskItem1']) ? $data['taskItem1'] : null;
+        $itemTask2 = isset($data['taskItem2']) ? $data['taskItem2'] : null;
+        $onlyItem = isset($data['onlyItem']) ? $data['onlyItem'] : null;
+        $date1 = $itemTask2['date'];
+        $date2 = $itemTask1['date'];
 
-            $message1 = 'Mudança de agenda de ' . $task1->getTaskName() . ' da ';
-            $message1 .= $task1->job->getJobName();
-            $message1 .= ' para ' . (new DateTime($task1->available_date))->format('d/m/Y') . ' para ' . $task1->responsible->name;
+        if (
+            isset($itemTask1['id']) && isset($itemTask2['id'])
+            && isset($itemTask1['task']['id']) && isset($itemTask2['task']['id'])
+        ) {
+            $task1 = Task::find($itemTask1['task']['id']);
+            $task2 = Task::find($itemTask2['task']['id']);
 
+            if ($onlyItem) {
+                TaskItem::swapItems($itemTask1['id'], $itemTask2['id']);
+                Task::notifySwapItems($task1, $date1, $task2, $date2);
+                return true;
+            }
+            Task::swapTasks($itemTask1['task']['id'], $itemTask2['task']['id']);
+            Task::notifySwapTasks($task1, $task2);
+            return true;
+        }
+
+        if ($itemTask1['id'] == null) {
+            $temp = $itemTask2;
+            $itemTask2 = $itemTask1;
+            $itemTask1 = $temp;
+        }
+
+        if ($itemTask1['id'] == null) {
+            throw new \Exception('Os dados fornecidos não são válidos para operações.');
+        }
+
+        if ($onlyItem) {
+            $task1 = Task::find($itemTask1['task']['id']);
+            TaskItem::swapItems($itemTask1['id'], null, $itemTask2['date']);
+            Task::notifySwapItems($task1, $date1);
+            return true;
+        }
+        $task1 = Task::find($itemTask1['task']['id']);
+        Task::swapTasks($itemTask1['task']['id'], null, $itemTask2['date']);
+        Task::notifySwapTasks($task1, null);
+
+        return true;
+    }
+
+    public static function swapTasks(int $task1Id, int $task2Id = null, $targetDate = null)
+    {
+        if ($task1Id == $task2Id)
+            throw new Exception('Os itens não podem pertencer a mesma tarefa!');
+
+        $task1 = Task::find($task1Id);
+        $items1 = $task1->items;
+        $duration1 = (float) $task1->items->sum('duration');
+        $task1->items()->delete();
+        $ids = $items1->pluck('id')->toArray();
+
+        if ($task2Id != null) {
+            $task2 = Task::find($task2Id);
+            $items2 = $task2->items;
+            $duration2 = (float) $task2->items->sum('duration');
+            $task2->items()->delete();
+            $ids = array_merge($ids, $items2->pluck('id')->toArray());
+            $targetDate = $items2->first()->date;
+        }
+
+        $dates1 = TaskHelper::getDates(
+            new DateTime($targetDate),
+            new DateTime($targetDate),
+            $task1->job_activity,
+            [],
+            collect($ids),
+            $task1->job
+        );
+
+        $datesAvailable1 = $dates1->filter(function ($item) {
+            return $item->status == 'true';
+        });
+
+        $item = $dates1->first();
+
+        if ($datesAvailable1->count() == 0)
+            throw new Exception('Não será possível começar a partir dessa data, operação abortada, ' . mb_strtolower($item->message));
+
+        $initialDate = new DateTime($targetDate);
+        $newItems1 = new Collection();
+        $responsibleId = 0;
+        while ($duration1 > 0) {
+            $nextDate = TaskHelper::getNextAvailableDate(
+                $initialDate,
+                $task1->job_activity,
+                $responsibleId != 0 ? Employee::find($responsibleId) : null,
+                collect($ids),
+                $task1->job
+            );
+
+            if ($responsibleId == 0)
+                $responsibleId = $nextDate->responsible_id;
+
+            $duration1 = $duration1 - TaskItem::durationSub((float) $nextDate->duration);
+            $initialDate = DateHelper::sumUtil(new DateTime($nextDate->date), 1);
+            $newItems1->push($nextDate);
+        }
+        $task1->responsible_id = $responsibleId;
+        $task1->save();
+        $task1->saveItems($newItems1);
+
+
+        if ($task2Id != null) {
+            $dates2 = TaskHelper::getDates(
+                new DateTime($items2->first()->date),
+                new DateTime($items2->first()->date),
+                $task2->job_activity,
+                [],
+                collect($ids),
+                $task2->job
+            );
+
+            $datesAvailable2 = $dates2->filter(function ($item) {
+                return $item->status == 'true';
+            });
+
+            $item2 = $dates2->first();
+
+            if ($datesAvailable2->count() == 0)
+                throw new Exception('Não será possível começar a partir dessa data, operação abortada, ' . mb_strtolower($item2->message));
+
+            $initialDate = new DateTime($items1->first()->date);
+            $newItems2 = new Collection();
+            $responsibleId = 0;
+            while ($duration2 > 0) {
+                $nextDate = TaskHelper::getNextAvailableDate(
+                    $initialDate,
+                    $task2->job_activity,
+                    $responsibleId != 0 ? Employee::find($responsibleId) : null,
+                    collect($ids),
+                    $task2->job
+                );
+
+                if ($responsibleId == 0)
+                    $responsibleId = $nextDate->responsible_id;
+
+                $duration2 = $duration2 - TaskItem::durationSub((float) $nextDate->duration);
+                $initialDate = DateHelper::sumUtil(new DateTime($nextDate->date), 1);
+                $newItems2->push($nextDate);
+            }
+            $task2->responsible_id = $responsibleId;
+            $task2->save();
+            $task2->saveItems($newItems2);
+        }
+    }
+
+    public static function notifySwapTasks($task1, $task2 = null)
+    {
+        $task1 = Task::find($task1->id);
+        $message1 = 'Mudança de agenda de ' . $task1->getTaskName() . ' da ';
+        $message1 .= $task1->job->getJobName();
+        $message1 .= ' para ' . (new DateTime($task1->getAvailableDate()))->format('d/m/Y') . ' para ' . $task1->responsible->name;
+
+        Notification::createAndNotify(User::logged()->employee, [
+            'message' => $message1
+        ], NotificationSpecial::createMulti([
+            'user_id' => $task1->responsible->user->id,
+            'message' => $message1
+        ], [
+            'user_id' => $task1->job->attendance->user->id,
+            'message' => $message1
+        ]), 'Alteração de tarefa', $task1->id);
+
+        if ($task2 != null) {
+            $task2 = Task::find($task2->id);
             $message2 = 'Mudança de agenda de ' . $task2->getTaskName() . ' da ';
             $message2 .= $task2->job->getJobName();
-            $message2 .= ' para ' . (new DateTime($task2->available_date))->format('d/m/Y') . ' para ' . $task2->responsible->name;
-
-            Notification::createAndNotify(User::logged()->employee, [
-                'message' => $message1
-            ], NotificationSpecial::createMulti([
-                'user_id' => $task1->responsible->user->id,
-                'message' => $message1
-            ], [
-                'user_id' => $task1->job->attendance->user->id,
-                'message' => $message1
-            ]), 'Alteração de tarefa', $task1->id);
+            $message2 .= ' para ' . (new DateTime($task2->getAvailableDate()))->format('d/m/Y') . ' para ' . $task2->responsible->name;
 
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message2
@@ -131,202 +254,125 @@ class Task extends Model
                 'message' => $message2
             ]), 'Alteração de tarefa', $task2->id);
         }
-        else {
-            $task = ActivityHelper::moveActivity($data['task1'], $data['task2']);
+    }
 
-            $message = 'Mudança de agenda de ' . $task->getTaskName() . ' da ';
-            $message .= $task->job->getJobName();
-            $message .= ' para ' . (new DateTime($task->available_date))->format('d/m/Y') . ' para ' . $task->responsible->name;
+    public function getAvailableDate()
+    {
+        return $this->items->count() > 0 ? $this->items[0]->date : null;
+    }
+
+    public function getDuration()
+    {
+        return $this->items->sum('duration');
+    }
+
+    public static function notifySwapItems($task1, $date1, $task2 = null, $date2 = null)
+    {
+        $message1 = 'Mudança de agenda de item de ' . $task1->getTaskName() . ' da ';
+        $message1 .= $task1->job->getJobName();
+        $message1 .= ' para ' . (new DateTime($date1))->format('d/m/Y') . ' para ' . $task1->responsible->name;
+
+        Notification::createAndNotify(User::logged()->employee, [
+            'message' => $message1
+        ], NotificationSpecial::createMulti([
+            'user_id' => $task1->responsible->user->id,
+            'message' => $message1
+        ], [
+            'user_id' => $task1->job->attendance->user->id,
+            'message' => $message1
+        ]), 'Alteração de tarefa', $task1->id);
+
+        if ($task2 != null) {
+            $message2 = 'Mudança de agenda de item ' . $task2->getTaskName() . ' da ';
+            $message2 .= $task2->job->getJobName();
+            $message2 .= ' para ' . (new DateTime($date2))->format('d/m/Y') . ' para ' . $task2->responsible->name;
 
             Notification::createAndNotify(User::logged()->employee, [
-                'message' => $message
+                'message' => $message2
             ], NotificationSpecial::createMulti([
-                'user_id' => $task->responsible->user->id,
-                'message' => $message
+                'user_id' => $task2->responsible->user->id,
+                'message' => $message2
             ], [
-                'user_id' => $task->job->attendance->user->id,
-                'message' => $message
-            ]), 'Alteração de tarefa', $task->id);
-        }        
-        
-        return true;
+                'user_id' => $task2->job->attendance->user->id,
+                'message' => $message2
+            ]), 'Alteração de tarefa', $task2->id);
+        }
     }
 
     public static function myEditAvailableDate(array $data)
     {
-        $task = null;
-        
-        if( isset($data['task1']['id']) && isset($data['task2']['id']) ) {
-            $oTask1 = (object) $data['task1'];
-            $oTask2 = (object) $data['task2'];
-            $task1 = Task::find($oTask1->id);
-            $task2 = Task::find($oTask2->id);
+        $itemTask1 = isset($data['taskItem1']) ? $data['taskItem1'] : null;
+        $itemTask2 = isset($data['taskItem2']) ? $data['taskItem2'] : null;
 
-            if(($task1->job->attendance_id != $task2->job->attendance_id) || $task1->job->attendance_id != User::logged()->employee->id) {
-                throw new \Exception('Você não pode alterar uma tarefa que não pertence a você.');
+        $task1 = $itemTask1 != null ? (isset($itemTask1['task']['id']) ? Task::find($itemTask1['task']['id']) : null) : null;
+        $task2 = $itemTask2 != null ? (isset($itemTask2['task']['id']) ? Task::find($itemTask2['task']['id']) : null) : null;
+
+        if ($task1 != null && $task1->job->attendance_id != User::logged()->employee->id) {
+            throw new \Exception('Você não pode alterar uma tarefa que não pertence a você.');
+        }
+
+        if ($task2 != null && $task2->job->attendance_id != User::logged()->employee->id) {
+            throw new \Exception('Você não pode alterar uma tarefa que não pertence a você.');
+        }
+
+        return Task::editAvailableDate($data);
+    }
+
+    public function insertAutomatic(JobActivity $jobActivity, NotifierInterface $notifier = null, Employee $onlyResponsible = null)
+    {
+        $date = new DateTime('now');
+        $items = new Collection();
+
+        if ($jobActivity->fixed_duration == 0) {
+            $duration = $this->job->initialTask()->getDuration();
+            $responsibleId = 0;
+
+            while ($duration > 0) {
+                $nextDate = TaskHelper::getNextAvailableDate(
+                    $date,
+                    $jobActivity,
+                    $responsibleId != 0 ? Employee::find($responsibleId) : null,
+                    collect(),
+                    $this->job
+                );
+
+                if ($responsibleId == 0)
+                    $responsibleId = $nextDate->responsible_id;
+
+                $duration = $duration - TaskItem::durationSub((float) $nextDate->duration);
+                $date = DateHelper::sumUtil(new DateTime($nextDate->date), 1);
+                $items->push($nextDate);
             }
-
-            ActivityHelper::swapActivities($task1, $task2);
-
-            $message1 = 'Mudança de agenda de ' . $task1->getTaskName() . ' da ';
-            $message1 .= $task1->job->getJobName();
-            $message1 .= ' para ' . (new DateTime($task1->available_date))->format('d/m/Y') . ' para ' . $task1->responsible->name;
-
-            $message2 = 'Mudança de agenda de ' . $task2->getTaskName() . ' da ';
-            $message2 .= $task2->job->getJobName();
-            $message2 .= ' para ' . (new DateTime($task2->available_date))->format('d/m/Y') . ' para ' . $task2->responsible->name;
-
-            Notification::createAndNotify(User::logged()->employee, [
-                'message' => $message1
-            ], NotificationSpecial::createMulti([
-                'user_id' => $task1->responsible->user->id,
-                'message' => $message1
-            ], [
-                'user_id' => $task1->job->attendance->user->id,
-                'message' => $message1
-            ]), 'Alteração de tarefa', $task1->id);
-
-            Notification::createAndNotify(User::logged()->employee, [
-                'message' => $message2
-            ], NotificationSpecial::createMulti([
-                'user_id' => $task2->responsible->user->id,
-                'message' => $message2
-            ], [
-                'user_id' => $task2->job->attendance->user->id,
-                'message' => $message2
-            ]), 'Alteração de tarefa', $task2->id);
-        }
-        else {
-            $task = ActivityHelper::moveActivity($data['task1'], $data['task2']);
-
-            if($task->job->attendance_id != User::logged()->employee->id) {
-                throw new \Exception('Você não pode alterar uma tarefa que não pertence a você.');
-            }
-
-            $message = 'Mudança de agenda de ' . $task->getTaskName() . ' da ';
-            $message .= $task->job->getJobName();
-            $message .= ' para ' . (new DateTime($task->available_date))->format('d/m/Y') . ' para ' . $task->responsible->name;
-
-            Notification::createAndNotify(User::logged()->employee, [
-                'message' => $message
-            ], NotificationSpecial::createMulti([
-                'user_id' => $task->responsible->user->id,
-                'message' => $message
-            ], [
-                'user_id' => $task->job->attendance->user->id,
-                'message' => $message
-            ]), 'Alteração de tarefa', $task->id);
-        }        
-        
-        return true;
-    }
-
-    public function insertContinuation(DateTime $date, $duration, $tempBudget) {
-        $availableDate = $date->format('Y-m-d');
-        $jobActivity = JobActivity::where('description', '=', 'Continuação')->first();
-
-        $data = [
-            'responsible' => ['id' => $this->responsible_id],
-            'job' => ['id' => $this->job->id],
-            'job_activity' => ['id' => $jobActivity->id],
-            'duration' => $duration,
-            'available_date' => $availableDate,
-            'task' => ['id' => $this->id]
-        ];
-        
-        Task::insert($data);
-    }
-
-    public function insertMemorial() {
-        $date = ScheduleBlock::sumUtilNonBlocked(DateHelper::subUtil(new DateTime('now'), 1), $this->job->attendance->user, 1);
-        $jobActivity = JobActivity::where('description', '=', 'Memorial descritivo')->first();
-
-        $count = Task::where('job_activity_id', '=', $jobActivity->id)
-        ->where('task_id', '=', $this->id)
-        ->get()
-        ->count();
-
-        if($count > 0) {
-            return;
+        } else {
+            $items->push(TaskHelper::getNextAvailableDate($date, $jobActivity, $onlyResponsible, new Collection(), $this->job));
         }
 
-        $data = [
-            'responsible' => ['id' => $this->job->attendance_id],
-            'job' => ['id' => $this->job->id],
-            'job_activity' => ['id' => $jobActivity->id],
-            'duration' => 1,
-            'available_date' => $date->format('Y-m-d'),
-            'task' => ['id' => $this->id]
-        ];
-        
-        Task::insert($data, $this->job->attendance, false);
-    }
+        $responsible = Employee::find($items->first()->responsible_id);
 
-    public function insertBudget() {
-        $date = ScheduleBlock::sumUtilNonBlocked(DateHelper::subUtil(new DateTime('now'), 1), $this->job->attendance->user, 1);
-        $arr = Task::getNextAvailableDate($date->format('Y-m-d'), 1, 'Orçamento', $this->job->budget_value);       
-
-        $jobActivity = JobActivity::where('description', '=', 'Orçamento')->first();
-        $count = Task::where('job_activity_id', '=', $jobActivity->id)
-        ->where('task_id', '=', $this->id)
-        ->get()
-        ->count();
-
-        if($count > 0) {
-            return;
-        }
-
-        $responsible = $arr['available_responsibles'][0];
         $data = [
             'responsible' => ['id' => $responsible->id],
             'job' => ['id' => $this->job->id],
             'job_activity' => ['id' => $jobActivity->id],
-            'duration' => 1,
-            'available_date' => $arr['available_date'],
-            'task' => ['id' => $this->id]
+            'items' => $items->toArray(),
+            'task' => [
+                'id' => $this->id,
+            ]
         ];
-        
-        Task::insert($data, $responsible, false);
+
+        $notifier = $notifier != null ? $notifier : $responsible;
+        return Task::insert($data, $notifier);
     }
 
-    public function insertBudgetModify() {
-        $date = ScheduleBlock::sumUtilNonBlocked(DateHelper::subUtil(new DateTime('now'), 1), $this->job->attendance->user, 1);
-        $arr = Task::getNextAvailableDate($date->format('Y-m-d'), 1, 'Modificação de orçamento', $this->job->budget_value);       
-
-        $jobActivity = JobActivity::where('description', '=', 'Modificação de orçamento')->first();
-        $count = Task::where('job_activity_id', '=', $jobActivity->id)
-        ->where('task_id', '=', $this->id)
-        ->get()
-        ->count();
-
-        if($count > 0) {
-            return;
-        }
-
-        $responsible = $arr['available_responsibles'][0];
-        $data = [
-            'responsible' => ['id' => $responsible->id],
-            'job' => ['id' => $this->job->id],
-            'job_activity' => ['id' => $jobActivity->id],
-            'duration' => 1,
-            'available_date' => $arr['available_date'],
-            'task' => ['id' => $this->id]
-        ];
-        
-        Task::insert($data, $responsible, false);
-    }
-
-    public static function insert(array $data, NotifierInterface $notifier = null, $recursiveScheduleBlock = true)
+    public static function insert(array $data, NotifierInterface $notifier = null)
     {
         $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
         $job_id = isset($data['job']['id']) ? $data['job']['id'] : null;
         $job_activity_id = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
         $task_id = isset($data['task']['id']) ? $data['task']['id'] : null;
-        $verifyScheduleBlock = isset($data['verify_schedule_block']) ? $data['verify_schedule_block'] : true;
-
-        if( empty($data['available_date']) ) {
-            unset($data['available_date']);
-        }
+        $items = isset($data['items']) ? collect($data['items'])->map(function ($item) {
+            return (object) $item;
+        }) : collect([]);
+        $admin = isset($data['admin']) ? $data['admin'] : false;
 
         $task = new Task(array_merge($data, [
             'responsible_id' => $responsible_id,
@@ -334,21 +380,15 @@ class Task extends Model
             'job_activity_id' => $job_activity_id,
             'task_id' => $task_id,
         ]));
-        
-        if($verifyScheduleBlock && $recursiveScheduleBlock && $task->available_date != null) {
-            Task::checkScheduleBlock($task->available_date, $task->responsible, true);
-        }
 
-        $task->save();
+        $task->saveItems($items, !$admin);
 
-        if($task->available_date != null) {
-            $task->saveItems($verifyScheduleBlock);
-
+        if ($task->initialDate() != null) {
             $message = $task->getTaskName() . ' da ';
             $message .= $task->job->getJobName();
-            $message .= ' agendado em ' . (new DateTime($task->available_date))->format('d/m/Y') . ' para ' . $task->responsible->name;
+            $message .= ' agendado em ' . (new DateTime($task->initialDate()))->format('d/m/Y') . ' para ' . $task->responsible->name;
 
-            if($notifier == null) {
+            if ($notifier == null) {
                 $notifier = User::logged()->employee;
             }
 
@@ -364,29 +404,25 @@ class Task extends Model
         }
 
         Task::modifyReopened($task);
+        $task->items;
         return $task;
     }
 
-    public static function checkScheduleBlock(string $availableDate, Employee $responsible, $exception = false) {
-        $blocked = ScheduleBlock::checkIfBlocked($availableDate, $responsible->user->id);
-
-        if(!$blocked) return false;
-        if($exception) throw new \Exception('Você não pode agendar nesta data, está bloqueada.');
-
-        return true;
+    public function initialDate()
+    {
+        return $this->items->count() == 0 ? null : $this->items->first()->date;
     }
 
-    public static function modifyReopened(Task $task) {
-        $description = $task->job_activity->description;
-
-        if(in_array($description, ['Projeto', 'Outsider', 'Projeto externo', 'Orçamento'])) {
-            $sum = 0;
-        } else {
-            $sum = 1;    
+    public static function modifyReopened(Task $task)
+    {
+        if ($task->job_activity->counter == 0) {
+            return;
         }
-        
-        foreach($task->job->tasks as $t) {
-            if($t->job_activity->description == $description) {
+
+        $sum = 1;
+
+        foreach ($task->job->tasks as $t) {
+            if ($t->job_activity->description == $task->job_activity->description) {
                 $t->reopened = $sum;
                 $t->save();
                 $sum++;
@@ -394,80 +430,88 @@ class Task extends Model
         }
     }
 
-    public function calcDurationBudget(): array {
-        $taskBudget = new TaskBudget();
-        $responsible = $this->responsible;
-        $jobActivity = $this->job_activity;
-        $jobValue = $jobActivity->description != 'Modificação de orçamento'
-            ? $this->job->budget_value : round($this->job->budget_value * 0.3, 2);
-        $duration = 0;
-        $durationArray = [];
-        $date = new DateTime($this->available_date);
+    public function fixItemsByFixedDuration(Collection $items, JobActivity $jobActivity): Collection
+    {
+        if ($jobActivity->fixed_duration === 0)
+            return $items;
 
-        while($jobValue > 0) {
-            $space = $taskBudget->quantityAvailable($date, $responsible);
-            $diff = $jobValue - $space;
-            $durationArray[$duration] = $diff <= 0 ? $jobValue : $space;
-            $jobValue = $jobValue - $space;
-
-            $duration++;
-            $date = ScheduleBlock::sumUtilNonBlocked($date, $responsible->user, 1);
+        foreach ($items as $item) {
+            $item->duration = $jobActivity->fixed_duration;
         }
-        
-        return $durationArray;
+
+        return $items;
     }
 
-    public function saveItems($verifyScheduleBlock = true, $exception = false)
+    public function fixItemsByMaxDurationValuePerDay(Collection $items, JobActivity $jobActivity): Collection
     {
-        $jobActivity = $this->job_activity;
-        $jobActivityPrevious = $this->task != null ? $this->task->job_activity->description : '';
-        $date = new DateTime($this->available_date);
-        $durationArray = [];
+        if (
+            $jobActivity->max_duration_value_per_day === 0
+            || $jobActivity->fixed_duration != 0
+        )
+            return $items;
 
-        if($jobActivity->description == 'Orçamento' || $jobActivity->description == 'Modificação de orçamento'
-        || $jobActivity->description == 'Opção de orçamento'  
-        || ($jobActivity == 'Continuação' && $jobActivityPrevious == 'Orçamento')) {
-            $durationArray = $this->calcDurationBudget();
-            $duration = count($durationArray);
-            $this->duration = $duration;
-            $this->save();
-            $tempBudget = $jobActivity->description != 'Modificação de orçamento'
-                ? $this->job->budget_value : round($this->job->budget_value * 0.3, 2);
-        } else {
-            $duration = $this->duration;
-            $tempBudget = 0;
+        foreach ($items as $item) {
+            /* Usando o máximo permitido, se uso for 0, usar 1. Se uso for 0.3, usar 0.7 */
+            $item->duration = (1 - $item->duration);
         }
 
-        $tempDuration = (float) $duration;
+        return $items;
+    }
 
-        for ($i = 0; $i < $duration; $i++) {
-            if($verifyScheduleBlock && Task::checkScheduleBlock($date->format('Y-m-d'), $this->responsible, $exception)) {
-                $date = ScheduleBlock::sumUtilNonBlocked($date, $this->responsible->user, 1);
-                $this->duration = $duration - $tempDuration;
-                $this->save();
-                $this->insertContinuation($date, $tempDuration, $tempBudget);
-                return;
+    public function appendItemsByBudget(Collection $items, JobActivity $jobActivity): Collection
+    {
+        $fixedBudgetValue = (float) $jobActivity->fixed_budget_value;
+
+        if ($fixedBudgetValue == 0)
+            return $items;
+
+        $idsBudgetShared = $jobActivity->share_budget->map(function ($budgetShared) {
+            return $budgetShared->to_id;
+        })->toArray();
+        $idsBudgetShared[] = $jobActivity->id;
+        $maxValuePerDay = JobActivity::whereIn('id', $idsBudgetShared)
+            ->get()
+            ->sum('max_budget_value_per_day');
+
+        $nextItem = $items->pop();
+        $responsible = Employee::find($nextItem->responsible_id);
+        //100%, 30% do valor, conforme o parâmetro fixed_budget_value
+        $jobValue = (float) $this->job->budget_value * $jobActivity->fixed_budget_value;
+
+        do {
+            $usedInThisDate = (float) $nextItem->budget_value;
+
+            if ($usedInThisDate < $maxValuePerDay) {
+                $availableInThisDate = $maxValuePerDay - $usedInThisDate;
+                $available = $jobValue > $availableInThisDate ? $availableInThisDate : $jobValue;
+                $nextItem->budget_value = $available;
+                $jobValue = $jobValue <= $available ? 0 : $jobValue - $available;
+                $items->push($nextItem);
             }
 
-            $durationFator = (float) $tempDuration >= 1
-                ? 1
-                : $tempDuration;
+            $date = DateHelper::sumUtil(new DateTime($nextItem->date), 1);
+            $nextItem = TaskHelper::getNextAvailableDate($date, $jobActivity, $responsible);
+        } while ($jobValue > 0);
 
-            //A fazer - decrementar o saldo diário para orçamento
-            $budgetFator = (float) $tempBudget == 0
-                ? 0
-                : $durationArray[$i];
+        return $items;
+    }
 
-            $tempDuration = (float) $tempDuration - $durationFator;
-            TaskItem::insert([
-                'budget_value' => $budgetFator,
-                'duration' => $durationFator,
-                'date' => $date->format('Y-m-d'),
-                'task_id' => $this->id
-            ]);
-            $date = DateHelper::sumUtil($date, 1);
+    public function saveItems(Collection $items, $check = true)
+    {
+        $jobActivity = $this->job_activity;
+
+        if ($check) {
+            $items = $this->appendItemsByBudget($items, $jobActivity);
+            $items = $this->fixItemsByFixedDuration($items, $jobActivity);
+            $items = $this->fixItemsByMaxDurationValuePerDay($items, $jobActivity);
+        } else {
+            $items->each(function ($item) {
+                $item->force = 1;
+            });
         }
 
+        $this->save();
+        TaskItem::insertAll($this, $items->toArray());
     }
 
     public function deleteItems()
@@ -479,14 +523,20 @@ class Task extends Model
     {
         $id = $data['id'];
         $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
-        //$job_id = isset($data['job']['id']) ? $data['job']['id'] : null;
-        //$job_activity_id = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
+        $items = isset($data['items']) ? collect($data['items'])->map(function ($item) {
+            return (object) $item;
+        }) : collect([]);
+        $admin = isset($data['admin']) ? $data['admin'] : false;
+
         $task = Task::find($id);
-        $oldDuration = $task->duration;
+
         $oldResponsible = $task->responsible->name;
         $oldResponsibleId = $task->responsible->id;
-        $oldDuration = $task->duration;
-        $oldDate = $task->available_date;
+        $oldDuration = $task->getDuration();
+        $oldDate = $task->initialDate();
+
+        $task->deleteItems();
+        $task->saveItems($items, !$admin);
 
         $task->update(
             array_merge($data, [
@@ -495,26 +545,11 @@ class Task extends Model
         );
 
         $task = Task::find($id);
-        $task->deleteItems();
 
-        //Rotina para burlar a edição via ADM para orçamento que tem duração por valor
-        if($task->job_activity->description == 'Orçamento') {
-            $task->job_activity_id = 1;
-            $task->save();
-            $task = Task::find($id);
-            $task->saveItems(true);
-            $task->job_activity_id = 2;
-            $task->save();
-            $task = Task::find($id);
-        } else {
-            $task->saveItems(true);            
-        }
-
-
-        if($oldResponsibleId != $task->responsible_id) {
+        if ($oldResponsibleId != $task->responsible_id) {
             $message = 'Responsável de ' . mb_strtolower($task->getTaskName()) . ' da ';
             $message .= $task->job->getJobName();
-            $message .= ' alterado de ' . $oldResponsible . ' para ' . $task->responsible->name; 
+            $message .= ' alterado de ' . $oldResponsible . ' para ' . $task->responsible->name;
 
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
@@ -530,10 +565,10 @@ class Task extends Model
             ]), 'Alteração de tarefa', $task->id);
         }
 
-        if($oldDuration != $task->duration) {
+        if ($oldDuration != $task->getDuration()) {
             $message = 'Duração de ' . mb_strtolower($task->getTaskName()) . ' da ';
             $message .= $task->job->getJobName();
-            $message .= ' alterada de ' . strval((int) $oldDuration) . ' para ' . strval((int) $task->duration) . ' dia(s)'; 
+            $message .= ' alterada de ' . strval((int) $oldDuration) . ' para ' . strval((int) $task->getDuration()) . ' dia(s)';
 
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
@@ -546,10 +581,10 @@ class Task extends Model
             ]), 'Alteração de tarefa', $task->id);
         }
 
-        if($oldDate != $task->available_date) {
+        if ($oldDate != $task->initialDate()) {
             $message = 'Data de ' . mb_strtolower($task->getTaskName()) . ' da ';
             $message .= $task->job->getJobName();
-            $message .= ' alterada de ' . (new DateTime($oldDate))->format('d/m/Y') . ' para ' . (new DateTime($task->available_date))->format('d/m/Y');
+            $message .= ' alterada de ' . (new DateTime($oldDate))->format('d/m/Y') . ' para ' . (new DateTime($task->initialDate()))->format('d/m/Y');
 
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
@@ -579,120 +614,132 @@ class Task extends Model
         $creationId = isset($params['creation']['id']) ? $params['creation']['id'] : null;
         $responsibleId = isset($params['responsible']['id']) ? $params['responsible']['id'] : null;
 
-        $statusArrayId = isset($params['status_array']) && !empty($params['status_array']) ? array_map(function($v) {
+        $statusArrayId = isset($params['status_array']) && !empty($params['status_array']) ? array_map(function ($v) {
             return $v['id'];
         }, $params['status_array']) : null;
-        $attendanceArrayId = isset($params['attendance_array']) && !empty($params['attendance_array']) ? array_map(function($v) {
+        $attendanceArrayId = isset($params['attendance_array']) && !empty($params['attendance_array']) ? array_map(function ($v) {
             return $v['id'];
         }, $params['attendance_array']) : null;
-        $jobTypeArrayId = isset($params['job_type_array']) && !empty($params['job_type_array']) ? array_map(function($v) {
+        $jobTypeArrayId = isset($params['job_type_array']) && !empty($params['job_type_array']) ? array_map(function ($v) {
             return $v['id'];
         }, $params['job_type_array']) : null;
-        $jobActivityArrayId = isset($params['job_activity_array']) && !empty($params['job_activity_array']) ? array_map(function($v) {
+        $jobActivityArrayId = isset($params['job_activity_array']) && !empty($params['job_activity_array']) ? array_map(function ($v) {
             return $v['id'];
         }, $params['job_activity_array']) : null;
-        $responsibleArrayId = isset($params['responsible_array']) && !empty($params['responsible_array']) ? array_map(function($v) {
+        $responsibleArrayId = isset($params['responsible_array']) && !empty($params['responsible_array']) ? array_map(function ($v) {
             return $v['id'];
         }, $params['responsible_array']) : null;
-        $departmentArrayId = isset($params['department_array']) && !empty($params['department_array']) ? array_map(function($v) {
+        $departmentArrayId = isset($params['department_array']) && !empty($params['department_array']) ? array_map(function ($v) {
             return $v['id'];
         }, $params['department_array']) : null;
 
-        $tasks = Task::with(
-            'items', 'responsible', 'job_activity', 'job', 'job.client', 'job.job_type', 
-            'job.status', 'job.agency', 'job.attendance', 'job.job_activity', 'task', 'task.job_activity'
+        $taskItems = Task::with(
+            'task',
+            'responsible',
+            'job_activity',
+            'job',
+            'job.creation',
+            'job.client',
+            'job.job_type',
+            'job.status',
+            'job.agency',
+            'job.attendance',
+            'job.job_activity',
+            'task',
+            'task.job_activity',
+            'items'
         );
 
         if (!is_null($iniDate) && !is_null($finDate)) {
-            $sql = '(task.available_date >= "' . $iniDate . '"';
-            $sql .= ' AND task.available_date <= "' . $finDate . '")';
-            $tasks->whereRaw($sql);
+            $taskItems->whereHas('items', function ($query) use ($iniDate, $finDate) {
+                $query->where('task_item.date', '>=', $iniDate);
+                $query->where('task_item.date', '<=', $finDate);
+                $query->orderBy('task_item.date', 'ASC');
+            });
         }
 
-        if( ! is_null($attendanceArrayId) ) {
-            $tasks->whereHas('job.attendance', function($query) use ($attendanceArrayId) {
+        if (!is_null($attendanceArrayId)) {
+            $taskItems->whereHas('job.attendance', function ($query) use ($attendanceArrayId) {
                 $query->whereIn('id', $attendanceArrayId);
-            });   
+            });
         }
 
-        if( ! is_null($jobTypeArrayId) ) {
-            $tasks->whereHas('job.job_type', function($query) use ($jobTypeArrayId) {
+        if (!is_null($jobTypeArrayId)) {
+            $taskItems->whereHas('job.job_type', function ($query) use ($jobTypeArrayId) {
                 $query->whereIn('id', $jobTypeArrayId);
-            });   
+            });
         }
 
-        if( ! is_null($statusArrayId) ) {
-            $tasks->whereHas('job', function($query) use ($statusArrayId) {
+        if (!is_null($statusArrayId)) {
+            $taskItems->whereHas('job', function ($query) use ($statusArrayId) {
                 $query->whereIn('status_id', $statusArrayId);
-            });   
+            });
         }
 
-        if( ! is_null($jobActivityArrayId) ) {
-            $tasks->whereIn('job_activity_id', $jobActivityArrayId);
+        if (!is_null($jobActivityArrayId)) {
+            $taskItems->whereIn('job_activity_id', $jobActivityArrayId);
         }
 
-        if( ! is_null($responsibleArrayId) ) {
-            $tasks->whereIn('responsible_id', $responsibleArrayId);
+        if (!is_null($responsibleArrayId)) {
+            $taskItems->whereIn('responsible_id', $responsibleArrayId);
         }
 
-        if( ! is_null($departmentArrayId) ) {
-            $tasks->whereHas('responsible', function($query) use ($departmentArrayId) {
+        if (!is_null($departmentArrayId)) {
+            $taskItems->whereHas('responsible', function ($query) use ($departmentArrayId) {
                 $query->whereIn('department_id', $departmentArrayId);
             });
         }
 
-        if ( ! is_null($clientName) ) {
-            $tasks->whereHas('job.client', function($query) use ($clientName) {
+        if (!is_null($clientName)) {
+            $taskItems->whereHas('job.client', function ($query) use ($clientName) {
                 $query->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
                 $query->orWhere('name', 'LIKE', '%' . $clientName . '%');
-            });  
-            $tasks->orWhereHas('job', function($query) use ($clientName) {
+            });
+            $taskItems->orWhereHas('job', function ($query) use ($clientName) {
                 $query->where('not_client', 'LIKE', '%' . $clientName . '%');
-            });        
+            });
         }
 
-        if ( ! is_null($attendanceId) ) {
-            $tasks->whereHas('job.attendance', function($query) use ($attendanceId) {
+        if (!is_null($attendanceId)) {
+            $taskItems->whereHas('job.attendance', function ($query) use ($attendanceId) {
                 $query->where('id', '=', $attendanceId);
-            });         
+            });
         }
 
-        if ( ! is_null($jobTypeId) ) {
-            $tasks->whereHas('job.job_type', function($query) use ($jobTypeId) {
+        if (!is_null($jobTypeId)) {
+            $taskItems->whereHas('job.job_type', function ($query) use ($jobTypeId) {
                 $query->where('id', '=', $jobTypeId);
-            });         
+            });
         }
 
-        if ( ! is_null($jobActivityId) ) {
-            $tasks->whereHas('job.job_activity', function($query) use ($jobActivityId) {
+        if (!is_null($jobActivityId)) {
+            $taskItems->whereHas('job.job_activity', function ($query) use ($jobActivityId) {
                 $query->where('id', '=', $jobActivityId);
-            });         
+            });
         }
 
-        if ( ! is_null($creationId) ) {
-            $tasks->where('responsible_id', '=', $creationId);      
+        if (!is_null($creationId)) {
+            $taskItems->where('responsible_id', $creationId);
         }
 
-        if ( ! is_null($responsibleId) ) {
-            $tasks->where('responsible_id', '=', $responsibleId);      
+        if (!is_null($responsibleId)) {
+            $taskItems->where('responsible_id', $responsibleId);
         }
 
-        if( ! is_null($status) ) {
-            $tasks->whereHas('job', function($query) use ($status) {
+        if (!is_null($status)) {
+            $taskItems->whereHas('job', function ($query) use ($status) {
                 $query->where('status_id', '=', $status);
             });
         }
 
-        $tasks->orderBy('task.available_date', 'ASC');
-
         if ($paginate) {
-            $paginate = $tasks->paginate(50);
+            $paginate = $taskItems->paginate(50);
             $result = $paginate->items();
             $page = $paginate->currentPage();
             $total = $paginate->total();
         } else {
-            $result = $tasks->get();
-            $total = $tasks->count();
+            $result = $taskItems->get();
+            $total = $taskItems->count();
             $page = 0;
         }
 
@@ -705,17 +752,19 @@ class Task extends Model
             'updatedInfo' => Task::updatedInfo()
         ];
     }
-    
 
-    public static function updatedInfo() {
+    public static function updatedInfo()
+    {
         $typeIds = NotificationType::where('description', 'LIKE', '%tarefa%')->get();
         $lastData = Notification::with('user', 'notifier')
-        ->whereIn('type_id', $typeIds->map(function($type) { return $type->id; }))
-        ->orderBy('date', 'desc')
-        ->limit(1)
-        ->first();
+            ->whereIn('type_id', $typeIds->map(function ($type) {
+                return $type->id;
+            }))
+            ->orderBy('date', 'desc')
+            ->limit(1)
+            ->first();
 
-        if($lastData == null) {
+        if ($lastData == null) {
             return [];
         }
 
@@ -729,7 +778,7 @@ class Task extends Model
     {
         $task = Task::findOrFail($id);
 
-        if($task->responsible->user->id != User::logged()->id) return;
+        if ($task->responsible->user->id != User::logged()->id) return;
 
         $task->responsible;
         $task->job;
@@ -741,30 +790,31 @@ class Task extends Model
     public static function filterMyTask($params)
     {
         $user = User::logged();
-        
+
         $iniDate = isset($params['iniDate']) ? $params['iniDate'] : null;
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
 
-        $tasks = Task::select('task.*')
-        ->leftJoin('job', 'job.id', '=', 'task.job_id')
-        ->where(function($query) use ($user) {
-            $query->where('job.attendance_id', '=', $user->employee->id);
-            $query->orWhere('task.responsible_id', '=', $user->employee->id);
-        });
+        $tasks = Task::select('task.*')->with(['items' => function ($query) {
+            $query->first();
+        }, 'job.responsibles'])
+            ->leftJoin('job', 'job.id', '=', 'task.job_id')
+            ->where(function ($query) use ($user) {
+                $query->where('job.attendance_id', '=', $user->employee->id);
+                $query->orWhere('task.responsible_id', '=', $user->employee->id);
+            });
 
         if (!is_null($iniDate) && !is_null($finDate)) {
-            $sql = '(task.available_date >= "' . $iniDate . '"';
-            $sql .= ' AND task.available_date <= "' . $finDate . '")';
+            $sql = '(task_item.date >= "' . $iniDate . '"';
+            $sql .= ' AND task_item.date <= "' . $finDate . '")';
+            $sql .= 'ORDER BY task_item.date ASC';
             $tasks->whereRaw($sql);
         }
-
-        $tasks->orderBy('task.available_date', 'ASC');
 
         if ($paginate) {
             $paginate = $tasks->paginate(50);
 
-            foreach($paginate as $task) {
+            foreach ($paginate as $task) {
                 $task->job = Job::get($task->job_id);
                 $task->items;
                 $task->task;
@@ -778,7 +828,7 @@ class Task extends Model
         } else {
             $result = $tasks->get();
 
-            foreach($result as $task) {
+            foreach ($result as $task) {
                 $task->job = Job::get($task->job_id);
                 $task->responsible;
                 $task->items;
@@ -804,17 +854,17 @@ class Task extends Model
     {
         $task = Task::find($id);
 
-        if($task == null) {
+        if ($task == null) {
             return;
         }
 
         $oldTask = clone $task;
         $childs = Task::where('task_id', '=', $task->id)->get();
-        
-        foreach($childs as $child) {
+
+        foreach ($childs as $child) {
             Task::remove($child->id);
         }
-        
+
         $message = $task->getTaskName() . ' de ';
         $message .= $task->job->getJobName();
         $message .= ' removido';
@@ -833,11 +883,11 @@ class Task extends Model
         $task->items()->delete();
         $task->budget()->delete();
 
-        foreach($task->project_files as $projectFile) {
+        foreach ($task->project_files as $projectFile) {
             ProjectFile::remove($projectFile->id);
         }
 
-        foreach($task->specification_files as $specificationFile) {
+        foreach ($task->specification_files as $specificationFile) {
             SpecificationFile::remove($specificationFile->id);
         }
 
@@ -849,18 +899,18 @@ class Task extends Model
     {
         $task = Task::find($id);
 
-        if($task == null) {
+        if ($task == null) {
             return;
         }
 
         $oldTask = clone $task;
         $childs = Task::where('task_id', '=', $task->id)->get();
-        
-        foreach($childs as $child) {
+
+        foreach ($childs as $child) {
             Task::remove($child->id);
         }
 
-        if($task->job->attendance_id != User::logged()->employee->id) {
+        if ($task->job->attendance_id != User::logged()->employee->id) {
             throw new \Exception('Você não tem permissão para remover esse job.');
         }
 
@@ -881,11 +931,11 @@ class Task extends Model
         $task->items()->delete();
         $task->budget()->delete();
 
-        foreach($task->project_files as $projectFile) {
+        foreach ($task->project_files as $projectFile) {
             ProjectFile::remove($projectFile->id);
         }
 
-        foreach($task->specification_files as $specificationFile) {
+        foreach ($task->specification_files as $specificationFile) {
             SpecificationFile::remove($specificationFile->id);
         }
 
@@ -898,18 +948,20 @@ class Task extends Model
         $task = Task::findOrFail($id);
         $task->responsible;
         $task->job;
+        $task->duration = $task->getDuration();
         $task->items;
         $task->job_activity;
         return $task;
     }
 
-    public function type(): TaskInterface {
+    public function type(): TaskInterface
+    {
         return TaskFactory::build($this->job_activity->description);
     }
 
     public function items()
     {
-        return $this->hasMany('App\TaskItem', 'task_id');
+        return $this->hasMany('App\TaskItem', 'task_id')->orderBy('task_item.date', 'ASC');
     }
 
     public function job()
@@ -929,7 +981,8 @@ class Task extends Model
 
     public function task()
     {
-        return $this->belongsTo('App\Task', 'task_id')->with('job_activity');
+        return $this->belongsTo('App\Task', 'task_id')
+            ->with('job_activity', 'job_activity.modification', 'job_activity.option');
     }
 
     public function budget()
@@ -949,10 +1002,6 @@ class Task extends Model
 
     public function setDurationAttribute($value)
     {
-        $this->attributes['duration'] = (float)str_replace(',', '.', $value);
-    }
-
-    public function setAvailableDateAttribute($value) {
-        $this->attributes['available_date'] = substr($value, 0, 10);
+        $this->attributes['duration'] = (float) str_replace(',', '.', $value);
     }
 }

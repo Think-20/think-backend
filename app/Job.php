@@ -34,7 +34,7 @@ class Job extends Model
 
     public static function loadForm() {
         return [
-            'job_activities' => JobActivity::all(),
+            'job_activities' => JobActivity::list(),
             'job_types' => JobType::all(),
             'attendances' => Employee::canInsertClients(),
             'competitions' => JobCompetition::all(),
@@ -252,7 +252,10 @@ class Job extends Model
 
         $jobs = Job::selectRaw('job.*')
         ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels',
-        'how_come', 'agency', 'attendance', 'competition', 'files', 'status', 'creation');
+        'how_come', 'agency', 'attendance', 'competition', 'files', 'status', 'creation')
+        ->with(['creation.items' => function($query) {
+            $query->limit(1);
+        }]);
 
         if ( ! is_null($clientName) ) {
             $jobs->whereHas('client', function($query) use ($clientName) {
@@ -301,14 +304,14 @@ class Job extends Model
         }
 
         if( ! is_null($initialDate) ) {
-            $jobs->whereHas('creation', function($query) use ($initialDate) {
-                $query->where('available_date', '>=', $initialDate);
+            $jobs->whereHas('creation.items', function($query) use ($initialDate) {
+                $query->where('date', '>=', $initialDate);
             });
         }
 
         if( ! is_null($finalDate) ) {
-            $jobs->whereHas('creation', function($query) use ($finalDate) {
-                $query->where('available_date', '<=', $finalDate);
+            $jobs->whereHas('creation.items', function($query) use ($finalDate) {
+                $query->where('date', '<=', $finalDate);
             });
         }
 
@@ -732,7 +735,7 @@ class Job extends Model
 
     public function tasks() {
         return $this->hasMany('App\Task', 'job_id')->with('project_files', 'project_files.responsible',
-        'specification_files', 'specification_files.responsible',
+        'specification_files', 'specification_files.responsible', 'job_activity.modification', 'job_activity.option',
         'budget', 'budget.responsible', 'task', 'task.job_activity');
     }
 
@@ -753,7 +756,7 @@ class Job extends Model
             #|| $task->job_activity->description == 'Opção'
             || $task->job_activity->description == 'Outsider') {
                 $this->creation_responsible = $task->responsible;
-                $this->available_date = $task->available_date;
+                $this->available_date = $task->getAvailableDate();
             }
         }
     }
@@ -762,7 +765,7 @@ class Job extends Model
         foreach($this->tasks as $task) {
             if($task->job_activity->description == 'Orçamento') {
                 $this->budget_responsible = $task->responsible;
-                $this->available_date = $task->available_date;
+                $this->available_date = $task->getAvailableDate();
             }
         }
     }
@@ -854,6 +857,14 @@ class Job extends Model
             'monthly_approval' => $monthly_approval,
             'consolidated_annual' => $consolidated_annual
         ];
+    }
+
+    public function initialTask(): Task {
+        return Task::with(['job_activity' => function($query) {
+            $query->where('initial', '1');
+        }])
+        ->where('job_id', $this->id)
+        ->first();
     }
 
     public function stand() {

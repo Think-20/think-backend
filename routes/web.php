@@ -12,7 +12,7 @@
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return abort(404);
 });
 
 Route::post('/login', 'UserController@login')->name('login');
@@ -137,6 +137,7 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::post('/tasks/get-available-dates', 'TaskController@getNextAvailableDates');
     Route::get('/tasks/{jobActivityId}/responsibles', 'TaskController@responsiblesByActivity');
     Route::get('/tasks/updated-info', 'TaskController@updatedInfo');
+    Route::post('/task/insert-derived', 'TaskController@insertDerived');
 
     Route::get('/notifications/all', 'NotificationController@all');
     Route::get('/notifications/recents', 'NotificationController@recents');
@@ -264,6 +265,8 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::put('/briefing/edit-available-date', 'BriefingController@editAvailableDate');
     Route::put('/my-briefing/edit-available-date', 'BriefingController@myEditAvailableDate');
     */
+    Route::post('/task-items/filter', 'TaskController@filterItems');
+    Route::post('/my-task-items/filter', 'TaskController@filterMyItems');
 
     Route::post('/task/save', 'TaskController@save');
     Route::put('/task/edit', 'TaskController@edit');
