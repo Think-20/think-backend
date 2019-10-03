@@ -30,7 +30,7 @@ class TaskHelper
     {
         do {
             $finalDate = DateHelper::sumUtil($initialDate, 1);
-            $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity, $excludeItemIds, $job);
+            $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity, (is_null($excludeItemIds) ? new  \Illuminate\Support\Collection() : $excludeItemIds), $job);
             $initialDate = DateHelper::sumUtil($initialDate, 1);
             $availableDates = $items->filter(function($item) use ($onlyResponsible) {
                 if($onlyResponsible != null) {

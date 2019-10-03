@@ -265,6 +265,8 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::put('/briefing/edit-available-date', 'BriefingController@editAvailableDate');
     Route::put('/my-briefing/edit-available-date', 'BriefingController@myEditAvailableDate');
     */
+    Route::post('/task-items/filter', 'TaskController@filterItems');
+    Route::post('/my-task-items/filter', 'TaskController@filterMyItems');
 
     Route::post('/task/save', 'TaskController@save');
     Route::put('/task/edit', 'TaskController@edit');

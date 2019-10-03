@@ -13,11 +13,13 @@ class JobActivity extends Model
         'description', 'initial', 'no_params', 'redirect_after_save',
         'fixed_duration', 'min_duration', 'max_duration', 'max_budget_value_per_day',
         'max_duration_value_per_day', 'modification_id', 'option_id', 'fixed_budget_value',
-        'keep_responsible'
+        'keep_responsible', 'visible'
     ];
 
     public static function list() {
-        return JobActivity::with('modification', 'option')->get();
+        return JobActivity::with('modification', 'option')
+        ->orderBy('description', 'asc')
+        ->get();
     }
 
     public static function getOpportunities() {

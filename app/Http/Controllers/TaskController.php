@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Task;
+use App\TaskItem;
 use Exception;
 use Response;
 
@@ -175,8 +176,20 @@ class TaskController extends Controller
         return $tasks;
     }
 
+    public static function filterItems(Request $request) {
+        return TaskItem::filter($request->all());
+    }
+
     public static function filter(Request $request) {
         return Task::filter($request->all());
+    }
+
+    public static function filterMyTask(Request $request) {
+        return Task::filterMyTask($request->all());
+    }
+
+    public static function filterMyItems(Request $request) {
+        return TaskItem::filterMyItems($request->all());
     }
 
     public static function updatedInfo() {
@@ -292,9 +305,5 @@ class TaskController extends Controller
         $tasks = Task::listMyTask();
 
         return $tasks;
-    }
-
-    public static function filterMyTask(Request $request) {
-        return Task::filterMyTask($request->all());
     }
 }

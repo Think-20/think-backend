@@ -304,10 +304,8 @@ class Task extends Model
         $itemTask1 = isset($data['taskItem1']) ? $data['taskItem1'] : null;
         $itemTask2 = isset($data['taskItem2']) ? $data['taskItem2'] : null;
 
-        $task1 = $itemTask1 != null ? 
-            (isset($itemTask1['task']['id']) ? Task::find($itemTask1['task']['id']) : null) : null;
-        $task2 = $itemTask2 != null ? 
-            (isset($itemTask2['task']['id']) ? Task::find($itemTask2['task']['id']) : null) : null;
+        $task1 = $itemTask1 != null ? (isset($itemTask1['task']['id']) ? Task::find($itemTask1['task']['id']) : null) : null;
+        $task2 = $itemTask2 != null ? (isset($itemTask2['task']['id']) ? Task::find($itemTask2['task']['id']) : null) : null;
 
         if ($task1 != null && $task1->job->attendance_id != User::logged()->employee->id) {
             throw new \Exception('Você não pode alterar uma tarefa que não pertence a você.');
@@ -406,6 +404,7 @@ class Task extends Model
         }
 
         Task::modifyReopened($task);
+        $task->items;
         return $task;
     }
 
@@ -634,110 +633,104 @@ class Task extends Model
             return $v['id'];
         }, $params['department_array']) : null;
 
-        $taskItems = TaskItem::with(
+        $taskItems = Task::with(
             'task',
-            'task.responsible',
+            'responsible',
+            'job_activity',
+            'job',
+            'job.creation',
+            'job.client',
+            'job.job_type',
+            'job.status',
+            'job.agency',
+            'job.attendance',
+            'job.job_activity',
+            'task',
             'task.job_activity',
-            'task.job',
-            'task.job.client',
-            'task.job.job_type',
-            'task.job.status',
-            'task.job.agency',
-            'task.job.attendance',
-            'task.job.job_activity',
-            'task.task',
-            'task.task.job_activity',
-            'task.items'
+            'items'
         );
 
         if (!is_null($iniDate) && !is_null($finDate)) {
-            $taskItems->where('task_item.date', '>=', $iniDate);
-            $taskItems->where('task_item.date', '<=', $finDate);
+            $taskItems->whereHas('items', function ($query) use ($iniDate, $finDate) {
+                $query->where('task_item.date', '>=', $iniDate);
+                $query->where('task_item.date', '<=', $finDate);
+                $query->orderBy('task_item.date', 'ASC');
+            });
         }
 
         if (!is_null($attendanceArrayId)) {
-            $taskItems->whereHas('task.job.attendance', function ($query) use ($attendanceArrayId) {
+            $taskItems->whereHas('job.attendance', function ($query) use ($attendanceArrayId) {
                 $query->whereIn('id', $attendanceArrayId);
             });
         }
 
         if (!is_null($jobTypeArrayId)) {
-            $taskItems->whereHas('task.job.job_type', function ($query) use ($jobTypeArrayId) {
+            $taskItems->whereHas('job.job_type', function ($query) use ($jobTypeArrayId) {
                 $query->whereIn('id', $jobTypeArrayId);
             });
         }
 
         if (!is_null($statusArrayId)) {
-            $taskItems->whereHas('task.job', function ($query) use ($statusArrayId) {
+            $taskItems->whereHas('job', function ($query) use ($statusArrayId) {
                 $query->whereIn('status_id', $statusArrayId);
             });
         }
 
         if (!is_null($jobActivityArrayId)) {
-            $taskItems->whereHas('task', function ($query) use ($jobActivityArrayId) {
-                $query->whereIn('task.job_activity_id', $jobActivityArrayId);
-            });
+            $taskItems->whereIn('job_activity_id', $jobActivityArrayId);
         }
 
         if (!is_null($responsibleArrayId)) {
-            $taskItems->whereHas('task', function ($query) use ($responsibleArrayId) {
-                $query->whereIn('task.responsible_id', $responsibleArrayId);
-            });
+            $taskItems->whereIn('responsible_id', $responsibleArrayId);
         }
 
         if (!is_null($departmentArrayId)) {
-            $taskItems->whereHas('task.responsible', function ($query) use ($departmentArrayId) {
+            $taskItems->whereHas('responsible', function ($query) use ($departmentArrayId) {
                 $query->whereIn('department_id', $departmentArrayId);
             });
         }
 
         if (!is_null($clientName)) {
-            $taskItems->whereHas('task.job.client', function ($query) use ($clientName) {
+            $taskItems->whereHas('job.client', function ($query) use ($clientName) {
                 $query->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
                 $query->orWhere('name', 'LIKE', '%' . $clientName . '%');
             });
-            $taskItems->orWhereHas('task.job', function ($query) use ($clientName) {
+            $taskItems->orWhereHas('job', function ($query) use ($clientName) {
                 $query->where('not_client', 'LIKE', '%' . $clientName . '%');
             });
         }
 
         if (!is_null($attendanceId)) {
-            $taskItems->whereHas('task.job.attendance', function ($query) use ($attendanceId) {
+            $taskItems->whereHas('job.attendance', function ($query) use ($attendanceId) {
                 $query->where('id', '=', $attendanceId);
             });
         }
 
         if (!is_null($jobTypeId)) {
-            $taskItems->whereHas('task.job.job_type', function ($query) use ($jobTypeId) {
+            $taskItems->whereHas('job.job_type', function ($query) use ($jobTypeId) {
                 $query->where('id', '=', $jobTypeId);
             });
         }
 
         if (!is_null($jobActivityId)) {
-            $taskItems->whereHas('task.job.job_activity', function ($query) use ($jobActivityId) {
+            $taskItems->whereHas('job.job_activity', function ($query) use ($jobActivityId) {
                 $query->where('id', '=', $jobActivityId);
             });
         }
 
         if (!is_null($creationId)) {
-            $taskItems->whereHas('task', function ($query) use ($creationId) {
-                $query->where('responsible_id', $creationId);
-            });
+            $taskItems->where('responsible_id', $creationId);
         }
 
         if (!is_null($responsibleId)) {
-            $taskItems->whereHas('task', function ($query) use ($responsibleId) {
-                $query->where('responsible_id', $responsibleId);
-            });
+            $taskItems->where('responsible_id', $responsibleId);
         }
 
         if (!is_null($status)) {
-            $taskItems->whereHas('task.job', function ($query) use ($status) {
+            $taskItems->whereHas('job', function ($query) use ($status) {
                 $query->where('status_id', '=', $status);
             });
         }
-
-        $taskItems->orderBy('task_item.date', 'ASC');
 
         if ($paginate) {
             $paginate = $taskItems->paginate(50);
@@ -759,7 +752,6 @@ class Task extends Model
             'updatedInfo' => Task::updatedInfo()
         ];
     }
-
 
     public static function updatedInfo()
     {
@@ -805,7 +797,7 @@ class Task extends Model
 
         $tasks = Task::select('task.*')->with(['items' => function ($query) {
             $query->first();
-        }])
+        }, 'job.responsibles'])
             ->leftJoin('job', 'job.id', '=', 'task.job_id')
             ->where(function ($query) use ($user) {
                 $query->where('job.attendance_id', '=', $user->employee->id);
@@ -815,10 +807,9 @@ class Task extends Model
         if (!is_null($iniDate) && !is_null($finDate)) {
             $sql = '(task_item.date >= "' . $iniDate . '"';
             $sql .= ' AND task_item.date <= "' . $finDate . '")';
+            $sql .= 'ORDER BY task_item.date ASC';
             $tasks->whereRaw($sql);
         }
-
-        $tasks->orderBy('task_item.date', 'ASC');
 
         if ($paginate) {
             $paginate = $tasks->paginate(50);

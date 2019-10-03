@@ -9,6 +9,7 @@ ALTER TABLE job_activity ADD COLUMN next_day TINYINT(1) DEFAULT 1;
 ALTER TABLE job_activity ADD COLUMN counter TINYINT(1) DEFAULT 0;
 ALTER TABLE job_activity ADD COLUMN initial int DEFAULT 0;  
 ALTER TABLE job_activity ADD COLUMN keep_responsible TINYINT(1) DEFAULT 0;
+ALTER TABLE job_activity ADD COLUMN visible TINYINT(1) DEFAULT 1;
 
 INSERT INTO `job_activity` (`no_params`, `redirect_after_save`, `fixed_duration`, `min_duration`, `max_duration`, `max_budget_value_per_day`,
 `max_duration_value_per_day`, `next_period`, `next_day`, `counter`, `description`) 
@@ -92,13 +93,13 @@ WHERE description = 'Outsider';
 /* Somente edição não aparece na inserção, fixed_duration OK, max_budget_value_per_day OK, max_duration_value_per_day OK next_period OK! */
 UPDATE `job_activity` SET `no_params` = 0, `redirect_after_save` = NULL, `modification_id` = 15, `option_id` = 16,
 `fixed_duration` = 0.2, `min_duration` = 0, `max_duration` = 0, `max_budget_value_per_day` = 400000, `max_duration_value_per_day` = 1,
-`next_period` = 1, `next_day` = 0, `counter` = 1, `fixed_budget_value` = 1
+`next_period` = 1, `next_day` = 0, `counter` = 1, `fixed_budget_value` = 1, `visible` = 0
 WHERE description = 'Orçamento';
 
 /* Somente edição não aparece na inserção, fixed_duration automático - OK */
 UPDATE `job_activity` SET `no_params` = 0, `redirect_after_save` = NULL,
 `fixed_duration` = 1, `min_duration` = 0, `max_duration` = 0, `max_budget_value_per_day` = 0, `max_duration_value_per_day` = 0,
-`next_period` = 0, `next_day` = 0, `counter` = 1
+`next_period` = 0, `next_day` = 0, `counter` = 1, `visible` = 0
 WHERE description = 'Memorial descritivo';
 
 /* Testar fixed_duration????  max_duration_value_per_day = somatória de valores < 1 */
@@ -229,14 +230,5 @@ DELETE FROM job_activity WHERE id = 12;
 
 INSERT INTO display (url, description) VALUES ('/schedule/new?adminmode', 'Habilita modo administrativo para agenda de datas não consecutivas');
 
-
-
-
-
-
-
-
-
-
-
-
+INSERT INTO functionality (url, description) VALUES ('/task-items/filter', 'Fitrar itens de tarefas');
+INSERT INTO functionality (url, description) VALUES ('/my-task-items/filter', 'Fitrar somente itens de tarefas que pertencem ao usuário');
