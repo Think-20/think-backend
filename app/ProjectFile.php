@@ -3,6 +3,7 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Exception;
 use ZipArchive;
 
 class ProjectFile extends Model {
@@ -21,7 +22,13 @@ class ProjectFile extends Model {
         }
 
         if(is_file(sys_get_temp_dir() . '/' .  $this->original_name)) {
-            rename(sys_get_temp_dir() . '/' .  $this->original_name, $path . '/' . $this->name);
+            $res = rename(sys_get_temp_dir() . '/' .  $this->original_name, $path . '/' . $this->name);
+            
+            if(!$res) {
+                throw new Exception('Erro ao mover o arquivo para a pasta de projetos');
+            }
+        } else {
+            throw new Exception('Arquivo não encontrado para mover');
         }
     }
 
