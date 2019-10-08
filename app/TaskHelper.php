@@ -30,7 +30,7 @@ class TaskHelper
     {
         do {
             $finalDate = DateHelper::sumUtil($initialDate, 1);
-            $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity, (is_null($excludeItemIds) ? new  \Illuminate\Support\Collection() : $excludeItemIds), $job);
+            $items = TaskHelper::checkNextDates($initialDate, $finalDate, $jobActivity, (is_null($excludeItemIds) ? new  \Illuminate\Support\Collection() : $excludeItemIds), $job, $onlyResponsible);
             $initialDate = DateHelper::sumUtil($initialDate, 1);
             $availableDates = $items->filter(function($item) use ($onlyResponsible) {
                 if($onlyResponsible != null) {
@@ -64,7 +64,7 @@ class TaskHelper
         return $items;
     }
 
-    public static function checkNextDates(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity, \Illuminate\Support\Collection $excludeItemIds, Job $job = null) : Collection {
+    public static function checkNextDates(DateTime $initialDate, DateTime $finalDate, JobActivity $jobActivity, \Illuminate\Support\Collection $excludeItemIds, Job $job = null, Employee $onlyResponsible = null) : Collection {
         $items = new Collection();
         $itemsForVerification = TaskHelper::getItemsForVerification($initialDate, $finalDate, $jobActivity, $excludeItemIds)
         ->map(function($item) {
@@ -82,6 +82,11 @@ class TaskHelper
         if($responsibles->count() === 0) {
             throw new Exception('Não há responsáveis para essa atividade.');
         }
+
+        if($onlyResponsible !== null && $responsibles->filter(function($res) use ($onlyResponsible) { return $res->id == $onlyResponsible->id; })->count() === 0) {
+            throw new Exception('Não há responsáveis para essa atividade.');
+        }
+
 
         $completeDates = TaskHelper::completeDates($initialDate, $finalDate, $responsibles);
         $unionItems = TaskHelper::merge($completeDates->toBase(), $itemsForVerification->toBase());
