@@ -691,12 +691,12 @@ class Task extends Model
         }
 
         if (!is_null($clientName)) {
-            $taskItems->whereHas('job.client', function ($query) use ($clientName) {
-                $query->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
-                $query->orWhere('name', 'LIKE', '%' . $clientName . '%');
-            });
-            $taskItems->orWhereHas('job', function ($query) use ($clientName) {
+            $taskItems->whereHas('job', function ($query) use ($clientName) {
                 $query->where('not_client', 'LIKE', '%' . $clientName . '%');
+                $query->orWhereHas('client', function ($query) use ($clientName) {
+                    $query->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
+                    $query->orWhere('name', 'LIKE', '%' . $clientName . '%');
+                });
             });
         }
 
