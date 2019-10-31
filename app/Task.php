@@ -507,6 +507,7 @@ class Task extends Model
         } else {
             $items->each(function ($item) {
                 $item->force = 1;
+                $item->duration = 1;
             });
         }
 
