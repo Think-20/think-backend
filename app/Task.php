@@ -475,8 +475,12 @@ class Task extends Model
 
         $nextItem = $items->pop();
         $responsible = Employee::find($nextItem->responsible_id);
+        
         //100%, 30% do valor, conforme o parâmetro fixed_budget_value
-        $jobValue = (float) $this->job->budget_value * $jobActivity->fixed_budget_value;
+        //Conforme solicitação, alguns acrescentam pelo tipo de tarefa.
+        $jobValue = (float) $this->job->budget_value 
+            * $jobActivity->fixed_budget_value
+            * $this->job->job_type->fixed_budget_value;
 
         do {
             $usedInThisDate = (float) $nextItem->budget_value;
