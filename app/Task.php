@@ -477,15 +477,21 @@ class Task extends Model
         $responsible = Employee::find($nextItem->responsible_id);
         
         //100%, 30% do valor, conforme o parâmetro fixed_budget_value
-        //Conforme solicitação, alguns acrescentam pelo tipo de tarefa.
+        //Acrescentar pelo tipo de tarefa.
         $jobValue = (float) $this->job->budget_value 
             * $jobActivity->fixed_budget_value
             * $this->job->job_type->fixed_budget_value;
 
+        $jobValueWithoutModify = $jobValue;
+
         do {
             $usedInThisDate = (float) $nextItem->budget_value;
 
-            if ($usedInThisDate < $maxValuePerDay) {
+            //Racionar em vários dias somente atendendo requisito mínimo de valor
+            if ($usedInThisDate < $maxValuePerDay 
+                && ($jobValueWithoutModify > $jobActivity->min_budget_value_to_more_days
+                    || $jobValueWithoutModify <= ($maxValuePerDay - $usedInThisDate))
+            ) {
                 $availableInThisDate = $maxValuePerDay - $usedInThisDate;
                 $available = $jobValue > $availableInThisDate ? $availableInThisDate : $jobValue;
                 $nextItem->budget_value = $available;
