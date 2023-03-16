@@ -1,0 +1,8 @@
+select du.display_id from user u 
+left join display_user du on du.user_id = u.id
+where u.id = 30
+
+
+insert into display_user (user_id, display_id) select 34, du.display_id from user u 
+left join display_user du on du.user_id = u.id
+where u.id = 30
