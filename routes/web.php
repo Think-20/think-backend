@@ -12,7 +12,7 @@
 */
 
 Route::get('/', function () {
-    return abort(404);
+    return "teste";
 });
 
 Route::post('/login', 'UserController@login')->name('login');
