@@ -20,5 +20,5 @@ jobs:
         run: |
           echo "${{ secrets.EC2_THINK_PRIVATE_KEY }}" > private_key.pem
           chmod 600 private_key.pem
-          ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i private_key.pem ${{ secrets.EC2_THINK_USER }}@${{ secrets.EC2_THINK_HOST }} 'cd /var/www/think-backend && git config --global --add safe.directory /var/www/think-backend && git pull'
+          ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i private_key.pem ${{ secrets.EC2_THINK_USER }}@${{ secrets.EC2_THINK_HOST }} 'sudo su && cd /var/www/think-backend && git config --global --add safe.directory /var/www/think-backend && git pull'
           rm private_key.pem
