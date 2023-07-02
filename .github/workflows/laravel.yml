@@ -3,10 +3,10 @@ name: Git Pull to EC2
 on:
   push:
     branches:
-      - master
+      - develop
   pull_request:
     branches:
-      - master
+      - develop
 
 jobs:
   deploy:
