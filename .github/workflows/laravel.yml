@@ -1,4 +1,4 @@
-name: Laravel deploy to EC2
+name: Git Pull to EC2
 
 on:
   push:
@@ -16,23 +16,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 7.4
-
-      # - name: Install dependencies
-      #   run: composer install --ignore-platform-reqs
-        
-      - name: Directory Permissions
-        run: chmod -R 777 storage bootstrap/cache
-
-      - name: Deploy to EC2
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.EC2_THINK_HOST }}
-          username: ${{ secrets.EC2_THINK_USER }}
-          key: ${{ secrets.EC2_THINK_PRIVATE_KEY }}
-          source: ./
-          target: /var/www/think-backend
-          args: --overwrite
+      - name: Git Pull
+        run: |
+          ssh -i ${{ secrets.EC2_THINK_PRIVATE_KEY }} ${{ secrets.EC2_THINK_USER }}@${{ secrets.EC2_THINK_HOST }} 'cd /var/www/think-backend && git pull'
