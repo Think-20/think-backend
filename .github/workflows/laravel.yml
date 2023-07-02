@@ -21,6 +21,9 @@ jobs:
         with:
           php-version: 7.4
 
+        - name: Autoload
+          run: composer dump-autoload
+
       - name: Install dependencies
         run: composer install --ignore-platform-reqs
         
