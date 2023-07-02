@@ -21,6 +21,9 @@ jobs:
         with:
           php-version: 7.4
 
+      # - name: Install dependencies
+      #   run: composer install --ignore-platform-reqs
+        
       - name: Directory Permissions
         run: chmod -R 777 storage bootstrap/cache
 
@@ -32,3 +35,4 @@ jobs:
           key: ${{ secrets.EC2_THINK_PRIVATE_KEY }}
           source: ./
           target: /var/www/think-backend
+          args: --overwrite
