@@ -146,6 +146,8 @@ class UserNotification extends Model
                         $searchUserNotification->save();
                     }
                 }
+                $searchNotification->date = Carbon::now()->toDateTimeString();
+                $searchNotification->save();
             } else {
                 $notification = new Notification();
                 $notification->type_id = 18;
