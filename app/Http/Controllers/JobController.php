@@ -49,12 +49,15 @@ class JobController extends Controller
          ]), 200);
     }
 
+    public static function calculate() {
+        $job = Job::calculate();
+        return $job;
+    }
+    
     public static function edit(Request $request) {
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
-        //$oldJob = Job::find($request->id);
-        //$oldChild = Job::getJobChild($oldJob);
 
         try {
             $job = Job::edit($data);
