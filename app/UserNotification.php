@@ -108,7 +108,7 @@ class UserNotification extends Model
 
         foreach ($jobs as $job) {
             $message = 'Projeto do evento ' . $job->event . ' em standby há mais de 15 dias.';
-            $searchNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->id)->first();
+            $searchNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->employee->id)->first();
             if ($searchNotification) {
                 $searchUserNotification = UserNotification::where('notification_id', $searchNotification->id)->first();
 
