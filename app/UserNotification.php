@@ -128,6 +128,9 @@ class UserNotification extends Model
                         $searchUserNotification->received = 0;
                         $searchUserNotification->received_date = null;
                         $searchUserNotification->save();
+
+                        $searchNotification->date = Carbon::now()->toDateTimeString();
+                        $searchNotification->save();
                     }
 
                 } else if ($searchUserNotification->received != 0 && $searchUserNotification->read == 1){
@@ -144,10 +147,11 @@ class UserNotification extends Model
                         $searchUserNotification->received = 0;
                         $searchUserNotification->received_date = null;
                         $searchUserNotification->save();
+
+                        $searchNotification->date = Carbon::now()->toDateTimeString();
+                        $searchNotification->save();
                     }
                 }
-                $searchNotification->date = Carbon::now()->toDateTimeString();
-                $searchNotification->save();
             } else {
                 $notification = new Notification();
                 $notification->type_id = 18;
