@@ -136,7 +136,7 @@ class UserNotification extends Model
 
                     // Calcula a diferença em segundos entre 'received_date' e a data e hora atual
                     $diffInSeconds = $readDate->diffInSeconds($now);
-                    
+
                      // Se a diferença for maior que 600 segundos (10 minutos), faça o reset da notificação
                      if ($diffInSeconds > 600) {
                         $searchUserNotification->read = 0;
@@ -149,7 +149,7 @@ class UserNotification extends Model
             } else {
                 $notification = new Notification();
                 $notification->type_id = 18;
-                $notification->notifier_id = User::logged()->id;
+                $notification->notifier_id = User::logged()->employee->id;
                 $notification->notifier_type = "App\Employee";
                 $notification->info = "Id do job: " . $job->id;
                 $notification->date = Carbon::now()->toDateTimeString();
