@@ -36,4 +36,8 @@ class NotificationController extends Controller
     public static function listen() {
         return UserNotification::listen();
     }
+
+    public static function window() {
+        return UserNotification::notificationsWindow();
+    }
 }

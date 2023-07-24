@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use DB;
 use DateTime;
 use DateInterval;
+use Illuminate\Support\Carbon;
 
 class Job extends Model
 {
@@ -80,7 +81,7 @@ class Job extends Model
 
         if($this->status->id == '3'){
             $difference = strtotime($oldJob->created_at) - strtotime((new DateTime())->format('y-m-d'));
-            $days = floor($difference / (60 * 60 * 24)) * -1;
+            $days = floor($difference / (60 * 60 * 24));
             $this->time_to_aproval = $days;
         }
 

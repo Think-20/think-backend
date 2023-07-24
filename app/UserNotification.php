@@ -120,8 +120,8 @@ class UserNotification extends Model
 
                     // Calcula a diferença em segundos entre 'received_date' e a data e hora atual
                     $diffInSeconds = $receivedDateTime->diffInSeconds($now);
-                    
-                     // Se a diferença for maior que 600 segundos (10 minutos), faça o reset da notificação
+
+                    // Se a diferença for maior que 600 segundos (10 minutos), faça o reset da notificação
                     if ($diffInSeconds > 600) {
                         $searchUserNotification->read = 0;
                         $searchUserNotification->read_date = null;
@@ -132,16 +132,15 @@ class UserNotification extends Model
                         $searchNotification->date = Carbon::now()->toDateTimeString();
                         $searchNotification->save();
                     }
-
-                } else if ($searchUserNotification->received != 0 && $searchUserNotification->read == 1){
+                } else if ($searchUserNotification->received != 0 && $searchUserNotification->read == 1) {
                     $now = Carbon::now();
                     $readDate = Carbon::parse($searchUserNotification->read_date);
 
                     // Calcula a diferença em segundos entre 'received_date' e a data e hora atual
                     $diffInSeconds = $readDate->diffInSeconds($now);
 
-                     // Se a diferença for maior que 600 segundos (10 minutos), faça o reset da notificação
-                     if ($diffInSeconds > 600) {
+                    // Se a diferença for maior que 600 segundos (10 minutos), faça o reset da notificação
+                    if ($diffInSeconds > 600) {
                         $searchUserNotification->read = 0;
                         $searchUserNotification->read_date = null;
                         $searchUserNotification->received = 0;
@@ -199,5 +198,58 @@ class UserNotification extends Model
     public function user()
     {
         return $this->belongsTo('App\User', 'user_id');
+    }
+
+    //Função que vai trazer todos os dados para a tela de notificações que será exibida nas sextas-feiras
+    public static function notificationsWindow()
+    {
+        $jobs = Job::where('attendance_id', User::logged()->employee->id)
+            ->where('status_id', 1)
+            ->whereYear('created_at', 2023)
+            ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
+            ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels', 'how_come', 'agency', 'attendance', 'competition', 'files', 'status', 'creation')
+            ->get();
+
+        $count = Job::where('attendance_id', User::logged()->employee->id)
+            ->where('status_id', 1)
+            ->whereYear('created_at', 2023)
+            ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
+            ->count();
+
+        $jobsResult = [];
+        foreach ($jobs as $job) {
+            $lastUpdateDate = Carbon::parse($job['status_updated_at']);
+            $atualDate = Carbon::now();
+            $diferencaDias = $atualDate->diffInDays($lastUpdateDate);
+
+            if ($job['client'] != null) {
+                $client = $job['client']['fantasy_name'];
+            } else if ($job['not_client'] != null) {
+                $client = $job["not_client"];
+            }
+
+            if (isset($job['creation'][0]['responsible_id'])) {
+                $responsible = $job['creation'][0]['responsible']['name'];
+            }
+
+            array_push($jobsResult, [
+                "id" => $job['id'],
+                "code" => $job['code'],
+                "days_without_update" => $diferencaDias,
+                "job_activity" => $job['job_activity']['description'],
+                "job_type" => $job['job_type']['description'],
+                "client" => $client,
+                "event" => $job['event'],
+                "deadline" => $job['deadline'],
+                "creation_responsible" => $responsible ?? null,
+                "status" => $job['status']['description']
+            ]);
+        }
+        return response()->json([
+            "update_pendency" => [
+                "count" => $count,
+                "data" => $jobsResult
+            ]
+        ]);
     }
 }

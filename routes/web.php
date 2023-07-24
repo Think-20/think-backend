@@ -1,5 +1,6 @@
 <?php
 
+use App\UserNotification;
 use Illuminate\Support\Facades\Route;
 /*
 |--------------------------------------------------------------------------
@@ -155,6 +156,7 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::prefix('reports')->group(function(){
         Route::get('/', 'ReportsController@read');
     });
+    Route::get('/notifywindow', 'NotificationController@window');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {
