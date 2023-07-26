@@ -74,7 +74,12 @@ class ReportsController extends Controller
         } else {
             $countStandby = 0;
         }
-
+        $stand = 0;
+        $cenografia = 0;
+        $pdv = 0;
+        $showroom = 0;
+        $outsider = 0;
+        $types = self::getTypes($data);
         $averageTimeToAproval = self::sumTimeToAproval($data);
         $valueAprovals = self::sumAprovals($data);
         $conversionRate = $valueAprovals / $total_value['sum'];
@@ -86,7 +91,8 @@ class ReportsController extends Controller
             "averate_time_to_aproval" => $averageTimeToAproval,
             "aprovals_value" => number_format($valueAprovals, 2, ',', '.'),
             "conversion_rate" => number_format($conversionRate, 2, ',', '.'),
-            "standby_count" => $countStandby
+            "standby_count" => $countStandby,
+            "types" => $types
         ]);
     }
 
@@ -117,7 +123,6 @@ class ReportsController extends Controller
             $result->where('job.created_at', '>=', $initialDate . ' 00:00:00')
                 ->where('job.created_at', '<=', $finalDate . ' 23:59:59');
         }
-
         $result = $result->first();
 
         $count = $result->count;
@@ -247,5 +252,88 @@ class ReportsController extends Controller
         } else {
             return false;
         }
+    }
+
+    public static function getTypes($data)
+    {
+        $name = $data['name'] ?? null;
+        $initialDate = $data['dateInit'] ?? null;
+        $finalDate = $data['dateEnd'] ?? null;
+
+        $baseQuery = Job::selectRaw('job.*')
+            ->with(
+                'job_activity',
+                'job_type',
+                'client',
+                'main_expectation',
+                'levels',
+                'how_come',
+                'agency',
+                'attendance',
+                'competition',
+                'files',
+                'status',
+                'creation'
+            )
+            ->with(['creation.items' => function ($query) {
+                $query->limit(1);
+            }]);
+
+        if ($name) {
+            $baseQuery->whereHas('client', function ($query) use ($name) {
+                $query->where('fantasy_name', 'LIKE', '%' . $name . '%');
+                $query->orWhere('name', 'LIKE', '%' . $name . '%');
+            });
+            $baseQuery->orWhere('not_client', 'LIKE', '%' . $name . '%');
+        }
+
+        if ($initialDate && !$finalDate) {
+            $baseQuery->where('created_at', '>=', $initialDate . ' 00:00:00')
+                ->where('created_at', '<=', $initialDate . ' 23:59:59');
+        } elseif (!$initialDate && $finalDate) {
+            $baseQuery->where('created_at', '>=', $finalDate . ' 00:00:00')
+                ->where('created_at', '<=', $finalDate . ' 23:59:59');
+        } elseif ($initialDate && $finalDate) {
+            $baseQuery->where('created_at', '>=', $initialDate . ' 00:00:00')
+                ->where('created_at', '<=', $finalDate . ' 23:59:59');
+        }
+
+        $countStand = clone $baseQuery;
+        $countStand = $countStand->whereHas('job_type', function ($query) {
+            $query->where('description', 'Stand');
+        })->count();
+
+        $countShowroom = clone $baseQuery;
+        $countShowroom = $countShowroom->whereHas('job_type', function ($query) {
+            $query->where('description', 'Showroom');
+        })->count();
+
+        $countCenografia = clone $baseQuery;
+        $countCenografia = $countCenografia->whereHas('job_type', function ($query) {
+            $query->where('description', 'Cenografia');
+        })->count();
+
+        $countPdv = clone $baseQuery;
+        $countPdv = $countPdv->whereHas('job_type', function ($query) {
+            $query->where('description', 'Pdv');
+        })->count();
+
+        $countOutsider = clone $baseQuery;
+        $countOutsider = $countOutsider->whereHas('job_type', function ($query) {
+            $query->where('description', 'Outsider');
+        })->count();
+
+        $jobs = $baseQuery->get();
+
+        // Retornar as contagens em um array associativo
+        $counts = [
+            'stand' => $countStand,
+            'showroom' => $countShowroom,
+            'cenografia' => $countCenografia,
+            'pdv' => $countPdv,
+            'outsider' => $countOutsider,
+        ];
+
+        return $counts;
     }
 }
