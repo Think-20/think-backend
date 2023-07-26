@@ -158,7 +158,6 @@ class Client extends Model implements Contactable
 
         try {
             $client = Client::find($id);
-
             $message = 'Cliente ' . $client->fantasy_name . ' removido';
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message

@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Client;
+use App\Job;
+use App\JobLevel;
+use App\LogClient;
 use Exception;
 use Response;
 
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
 class ClientController extends Controller
 {
@@ -49,6 +53,21 @@ class ClientController extends Controller
         $status = false;
 
         try {
+            $logClient = LogClient::where('client_id', $id)->get();
+            if(!$logClient->isEmpty()){
+                foreach($logClient as $log){
+                    $log->delete();
+                }
+            }
+
+            $job = Job::where('agency_id', $id)->get();
+            if(!$job->isEmpty()){
+                foreach($job as $log){
+                    DB::table('job_level_job')->where('job_id', $log->id)->delete();
+                    Job::remove($log->id);
+                }
+            }
+
             $client = Client::remove($id);
             $message = 'Cliente deletado com sucesso!';
             $status = true;
