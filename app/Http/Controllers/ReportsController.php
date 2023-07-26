@@ -57,6 +57,7 @@ class ReportsController extends Controller
             $jobs->where('created_at', '>=', $initialDate . ' 00:00:00')
                 ->where('created_at', '<=', $finalDate . ' 23:59:59');
         }
+
         $jobs = $jobs->paginate(5);
 
         $total_value = self::sumBudgetValue($data);

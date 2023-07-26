@@ -28,6 +28,8 @@ RUN useradd -G www-data,root -u $uid -d /home/$user $user
 RUN mkdir -p /home/$user/.composer && \
     chown -R $user:$user /home/$user
 
+#chown -R www-data:www-data /var/www/think-backend/public/assets/images/users/
+# chmod -R 755 /var/www/think-backend/public/assets/images/users/
 # Set working directory
 WORKDIR /var/www
 
