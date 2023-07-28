@@ -17,6 +17,35 @@ class ReportsController extends Controller
             'status'
         ]);
 
+        $jobs = self::baseQuery($data)->paginate(5);
+
+        $total_value = self::sumBudgetValue($data);
+        $average_ticket = $total_value ? $total_value['sum'] / $total_value['count'] : 0;
+
+        $standby = self::sumStandby($data);
+        $countStandby = $standby ? $standby['count'] : 0;
+
+        $types = self::getTypes($data);
+        $averageTimeToAproval = self::sumTimeToAproval($data);
+        $valueAprovals = self::sumAprovals($data);
+        $conversionRate = $valueAprovals / $total_value['sum'];
+        $averageJobsPerMonth = self::averageJobsPerMonth($data);
+
+        return response()->json([
+            "jobs" => $jobs,
+            "total_value" => number_format($total_value['sum'], 2, ',', '.'),
+            "average_ticket" => number_format($average_ticket, 2, ',', '.'),
+            "averate_time_to_aproval" => $averageTimeToAproval,
+            "aprovals_value" => number_format($valueAprovals, 2, ',', '.'),
+            "conversion_rate" => number_format($conversionRate, 2, ',', '.'),
+            "standby_count" => $countStandby,
+            "types" => $types,
+            "averageJobsPerMonth" => $averageJobsPerMonth
+        ]);
+    }
+
+    private static function baseQuery($data)
+    {
         $name = $data['name'] ?? null;
         $initialDate = $data['dateInit'] ?? null;
         $finalDate = $data['dateEnd'] ?? null;
@@ -47,6 +76,7 @@ class ReportsController extends Controller
             });
             $jobs->orWhere('not_client', 'LIKE', '%' . $name . '%');
         }
+
         if ($initialDate && !$finalDate) {
             $jobs->where('created_at', '>=', $initialDate . ' 00:00:00')
                 ->where('created_at', '<=', $initialDate . ' 23:59:59');
@@ -58,72 +88,14 @@ class ReportsController extends Controller
                 ->where('created_at', '<=', $finalDate . ' 23:59:59');
         }
 
-        $jobs = $jobs->paginate(5);
-
-        $total_value = self::sumBudgetValue($data);
-        if ($total_value) {
-            $average_ticket = $total_value['sum'] / $total_value['count'];
-        } else {
-            $total_value['sum'] = 0;
-            $average_ticket = 0;
-        }
-        $standby = self::sumStandby($data);
-        if ($standby) {
-            $countStandby = $standby['count'];
-            $valueStandby = $standby['sum'];
-        } else {
-            $countStandby = 0;
-        }
-        $stand = 0;
-        $cenografia = 0;
-        $pdv = 0;
-        $showroom = 0;
-        $outsider = 0;
-        $types = self::getTypes($data);
-        $averageTimeToAproval = self::sumTimeToAproval($data);
-        $valueAprovals = self::sumAprovals($data);
-        $conversionRate = $valueAprovals / $total_value['sum'];
-
-        return response()->json([
-            "jobs" => $jobs,
-            "total_value" => number_format($total_value['sum'], 2, ',', '.'),
-            "average_ticket" => number_format($average_ticket, 2, ',', '.'),
-            "averate_time_to_aproval" => $averageTimeToAproval,
-            "aprovals_value" => number_format($valueAprovals, 2, ',', '.'),
-            "conversion_rate" => number_format($conversionRate, 2, ',', '.'),
-            "standby_count" => $countStandby,
-            "types" => $types
-        ]);
+        return $jobs;
     }
 
     public static function sumBudgetValue($data)
     {
-        $name = $data['name'] ?? null;
-        $initialDate = $data['dateInit'] ?? null;
-        $finalDate = $data['dateEnd'] ?? null;
+        $jobs = self::baseQuery($data);
 
-        $result = DB::table('job')
-            ->leftJoin('client', 'job.client_id', '=', 'client.id')
-            ->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.budget_value) as sum'))
-            ->where(function ($query) use ($name) {
-                $query->where(function ($query) use ($name) {
-                    $query->where('client.fantasy_name', 'LIKE', '%' . $name . '%')
-                        ->orWhere('client.name', 'LIKE', '%' . $name . '%');
-                })
-                    ->orWhere('not_client', 'like', '%' . $name . '%');
-            });
-
-        if ($initialDate && !$finalDate) {
-            $result->where('job.created_at', '>=', $initialDate . ' 00:00:00')
-                ->where('job.created_at', '<=', $initialDate . ' 23:59:59');
-        } elseif (!$initialDate && $finalDate) {
-            $result->where('job.created_at', '>=', $finalDate . ' 00:00:00')
-                ->where('job.created_at', '<=', $finalDate . ' 23:59:59');
-        } elseif ($initialDate && $finalDate) {
-            $result->where('job.created_at', '>=', $initialDate . ' 00:00:00')
-                ->where('job.created_at', '<=', $finalDate . ' 23:59:59');
-        }
-        $result = $result->first();
+        $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.budget_value) as sum'))->first();
 
         $count = $result->count;
         $sum = $result->sum;
@@ -137,33 +109,9 @@ class ReportsController extends Controller
 
     public static function sumTimeToAproval($data)
     {
-        $name = $data['name'] ?? null;
-        $initialDate = $data['dateInit'] ?? null;
-        $finalDate = $data['dateEnd'] ?? null;
+        $jobs = self::baseQuery($data);
 
-        $result = DB::table('job')
-            ->leftJoin('client', 'job.client_id', '=', 'client.id')
-            ->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.time_to_aproval) as sumTimeToAproval'))
-            ->where(function ($query) use ($name) {
-                $query->where(function ($query) use ($name) {
-                    $query->where('client.fantasy_name', 'LIKE', '%' . $name . '%')
-                        ->orWhere('client.name', 'LIKE', '%' . $name . '%');
-                })
-                    ->orWhere('not_client', 'like', '%' . $name . '%');
-            });
-
-        if ($initialDate && !$finalDate) {
-            $result->where('job.created_at', '>=', $initialDate . ' 00:00:00')
-                ->where('job.created_at', '<=', $initialDate . ' 23:59:59');
-        } elseif (!$initialDate && $finalDate) {
-            $result->where('job.created_at', '>=', $finalDate . ' 00:00:00')
-                ->where('job.created_at', '<=', $finalDate . ' 23:59:59');
-        } elseif ($initialDate && $finalDate) {
-            $result->where('job.created_at', '>=', $initialDate . ' 00:00:00')
-                ->where('job.created_at', '<=', $finalDate . ' 23:59:59');
-        }
-
-        $result = $result->first();
+        $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.time_to_aproval) as sumTimeToAproval'))->first();
 
         $count = $result->count;
         $sumTimeToAproval = $result->sumTimeToAproval;
@@ -177,33 +125,9 @@ class ReportsController extends Controller
 
     public static function sumAprovals($data)
     {
-        $name = $data['name'] ?? null;
-        $initialDate = $data['dateInit'] ?? null;
-        $finalDate = $data['dateEnd'] ?? null;
+        $jobs = self::baseQuery($data);
 
-        $result = DB::table('job')
-            ->leftJoin('client', 'job.client_id', '=', 'client.id')
-            ->select(DB::raw('SUM(job.budget_value) as sum'))
-            ->where(function ($query) use ($name) {
-                $query->where(function ($query) use ($name) {
-                    $query->where('client.fantasy_name', 'LIKE', '%' . $name . '%')
-                        ->orWhere('client.name', 'LIKE', '%' . $name . '%');
-                })
-                    ->orWhere('not_client', 'like', '%' . $name . '%');
-            })
-            ->where('status_id', 3);
-
-        if ($initialDate && !$finalDate) {
-            $result->where('job.created_at', '>=', $initialDate . ' 00:00:00')
-                ->where('job.created_at', '<=', $initialDate . ' 23:59:59');
-        } elseif (!$initialDate && $finalDate) {
-            $result->where('job.created_at', '>=', $finalDate . ' 00:00:00')
-                ->where('job.created_at', '<=', $finalDate . ' 23:59:59');
-        } elseif ($initialDate && $finalDate) {
-            $result->where('job.created_at', '>=', $initialDate . ' 00:00:00')
-                ->where('job.created_at', '<=', $finalDate . ' 23:59:59');
-        }
-        $result = $result->first();
+        $result = $jobs->select(DB::raw('SUM(job.budget_value) as sum'))->where('status_id', 3)->first();
 
         $sum = $result->sum;
 
@@ -216,33 +140,9 @@ class ReportsController extends Controller
 
     public static function sumStandby($data)
     {
-        $name = $data['name'] ?? null;
-        $initialDate = $data['dateInit'] ?? null;
-        $finalDate = $data['dateEnd'] ?? null;
+        $jobs = self::baseQuery($data);
 
-        $result = DB::table('job')
-            ->leftJoin('client', 'job.client_id', '=', 'client.id')
-            ->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.budget_value) as sum'))
-            ->where(function ($query) use ($name) {
-                $query->where(function ($query) use ($name) {
-                    $query->where('client.fantasy_name', 'LIKE', '%' . $name . '%')
-                        ->orWhere('client.name', 'LIKE', '%' . $name . '%');
-                })
-                    ->orWhere('not_client', 'like', '%' . $name . '%');
-            })
-            ->where('status_id', 1);
-
-        if ($initialDate && !$finalDate) {
-            $result->where('job.created_at', '>=', $initialDate . ' 00:00:00')
-                ->where('job.created_at', '<=', $initialDate . ' 23:59:59');
-        } elseif (!$initialDate && $finalDate) {
-            $result->where('job.created_at', '>=', $finalDate . ' 00:00:00')
-                ->where('job.created_at', '<=', $finalDate . ' 23:59:59');
-        } elseif ($initialDate && $finalDate) {
-            $result->where('job.created_at', '>=', $initialDate . ' 00:00:00')
-                ->where('job.created_at', '<=', $finalDate . ' 23:59:59');
-        }
-        $result = $result->first();
+        $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.budget_value) as sum'))->where('status_id', 1)->first();
 
         $sum = $result->sum;
         $count = $result->count;
@@ -256,74 +156,32 @@ class ReportsController extends Controller
 
     public static function getTypes($data)
     {
-        $name = $data['name'] ?? null;
-        $initialDate = $data['dateInit'] ?? null;
-        $finalDate = $data['dateEnd'] ?? null;
+        $jobs = self::baseQuery($data);
 
-        $baseQuery = Job::selectRaw('job.*')
-            ->with(
-                'job_activity',
-                'job_type',
-                'client',
-                'main_expectation',
-                'levels',
-                'how_come',
-                'agency',
-                'attendance',
-                'competition',
-                'files',
-                'status',
-                'creation'
-            )
-            ->with(['creation.items' => function ($query) {
-                $query->limit(1);
-            }]);
-
-        if ($name) {
-            $baseQuery->whereHas('client', function ($query) use ($name) {
-                $query->where('fantasy_name', 'LIKE', '%' . $name . '%');
-                $query->orWhere('name', 'LIKE', '%' . $name . '%');
-            });
-            $baseQuery->orWhere('not_client', 'LIKE', '%' . $name . '%');
-        }
-
-        if ($initialDate && !$finalDate) {
-            $baseQuery->where('created_at', '>=', $initialDate . ' 00:00:00')
-                ->where('created_at', '<=', $initialDate . ' 23:59:59');
-        } elseif (!$initialDate && $finalDate) {
-            $baseQuery->where('created_at', '>=', $finalDate . ' 00:00:00')
-                ->where('created_at', '<=', $finalDate . ' 23:59:59');
-        } elseif ($initialDate && $finalDate) {
-            $baseQuery->where('created_at', '>=', $initialDate . ' 00:00:00')
-                ->where('created_at', '<=', $finalDate . ' 23:59:59');
-        }
-
-        $countStand = clone $baseQuery;
+        $countStand = clone $jobs;
         $countStand = $countStand->whereHas('job_type', function ($query) {
             $query->where('description', 'Stand');
         })->count();
 
-        $countShowroom = clone $baseQuery;
+        $countShowroom = clone $jobs;
         $countShowroom = $countShowroom->whereHas('job_type', function ($query) {
             $query->where('description', 'Showroom');
         })->count();
 
-        $countCenografia = clone $baseQuery;
+        $countCenografia = clone $jobs;
         $countCenografia = $countCenografia->whereHas('job_type', function ($query) {
             $query->where('description', 'Cenografia');
         })->count();
 
-        $countPdv = clone $baseQuery;
+        $countPdv = clone $jobs;
         $countPdv = $countPdv->whereHas('job_type', function ($query) {
             $query->where('description', 'Pdv');
         })->count();
 
-        $countOutsider = clone $baseQuery;
+        $countOutsider = clone $jobs;
         $countOutsider = $countOutsider->whereHas('job_type', function ($query) {
             $query->where('description', 'Outsider');
         })->count();
-
-        $jobs = $baseQuery->get();
 
         // Retornar as contagens em um array associativo
         $counts = [
@@ -333,7 +191,41 @@ class ReportsController extends Controller
             'pdv' => $countPdv,
             'outsider' => $countOutsider,
         ];
-
         return $counts;
+    }
+
+    public static function averageJobsPerMonth()
+    {
+        // Obter a data de início (1º de janeiro do ano atual)
+        $initialDate = date('Y') . '-01-01';
+
+        // Obter a data atual
+        $currentDate = date('Y-m-d');
+
+        $jobs = Job::selectRaw('COUNT(*) as count, MONTH(created_at) as month, SUM(budget_value) as budget_value')
+            ->where('status_id', 3)
+            ->where('created_at', '>=', $initialDate)
+            ->where('created_at', '<=', $currentDate)
+            ->groupBy(DB::raw('MONTH(created_at)'))
+            ->get();
+            // dd($jobs->isEmpty());
+        if($jobs->isEmpty()){
+            return ["averageJobsPerMonth" => 0, "totalValueJobsApproved" => 0];
+        }
+        // Contar a quantidade de meses desde janeiro até o mês atual
+        $monthsPassed = date('n');
+
+        // Somar a quantidade de jobs aprovados por mês
+        $totalJobsApproved = 0;
+        $totalValueJobsApproved = 0;
+        foreach ($jobs as $job) {
+            $totalJobsApproved += $job->count;
+            $totalValueJobsApproved += $job->budget_value;
+        }
+
+        // Calcular a média de jobs aprovados por mês
+        $averageJobsPerMonth = $totalJobsApproved / $monthsPassed;
+
+        return ["amountAverageJobsPerMonth" => ceil($averageJobsPerMonth), "totalValueJobsApproved" => number_format($totalValueJobsApproved, 2, ',', '.')];
     }
 }
