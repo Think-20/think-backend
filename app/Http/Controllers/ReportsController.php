@@ -29,7 +29,7 @@ class ReportsController extends Controller
         $types = self::getTypes($data);
         $averageTimeToAproval = self::sumTimeToAproval($data);
         $valueAprovals = self::sumAprovals($data);
-        $conversionRate = $valueAprovals / $total_value['sum'];
+        $conversionRate = ceil(($valueAprovals / $total_value['sum']) *100);
         $averageJobsPerMonth = self::averageJobsPerMonth($data);
 
         return response()->json([
@@ -38,7 +38,7 @@ class ReportsController extends Controller
             "average_ticket" => number_format($average_ticket, 2, ',', '.'),
             "averate_time_to_aproval" => $averageTimeToAproval,
             "aprovals_value" => number_format($valueAprovals, 2, ',', '.'),
-            "conversion_rate" => number_format($conversionRate, 2, ',', '.'),
+            "conversion_rate" => $conversionRate . "%",
             "standby_projects" => ["amount" => $countStandby, "value" => $sumStandby],
             "types" => $types,
             "averageJobsPerMonth" => $averageJobsPerMonth
