@@ -24,6 +24,7 @@ class ReportsController extends Controller
 
         $standby = self::sumStandby($data);
         $countStandby = $standby ? $standby['count'] : 0;
+        $sumStandby = $standby ? $standby['sum'] : 0;
 
         $types = self::getTypes($data);
         $averageTimeToAproval = self::sumTimeToAproval($data);
@@ -38,7 +39,7 @@ class ReportsController extends Controller
             "averate_time_to_aproval" => $averageTimeToAproval,
             "aprovals_value" => number_format($valueAprovals, 2, ',', '.'),
             "conversion_rate" => number_format($conversionRate, 2, ',', '.'),
-            "standby_count" => $countStandby,
+            "standby_projects" => ["amount" => $countStandby, "value" => $sumStandby],
             "types" => $types,
             "averageJobsPerMonth" => $averageJobsPerMonth
         ]);
@@ -148,7 +149,7 @@ class ReportsController extends Controller
         $count = $result->count;
 
         if ($sum != null) {
-            return ["sum" => $sum, "count" => $count];
+            return ["sum" => number_format($sum, 2, ',', '.'), "count" => $count];
         } else {
             return false;
         }
