@@ -92,11 +92,11 @@ class ReportsController extends Controller
 
         } elseif (!$initialDate && $finalDate) {
 
-            $jobs->where('created_at', '<=', $finalDate);
+            $jobs->where('created_at', '<=', $finalDate . '23:59:59');
 
         } elseif ($initialDate && $finalDate) {
             $jobs->where('created_at', '>=', $initialDate . ' 00:00:00')
-            ->where('created_at', '<=', $finalDate . ' 23:59:59');
+            ->where('created_at', '<=', $finalDate . '23:59:59');
         }
 
         return $jobs;
