@@ -48,10 +48,23 @@ class Notification extends Model
     }
 
     protected function notify(NotificationType $type, NotifierInterface $notifier, array $notificationSpecial) {
-        $ableUsersForType = NotificationRule::where('type_id', '=', $type->id)
-        #->where('user_id','<>', $notifier->getOficialId())
-        ->get();
         
+        $ableUsersForType = NotificationRule::where('type_id', '=', $type->id)
+        ->get();
+        $user = User::where('employee_id', $notifier->id)->first();
+        if ($user['id'] && !$ableUsersForType->contains('user_id', $user['id'])) {
+            $userNotification = new UserNotification();
+            $userNotification->notification_id = $this->id;
+            $userNotification->user_id = $user['id'];
+            $userNotification->special = 0;
+            $userNotification->special_message = null;
+            $userNotification->received = 0;
+            $userNotification->received_date = null;
+            $userNotification->read = 0;
+            $userNotification->read_date = null;
+            $userNotification->save();
+        }
+
         foreach($ableUsersForType as $ableUserForType) {
             $data = [
                 'notification_id' => $this->id,

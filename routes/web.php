@@ -1,5 +1,7 @@
 <?php
 
+use App\UserNotification;
+use Illuminate\Support\Facades\Route;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -149,6 +151,12 @@ Route::group(['middleware' => ['auth.api']], function() {
 
     Route::post('/positions/all', 'PositionController@all');
     Route::post('/positions/filter', 'PositionController@filter');
+
+    Route::get('/jobs/calculate', 'JobController@calculate');
+    Route::prefix('reports')->group(function(){
+        Route::post('/', 'ReportsController@read');
+    });
+    Route::get('/notifywindow', 'NotificationController@window');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {

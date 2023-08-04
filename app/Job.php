@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use DB;
 use DateTime;
 use DateInterval;
+use Illuminate\Support\Carbon;
 
 class Job extends Model
 {
@@ -18,7 +19,7 @@ class Job extends Model
         'code', 
         'job_activity_id', 'client_id', 'event', 'deadline', 'job_type_id', 'agency_id', 'attendance_id',
         'rate', 'competition_id', 'last_provider', 'not_client', 'how_come_id', 'approval_expectation_rate', 
-        'main_expectation_id', 'budget_value', 'status_id', 'note', 'place', 'area', 'moments'
+        'main_expectation_id', 'budget_value', 'status_id', 'note', 'place', 'area', 'moments', 'created_at', 'time_to_aproval'
     ];
 
     protected $dates = [
@@ -73,11 +74,33 @@ class Job extends Model
     }
 
     public function statusChange(Job $oldJob) {
-        if($oldJob->status_id == $this->status_id) return;
+
+        if($oldJob->status_id == $this->status_id){
+            return;
+        }
+
+        if($this->status->id == '3'){
+            $difference = strtotime($oldJob->created_at) - strtotime((new DateTime())->format('y-m-d'));
+            $days = floor($difference / (60 * 60 * 24));
+            $this->time_to_aproval = $days;
+        }
 
         $this->notifyStatusChange();
         $this->status_updated_at = (new DateTime())->format('y-m-d');
         $this->update();
+    }
+
+    public static function calculate(){
+        $jobs = Job::where('status_id', 3)->whereNull('time_to_aproval')->get();
+
+        foreach($jobs as $job){
+            $difference = strtotime($job->created_at) - strtotime($job->status_updated_at);
+            $days = floor($difference / (60 * 60 * 24)) * -1;
+            $job->time_to_aproval = $days;
+            $job->save();
+        }
+
+        return response()->json(['success' => true, "message" => "Reprocessamento realizado"]);
     }
 
     public function notifyStatusChange() {
@@ -230,8 +253,6 @@ class Job extends Model
         $job->status;
         $job->responsibles();
         $job->history();
-        //$job->briefing ? $job->briefing->get() : null;
-        //$job->budget ? $job->budget->get() : null;
         return $job;
     }
 
@@ -736,7 +757,7 @@ class Job extends Model
     public function tasks() {
         return $this->hasMany('App\Task', 'job_id')->with('project_files', 'project_files.responsible',
         'specification_files', 'specification_files.responsible', 'job_activity.modification', 'job_activity.option',
-        'budget', 'budget.responsible', 'task', 'task.job_activity');
+        'budget', 'budget.responsible', 'task', 'task.job_activity', 'responsible');
     }
 
     public function creation() {
