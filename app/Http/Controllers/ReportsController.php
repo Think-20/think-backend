@@ -53,8 +53,8 @@ class ReportsController extends Controller
     {
  
         $name = $data['name'] ?? null;
-        $initialDate = Carbon::parse($data['dateInit'])->format('Y-m-d') ?? null;
-        $finalDate = Carbon::parse($data['dateEnd'])->format('Y-m-d') ?? null;
+        $initialDate = $data['dateInit'] ? Carbon::parse($data['dateInit'])->format('Y-m-d') : null;
+        $finalDate = $data['dateEnd'] ? Carbon::parse($data['dateEnd'])->format('Y-m-d') : null;
 
         $jobs = Job::selectRaw('job.*')
             ->with(
