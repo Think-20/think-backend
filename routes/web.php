@@ -154,7 +154,7 @@ Route::group(['middleware' => ['auth.api']], function() {
 
     Route::get('/jobs/calculate', 'JobController@calculate');
     Route::prefix('reports')->group(function(){
-        Route::get('/', 'ReportsController@read');
+        Route::post('/', 'ReportsController@read');
     });
     Route::get('/notifywindow', 'NotificationController@window');
 });
