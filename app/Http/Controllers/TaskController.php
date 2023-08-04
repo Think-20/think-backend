@@ -3,20 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Task;
+use App\TaskItem;
 use Exception;
 use Response;
 
 use DB;
 use PDF;
-use DateTime;
 
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
 
 class TaskController extends Controller
 {    
-    public static function getNextAvailableDate($availableDate, $estimatedTime, $jobActivity, $budgetValue) {
-        return Response::make(json_encode(Task::getNextAvailableDate($availableDate, $estimatedTime, $jobActivity, $budgetValue)), 200); 
+    public static function getNextAvailableDate($availableDate, $jobActivity) {
+        return Response::make(json_encode(Task::getNextAvailableDate($availableDate, $jobActivity)), 200); 
     }
 
     public static function getNextAvailableDates(Request $request) {
@@ -33,6 +33,33 @@ class TaskController extends Controller
         try {
             $task = Task::insert($data);
             $message = 'Cronograma cadastrado com sucesso!';
+            DB::commit();
+            $status = true;
+        } 
+        /* Catch com FileException tamanho máximo */
+        catch(Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
+             //. $e->getFile() . $e->getLine();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+            'task' => $task
+         ]), 200);
+    }
+
+    public static function insertDerived(Request $request) {
+        $data = $request->all();
+        $status = false;
+        $task = null;
+
+        DB::beginTransaction();
+
+        try {
+            $task = Task::insertDerived($data);
+            $message = 'Agenda cadastrada com sucesso!';
             DB::commit();
             $status = true;
         } 
@@ -82,7 +109,7 @@ class TaskController extends Controller
 
         try {
             $task = Task::editAvailableDate($data);
-            $message = 'Cronograma alterado com sucesso!';
+            $message = 'Agenda alterada com sucesso!';
             $status = true;
             DB::commit();
         } catch(QueryException $queryException) {
@@ -107,9 +134,13 @@ class TaskController extends Controller
 
         return PDF::loadView('pdf.memorial', [
             'task' => $task,
-            'bg' => base64_encode(file_get_contents(resource_path() . '/assets/images/timbrado.jpg'))
+            'bg' => base64_encode(file_get_contents(public_path() . '/assets/images/timbrado.jpg'))
         ])
         ->stream($task->job->getJobName() . ' - Memorial descritivo.pdf');
+    }
+
+    public static function responsiblesByActivity($jobActivityId) {
+        return Task::responsiblesByActivity($jobActivityId);
     }
 
     public static function remove(int $id) {
@@ -145,8 +176,20 @@ class TaskController extends Controller
         return $tasks;
     }
 
+    public static function filterItems(Request $request) {
+        return TaskItem::filter($request->all());
+    }
+
     public static function filter(Request $request) {
         return Task::filter($request->all());
+    }
+
+    public static function filterMyTask(Request $request) {
+        return Task::filterMyTask($request->all());
+    }
+
+    public static function filterMyItems(Request $request) {
+        return TaskItem::filterMyItems($request->all());
     }
 
     public static function updatedInfo() {
@@ -262,9 +305,5 @@ class TaskController extends Controller
         $tasks = Task::listMyTask();
 
         return $tasks;
-    }
-
-    public static function filterMyTask(Request $request) {
-        return Task::filterMyTask($request->all());
     }
 }

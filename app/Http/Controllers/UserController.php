@@ -115,4 +115,11 @@ class UserController extends Controller
 
         User::logout($userId, $token);
     }
+
+    public function checkToken(Request $request) {
+        $userId = $request->header('User');
+        $token = $request->header('Authorization');
+
+        return [ 'status' => User::tokenCompare($token, User::find($userId)) ];
+    }
 }

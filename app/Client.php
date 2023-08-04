@@ -186,7 +186,9 @@ class Client extends Model implements Contactable
 
     public static function filter(array $data) {
         $search = isset($data['search']) ? $data['search'] : null;
-        $attendanceId = isset($data['attendance']['id']) ? $data['attendance']['id'] : null;
+        $attendanceArrayId = isset($data['attendance_array']) && !empty($data['attendance_array']) ? array_map(function($v) {
+            return $v['id'];
+        }, $data['attendance_array']) : null;
         $clientStatusId = isset($data['client_status']['id']) ? $data['client_status']['id'] : null;
         $clientTypeId = isset($data['client_type']['id']) ? $data['client_type']['id'] : null;
         $rate = isset($data['rate']) ? $data['rate'] : null;
@@ -213,8 +215,8 @@ class Client extends Model implements Contactable
             });
         }
 
-        if( ! is_null($attendanceId) ) {
-            $query->where('employee_id', '=', $attendanceId);
+        if( ! is_null($attendanceArrayId) ) {
+            $query->whereIn('employee_id', $attendanceArrayId);
         }
 
         $query->orderBy('fantasy_name', 'asc');
@@ -510,7 +512,7 @@ class Client extends Model implements Contactable
             ->minLength(3)
             ->maxLength(50);
 
-        $this->attributes['fantasy_name'] = ucwords(strtolower($value));
+        $this->attributes['fantasy_name'] = ucwords(mb_strtolower($value));
     }
     
     public function setNameAttribute($value) {

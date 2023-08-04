@@ -16,8 +16,8 @@ class Notification extends Model
         'date', 'message', 'type_id', 'notifiable_id', 'notifiable_type', 'info'
     ];
 
-    public static function createAndNotify(NotifierInterface $notifier, array $data, array $notificationSpecial, string $type, $info = null) {
-        Notification::emit(NotificationType::findByDescription($type), $notifier, $data, $notificationSpecial, $info);
+    public static function createAndNotify(NotifierInterface $notifier, array $data, array $notificationSpecial, string $type, $info = null, $onlySpecial = false) {
+        Notification::emit(NotificationType::findByDescription($type), $notifier, $data, $notificationSpecial, $info, $onlySpecial);
     }
 
     public static function hasPrevious(string $message, string $type, $info): bool {
@@ -27,7 +27,7 @@ class Notification extends Model
             ->count() > 0;
     }
 
-    protected static function emit(NotificationType $type, NotifierInterface $notifier, array $data, array $notificationSpecial, $info) {
+    protected static function emit(NotificationType $type, NotifierInterface $notifier, array $data, array $notificationSpecial, $info = null, $onlySpecial = false) {
         if($type->active == 0) return;
 
         $data = array_merge($data, [
@@ -38,6 +38,12 @@ class Notification extends Model
         $notification = new Notification($data);
         $notification->save();
         $notifier->notifications()->save($notification);
+
+        if($onlySpecial) {
+            $notification->notifyOnlySpecial($notificationSpecial);
+            return;
+        }
+
         $notification->notify($type, $notifier, $notificationSpecial);
     }
 
@@ -63,6 +69,18 @@ class Notification extends Model
             }
 
             $userNotification = new UserNotification($data);
+            $userNotification->save();
+        }
+    }
+
+    protected function notifyOnlySpecial(array $notificationSpecial) {
+        foreach($notificationSpecial as $special) {
+            $userNotification = new UserNotification([
+                'notification_id' => $this->id,
+                'user_id' => $special->user_id,
+                'special' => 1,
+                'special_message' => $special->message
+            ]);             
             $userNotification->save();
         }
     }

@@ -12,11 +12,16 @@
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return abort(404);
 });
 
 Route::post('/login', 'UserController@login')->name('login');
+Route::get('/check-token', 'UserController@checkToken')->name('checkToken');
 Route::post('/logout', 'UserController@logout')->name('logout');
+
+Route::get('/notify-past', function() {
+    return (new App\CreateNotifyPastTasks())->test();
+});
 
 /*  
     Construir authenticate request para imagens 
@@ -25,57 +30,6 @@ Route::post('/logout', 'UserController@logout')->name('logout');
 Route::get('/assets/images/temp/{filename}', function ($filename)
 {
     $path = sys_get_temp_dir() . '/' . $filename;
-
-    if (!File::exists($path)) {
-        abort(404);
-    }
-
-    $file = File::get($path);
-    $type = File::mimeType($path);
-
-    $response = Response::make($file, 200);
-    $response->header("Content-Type", $type);
-
-    return $response;
-});
-
-Route::get('/assets/images/{filename}', function ($filename)
-{
-    $path = resource_path('assets/images/' . $filename);
-
-    if (!File::exists($path)) {
-        abort(404);
-    }
-
-    $file = File::get($path);
-    $type = File::mimeType($path);
-
-    $response = Response::make($file, 200);
-    $response->header("Content-Type", $type);
-
-    return $response;
-});
-
-Route::get('/assets/images/logo/{filename}', function ($filename)
-{
-    $path = resource_path('assets/images/logo/' . $filename);
-
-    if (!File::exists($path)) {
-        abort(404);
-    }
-
-    $file = File::get($path);
-    $type = File::mimeType($path);
-
-    $response = Response::make($file, 200);
-    $response->header("Content-Type", $type);
-
-    return $response;
-});
-
-Route::get('/assets/images/users/{filename}', function ($filename)
-{
-    $path = resource_path('assets/images/users/' . $filename);
 
     if (!File::exists($path)) {
         abort(404);
@@ -181,7 +135,9 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/jobs/load-form', 'JobController@loadForm');
     Route::get('/tasks/get-next-available-date/{availableDate}/{estimatedTime}/{jobActivity}/{budgetValue}', 'TaskController@getNextAvailableDate');
     Route::post('/tasks/get-available-dates', 'TaskController@getNextAvailableDates');
+    Route::get('/tasks/{jobActivityId}/responsibles', 'TaskController@responsiblesByActivity');
     Route::get('/tasks/updated-info', 'TaskController@updatedInfo');
+    Route::post('/task/insert-derived', 'TaskController@insertDerived');
 
     Route::get('/notifications/all', 'NotificationController@all');
     Route::get('/notifications/recents', 'NotificationController@recents');
@@ -263,24 +219,24 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::post('/cost-category/save', 'CostCategoryController@save');
     Route::put('/cost-category/edit', 'CostCategoryController@edit');
     Route::delete('/cost-category/remove/{id}', 'CostCategoryController@remove');
-    Route::get('/cost-categories/all', 'CostCategoryController@all');
+    Route::post('/cost-categories/all', 'CostCategoryController@all');
     Route::get('/cost-categories/get/{id}', 'CostCategoryController@get');
-    Route::get('/cost-categories/filter/{query}', 'CostCategoryController@filter');
+    Route::post('/cost-categories/filter', 'CostCategoryController@filter');
 
     Route::post('/item-category/save', 'ItemCategoryController@save');
     Route::put('/item-category/edit', 'ItemCategoryController@edit');
     Route::delete('/item-category/remove/{id}', 'ItemCategoryController@remove');
-    Route::get('/item-categories/all', 'ItemCategoryController@all');
+    Route::post('/item-categories/all', 'ItemCategoryController@all');
     Route::get('/item-categories/get/{id}', 'ItemCategoryController@get');
-    Route::get('/item-categories/filter/{query}', 'ItemCategoryController@filter');
+    Route::post('/item-categories/filter', 'ItemCategoryController@filter');
     Route::get('/item-categories/items-group-by-category', 'ItemCategoryController@itemsGroupByCategory');
 
     Route::post('/item/save', 'ItemController@save');
     Route::put('/item/edit', 'ItemController@edit');
     Route::delete('/item/remove/{id}', 'ItemController@remove');
-    Route::get('/items/all', 'ItemController@all');
+    Route::post('/items/all', 'ItemController@all');
     Route::get('/items/get/{id}', 'ItemController@get');
-    Route::get('/items/filter/{query}', 'ItemController@filter');
+    Route::post('/items/filter', 'ItemController@filter');
     Route::post('/item/save-pricing/{id}', 'ItemController@savePricing');
     Route::delete('/item/{itemId}/remove-pricing/{pricingId}', 'ItemController@removePricing');
     Route::post('/item/save-child-item/{id}', 'ItemController@saveChildItem');
@@ -309,6 +265,8 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::put('/briefing/edit-available-date', 'BriefingController@editAvailableDate');
     Route::put('/my-briefing/edit-available-date', 'BriefingController@myEditAvailableDate');
     */
+    Route::post('/task-items/filter', 'TaskController@filterItems');
+    Route::post('/my-task-items/filter', 'TaskController@filterMyItems');
 
     Route::post('/task/save', 'TaskController@save');
     Route::put('/task/edit', 'TaskController@edit');
@@ -321,6 +279,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
 
     Route::post('/my-task/save', 'TaskController@save');
     Route::post('/my-tasks/filter', 'TaskController@filterMyTask');
+    Route::get('/my-tasks/get/{id}', 'TaskController@getMyTask');
     Route::put('/my-task/edit-available-date', 'TaskController@myEditAvailableDate');
     Route::delete('/my-task/remove/{id}', 'TaskController@removeMyTask');
     

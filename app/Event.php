@@ -219,15 +219,15 @@ class Event extends Model
     }
 
     public function setNameAttribute($value) {
-        $this->attributes['name'] = ucwords(strtolower($value));
+        $this->attributes['name'] = ucwords(mb_strtolower($value));
     }
 
     public function setEditionAttribute($value) {
-        $this->attributes['edition'] = ucwords(strtolower($value));
+        $this->attributes['edition'] = ucwords(mb_strtolower($value));
     }
 
     public function setOrganizerAttribute($value) {
-        $this->attributes['organizer'] = ucwords(strtolower($value));
+        $this->attributes['organizer'] = ucwords(mb_strtolower($value));
     }
 
     public function setIniDateAttribute($value) {

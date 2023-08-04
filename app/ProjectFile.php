@@ -3,6 +3,7 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Exception;
 use ZipArchive;
 
 class ProjectFile extends Model {
@@ -21,7 +22,13 @@ class ProjectFile extends Model {
         }
 
         if(is_file(sys_get_temp_dir() . '/' .  $this->original_name)) {
-            rename(sys_get_temp_dir() . '/' .  $this->original_name, $path . '/' . $this->name);
+            $res = rename(sys_get_temp_dir() . '/' .  $this->original_name, $path . '/' . $this->name);
+            
+            if(!$res) {
+                throw new Exception('Erro ao mover o arquivo para a pasta de projetos');
+            }
+        } else {
+            throw new Exception('Arquivo não encontrado para mover');
         }
     }
 
@@ -73,9 +80,14 @@ class ProjectFile extends Model {
         $projectFile = $project_files[0];
         $task1 = $projectFile->task;
 
-        $message1 = $projectFile->responsible->name . ': Entrega de ' . $task1->getTaskName() . ' da ';
-        $message1 .= $task1->job->getJobName();
-        $message1 .= ' para ' . $task1->job->attendance->name;
+        if($task1->job_activity->description != 'Projeto externo') {
+            $message1 = $projectFile->responsible->name . ': Entrega de ' . $task1->getTaskName() . ' da ';
+            $message1 .= $task1->job->getJobName();
+            $message1 .= ' para ' . $task1->job->attendance->name;
+        } else {
+            $message1 = $task1->job->attendance->name . ': Entrega de ' . $task1->getTaskName() . ' da ';
+            $message1 .= $task1->job->getJobName();
+        }
 
         if( !Notification::hasPrevious($message1, 'Entrega de projeto', $task1->id) ) {
             Notification::createAndNotify(User::logged()->employee, [
@@ -88,11 +100,21 @@ class ProjectFile extends Model {
 
         return $project_files;
     }
+    
+    public function updateDone(Task $task) {
+        if($task->project_files->count() > 0) {
+            $task->done = 1;
+        } else {
+            $task->done = 0;
+        }
+
+        $task->save();
+    }
 
     public static function insert(array $data) {
         $original_name = isset($data['original_name']) ? $data['original_name'] : null;
         $task_id = isset($data['task']['id']) ? $data['task']['id'] : null;
-        $responsible_id = User::logged()->employee->id;
+        $responsible = User::logged()->employee;
         $tempPath = sys_get_temp_dir() . '/' .  $original_name;
         $name = sha1($tempPath . time());
         $type = (new \SplFileInfo($tempPath))->getExtension();
@@ -101,15 +123,24 @@ class ProjectFile extends Model {
             'task_id' => $task_id,
             'name' => $name,
             'type' => $type,
-            'responsible_id' => $responsible_id
+            'responsible_id' => $responsible->id
         ]));
 
         $project_file->save();
         $project_file->moveFile();
 
-        $project_file->task->insertMemorial();
-        $project_file->task->updateProjectFileDone();
-        
+        $task = $project_file->task;
+        $newJobActivity = JobActivity::where('description', '=', 'Memorial descritivo')->first();
+
+        $count = Task::where('task_id', $task->id)
+        ->where('job_activity_id', $newJobActivity->id)
+        ->count();
+
+        if($count == 0) {
+            $task->insertAutomatic($newJobActivity, $task->job->attendance, $task->job->attendance);
+        }
+
+        $project_file->updateDone($task);
         return $project_file;
     }
 
@@ -135,7 +166,7 @@ class ProjectFile extends Model {
         $task = $projectFile->task;
         $projectFile->deleteFile();
         $projectFile->delete();
-        $task->updateProjectFileDone();
+        $projectFile->updateDone($task);
     }
 
 

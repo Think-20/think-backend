@@ -12,8 +12,14 @@ abstract class TaskFactory {
             return new TaskDetailing;
         } else if($type == 'Memorial descritivo') {
             return new TaskMemorial;
+        } else if($type == 'Projeto externo') {
+            return new TaskExternalProject;
+        } else if($type == 'Modificação de orçamento') {
+            return new TaskBudgetModify;
+        }  else if($type == 'Opção de orçamento') {
+            return new TaskBudgetOption;
         } else {
-            throw new \Exception('Nenhum tipo de tarefa selecionado.');
+            return new TaskOthers;
         }
     }
 }

@@ -80,11 +80,11 @@ class CostCategoryController extends Controller
         return CostCategory::get($id);
     }
 
-    public static function all() {
-        return CostCategory::list();
+    public static function all(Request $request) {
+        return CostCategory::list($request->all());
     }
 
-    public static function filter($query) {
-        return CostCategory::filter($query);
+    public static function filter(Request $request) {
+        return CostCategory::filter($request->all());
     }
 }

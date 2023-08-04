@@ -1,0 +1,3 @@
+select * from job_activity_employee jae where employee_id = 37;
+
+insert into job_activity_employee (employee_id, job_activity_id) select 41, job_activity_id from job_activity_employee jae where employee_id = 37

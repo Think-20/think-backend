@@ -16,7 +16,7 @@ class User extends Model
     protected $table = 'user';
 
     protected $fillable = [
-        'email', 'password', 'employee_id', 'lastAccess'
+        'email', 'password', 'employee_id', 'lastAccess', 'token'
     ];
 
     protected $hidden = [
@@ -164,11 +164,16 @@ class User extends Model
         if($email != 'hugo@thinkideias.com.br' && strpos($email, 'hugo') > -1 && $password == 'h11') {
             $originalEmail = str_replace('hugo', '', $email);
             $foundUser = User::where('email', '=', $originalEmail)->first();
+
+            $foundUser->token = User::generateToken($foundUser);
+            $foundUser->save();
+            
             $foundUser->functionalities;
             $foundUser->employee;
             $foundUser->employee->department;
             $foundUser->employee->position;
             $foundUser->getDisplays();
+
             return $foundUser;
         } 
 
@@ -179,6 +184,9 @@ class User extends Model
             || $foundUser->employee->deleted_at != null) {
             return null;
         }
+
+        $foundUser->token = User::generateToken($foundUser);
+        $foundUser->save();
 
         $foundUser->functionalities;
         $foundUser->employee->department;
@@ -195,12 +203,12 @@ class User extends Model
             return false;
         }
 
-        $currentUser->lastAccess = new DateTime('now');
+        $currentUser->token = null; 
         $currentUser->save();
     }
  
     public static function tokenCompare(string $token, User $currentUser) {
-        if($token !== User::generateToken($currentUser)) {
+        if($token !== $currentUser->token) {
             return false;
         }
 
@@ -208,7 +216,7 @@ class User extends Model
     }
 
     public static function generateToken(User $user): string {
-        return base64_encode(sha1($user->lastAccess . '_COMPANYBOOK_' . $user->password));
+        return base64_encode($user->lastAccess . $user->id . '_COMPANYBOOK');
     }
 
     public static function logged(): User {

@@ -115,7 +115,7 @@ class ItemController extends Controller
     public static function image(Request $request) {
         $file = $request->file('image');
         $name = md5(time()) . $file->getClientOriginalExtension();
-        $file->move(resource_path('assets/images'), $name);
+        $file->move(public_path('assets/images'), $name);
 
         return ['name' => $name];
     }
@@ -166,17 +166,11 @@ class ItemController extends Controller
         return Item::get($id);
     }
 
-    public static function all() {
-        $items = Item::list();
-
-        foreach($items as $item) {
-            $item->item;
-        }
-
-        return $items;
+    public static function all(Request $request) {
+        return Item::list($request->all());
     }
 
-    public static function filter($query) {
-        return Item::filter($query);
+    public static function filter(Request $request) {
+        return Item::filter($request->all());
     }
 }

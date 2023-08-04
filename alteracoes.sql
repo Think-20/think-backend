@@ -1,21 +1,47 @@
-CREATE TABLE `specification_file` (
-	`id` int(11) NOT NULL AUTO_INCREMENT,
-	`responsible_id` int(11) NOT NULL,
-	`task_id` int(11) NOT NULL,
-	`name` varchar(255) NOT NULL,
-	`original_name` varchar(255) NOT NULL,
-	`type` char(4) NOT NULL,
-	`created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-	`updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-	PRIMARY KEY (`id`),
-	KEY `fk_responsible_id_specification_file_id_employee` (`responsible_id`),
-	KEY `fk_task_id_specification_file_id_task` (`task_id`),
-	CONSTRAINT `fk_responsible_id_specification_file_id_employee` FOREIGN KEY (`responsible_id`) REFERENCES `employee` (`id`),
-	CONSTRAINT `fk_task_id_specification_file_id_task` FOREIGN KEY (`task_id`) REFERENCES `task` (`id`)
-);
+INSERT INTO `companybook`.`job_activity`
+(`id`,
+`description`,
+`no_params`,
+`redirect_after_save`,
+`fixed_duration`,
+`fixed_budget_value`,
+`min_duration`,
+`max_duration`,
+`max_budget_value_per_day`,
+`max_duration_value_per_day`,
+`next_period`,
+`next_day`,
+`counter`,
+`initial`,
+`keep_responsible`,
+`visible`,
+`modification_id`,
+`option_id`,
+`min_budget_value_to_more_days`)
+VALUES
+(21,
+'Reunião',
+0,
+NULL,
+0.2,
+0,
+0,
+0,
+0,
+1,
+0,
+0,
+0,
+0,
+0,
+1,
+NULL,
+NULL,
+0);
 
-insert into functionality values (137, '/specification-files/save-multiple', 'Upload de arquivos de memorial para entrega', now(), now());
-insert into functionality values (138, '/specification-files/remove/{id}', 'Remoção de arquivos de memorial para entrega', now(), now());
-insert into functionality values (139, '/specification-files/download/{id}', 'Download de arquivos de memorial para entrega', now(), now());
-insert into functionality values (140, '/specification-files/download-all/{taskId}', 'Download de todos os arquivos do memorial', now(), now());
-insert into notification_type values (17, 'Entrega de memorial', 6, 1);
+INSERT INTO job_activity_employee (employee_id, job_activity_id) VALUES (21, 21);
+
+#Compartilhar duração de orçamento com reunião
+INSERT INTO job_activity_share_duration (from_id, to_id) VALUES (21, 2);
+INSERT INTO job_activity_share_duration (from_id, to_id) VALUES (2, 21);
+

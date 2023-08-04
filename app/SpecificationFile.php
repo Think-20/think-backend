@@ -20,7 +20,13 @@ class SpecificationFile extends Model {
         }
 
         if(is_file(sys_get_temp_dir() . '/' .  $this->original_name)) {
-            rename(sys_get_temp_dir() . '/' .  $this->original_name, $path . '/' . $this->name);
+            $res = rename(sys_get_temp_dir() . '/' .  $this->original_name, $path . '/' . $this->name);
+            
+            if(!$res) {
+                throw new Exception('Erro ao mover o arquivo para a pasta de projetos');
+            }
+        } else {
+            throw new Exception('Arquivo não encontrado para mover');
         }
     }
 
@@ -72,9 +78,8 @@ class SpecificationFile extends Model {
         $specificationFile = $specification_files[0];
         $task1 = $specificationFile->task;
 
-        $message1 = $specificationFile->responsible->name . ': Entrega de memorial descritivo da ';
+        $message1 = 'Entrega de memorial descritivo da ';
         $message1 .= $task1->job->getJobName();
-        $message1 .= ' para ' . $task1->responsible->name;
 
         if( !Notification::hasPrevious($message1, 'Entrega de memorial', $task1->id) ) {
             Notification::createAndNotify(User::logged()->employee, [
@@ -106,10 +111,19 @@ class SpecificationFile extends Model {
         $specification_file->save();
         $specification_file->moveFile();
 
-        if(Task::find($task_id)->job->job_activity->description != 'Orçamento') {
-            $specification_file->task->insertBudget();
-        }        
-        //$specification_file->task->updateSpecificationFileDone();
+        $task = Task::find($task_id);
+
+        $newJobActivity = JobActivity::where('description', '=', 'Orçamento')->first();
+
+        $count = Task::where('task_id', $task->id)
+        ->where('job_activity_id', $newJobActivity->id)
+        ->count();
+
+        if($count == 0) {
+            $task->insertAutomatic($newJobActivity);
+        }
+
+        $specification_file->updateDone($task);
         
         return $specification_file;
     }
@@ -119,9 +133,18 @@ class SpecificationFile extends Model {
         $task = $specificationFile->task;
         $specificationFile->deleteFile();
         $specificationFile->delete();
-        //$task->updateSpecificationFileDone();
+        $specificationFile->updateDone($task);
     }
 
+    public function updateDone(Task $task) {
+        if($task->specification_files->count() > 0) {
+            $task->done = 1;
+        } else {
+            $task->done = 0;
+        }
+
+        $task->save();
+    }
 
     public function deleteFile() {
         $path = env('FILES_FOLDER') . '/specification-files';

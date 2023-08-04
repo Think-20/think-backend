@@ -101,15 +101,19 @@ class Item extends Model
         throw new \Exception('O item ' . $this->name . ' já foi cadastrado.');
     }
 
-    public static function list() {
-        $items = Item::orderBy('name', 'asc')->get();
+    public static function list(array $data)
+    {
+        $items = Item::with('item_category', 'cost_category', 'item_type')->orderBy('name', 'asc')->get();
 
-        foreach($items as $item) {
-            $item->item_category;
-            $item->cost_category;
-        }
+        return [
+            'pagination' => $items,
+            'updatedInfo' => Item::updatedInfo()
+        ];
+    }
 
-        return $items;
+    public static function updatedInfo()
+    {
+        return [];
     }
 
     public static function remove($id) {
@@ -137,17 +141,38 @@ class Item extends Model
         return $item;
     }
 
-    public static function filter($query) {
-        $items = Item::where('name', 'like', $query . '%')
-            ->orWhere('description', 'like', $query . '%')
-            ->get();
+    public static function filter(array $params)
+    {
+        $paginate = isset($params['paginate']) ? $params['paginate'] : true;
+        $search = isset($params['search']) ? $params['search'] : '';
 
-        foreach($items as $item) {
-            $item->item_category;
-            $item->cost_category;
+        $items = Item::with('item_category', 'cost_category', 'item_type')
+        ->where('name', 'like', $search . '%')
+        ->orWhere('description', 'like', $search . '%');
+
+        if ($paginate) {
+            $paginate = $items->paginate(50);
+            $page = $paginate->currentPage();
+            $total = $paginate->total();
+
+            return [
+                'pagination' => $paginate,
+                'updatedInfo' => Item::updatedInfo()
+            ];
+        } else {
+            $result = $items->get();
+            $total = $items->count();
+            $page = 0;
+
+            return [
+                'pagination' => [
+                    'data' => $result,
+                    'total' => $total,
+                    'page' => $page
+                ],
+                'updatedInfo' => Item::updatedInfo()
+            ];
         }
-
-        return $items;
     }
 
     public function child_items() {
