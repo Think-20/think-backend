@@ -83,11 +83,9 @@ class ReportsController extends Controller
         }
 
         if ($initialDate && !$finalDate) {
-            $jobs->where('created_at', '>=', $initialDate . ' 00:00:00')
-                ->where('created_at', '<=', $initialDate . ' 23:59:59');
+            $jobs->where('created_at', '>=', $initialDate . ' 00:00:00');
         } elseif (!$initialDate && $finalDate) {
-            $jobs->where('created_at', '>=', $finalDate . ' 00:00:00')
-                ->where('created_at', '<=', $finalDate . ' 23:59:59');
+            $jobs->where('created_at', '>=', $finalDate . ' 00:00:00');
         } elseif ($initialDate && $finalDate) {
             $jobs->where('created_at', '>=', $initialDate . ' 00:00:00')
                 ->where('created_at', '<=', $finalDate . ' 23:59:59');
