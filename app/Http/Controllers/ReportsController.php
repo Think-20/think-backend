@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Job;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -52,8 +53,8 @@ class ReportsController extends Controller
     {
  
         $name = $data['name'] ?? null;
-        $initialDate = $data['dateInit'] ?? null;
-        $finalDate = $data['dateEnd'] ?? null;
+        $initialDate = Carbon::parse($data['dateInit'])->format('Y-m-d') ?? null;
+        $finalDate = Carbon::parse($data['dateEnd'])->format('Y-m-d') ?? null;
 
         $jobs = Job::selectRaw('job.*')
             ->with(
@@ -91,8 +92,8 @@ class ReportsController extends Controller
             $jobs->where('created_at', '<=', $finalDate);
 
         } elseif ($initialDate && $finalDate) {
-            $jobs->where('created_at', '>=', $initialDate)
-            ->where('created_at', '<=', $finalDate);
+            $jobs->where('created_at', '>=', $initialDate . ' 00:00:00')
+            ->where('created_at', '<=', $finalDate . ' 23:59:59');
         }
 
         return $jobs;
