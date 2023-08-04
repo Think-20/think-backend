@@ -12,13 +12,15 @@ class ReportsController extends Controller
     public static function read(Request $request)
     {
         $data = $request->only([
-            'dateInit',
-            'dateEnd',
+            'date_init',
+            'date_end',
             'name',
             'status'
         ]);
 
-        $jobs = self::baseQuery($data)->orderBy('created_at', 'desc')->paginate(30);
+        // dd($data);
+
+        $jobs = self::baseQuery($data)->orderBy('created_at', 'asc')->paginate(30);
         if($jobs->isEmpty()){
             return response()->json(["error" => false, "message" => "Jobs not found"]);
         }
@@ -54,8 +56,8 @@ class ReportsController extends Controller
  
         $name = $data['name'] ?? null;
 
-        $initialDate = isset($data['dateInit']) ? Carbon::parse($data['dateInit'])->format('Y-m-d') : null;
-        $finalDate = isset($data['dateEnd']) ? Carbon::parse($data['dateEnd'])->format('Y-m-d') : null;
+        $initialDate = isset($data['date_init']) ? Carbon::parse($data['date_init'])->format('Y-m-d') : null;
+        $finalDate = isset($data['date_end']) ? Carbon::parse($data['date_end'])->format('Y-m-d') : null;
 
         $jobs = Job::selectRaw('job.*')
             ->with(
@@ -86,7 +88,7 @@ class ReportsController extends Controller
 
         if ($initialDate && !$finalDate) {
 
-            $jobs->where('created_at', '>=', $initialDate);
+            $jobs->where('created_at', '>=', $initialDate . ' 00:00:00');
 
         } elseif (!$initialDate && $finalDate) {
 
