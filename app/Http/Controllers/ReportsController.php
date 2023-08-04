@@ -18,8 +18,6 @@ class ReportsController extends Controller
             'status'
         ]);
 
-        // dd($data);
-
         $jobs = self::baseQuery($data)->orderBy('created_at', 'asc')->paginate(30);
         if($jobs->isEmpty()){
             return response()->json(["error" => false, "message" => "Jobs not found"]);
