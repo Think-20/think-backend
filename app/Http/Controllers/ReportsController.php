@@ -18,6 +18,9 @@ class ReportsController extends Controller
         ]);
 
         $jobs = self::baseQuery($data)->paginate(5);
+        if($jobs->isEmpty()){
+            return response()->json(["error" => false, "message" => "Jobs not found"]);
+        }
 
         $total_value = self::sumBudgetValue($data);
         $average_ticket = $total_value ? $total_value['sum'] / $total_value['count'] : 0;
@@ -47,6 +50,7 @@ class ReportsController extends Controller
 
     private static function baseQuery($data)
     {
+ 
         $name = $data['name'] ?? null;
         $initialDate = $data['dateInit'] ?? null;
         $finalDate = $data['dateEnd'] ?? null;
@@ -88,7 +92,7 @@ class ReportsController extends Controller
             $jobs->where('created_at', '>=', $initialDate . ' 00:00:00')
                 ->where('created_at', '<=', $finalDate . ' 23:59:59');
         }
-
+        
         return $jobs;
     }
 
