@@ -17,7 +17,7 @@ class ReportsController extends Controller
             'status'
         ]);
 
-        $jobs = self::baseQuery($data)->paginate(5);
+        $jobs = self::baseQuery($data)->paginate(30);
         if($jobs->isEmpty()){
             return response()->json(["error" => false, "message" => "Jobs not found"]);
         }
