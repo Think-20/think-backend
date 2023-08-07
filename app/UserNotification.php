@@ -97,6 +97,7 @@ class UserNotification extends Model
     private static function checkStandByPendencies()
     {
         $jobs = Job::where('attendance_id', User::logged()->employee->id)
+            ->with('client')
             ->where('status_id', 1)
             ->whereYear('created_at', 2023)
             ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
@@ -105,15 +106,22 @@ class UserNotification extends Model
         if ($jobs->isEmpty()) {
             return;
         }
-
         foreach ($jobs as $job) {
-            $message = 'Projeto do evento ' . $job->event . ' em standby há mais de 15 dias.';
+            $message = 'Projeto ';
+
+            if (isset($job->client)) {
+                $message .= $job->client['name'];
+            } elseif (isset($job->not_client)) {
+                $message .= $job->not_client;
+            }
+            
+            $message .= ' do evento ' . $job->event . ' em standby há mais de 15 dias.';
+            
             $searchNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->employee->id)->first();
             if ($searchNotification) {
                 $searchUserNotification = UserNotification::where('notification_id', $searchNotification->id)->first();
-
                 // Verifica se o campo 'received' não é zero e se 'read' é 0 (não foi lido)
-                if ($searchUserNotification->received != 0 && $searchUserNotification->read == 0) {
+                if (isset($searchUserNotification->received) && $searchUserNotification->received != 0 && $searchUserNotification->read == 0) {
 
                     $now = Carbon::now();
                     $receivedDateTime = Carbon::parse($searchUserNotification->received_date);
@@ -132,7 +140,7 @@ class UserNotification extends Model
                         $searchNotification->date = Carbon::now()->toDateTimeString();
                         $searchNotification->save();
                     }
-                } else if ($searchUserNotification->received != 0 && $searchUserNotification->read == 1) {
+                } else if (isset($searchUserNotification->received) != 0 && $searchUserNotification->read == 1) {
                     $now = Carbon::now();
                     $readDate = Carbon::parse($searchUserNotification->read_date);
 
