@@ -45,7 +45,8 @@ class ReportsController extends Controller
             "conversion_rate" => $conversionRate . "%",
             "standby_projects" => ["amount" => $countStandby, "value" => $sumStandby],
             "types" => $types,
-            "averageApprovedJobsPerMonth" => $averageJobsPerMonth
+            "averageApprovedJobsPerMonth" => $averageJobsPerMonth,
+            'updatedInfo' => Job::updatedInfo()
         ]);
     }
 
