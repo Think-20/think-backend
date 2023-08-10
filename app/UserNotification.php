@@ -55,6 +55,8 @@ class UserNotification extends Model
 
     public static function recents()
     {
+        self::checkStandByPendencies();
+        
         $usersNotification = UserNotification::select('user_notification.*')
             ->with(['notification', 'notification.type', 'notification.notifier'])
             ->leftJoin('notification', 'notification.id', '=', 'user_notification.notification_id')
@@ -74,8 +76,6 @@ class UserNotification extends Model
 
     public static function listen()
     {
-        // self::checkStandByPendencies();
-
         $usersNotification = UserNotification::select('user_notification.*')
             ->with(['notification', 'notification.type', 'notification.notifier'])
             ->leftJoin('notification', 'notification.id', '=', 'user_notification.notification_id')
@@ -118,48 +118,7 @@ class UserNotification extends Model
             $message .= ' do evento ' . $job->event . ' em standby há mais de 15 dias.';
             
             $searchNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->employee->id)->first();
-            if ($searchNotification) {
-                $searchUserNotification = UserNotification::where('notification_id', $searchNotification->id)->first();
-                // Verifica se o campo 'received' não é zero e se 'read' é 0 (não foi lido)
-                if (isset($searchUserNotification->received) && $searchUserNotification->received != 0 && $searchUserNotification->read == 0) {
-
-                    $now = Carbon::now();
-                    $receivedDateTime = Carbon::parse($searchUserNotification->received_date);
-
-                    // Calcula a diferença em segundos entre 'received_date' e a data e hora atual
-                    $diffInSeconds = $receivedDateTime->diffInSeconds($now);
-
-                    // Se a diferença for maior que 600 segundos (10 minutos), faça o reset da notificação
-                    if ($diffInSeconds > 600) {
-                        $searchUserNotification->read = 0;
-                        $searchUserNotification->read_date = null;
-                        $searchUserNotification->received = 0;
-                        $searchUserNotification->received_date = null;
-                        $searchUserNotification->save();
-
-                        $searchNotification->date = Carbon::now()->toDateTimeString();
-                        $searchNotification->save();
-                    }
-                } else if (isset($searchUserNotification->received) != 0 && $searchUserNotification->read == 1) {
-                    $now = Carbon::now();
-                    $readDate = Carbon::parse($searchUserNotification->read_date);
-
-                    // Calcula a diferença em segundos entre 'received_date' e a data e hora atual
-                    $diffInSeconds = $readDate->diffInSeconds($now);
-
-                    // Se a diferença for maior que 600 segundos (10 minutos), faça o reset da notificação
-                    if ($diffInSeconds > 600) {
-                        $searchUserNotification->read = 0;
-                        $searchUserNotification->read_date = null;
-                        $searchUserNotification->received = 0;
-                        $searchUserNotification->received_date = null;
-                        $searchUserNotification->save();
-
-                        $searchNotification->date = Carbon::now()->toDateTimeString();
-                        $searchNotification->save();
-                    }
-                }
-            } else {
+            if (!$searchNotification) {
                 $notification = new Notification();
                 $notification->type_id = 18;
                 $notification->notifier_id = User::logged()->employee->id;
@@ -172,13 +131,13 @@ class UserNotification extends Model
                 $userNotification = new UserNotification();
                 $userNotification->notification_id = $notification->id;
                 $userNotification->user_id = User::logged()->id;
-                $userNotification->special = 0;
-                $userNotification->special_message = null;
+                $userNotification->special = 1;
+                $userNotification->special_message = $message;
                 $userNotification->received = 0;
                 $userNotification->received_date = null;
                 $userNotification->read = 0;
                 $userNotification->read_date = null;
-                $userNotification->save();
+                $userNotification->save();   
             }
         }
     }
