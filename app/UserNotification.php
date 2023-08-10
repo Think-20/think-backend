@@ -74,7 +74,7 @@ class UserNotification extends Model
 
     public static function listen()
     {
-        self::checkStandByPendencies();
+        // self::checkStandByPendencies();
 
         $usersNotification = UserNotification::select('user_notification.*')
             ->with(['notification', 'notification.type', 'notification.notifier'])
