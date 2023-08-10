@@ -56,12 +56,12 @@ class UserNotification extends Model
     public static function recents()
     {
         self::checkStandByPendencies();
-        
+
         $usersNotification = UserNotification::select('user_notification.*')
             ->with(['notification', 'notification.type', 'notification.notifier'])
             ->leftJoin('notification', 'notification.id', '=', 'user_notification.notification_id')
             ->where('user_notification.user_id', '=', User::logged()->id)
-            ->where('received', '=', '1')
+            ->where('user_notification.received', '=', '1')
             ->orderBy('notification.date', 'desc')
             ->limit(60)
             ->get();
@@ -88,8 +88,6 @@ class UserNotification extends Model
             return $u->id;
         }))
             ->update(['received' => 1, 'received_date' => (new DateTime())->format('Y-m-d H:i:s')]);
-
-
 
         return $usersNotification;
     }
