@@ -67,8 +67,8 @@ class Job extends Model
         $arrayLevels = !isset($data['levels']) ? [] : $data['levels'];
         $job->saveLevels($arrayLevels);
 
-        $arrayFiles = !isset($data['files']) ? [] : $data['files'];
-        $job->editFiles($arrayFiles);
+        // $arrayFiles = !isset($data['files']) ? [] : $data['files'];
+        // $job->editFiles($arrayFiles);
 
         return $job;
     }
@@ -674,7 +674,7 @@ class Job extends Model
         $path = env('FILES_FOLDER') . '/jobs/' . $this->id;
 
         if(!is_dir($path)) {
-            mkdir($path);
+            mkdir($path);   
         }
 
         foreach($data as $file) {
