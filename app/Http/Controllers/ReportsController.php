@@ -19,7 +19,7 @@ class ReportsController extends Controller
         ]);
 
         $jobs = self::baseQuery($data)->orderBy('created_at', 'asc')->paginate(30);
-        
+
         if($jobs->isEmpty()){
             return response()->json(["error" => false, "message" => "Jobs not found"]);
         }
@@ -53,7 +53,6 @@ class ReportsController extends Controller
 
     private static function baseQuery($data)
     {
- 
         $name = $data['name'] ?? null;
 
         $initialDate = isset($data['date_init']) ? Carbon::parse($data['date_init'])->format('Y-m-d') : null;
@@ -92,13 +91,12 @@ class ReportsController extends Controller
 
         } elseif (!$initialDate && $finalDate) {
 
-            $jobs->where('created_at', '<=', $finalDate . '23:59:59');
+            $jobs->where('created_at', '<=', $finalDate);
 
         } elseif ($initialDate && $finalDate) {
             $jobs->where('created_at', '>=', $initialDate . ' 00:00:00')
-            ->where('created_at', '<=', $finalDate . '23:59:59');
+            ->where('created_at', '<=', $finalDate);
         }
-
         return $jobs;
     }
 
