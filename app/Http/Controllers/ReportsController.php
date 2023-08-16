@@ -6,6 +6,7 @@ use App\Job;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class ReportsController extends Controller
 {
@@ -18,7 +19,16 @@ class ReportsController extends Controller
             'status'
         ]);
 
-        $jobs = self::baseQuery($data)->orderBy('created_at', 'asc')->paginate(30);
+        $jobsPerPage = 30;
+        $currentPage = $request->query('page', 1);
+
+        $jobs = self::baseQuery($data)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
+        $adjustedIndex = ($currentPage - 1) * $jobsPerPage;
+        $jobs->transform(function ($job) use (&$adjustedIndex) {
+            $adjustedIndex++;
+            $job->setAttribute('index', $adjustedIndex);
+            return $job;
+        });
 
         if($jobs->isEmpty()){
             return response()->json(["error" => false, "message" => "Jobs not found"]);
