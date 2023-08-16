@@ -27,6 +27,7 @@ class ReportsController extends Controller
         $currentPage = $request->query('page', 1);
 
         $jobs = self::baseQuery($data)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
+
         $adjustedIndex = ($currentPage - 1) * $jobsPerPage;
         $jobs->transform(function ($job) use (&$adjustedIndex) {
             $adjustedIndex++;
@@ -70,10 +71,10 @@ class ReportsController extends Controller
         $name = $data['name'] ?? null;
         $initialDate = isset($data['date_init']) ? Carbon::parse($data['date_init'])->format('Y-m-d') : null;
         $finalDate = isset($data['date_end']) ? Carbon::parse($data['date_end'])->format('Y-m-d') : null;
-        $creationId = isset($params['creation']['id']) ? $params['creation']['id'] : null;
-        $attendanceId = isset($params['attendance']['id']) ? $params['attendance']['id'] : null;
-        $jobTypeId = isset($params['job_type']['id']) ? $params['job_type']['id'] : null;
-        $status = isset($params['status']) ? $params['status'] : null;
+        $creationId = isset($data['creation']['id']) ? $data['creation']['id'] : null;
+        $attendanceId = isset($data['attendance']['id']) ? $data['attendance']['id'] : null;
+        $jobTypeId = isset($data['job_type']['id']) ? $data['job_type']['id'] : null;
+        $status = isset($data['status']) ? $data['status'] : null;
 
         $jobs = Job::selectRaw('job.*')
             ->with(
