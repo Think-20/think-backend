@@ -19,10 +19,11 @@ class ReportsController extends Controller
         ]);
 
         $jobs = self::baseQuery($data)->orderBy('created_at', 'asc')->paginate(30);
+        
         if($jobs->isEmpty()){
             return response()->json(["error" => false, "message" => "Jobs not found"]);
         }
-
+        
         $total_value = self::sumBudgetValue($data);
         $average_ticket = $total_value ? $total_value['sum'] / $total_value['count'] : 0;
 
