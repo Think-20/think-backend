@@ -207,6 +207,9 @@ class UserNotification extends Model
                 "event" => $job['event'],
                 "deadline" => $job['deadline'],
                 "creation_responsible" => $responsible ?? null,
+                "budget_value" => $job['budget_value'],
+                "attendance" => isset($job['attendance']['name']) ? $job['attendance']['name'] : null,
+                "area" => isset($job['area']) ? $job['area'] : null,
                 "status" => $job['status']['description']
             ]);
         }

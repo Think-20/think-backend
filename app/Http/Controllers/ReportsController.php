@@ -6,6 +6,7 @@ use App\Job;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class ReportsController extends Controller
 {
@@ -15,14 +16,29 @@ class ReportsController extends Controller
             'date_init',
             'date_end',
             'name',
+            'status',
+            'creation',
+            'attendance',
+            'job_type',
             'status'
         ]);
 
-        $jobs = self::baseQuery($data)->orderBy('created_at', 'asc')->paginate(30);
+        $jobsPerPage = 30;
+        $currentPage = $request->query('page', 1);
+
+        $jobs = self::baseQuery($data)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
+
+        $adjustedIndex = ($currentPage - 1) * $jobsPerPage;
+        $jobs->transform(function ($job) use (&$adjustedIndex) {
+            $adjustedIndex++;
+            $job->setAttribute('index', $adjustedIndex);
+            return $job;
+        });
+
         if($jobs->isEmpty()){
             return response()->json(["error" => false, "message" => "Jobs not found"]);
         }
-
+        
         $total_value = self::sumBudgetValue($data);
         $average_ticket = $total_value ? $total_value['sum'] / $total_value['count'] : 0;
 
@@ -52,11 +68,13 @@ class ReportsController extends Controller
 
     private static function baseQuery($data)
     {
- 
         $name = $data['name'] ?? null;
-
         $initialDate = isset($data['date_init']) ? Carbon::parse($data['date_init'])->format('Y-m-d') : null;
         $finalDate = isset($data['date_end']) ? Carbon::parse($data['date_end'])->format('Y-m-d') : null;
+        $creationId = isset($data['creation']['id']) ? $data['creation']['id'] : null;
+        $attendanceId = isset($data['attendance']['id']) ? $data['attendance']['id'] : null;
+        $jobTypeId = isset($data['job_type']['id']) ? $data['job_type']['id'] : null;
+        $status = isset($data['status']) ? $data['status'] : null;
 
         $jobs = Job::selectRaw('job.*')
             ->with(
@@ -77,12 +95,32 @@ class ReportsController extends Controller
                 $query->limit(1);
             }]);
 
-        if ($name) {
+        if ($name){
             $jobs->whereHas('client', function ($query) use ($name) {
                 $query->where('fantasy_name', 'LIKE', '%' . $name . '%');
                 $query->orWhere('name', 'LIKE', '%' . $name . '%');
             });
             $jobs->orWhere('not_client', 'LIKE', '%' . $name . '%');
+        }
+        
+        if($jobTypeId) {
+            $jobs->where('job_type_id', '=', $jobTypeId);
+        }
+
+        if($status) {
+            $jobs->where('status_id', '=', $status);
+        }
+
+        if ($creationId) {
+            $jobs->whereHas('creation', function($query) use ($creationId) {
+                $query->where('responsible_id', '=', $creationId);
+            });         
+        }
+
+        if ($attendanceId) {
+            $jobs->whereHas('attendance', function($query) use ($attendanceId) {
+                $query->where('id', '=', $attendanceId);
+            });         
         }
 
         if ($initialDate && !$finalDate) {
@@ -91,13 +129,12 @@ class ReportsController extends Controller
 
         } elseif (!$initialDate && $finalDate) {
 
-            $jobs->where('created_at', '<=', $finalDate . '23:59:59');
+            $jobs->where('created_at', '<=', $finalDate);
 
         } elseif ($initialDate && $finalDate) {
             $jobs->where('created_at', '>=', $initialDate . ' 00:00:00')
-            ->where('created_at', '<=', $finalDate . '23:59:59');
+            ->where('created_at', '<=', $finalDate);
         }
-
         return $jobs;
     }
 
