@@ -156,6 +156,8 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::prefix('reports')->group(function(){
         Route::post('/', 'ReportsController@read');
     });
+    Route::get('/reminders', 'RemindersController@index');
+    Route::put('/reminders/read/{id}', 'RemindersController@markAsRead');
     Route::get('/notifywindow', 'NotificationController@window');
 });
 
