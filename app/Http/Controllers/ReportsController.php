@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Job;
+use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 class ReportsController extends Controller
 {
@@ -94,6 +94,10 @@ class ReportsController extends Controller
             ->with(['creation.items' => function ($query) {
                 $query->limit(1);
             }]);
+
+            if((User::logged()->employee->id != "1") && (User::logged()->employee->id != "35") && (User::logged()->employee->id != "43")){
+                $jobs->where('attendance_id', User::logged()->employee->id);
+            }
 
         if ($name){
             $jobs->whereHas('client', function ($query) use ($name) {
