@@ -104,20 +104,22 @@ class Job extends Model
     }
 
     public function notifyStatusChange() {
-        $task = $this->tasks[0];
-        $message = $task->job_activity->description . ' de ';
-        $message .= $this->getJobName();
-        $message .= ' teve o status alterado para ' . $this->status->description;
-
-        Notification::createAndNotify(User::logged()->employee, [
-            'message' => $message
-        ], NotificationSpecial::createMulti([
-            'user_id' => $task->responsible->user->id,
-            'message' => $message,
-        ], [
-            'user_id' => $this->attendance->user->id,
-            'message' => $message
-        ]), 'Alteração de job', $task->id);
+        if(isset($this->tasks[0])){
+            $task = $this->tasks[0];
+            $message = $task->job_activity->description . ' de ';
+            $message .= $this->getJobName();
+            $message .= ' teve o status alterado para ' . $this->status->description;
+    
+            Notification::createAndNotify(User::logged()->employee, [
+                'message' => $message
+            ], NotificationSpecial::createMulti([
+                'user_id' => $task->responsible->user->id,
+                'message' => $message,
+            ], [
+                'user_id' => $this->attendance->user->id,
+                'message' => $message
+            ]), 'Alteração de job', $task->id);
+        }
     }
 
     public static function insert(array $data) {
