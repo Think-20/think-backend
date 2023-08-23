@@ -205,7 +205,7 @@ class UserNotification extends Model
                 "days_without_update" => $diferencaDias,
                 "job_activity" => $job['job_activity']['description'],
                 "job_type" => $job['job_type']['description'],
-                "client" => $client,
+                "client" => $client ?? null,
                 "event" => $job['event'],
                 "deadline" => $job['deadline'],
                 "creation_responsible" => $responsible ?? null,
