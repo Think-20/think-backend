@@ -172,6 +172,7 @@ class UserNotification extends Model
             ->where('status_id', 1)
             ->whereYear('created_at', 2023)
             ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
+            ->whereDate('status_updated_at', '<=', Carbon::now()->subDays(15)->startOfDay())
             ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels', 'how_come', 'agency', 'attendance', 'competition', 'files', 'status', 'creation')
             ->get();
 

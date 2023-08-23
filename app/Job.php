@@ -75,9 +75,7 @@ class Job extends Model
 
     public function statusChange(Job $oldJob) {
 
-        if($oldJob->status_id == $this->status_id){
-            return;
-        }
+
 
         if($this->status->id == '3'){
             $difference = strtotime($oldJob->created_at) - strtotime((new DateTime())->format('y-m-d'));
@@ -85,7 +83,10 @@ class Job extends Model
             $this->time_to_aproval = $days;
         }
 
-        $this->notifyStatusChange();
+        if($oldJob->status_id != $this->status_id){
+            $this->notifyStatusChange();
+        }
+
         $this->status_updated_at = (new DateTime())->format('y-m-d');
         $this->update();
     }

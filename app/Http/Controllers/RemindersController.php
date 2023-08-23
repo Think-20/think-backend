@@ -6,10 +6,8 @@ use App\Client;
 use App\Job;
 use App\Reminder;
 use App\User;
-use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class RemindersController extends Controller
 {
