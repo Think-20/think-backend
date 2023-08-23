@@ -22,14 +22,13 @@ class RemindersController extends Controller
             $clients
         ];
 
-        // $return = array_filter($return, function ($r) {
-        //     return $r !== null;
-        // });
         return $return;
     }
 
     public function OneYearJobThisWeak()
     {
+        $startDate = Carbon::now()->subYear()->startOfDay();
+        $endDate = Carbon::now()->subYear()->endOfDay();
         $jobs = Job::selectRaw('job.*')
             ->with(
                 'job_activity',
@@ -48,14 +47,13 @@ class RemindersController extends Controller
             ->with(['creation.items' => function ($query) {
                 $query->limit(1);
             }])
-            ->whereDate('created_at', '=', Carbon::now()->subYear())
+            ->whereDate('created_at', '>=', $startDate)
+            ->whereDate('created_at', '<=', $endDate)
             ->with('client')
             ->get();
-
         if (!$jobs->isEmpty()) {
-            
         }
-        return ["Há 1 ano você agendou esses projetos" => $jobs];
+        return ["jobs" => $jobs];
     }
 
     public function markAsRead($id)
@@ -72,11 +70,13 @@ class RemindersController extends Controller
 
     public function OneYearClientRegister()
     {
+        $startDate = Carbon::now()->subYear()->startOfDay();
+        $endDate = Carbon::now()->subYear()->endOfDay();
         $clients = Client::where('employee_id', User::logged()->employee->id)
-            ->whereDate('created_at', '>=', Carbon::now()->subYear())
-            ->whereDate('created_at', '<=', Carbon::now()->subYear()->addDays(7))
+        ->whereDate('created_at', '>=', $startDate)
+        ->whereDate('created_at', '<=', $endDate)
             ->get();
 
-        return ["Há 1 ano você cadastrou esses cliente" => $clients];
+        return ["clients" => $clients];
     }
 }
