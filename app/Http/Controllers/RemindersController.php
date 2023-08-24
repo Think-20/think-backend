@@ -77,6 +77,17 @@ class RemindersController extends Controller
         ->whereDate('created_at', '>=', $startDate)
         ->whereDate('created_at', '<=', $endDate)
         ->get();
+        if(!$clients->isEmpty()){
+            foreach($clients as $client){
+                $lastJob = Job::where('client_id', $client->id)->orderBy('created_at', 'desc')->first(['code', 'event', 'created_at']);
+                if ($lastJob) {
+                    $id = str_pad((string)$lastJob->code, 4, "0", STR_PAD_LEFT) . "/" . $lastJob->created_at->year;;
+                    $client->lastJobId = $id; // Adiciona o último job ao objeto cliente
+                    $client->lastJobEvent = $lastJob->event;
+                }
+            }
+        }
+        
 
         return ["clients" => $clients];
     }
