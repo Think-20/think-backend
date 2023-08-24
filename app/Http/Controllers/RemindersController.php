@@ -73,6 +73,7 @@ class RemindersController extends Controller
         $startDate = Carbon::now()->subYear()->startOfDay();
         $endDate = Carbon::now()->subYear()->endOfDay();
         $clients = Client::where('employee_id', User::logged()->employee->id)
+        ->with('type', 'status')
         ->whereDate('created_at', '>=', $startDate)
         ->whereDate('created_at', '<=', $endDate)
         ->get();
