@@ -13,17 +13,19 @@ class RemindersController extends Controller
 {
     public function index(Request $request)
     {
-        $jobs = $this->OneYearJobThisWeak();
+        $jobs = $this->OneYearJobCreation();
         $clients = $this->OneYearClientRegister();
+        $approveds = $this->OneYearJobApproved();
         $return = [
             $jobs,
-            $clients
+            $clients,
+            $approveds
         ];
 
         return $return;
     }
 
-    public function OneYearJobThisWeak()
+    public function OneYearJobCreation()
     {
         $startDate = Carbon::now()->subYear()->startOfDay();
         $endDate = Carbon::now()->subYear()->endOfDay();
@@ -45,12 +47,12 @@ class RemindersController extends Controller
             ->with(['creation.items' => function ($query) {
                 $query->limit(1);
             }])
+            ->where('attendance_id', User::logged()->employee->id)
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
             ->with('client')
             ->get();
-        if (!$jobs->isEmpty()) {
-        }
+
         return ["jobs" => $jobs];
     }
 
@@ -73,8 +75,40 @@ class RemindersController extends Controller
         $clients = Client::where('employee_id', User::logged()->employee->id)
         ->whereDate('created_at', '>=', $startDate)
         ->whereDate('created_at', '<=', $endDate)
-            ->get();
+        ->get();
 
         return ["clients" => $clients];
+    }
+
+    public function OneYearJobApproved()
+    {
+        $startDate = Carbon::now()->subYear()->startOfDay();
+        $endDate = Carbon::now()->subYear()->endOfDay();
+        $jobs = Job::selectRaw('job.*')
+            ->with(
+                'job_activity',
+                'job_type',
+                'client',
+                'main_expectation',
+                'levels',
+                'how_come',
+                'agency',
+                'attendance',
+                'competition',
+                'files',
+                'status',
+                'creation'
+            )
+            ->with(['creation.items' => function ($query) {
+                $query->limit(1);
+            }])
+            ->where('attendance_id', User::logged()->employee->id)
+            ->where('status_id', 3)
+            ->whereDate('status_updated_at', '>=', $startDate)
+            ->whereDate('status_updated_at', '<=', $endDate)
+            ->with('client')
+            ->get();
+            
+        return ["jobs_approveds" => $jobs];
     }
 }
