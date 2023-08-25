@@ -17,9 +17,10 @@ services:
     ports:
       - 3306:3306
     environment:
+      MYSQL_DATABASE: dbthik
+      MYSQL_USER: dbthinkuser
+      MYSQL_PASSWORD: dbthinkpass
       MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_USER: fabricio
-      MYSQL_PASSWORD: c843d31001
-      MYSQL_DATABASE: companybook
+
     volumes:
       - ./docker/backup.sql:/docker-entrypoint-initdb.d/backup.sql

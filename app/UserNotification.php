@@ -172,6 +172,7 @@ class UserNotification extends Model
             ->where('status_id', 1)
             ->whereYear('created_at', 2023)
             ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
+            ->whereDate('status_updated_at', '<=', Carbon::now()->subDays(15)->startOfDay())
             ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels', 'how_come', 'agency', 'attendance', 'competition', 'files', 'status', 'creation')
             ->get();
 
@@ -179,6 +180,7 @@ class UserNotification extends Model
             ->where('status_id', 1)
             ->whereYear('created_at', 2023)
             ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
+            ->whereDate('status_updated_at', '<=', Carbon::now()->subDays(15)->startOfDay())
             ->count();
 
         $jobsResult = [];
@@ -203,7 +205,7 @@ class UserNotification extends Model
                 "days_without_update" => $diferencaDias,
                 "job_activity" => $job['job_activity']['description'],
                 "job_type" => $job['job_type']['description'],
-                "client" => $client,
+                "client" => $client ?? null,
                 "event" => $job['event'],
                 "deadline" => $job['deadline'],
                 "creation_responsible" => $responsible ?? null,

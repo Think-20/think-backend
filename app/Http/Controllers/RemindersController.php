@@ -6,30 +6,29 @@ use App\Client;
 use App\Job;
 use App\Reminder;
 use App\User;
-use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class RemindersController extends Controller
 {
     public function index(Request $request)
     {
-        $jobs = $this->OneYearJobThisWeak();
+        $jobs = $this->OneYearJobCreation();
         $clients = $this->OneYearClientRegister();
+        $approveds = $this->OneYearJobApproved();
         $return = [
             $jobs,
-            $clients
+            $clients,
+            $approveds
         ];
 
-        // $return = array_filter($return, function ($r) {
-        //     return $r !== null;
-        // });
         return $return;
     }
 
-    public function OneYearJobThisWeak()
+    public function OneYearJobCreation()
     {
+        $startDate = Carbon::now()->subYear()->startOfDay();
+        $endDate = Carbon::now()->subYear()->endOfDay();
         $jobs = Job::selectRaw('job.*')
             ->with(
                 'job_activity',
@@ -48,14 +47,13 @@ class RemindersController extends Controller
             ->with(['creation.items' => function ($query) {
                 $query->limit(1);
             }])
-            ->whereDate('created_at', '=', Carbon::now()->subYear())
+            ->where('attendance_id', User::logged()->employee->id)
+            ->whereDate('created_at', '>=', $startDate)
+            ->whereDate('created_at', '<=', $endDate)
             ->with('client')
             ->get();
 
-        if (!$jobs->isEmpty()) {
-            
-        }
-        return ["Há 1 ano você agendou esses projetos" => $jobs];
+        return ["jobs" => $jobs];
     }
 
     public function markAsRead($id)
@@ -72,11 +70,57 @@ class RemindersController extends Controller
 
     public function OneYearClientRegister()
     {
+        $startDate = Carbon::now()->subYear()->startOfDay();
+        $endDate = Carbon::now()->subYear()->endOfDay();
         $clients = Client::where('employee_id', User::logged()->employee->id)
-            ->whereDate('created_at', '>=', Carbon::now()->subYear())
-            ->whereDate('created_at', '<=', Carbon::now()->subYear()->addDays(7))
-            ->get();
+        ->with('type', 'status')
+        ->whereDate('created_at', '>=', $startDate)
+        ->whereDate('created_at', '<=', $endDate)
+        ->get();
+        if(!$clients->isEmpty()){
+            foreach($clients as $client){
+                $lastJob = Job::where('client_id', $client->id)->orderBy('created_at', 'desc')->first(['code', 'event', 'created_at']);
+                if ($lastJob) {
+                    $id = str_pad((string)$lastJob->code, 4, "0", STR_PAD_LEFT) . "/" . $lastJob->created_at->year;;
+                    $client->lastJobId = $id;
+                    $client->lastJobEvent = $lastJob->event;
+                }
+            }
+        }
+        
 
-        return ["Há 1 ano você cadastrou esses cliente" => $clients];
+        return ["clients" => $clients];
+    }
+
+    public function OneYearJobApproved()
+    {
+        $startDate = Carbon::now()->subYear()->startOfDay();
+        $endDate = Carbon::now()->subYear()->endOfDay();
+        $jobs = Job::selectRaw('job.*')
+            ->with(
+                'job_activity',
+                'job_type',
+                'client',
+                'main_expectation',
+                'levels',
+                'how_come',
+                'agency',
+                'attendance',
+                'competition',
+                'files',
+                'status',
+                'creation'
+            )
+            ->with(['creation.items' => function ($query) {
+                $query->limit(1);
+            }])
+            ->where('attendance_id', User::logged()->employee->id)
+            ->where('status_id', 3)
+            ->whereDate('status_updated_at', '>=', $startDate)
+            ->whereDate('status_updated_at', '<=', $endDate)
+            ->with('client')
+            ->get();
+            
+        return ["jobs_approveds" => $jobs];
     }
 }
