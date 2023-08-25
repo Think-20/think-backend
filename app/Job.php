@@ -98,7 +98,7 @@ class Job extends Model
         isset($data['final_value']) ? $job->final_value = $data['final_value'] : null;
 
         $job->save();
-        // $job->update($data);
+        $job->update($data);
         $job->statusChange($oldJob);
 
         $arrayLevels = !isset($data['levels']) ? [] : $data['levels'];
