@@ -69,8 +69,9 @@ class Job extends Model
         $job = Job::find($id);
         $oldJob = clone $job;
 
-        isset($data['agency']['id']) ? $job->agency_id = $data['agency']['id'] : $job->agency_id = null;
-        isset($data['client']['id']) ? $job->client_id = $data['client']['id'] : $job->client_id = null;
+        // dd($job->agency_id);
+        isset($data['agency']['id']) ?? $job->agency_id = $data['agency']['id'];
+        isset($data['client']['id']) ?? $job->client_id = $data['client']['id'];
         isset($data['main_expectation']['id']) ? $job->main_expectation_id = $data['main_expectation']['id'] : null;
         isset($data['job_activity']['id']) ? $job->job_activity_id = $data['job_activity']['id'] : null;
         isset($data['status']['id']) ? $job->status_id = $data['status']['id'] : null;
