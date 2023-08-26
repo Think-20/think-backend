@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Client;
 use App\Job;
+use App\JobActivity;
 use App\Reminder;
 use App\User;
 use Illuminate\Http\Request;
@@ -73,12 +74,12 @@ class RemindersController extends Controller
         $startDate = Carbon::now()->subYear()->startOfDay();
         $endDate = Carbon::now()->subYear()->endOfDay();
         $clients = Client::where('employee_id', User::logged()->employee->id)
-        ->with('type', 'status')
-        ->whereDate('created_at', '>=', $startDate)
-        ->whereDate('created_at', '<=', $endDate)
-        ->get();
-        if(!$clients->isEmpty()){
-            foreach($clients as $client){
+            ->with('type', 'status')
+            ->whereDate('created_at', '>=', $startDate)
+            ->whereDate('created_at', '<=', $endDate)
+            ->get();
+        if (!$clients->isEmpty()) {
+            foreach ($clients as $client) {
                 $lastJob = Job::where('client_id', $client->id)->orderBy('created_at', 'desc')->first(['code', 'event', 'created_at']);
                 if ($lastJob) {
                     $id = str_pad((string)$lastJob->code, 4, "0", STR_PAD_LEFT) . "/" . $lastJob->created_at->year;;
@@ -87,7 +88,7 @@ class RemindersController extends Controller
                 }
             }
         }
-        
+
 
         return ["clients" => $clients];
     }
@@ -97,30 +98,37 @@ class RemindersController extends Controller
         $startDate = Carbon::now()->subYear()->startOfDay();
         $endDate = Carbon::now()->subYear()->endOfDay();
         $jobs = Job::selectRaw('job.*')
-            ->with(
-                'job_activity',
-                'job_type',
-                'client',
-                'main_expectation',
-                'levels',
-                'how_come',
-                'agency',
-                'attendance',
-                'competition',
-                'files',
-                'status',
-                'creation'
-            )
-            ->with(['creation.items' => function ($query) {
-                $query->limit(1);
-            }])
-            ->where('attendance_id', User::logged()->employee->id)
-            ->where('status_id', 3)
-            ->whereDate('status_updated_at', '>=', $startDate)
-            ->whereDate('status_updated_at', '<=', $endDate)
-            ->with('client')
-            ->get();
-            
+        ->with(
+            'job_activity',
+            'job_type',
+            'client',
+            'main_expectation',
+            'levels',
+            'how_come',
+            'agency',
+            'attendance',
+            'competition',
+            'files',
+            'status',
+            'creation',
+            'tasks'
+        )
+        ->with(['creation.items' => function ($query) {
+            $query->limit(1);
+        }])
+        ->where(function ($query) {
+            $query->where('attendance_id', User::logged()->employee->id)
+                ->orWhereHas('tasks', function ($query) {
+                    $query->where('responsible_id', User::logged()->employee->id)
+                        ->where('job_activity_id', JobActivity::where('description', 'Projeto')->first()->id);
+                });
+        })
+        ->where('status_id', 3)
+        ->whereDate('status_updated_at', '>=', $startDate)
+        ->whereDate('status_updated_at', '<=', $endDate)
+        ->with('client')
+        ->get();
+
         return ["jobs_approveds" => $jobs];
     }
 }
