@@ -70,8 +70,8 @@ class ReportsController extends Controller
     private static function baseQuery($data)
     {
         $name = $data['name'] ?? null;
-        $initialDate = isset($data['date_init']) ? Carbon::parse($data['date_init'])->format('Y-m-d') : null;
-        $finalDate = isset($data['date_end']) ? Carbon::parse($data['date_end'])->format('Y-m-d') : null;
+        $initialDate = isset($data['date_init']) ? Carbon::parse($data['date_init'])->format('Y-m-d') : Carbon::now()->startOfMonth()->format('Y-m-d');
+        $finalDate = isset($data['date_end']) ? Carbon::parse($data['date_end'])->format('Y-m-d') : Carbon::now()->addMonth()->endOfMonth()->format('Y-m-d');
         $creationId = isset($data['creation']['id']) ? $data['creation']['id'] : null;
         $attendanceId = isset($data['attendance']['id']) ? $data['attendance']['id'] : null;
         $jobTypeId = isset($data['job_type']['id']) ? $data['job_type']['id'] : null;
