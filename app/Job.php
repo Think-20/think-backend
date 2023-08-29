@@ -104,8 +104,8 @@ class Job extends Model
         $arrayLevels = !isset($data['levels']) ? [] : $data['levels'];
         $job->saveLevels($arrayLevels);
 
-        // $arrayFiles = !isset($data['files']) ? [] : $data['files'];
-        // $job->editFiles($arrayFiles);
+        $arrayFiles = !isset($data['files']) ? [] : $data['files'];
+        $job->editFiles($arrayFiles);
 
         return $job;
     }
