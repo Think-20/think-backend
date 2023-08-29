@@ -113,8 +113,6 @@ class Job extends Model
     public function statusChange(Job $oldJob)
     {
 
-
-
         if ($this->status->id == '3') {
             $difference = strtotime($oldJob->created_at) - strtotime((new DateTime())->format('y-m-d'));
             $days = floor($difference / (60 * 60 * 24));

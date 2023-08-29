@@ -20,10 +20,11 @@ class ReportsController extends Controller
             'creation',
             'attendance',
             'job_type',
-            'status'
+            'status',
+            'jobs_amount'
         ]);
 
-        $jobsPerPage = 30;
+        $jobsPerPage = $data['jobs_amount'] ?? 30;
         $currentPage = $request->query('page', 1);
 
         $jobs = self::baseQuery($data)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
