@@ -69,7 +69,6 @@ class Job extends Model
         $job = Job::find($id);
         $oldJob = clone $job;
 
-        // dd($job->agency_id);
         isset($data['agency']['id']) ?? $job->agency_id = $data['agency']['id'];
         isset($data['client']['id']) ?? $job->client_id = $data['client']['id'];
         isset($data['main_expectation']['id']) ? $job->main_expectation_id = $data['main_expectation']['id'] : null;
@@ -116,7 +115,7 @@ class Job extends Model
         if ($this->status->id == '3') {
             $difference = strtotime($oldJob->created_at) - strtotime((new DateTime())->format('y-m-d'));
             $days = floor($difference / (60 * 60 * 24));
-            $this->time_to_aproval = $days;
+            $this->time_to_aproval = abs($days);
         }
 
         if ($oldJob->status_id != $this->status_id) {
