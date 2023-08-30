@@ -139,6 +139,7 @@ class ReportsController extends Controller
                 $query->where('date', '<=', $finalDate);
             });
         }
+        
         return $jobs;
     }
 
