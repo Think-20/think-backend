@@ -20,10 +20,11 @@ class ReportsController extends Controller
             'creation',
             'attendance',
             'job_type',
-            'status'
+            'status',
+            'jobs_amount'
         ]);
 
-        $jobsPerPage = 30;
+        $jobsPerPage = $data['jobs_amount'] ?? 30;
         $currentPage = $request->query('page', 1);
 
         $jobs = self::baseQuery($data)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
@@ -68,9 +69,10 @@ class ReportsController extends Controller
 
     private static function baseQuery($data)
     {
+
         $name = $data['name'] ?? null;
-        $initialDate = isset($data['date_init']) ? Carbon::parse($data['date_init'])->format('Y-m-d') : null;
-        $finalDate = isset($data['date_end']) ? Carbon::parse($data['date_end'])->format('Y-m-d') : null;
+        $initialDate = isset($data['date_init']) ? Carbon::parse($data['date_init'])->format('Y-m-d') : Carbon::now()->startOfMonth()->format('Y-m-d');
+        $finalDate = isset($data['date_end']) ? Carbon::parse($data['date_end'])->format('Y-m-d') : Carbon::now()->endOfMonth()->format('Y-m-d');
         $creationId = isset($data['creation']['id']) ? $data['creation']['id'] : null;
         $attendanceId = isset($data['attendance']['id']) ? $data['attendance']['id'] : null;
         $jobTypeId = isset($data['job_type']['id']) ? $data['job_type']['id'] : null;
@@ -128,17 +130,14 @@ class ReportsController extends Controller
         }
 
         if ($initialDate && !$finalDate) {
-
             $jobs->where('created_at', '>=', $initialDate . ' 00:00:00');
-
         } elseif (!$initialDate && $finalDate) {
-
             $jobs->where('created_at', '<=', $finalDate);
-
         } elseif ($initialDate && $finalDate) {
             $jobs->where('created_at', '>=', $initialDate . ' 00:00:00')
             ->where('created_at', '<=', $finalDate);
         }
+
         return $jobs;
     }
 
