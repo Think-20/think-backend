@@ -128,17 +128,16 @@ class ReportsController extends Controller
             });         
         }
 
-        if ($initialDate && !$finalDate) {
+        if (!is_null($initialDate)) {
+            $jobs->whereHas('creation.items', function ($query) use ($initialDate) {
+                $query->where('date', '>=', $initialDate);
+            });
+        }
 
-            $jobs->where('created_at', '>=', $initialDate . ' 00:00:00');
-
-        } elseif (!$initialDate && $finalDate) {
-
-            $jobs->where('created_at', '<=', $finalDate);
-
-        } elseif ($initialDate && $finalDate) {
-            $jobs->where('created_at', '>=', $initialDate . ' 00:00:00')
-            ->where('created_at', '<=', $finalDate);
+        if (!is_null($finalDate)) {
+            $jobs->whereHas('creation.items', function ($query) use ($finalDate) {
+                $query->where('date', '<=', $finalDate);
+            });
         }
         return $jobs;
     }
