@@ -50,7 +50,7 @@ class Event extends Model
         if( ! is_null($event )) {
             $query->where('event', 'LIKE', '%' . $event . '%');
         }
-        $events = $query->get()->pluck('event')->toArray();
+        $events = $query->orderBy('event', 'asc')->get()->pluck('event')->toArray();
         return $events;
     }
 
