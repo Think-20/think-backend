@@ -18,6 +18,10 @@ class EventController extends Controller
         return Event::filter($request->all());
     }
 
+    public static function jobevents($event = null) {
+        return Event::jobevents($event);
+    }
+
     public static function get(int $id) {
         return Event::get($id);
     }
