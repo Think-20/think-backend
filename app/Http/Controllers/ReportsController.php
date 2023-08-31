@@ -74,9 +74,9 @@ class ReportsController extends Controller
         $name = $data['name'] ?? null;
         $initialDate = isset($data['date_init']) ? Carbon::parse($data['date_init'])->format('Y-m-d') : Carbon::now()->startOfMonth()->format('Y-m-d');
         $finalDate = isset($data['date_end']) ? Carbon::parse($data['date_end'])->format('Y-m-d') : Carbon::now()->endOfMonth()->format('Y-m-d');
-        $creationId = isset($data['creation']['id']) ? $data['creation']['id'] : null;
-        $attendanceId = isset($data['attendance']['id']) ? $data['attendance']['id'] : null;
-        $jobTypeId = isset($data['job_type']['id']) ? $data['job_type']['id'] : null;
+        $creationId = isset($data['creation']) ? $data['creation'] : null;
+        $attendanceId = isset($data['attendance']) ? $data['attendance'] : null;
+        $jobTypeId = isset($data['job_type']) ? $data['job_type'] : null;
         $status = isset($data['status']) ? $data['status'] : null;
         $event = isset($data['event']) ? $data['event'] : null;
 
@@ -112,7 +112,7 @@ class ReportsController extends Controller
         }
         
         if($jobTypeId) {
-            $jobs->where('job_type_id', '=', $jobTypeId);
+            $jobs->whereIn('job_type_id', $jobTypeId);
         }
 
         if($event) {
@@ -120,18 +120,18 @@ class ReportsController extends Controller
         }
 
         if($status) {
-            $jobs->where('status_id', '=', $status);
+            $jobs->whereIn('status_id', $status);
         }
 
         if ($creationId) {
             $jobs->whereHas('creation', function($query) use ($creationId) {
-                $query->where('responsible_id', '=', $creationId);
+                $query->whereIn('responsible_id', $creationId);
             });         
         }
 
         if ($attendanceId) {
             $jobs->whereHas('attendance', function($query) use ($attendanceId) {
-                $query->where('id', '=', $attendanceId);
+                $query->whereIn('id', $attendanceId);
             });         
         }
 
