@@ -21,7 +21,8 @@ class ReportsController extends Controller
             'attendance',
             'job_type',
             'status',
-            'jobs_amount'
+            'jobs_amount',
+            'event'
         ]);
 
         $jobsPerPage = $data['jobs_amount'] ?? 30;
@@ -77,6 +78,7 @@ class ReportsController extends Controller
         $attendanceId = isset($data['attendance']['id']) ? $data['attendance']['id'] : null;
         $jobTypeId = isset($data['job_type']['id']) ? $data['job_type']['id'] : null;
         $status = isset($data['status']) ? $data['status'] : null;
+        $event = isset($data['event']) ? $data['event'] : null;
 
         $jobs = Job::selectRaw('job.*')
             ->with(
@@ -111,6 +113,10 @@ class ReportsController extends Controller
         
         if($jobTypeId) {
             $jobs->where('job_type_id', '=', $jobTypeId);
+        }
+
+        if($event) {
+            $jobs->where('event', 'LIKE', '%' . $event . '%');
         }
 
         if($status) {

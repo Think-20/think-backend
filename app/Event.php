@@ -45,6 +45,15 @@ class Event extends Model
         ];
     }
 
+    public static function jobevents($event = null){
+        $query = Job::select('event')->distinct();
+        if( ! is_null($event )) {
+            $query->where('event', 'LIKE', '%' . $event . '%');
+        }
+        $events = $query->orderBy('event', 'asc')->get()->pluck('event')->toArray();
+        return $events;
+    }
+
     public static function list(array $data) {
         $paginate = isset($data['paginate']) ? $data['paginate'] : true;
         $query = Event::with('place', 'employee')->orderBy('name', 'asc');

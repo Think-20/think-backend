@@ -159,6 +159,8 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/reminders', 'RemindersController@index');
     Route::put('/reminders/read/{id}', 'RemindersController@markAsRead');
     Route::get('/notifywindow', 'NotificationController@window');
+
+    Route::get('jobevents/filter/{event?}', 'EventController@jobevents');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {
