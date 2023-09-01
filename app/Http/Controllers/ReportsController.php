@@ -72,7 +72,7 @@ class ReportsController extends Controller
     {
 
         $name = $data['name'] ?? null;
-        $initialDate = isset($data['date_init']) ? Carbon::parse($data['date_init'])->format('Y-m-d') : Carbon::now()->startOfMonth()->format('Y-m-d');
+        $initialDate = isset($data['date_init']) ? Carbon::parse($data['date_init'])->format('Y-m-d') : Carbon::now()->startOfYear()->format('Y-m-d');
         $finalDate = isset($data['date_end']) ? Carbon::parse($data['date_end'])->format('Y-m-d') : Carbon::now()->endOfMonth()->format('Y-m-d');
         $creationId = isset($data['creation']) ? $data['creation'] : null;
         $attendanceId = isset($data['attendance']) ? $data['attendance'] : null;
