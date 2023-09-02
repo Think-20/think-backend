@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class AddNewInputsDataInJobsTable extends Migration
+class AddNewInputsInTaskTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,7 +13,7 @@ class AddNewInputsDataInJobsTable extends Migration
      */
     public function up()
     {
-        Schema::table('job', function (Blueprint $table) {
+        Schema::table('task', function (Blueprint $table) {
             $table->string('orders_value')->nullable();
             $table->string('attendance_value')->nullable();
             $table->string('creation_value')->nullable();
@@ -41,7 +41,7 @@ class AddNewInputsDataInJobsTable extends Migration
      */
     public function down()
     {
-        Schema::table('job', function (Blueprint $table) {
+        Schema::table('task', function (Blueprint $table) {
             $table->dropColumn('orders_value');
             $table->dropColumn('attendance_value');
             $table->dropColumn('creation_value');

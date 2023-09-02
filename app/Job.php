@@ -19,22 +19,7 @@ class Job extends Model
         'code',
         'job_activity_id', 'client_id', 'event', 'deadline', 'job_type_id', 'agency_id', 'attendance_id',
         'rate', 'competition_id', 'last_provider', 'not_client', 'how_come_id', 'approval_expectation_rate',
-        'main_expectation_id', 'budget_value', 'status_id', 'note', 'place', 'area', 'moments', 'created_at', 'time_to_aproval', "orders_value",
-        "attendance_value", "creation_value",
-        "pre_production_value",
-        "production_value",
-        "details_value",
-        "budget_si_value",
-        "bv_value",
-        "over_rates_value",
-        "discounts_value",
-        "taxes_value",
-        "logistics_value",
-        "equipment_value",
-        "total_cost_value",
-        "gross_profit_value",
-        "profit_value",
-        "final_value"
+        'main_expectation_id', 'budget_value', 'status_id', 'note', 'place', 'area', 'moments', 'created_at', 'time_to_aproval'
     ];
 
     protected $dates = [
@@ -78,24 +63,6 @@ class Job extends Model
         isset($data['how_come']['id']) ? $job->how_come_id = $data['how_come']['id'] : null;
         isset($data['attendance']['id']) ? $job->attendance_id = $data['attendance']['id'] : null;
         isset($data['competition']['id']) ? $job->competition_id = $data['competition']['id'] : null;
-
-        isset($data['orders_value']) ? $job->orders_value = $data['orders_value'] : null;
-        isset($data['attendance_value']) ? $job->attendance_value = $data['attendance_value'] : null;
-        isset($data['creation_value']) ? $job->creation_value = $data['creation_value'] : null;
-        isset($data['pre_production_value']) ? $job->pre_production_value = $data['pre_production_value'] : null;
-        isset($data['production_value']) ? $job->production_value = $data['production_value'] : null;
-        isset($data['details_value']) ? $job->details_value = $data['details_value'] : null;
-        isset($data['budget_si_value']) ? $job->budget_si_value = $data['budget_si_value'] : null;
-        isset($data['bv_value']) ? $job->bv_value = $data['bv_value'] : null;
-        isset($data['over_rates_value']) ? $job->over_rates_value = $data['over_rates_value'] : null;
-        isset($data['discounts_value']) ? $job->discounts_value = $data['discounts_value'] : null;
-        isset($data['taxes_value']) ? $job->taxes_value = $data['taxes_value'] : null;
-        isset($data['logistics_value']) ? $job->logistics_value = $data['logistics_value'] : null;
-        isset($data['equipment_value']) ? $job->equipment_value = $data['equipment_value'] : null;
-        isset($data['total_cost_value']) ? $job->total_cost_value = $data['total_cost_value'] : null;
-        isset($data['gross_profit_value']) ? $job->gross_profit_value = $data['gross_profit_value'] : null;
-        isset($data['profit_value']) ? $job->profit_value = $data['profit_value'] : null;
-        isset($data['final_value']) ? $job->final_value = $data['final_value'] : null;
 
         $job->save();
         $job->update($data);

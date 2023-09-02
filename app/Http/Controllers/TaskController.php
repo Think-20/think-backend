@@ -102,6 +102,30 @@ class TaskController extends Controller
          ]), 200);
     }
 
+    public static function editValues(Request $request) {
+        DB::beginTransaction();
+        $status = false;
+        $data = $request->all();
+
+        try {
+            $task = Task::editValues($data);
+            $message = 'Task alterada com sucesso!';
+            $status = true;
+            DB::commit();
+        } catch(QueryException $queryException) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
+        } catch(Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
+        }
+
+        return response()->json([
+            'message' => $message,
+            'status' => $status,
+         ], 200);
+    }
+
     public static function editAvailableDate(Request $request) {
         DB::beginTransaction();
         $status = false;

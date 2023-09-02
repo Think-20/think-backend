@@ -161,6 +161,7 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/notifywindow', 'NotificationController@window');
 
     Route::get('jobevents/filter/{event?}', 'EventController@jobevents');
+    Route::post('/tasks/change-values', 'TaskController@editValues');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {
