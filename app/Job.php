@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use DB;
 use DateTime;
 use DateInterval;
+use Exception;
 use Illuminate\Support\Carbon;
 
 class Job extends Model
@@ -723,7 +724,12 @@ class Job extends Model
         $path = env('FILES_FOLDER') . '/jobs/' . $this->id;
 
         if (!is_dir($path)) {
-            mkdir($path);
+            try{
+                mkdir($path);
+            }catch(Exception $e){
+                $sudoCommand = "sudo mkdir -p $path";
+                shell_exec($sudoCommand);
+            }
         }
 
         foreach ($data as $file) {
