@@ -72,7 +72,7 @@ class Job extends Model
         $job->saveLevels($arrayLevels);
 
         $arrayFiles = !isset($data['files']) ? [] : $data['files'];
-        // $job->editFiles($arrayFiles);
+        $job->editFiles($arrayFiles);
 
         return $job;
     }
