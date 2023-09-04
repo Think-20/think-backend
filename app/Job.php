@@ -57,7 +57,7 @@ class Job extends Model
 
         isset($data['agency']['id']) ? $job->agency_id = $data['agency']['id'] : $job->agency_id = $job->agency_id;
         isset($data['client']['id']) ? $job->client_id = $data['client']['id'] : $job->client_id = $job->client_id;
-        
+
         isset($data['main_expectation']['id']) ? $job->main_expectation_id = $data['main_expectation']['id'] : null;
         isset($data['job_activity']['id']) ? $job->job_activity_id = $data['job_activity']['id'] : null;
         isset($data['status']['id']) ? $job->status_id = $data['status']['id'] : null;
@@ -724,9 +724,9 @@ class Job extends Model
         $path = env('FILES_FOLDER') . '/jobs/' . $this->id;
 
         if (!is_dir($path)) {
-            try{
+            try {
                 mkdir($path);
-            }catch(Exception $e){
+            } catch (Exception $e) {
                 $sudoCommand = "sudo mkdir -p $path";
                 shell_exec($sudoCommand);
             }
@@ -848,12 +848,7 @@ class Job extends Model
     public function creation_responsible()
     {
         foreach ($this->tasks as $task) {
-            if (
-                $task->job_activity->description == 'Projeto'
-                #|| $task->job_activity->description == 'Modificação'
-                #|| $task->job_activity->description == 'Opção'
-                || $task->job_activity->description == 'Outsider'
-            ) {
+            if ($task->job_activity->description == 'Projeto' || $task->job_activity->description == 'Outsider') {
                 $this->creation_responsible = $task->responsible;
                 $this->available_date = $task->getAvailableDate();
             }
