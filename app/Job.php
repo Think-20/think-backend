@@ -827,7 +827,7 @@ class Job extends Model
             'task',
             'task.job_activity',
             'responsible'
-        );
+        )->orderBy('created_at', 'desc');
     }
 
     public function creation()

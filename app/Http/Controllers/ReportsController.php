@@ -29,6 +29,16 @@ class ReportsController extends Controller
         $currentPage = $request->query('page', 1);
 
         $jobs = self::baseQuery($data)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
+        if ($jobs->isEmpty()) {
+            return response()->json(["error" => false, "message" => "Jobs not found"]);
+        }
+        foreach($jobs as $job){
+            foreach($job->tasks as $task){
+                if(isset($task->final_value) && $task->final_value != null){
+                    $job->setAttribute('lastValue', $task->final_value);
+                }
+            }
+        };
 
         $adjustedIndex = ($currentPage - 1) * $jobsPerPage;
         $jobs->transform(function ($job) use (&$adjustedIndex) {
@@ -36,10 +46,6 @@ class ReportsController extends Controller
             $job->setAttribute('index', $adjustedIndex);
             return $job;
         });
-
-        if ($jobs->isEmpty()) {
-            return response()->json(["error" => false, "message" => "Jobs not found"]);
-        }
 
         $total_value = self::sumBudgetValue($data);
         $average_ticket = $total_value ? $total_value['sum'] / $total_value['count'] : 0;
