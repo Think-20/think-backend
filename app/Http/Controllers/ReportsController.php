@@ -70,86 +70,82 @@ class ReportsController extends Controller
 
     private static function baseQuery($data)
     {
-        try {
-            //code...
-            $name = $data['name'] ?? null;
-            $initialDate = isset($data['date_init']) ? Carbon::parse($data['date_init'])->format('Y-m-d') : Carbon::now()->startOfYear()->format('Y-m-d');
-            $finalDate = isset($data['date_end']) ? Carbon::parse($data['date_end'])->format('Y-m-d') : Carbon::now()->endOfMonth()->format('Y-m-d');
-            $creationId = isset($data['creation']) ? $data['creation'] : null;
-            $attendanceId = isset($data['attendance']) ? $data['attendance'] : null;
-            $jobTypeId = isset($data['job_type']) ? $data['job_type'] : null;
-            $status = isset($data['status']) ? $data['status'] : null;
-            $event = isset($data['event']) ? $data['event'] : null;
+        $name = $data['name'] ?? null;
+        $initialDate = isset($data['date_init']) ? Carbon::parse($data['date_init'])->format('Y-m-d') : Carbon::now()->startOfYear()->format('Y-m-d');
+        $finalDate = isset($data['date_end']) ? Carbon::parse($data['date_end'])->format('Y-m-d') : Carbon::now()->endOfMonth()->format('Y-m-d');
+        $creationId = isset($data['creation']) ? $data['creation'] : null;
+        $attendanceId = isset($data['attendance']) ? $data['attendance'] : null;
+        $jobTypeId = isset($data['job_type']) ? $data['job_type'] : null;
+        $status = isset($data['status']) ? $data['status'] : null;
+        $event = isset($data['event']) ? $data['event'] : null;
 
-            $jobs = Job::selectRaw('job.*')
-                ->with(
-                    'job_activity',
-                    'job_type',
-                    'client',
-                    'main_expectation',
-                    'levels',
-                    'how_come',
-                    'agency',
-                    'attendance',
-                    'competition',
-                    'files',
-                    'status',
-                    'creation',
-                    'tasks'
-                )
-                ->with(['creation.items' => function ($query) {
-                    $query->limit(1);
-                }]);
+        $jobs = Job::selectRaw('job.*')
+            ->with(
+                'job_activity',
+                'job_type',
+                'client',
+                'main_expectation',
+                'levels',
+                'how_come',
+                'agency',
+                'attendance',
+                'competition',
+                'files',
+                'status',
+                'creation',
+                'tasks'
+            )
+            ->with(['creation.items' => function ($query) {
+                $query->limit(1);
+            }]);
 
-            if ((User::logged()->employee->id != "1") && (User::logged()->employee->id != "35") && (User::logged()->employee->id != "43")) {
-                $jobs->where('attendance_id', User::logged()->employee->id);
-            }
-
-            if ($name) {
-                $jobs->whereHas('client', function ($query) use ($name) {
-                    $query->where('fantasy_name', 'LIKE', '%' . $name . '%');
-                    $query->orWhere('name', 'LIKE', '%' . $name . '%');
-                });
-                $jobs->orWhere('not_client', 'LIKE', '%' . $name . '%');
-            }
-
-            if ($jobTypeId) {
-                $jobs->whereIn('job_type_id', $jobTypeId);
-            }
-
-            if ($event) {
-                $jobs->where('event', 'LIKE', '%' . $event . '%');
-            }
-
-            if ($status) {
-                $jobs->whereIn('status_id', $status);
-            }
-
-            if ($creationId) {
-                $jobs->whereHas('creation', function ($query) use ($creationId) {
-                    $query->whereIn('responsible_id', $creationId);
-                });
-            }
-
-            if ($attendanceId) {
-                $jobs->whereHas('attendance', function ($query) use ($attendanceId) {
-                    $query->whereIn('id', $attendanceId);
-                });
-            }
-
-            if ($initialDate && !$finalDate) {
-                $jobs->where('created_at', '>=', $initialDate . ' 00:00:00');
-            } elseif (!$initialDate && $finalDate) {
-                $jobs->where('created_at', '<=', $finalDate);
-            } elseif ($initialDate && $finalDate) {
-                $jobs->where('created_at', '>=', $initialDate . ' 00:00:00')
-                    ->where('created_at', '<=', $finalDate);
-            }
-
-            return $jobs;
-        } catch (\Throwable $th) {
-            throw $th;
+        if ((User::logged()->employee->id != "1") && (User::logged()->employee->id != "35") && (User::logged()->employee->id != "43")) {
+            $jobs->where('attendance_id', User::logged()->employee->id);
         }
+
+        if ($name) {
+            $jobs->where(function ($query) use ($name) {
+                $query->whereHas('client', function ($subquery) use ($name) {
+                    $subquery->where('fantasy_name', 'LIKE', '%' . $name . '%');
+                    $subquery->orWhere('name', 'LIKE', '%' . $name . '%');
+                });
+                $query->orWhere('not_client', 'LIKE', '%' . $name . '%');
+            });
+        }
+
+        if ($jobTypeId) {
+            $jobs->whereIn('job_type_id', $jobTypeId);
+        }
+
+        if ($event) {
+            $jobs->where('event', 'LIKE', '%' . $event . '%');
+        }
+
+        if ($status) {
+            $jobs->whereIn('status_id', $status);
+        }
+
+        if ($creationId) {
+            $jobs->whereHas('creation', function ($query) use ($creationId) {
+                $query->whereIn('responsible_id', $creationId);
+            });
+        }
+
+        if ($attendanceId) {
+            $jobs->whereHas('attendance', function ($query) use ($attendanceId) {
+                $query->whereIn('id', $attendanceId);
+            });
+        }
+
+        if ($initialDate && !$finalDate) {
+            $jobs->where('created_at', '>=', $initialDate);
+        } elseif (!$initialDate && $finalDate) {
+            $jobs->where('created_at', '<=', $finalDate);
+        } elseif ($initialDate && $finalDate) {
+            $jobs->where('created_at', '>=', $initialDate)
+                ->where('created_at', '<=', $finalDate);
+        }
+        return $jobs;
     }
 
     public static function sumBudgetValue($data)
