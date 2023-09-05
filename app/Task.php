@@ -1006,7 +1006,7 @@ class Task extends Model
         isset($data['total_cost_value']) ? $task->total_cost_value = str_replace(',', '', str_replace('.', '', $data['total_cost_value'])) : null;
         isset($data['gross_profit_value']) ? $task->gross_profit_value = str_replace(',', '', str_replace('.', '', $data['gross_profit_value'])) : null;
         isset($data['profit_value']) ? $task->profit_value = str_replace(',', '', str_replace('.', '', $data['profit_value'])) : null;
-        isset($data['final_value']) ? $task->final_value = str_replace(',', '', str_replace('.', '', $data['final_value'])) : null;
+        isset($data['final_value']) ? $task->final_value = $data['final_value'] : null;
         
         $task->save();
     }
