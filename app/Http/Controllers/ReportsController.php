@@ -132,11 +132,13 @@ class ReportsController extends Controller
             $jobs->whereIn('status_id', $status);
         }
 
-        if ($creationId == "external") {
+        if (in_array('external', $creationId)){
             $jobs->whereDoesntHave('creation');
-        } elseif (!is_null($creationId)) {
+        }
+
+        if ($creationId && !in_array('external', $creationId)) {
             $jobs->whereHas('creation', function ($query) use ($creationId) {
-                $query->where('responsible_id', '=', $creationId);
+                $query->whereIn('responsible_id', $creationId);
             });
         }
 
