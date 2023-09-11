@@ -990,7 +990,6 @@ class Task extends Model
     public static function editValues($data){
         $task = Task::find($data['id']);
 
-        // dd($data['orders_value']);
         isset($data['orders_value']) || $data['orders_value'] == "" ? $task->orders_value = str_replace(',', '', str_replace('.', '', $data['orders_value'])) : null;
         isset($data['attendance_value']) || $data['attendance_value'] == "" ? $task->attendance_value = str_replace(',', '', str_replace('.', '', $data['attendance_value'])) : null;
         isset($data['creation_value']) || $data['creation_value'] == "" ? $task->creation_value = str_replace(',', '', str_replace('.', '', $data['creation_value'])) : null;

@@ -381,7 +381,7 @@ class Job extends Model
             }
             $total = $jobs->count();
             $page = 0;
-
+            // dd($result);
             return [
                 'pagination' => [
                     'data' => $result,
