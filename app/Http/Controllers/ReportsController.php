@@ -32,6 +32,7 @@ class ReportsController extends Controller
         if ($jobs->isEmpty()) {
             return response()->json(["error" => false, "message" => "Jobs not found"]);
         }
+
         foreach($jobs as $job){
             foreach($job->tasks as $task){
                 if(isset($task->final_value) && $task->final_value != null){
