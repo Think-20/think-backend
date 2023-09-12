@@ -85,7 +85,6 @@ class ReportsController extends Controller
         $jobTypeId = isset($data['job_type']) ? $data['job_type'] : null;
         $status = isset($data['status']) ? $data['status'] : null;
         $event = isset($data['event']) ? $data['event'] : null;
-
         $jobs = Job::selectRaw('job.*')
             ->with(
                 'job_activity',
@@ -136,7 +135,7 @@ class ReportsController extends Controller
             $jobs->whereDoesntHave('creation');
         }
 
-        if (isset($creationId) && !in_array('external', $creationId)) {
+        if ($creationId && !in_array('external', $creationId)) {
             $jobs->whereHas('creation', function ($query) use ($creationId) {
                 $query->whereIn('responsible_id', $creationId);
             });
@@ -148,14 +147,18 @@ class ReportsController extends Controller
             });
         }
 
-        if ($initialDate && !$finalDate) {
-            $jobs->where('created_at', '>=', $initialDate);
-        } elseif (!$initialDate && $finalDate) {
-            $jobs->where('created_at', '<=', $finalDate);
-        } elseif ($initialDate && $finalDate) {
-            $jobs->where('created_at', '>=', $initialDate)
-                ->where('created_at', '<=', $finalDate);
+        if (isset($data['date_init'])) {
+            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+        }else{
+            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
         }
+
+        if (isset($data['date_end'])) {
+            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+        }else{
+            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        }
+
         return $jobs;
     }
 
