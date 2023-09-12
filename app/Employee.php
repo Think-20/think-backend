@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 use DateTime;
 use DB;
+use Exception;
+use Illuminate\Support\Facades\DB as FacadesDB;
+use Illuminate\Support\Facades\Hash;
 
 class Employee extends Model implements NotifierInterface
 {
@@ -206,6 +209,11 @@ class Employee extends Model implements NotifierInterface
         DB::beginTransaction();
         
         try {
+            $email = self::generateEmail($data['name']);
+            $user = User::where('email', $email)->first();
+            if($user){
+                throw new Exception('Já existe um usuário com esse nome.');
+            }
             $employee = new Employee($data);
             $employee->department_id = isset($data['department']['id']) ? $data['department']['id'] : null;
             $employee->position_id = isset($data['position']['id']) ? $data['position']['id'] : null;
@@ -214,11 +222,38 @@ class Employee extends Model implements NotifierInterface
             $employee->save();
             $employee->moveFile();
             DB::commit();
+            
+            self::createUser($data, $employee->id);
             return $employee;
         } catch(\Exception $e) {
             DB::rollBack();
             throw new \Exception($e->getMessage());
         }
+    }
+
+    public static function createUser($data, $employeeId) {
+
+        // Verifica se o nome existe
+        if (!isset($data['name']) || !$employeeId) {
+            return null;
+        }
+        $email = self::generateEmail($data['name']);
+        $user = new User();
+        $user->email = $email;
+        $user->password = Hash::make($email);
+        $user->employee_id = $employeeId;
+        $user->save();
+    }
+
+    public static function generateEmail($name){
+        // Divide o nome em palavras
+        $words = explode(' ', $name);
+    
+        // Converte todas as palavras para minúsculas e as une com um ponto
+        $email = implode('.', array_map('strtolower', $words));
+    
+        // Adiciona o domínio do email
+        $email .= '@thinkideias.com.br';
     }
 
     public static function toggleDeleted($id) {

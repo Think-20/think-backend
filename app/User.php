@@ -75,6 +75,12 @@ class User extends Model
             $userId = isset($data['userId']) ? $data['userId'] : '';
             $displays = isset($data['displays']) ? $data['displays'] : [];
             $functionalities = isset($data['functionalities']) ? $data['functionalities'] : [];
+
+            $userToCopy = UserFunctionality::where('user_id', $userId)->select('functionality_id')->get();
+
+            foreach($userToCopy as $user){
+                array_push($functionalities, $user['functionality_id']);
+            }
             
             $user = User::findOrFail($id);
             $user->updateDisplays($displays);
