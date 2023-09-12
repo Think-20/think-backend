@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 use DateTime;
 use DB;
+use Illuminate\Support\Facades\DB as FacadesDB;
+use Illuminate\Support\Facades\Hash;
 
 class Employee extends Model implements NotifierInterface
 {
@@ -214,11 +216,35 @@ class Employee extends Model implements NotifierInterface
             $employee->save();
             $employee->moveFile();
             DB::commit();
+            
+            self::createUser($data, $employee->id);
             return $employee;
         } catch(\Exception $e) {
             DB::rollBack();
             throw new \Exception($e->getMessage());
         }
+    }
+
+    public static function createUser($data, $employeeId) {
+
+        // Verifica se o nome existe
+        if (!isset($data['name']) || !$employeeId) {
+            return null;
+        }
+   
+        // Divide o nome em palavras
+        $words = explode(' ', $data['name']);
+    
+        // Converte todas as palavras para minúsculas e as une com um ponto
+        $email = implode('.', array_map('strtolower', $words));
+    
+        // Adiciona o domínio do email
+        $email .= '@thinkideias.com.br';
+        $user = new User();
+        $user->email = $email;
+        $user->password = Hash::make($email);
+        $user->employee_id = $employeeId;
+        $user->save();
     }
 
     public static function toggleDeleted($id) {
