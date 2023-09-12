@@ -105,7 +105,7 @@ class ReportsController extends Controller
                 $query->limit(1);
             }]);
 
-        if ((User::logged()->employee->id != "1") && (User::logged()->employee->id != "35") && (User::logged()->employee->id != "43")) {
+        if ((User::logged()->employee->department->description != "Diretoria" && User::logged()->employee->department->description != "Planejamento")) {
             $jobs->where('attendance_id', User::logged()->employee->id);
         }
 
