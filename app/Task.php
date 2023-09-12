@@ -29,7 +29,8 @@ class Task extends Model
         "total_cost_value",
         "gross_profit_value",
         "profit_value",
-        "final_value"
+        "final_value",
+        "updated_by"
     ];
 
     public function getTaskName()
@@ -1007,7 +1008,7 @@ class Task extends Model
         isset($data['gross_profit_value']) || $data['gross_profit_value'] == "" ? $task->gross_profit_value = str_replace(',', '', str_replace('.', '', $data['gross_profit_value'])) : null;
         isset($data['profit_value']) || $data['profit_value'] == "" ? $task->profit_value = str_replace(',', '', str_replace('.', '', $data['profit_value'])) : null;
         isset($data['final_value']) || $data['final_value'] == "" ? $task->final_value = $data['final_value'] : null;
-        
+        $task->updated_by = User::logged()->employee->name;
         $task->save();
     }
 

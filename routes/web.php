@@ -162,11 +162,12 @@ Route::group(['middleware' => ['auth.api']], function() {
 
     Route::get('jobevents/filter/{event?}', 'EventController@jobevents');
     Route::post('/tasks/change-values', 'TaskController@editValues');
+
+    Route::post('/employees/all', 'EmployeeController@all');
+    Route::post('/employees/filter', 'EmployeeController@filter');
 });
 
 Route::group(['middleware' => ['auth.api','permission']], function() {
-    Route::post('/employees/all', 'EmployeeController@all');
-    Route::post('/employees/filter', 'EmployeeController@filter');
     Route::get('/employees/get/{id}', 'EmployeeController@get');
     Route::get('/my-employees/get/{id}', 'EmployeeController@myGet');
     Route::post('/employee/save', 'EmployeeController@save');
