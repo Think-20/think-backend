@@ -990,22 +990,22 @@ class Task extends Model
 
     public static function editValues($data){
         $task = Task::find($data['id']);
-        isset($data['orders_value']) || $data['orders_value'] == "" ? $task->orders_value = str_replace(',', '', str_replace('.', '', $data['orders_value'])) : null;
-        isset($data['attendance_value']) || $data['attendance_value'] == "" ? $task->attendance_value = str_replace(',', '', str_replace('.', '', $data['attendance_value'])) : null;
-        isset($data['creation_value']) || $data['creation_value'] == "" ? $task->creation_value = str_replace(',', '', str_replace('.', '', $data['creation_value'])) : null;
-        isset($data['pre_production_value']) || $data['pre_production_value'] == "" ? $task->pre_production_value = str_replace(',', '', str_replace('.', '', $data['pre_production_value'])) : null;
-        isset($data['production_value']) || $data['production_value'] == "" ? $task->production_value = str_replace(',', '', str_replace('.', '', $data['production_value'])) : null;
-        isset($data['details_value']) || $data['details_value'] == "" ? $task->details_value = str_replace(',', '', str_replace('.', '', $data['details_value'])) : null;
-        isset($data['budget_si_value']) || $data['budget_si_value'] == "" ? $task->budget_si_value = str_replace(',', '', str_replace('.', '', $data['budget_si_value'])) : null;
-        isset($data['bv_value']) || $data['bv_value'] == "" ? $task->bv_value = str_replace(',', '', str_replace('.', '', $data['bv_value'])) : null;
-        isset($data['over_rates_value']) || $data['over_rates_value'] == "" ? $task->over_rates_value = str_replace(',', '', str_replace('.', '', $data['over_rates_value'])) : null;
-        isset($data['discounts_value']) || $data['discounts_value'] == "" ? $task->discounts_value = str_replace(',', '', str_replace('.', '', $data['discounts_value'])) : null;
-        isset($data['taxes_value']) || $data['taxes_value'] == "" ? $task->taxes_value = str_replace(',', '', str_replace('.', '', $data['taxes_value'])) : null;
-        isset($data['logistics_value']) || $data['logistics_value'] == "" ? $task->logistics_value = str_replace(',', '', str_replace('.', '', $data['logistics_value'])) : null;
-        isset($data['equipment_value']) || $data['equipment_value'] == "" ? $task->equipment_value = str_replace(',', '', str_replace('.', '', $data['equipment_value'])) : null;
-        isset($data['total_cost_value']) || $data['total_cost_value'] == "" ? $task->total_cost_value = str_replace(',', '', str_replace('.', '', $data['total_cost_value'])) : null;
-        isset($data['gross_profit_value']) || $data['gross_profit_value'] == "" ? $task->gross_profit_value = str_replace(',', '', str_replace('.', '', $data['gross_profit_value'])) : null;
-        isset($data['profit_value']) || $data['profit_value'] == "" ? $task->profit_value = str_replace(',', '', str_replace('.', '', $data['profit_value'])) : null;
+        isset($data['orders_value']) || $data['orders_value'] == "" ? $task->orders_value = $data['orders_value'] : null;
+        isset($data['attendance_value']) || $data['attendance_value'] == "" ? $task->attendance_value = $data['attendance_value'] : null;
+        isset($data['creation_value']) || $data['creation_value'] == "" ? $task->creation_value = $data['creation_value'] : null;
+        isset($data['pre_production_value']) || $data['pre_production_value'] == "" ? $task->pre_production_value = $data['pre_production_value'] : null;
+        isset($data['production_value']) || $data['production_value'] == "" ? $task->production_value = $data['production_value'] : null;
+        isset($data['details_value']) || $data['details_value'] == "" ? $task->details_value = $data['details_value'] : null;
+        isset($data['budget_si_value']) || $data['budget_si_value'] == "" ? $task->budget_si_value = $data['budget_si_value'] : null;
+        isset($data['bv_value']) || $data['bv_value'] == "" ? $task->bv_value = $data['bv_value'] : null;
+        isset($data['over_rates_value']) || $data['over_rates_value'] == "" ? $task->over_rates_value = $data['over_rates_value'] : null;
+        isset($data['discounts_value']) || $data['discounts_value'] == "" ? $task->discounts_value = $data['discounts_value'] : null;
+        isset($data['taxes_value']) || $data['taxes_value'] == "" ? $task->taxes_value = $data['taxes_value'] : null;
+        isset($data['logistics_value']) || $data['logistics_value'] == "" ? $task->logistics_value = $data['logistics_value'] : null;
+        isset($data['equipment_value']) || $data['equipment_value'] == "" ? $task->equipment_value = $data['equipment_value'] : null;
+        isset($data['total_cost_value']) || $data['total_cost_value'] == "" ? $task->total_cost_value = $data['total_cost_value'] : null;
+        isset($data['gross_profit_value']) || $data['gross_profit_value'] == "" ? $task->gross_profit_value = $data['gross_profit_value'] : null;
+        isset($data['profit_value']) || $data['profit_value'] == "" ? $task->profit_value = $data['profit_value'] : null;
         isset($data['final_value']) || $data['final_value'] == "" ? $task->final_value = $data['final_value'] : null;
         $task->updated_by = User::logged()->employee->name;
         $task->save();

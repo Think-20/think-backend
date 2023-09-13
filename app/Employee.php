@@ -254,6 +254,8 @@ class Employee extends Model implements NotifierInterface
     
         // Adiciona o domínio do email
         $email .= '@thinkideias.com.br';
+
+        return $email;
     }
 
     public static function toggleDeleted($id) {
