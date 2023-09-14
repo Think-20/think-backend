@@ -29,12 +29,17 @@ class ReportsController extends Controller
         $currentPage = $request->query('page', 1);
 
         $jobs = self::baseQuery($data)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
+        // return($jobs[0]->tasks[0]);
         if ($jobs->isEmpty()) {
             return response()->json(["error" => false, "message" => "Jobs not found"]);
         }
-
+  
         foreach($jobs as $job){
             foreach($job->tasks as $task){
+                if ($task->job_activity->description == 'Projeto' || $task->job_activity->description == 'Outsider') {
+                    $job->setAttribute('creation_responsible', $task->responsible);
+                }
+
                 if(isset($task->final_value) && $task->final_value != null){
                     $job->setAttribute('lastValue', $task->final_value);
                 }
@@ -158,8 +163,18 @@ class ReportsController extends Controller
         }else{
             $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
         }
-
         return $jobs;
+    }
+
+    public static function creation_responsibles($tasks)
+    {
+        foreach ($tasks as $task) {
+            $responsibles = [];
+            if ($task->job_activity->description == 'Projeto' || $task->job_activity->description == 'Outsider') {
+                array_push($responsibles, $task->responsible);
+            }
+            return $responsibles;
+        }
     }
 
     public static function sumBudgetValue($data)
