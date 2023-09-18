@@ -836,7 +836,7 @@ class Job extends Model
             ->where(
                 'job_activity_id',
                 '=',
-                JobActivity::where('description', '=', 'Projeto')->first()->id
+                JobActivity::where('description', '=', 'Projeto')->orWhere('description', '=', 'Outsider')->first()->id
             );
     }
 
