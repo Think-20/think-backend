@@ -832,12 +832,7 @@ class Job extends Model
 
     public function creation()
     {
-        return $this->tasks()
-            ->where(
-                'job_activity_id',
-                '=',
-                JobActivity::where('description', '=', 'Projeto')->first()->id
-            );
+        return $this->tasks()->whereIn('job_activity_id', [1, 11]);
     }
 
     public function attendance_responsible()
