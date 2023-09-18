@@ -29,7 +29,6 @@ class ReportsController extends Controller
         $currentPage = $request->query('page', 1);
 
         $jobs = self::baseQuery($data)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
-        // return($jobs[0]->tasks[0]);
         if ($jobs->isEmpty()) {
             return response()->json(["error" => false, "message" => "Jobs not found"]);
         }
@@ -37,7 +36,11 @@ class ReportsController extends Controller
         foreach($jobs as $job){
             foreach($job->tasks as $task){
                 if ($task->job_activity->description == 'Projeto' || $task->job_activity->description == 'Outsider') {
-                    $job->setAttribute('creation_responsible', $task->responsible);
+                    if($data['creation'] != 'external'){
+                        $job->setAttribute('creation_responsible', null);
+                    }else{
+                        $job->setAttribute('creation_responsible', $task->responsible);
+                    }
                 }
 
                 if(isset($task->final_value) && $task->final_value != null){
