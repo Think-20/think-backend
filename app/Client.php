@@ -188,6 +188,7 @@ class Client extends Model implements Contactable
 
         foreach ($client->jobs as $job) {
             $job->job_activity;
+            $job->client;
             $job->attendance;
             $job->status;
             $job->responsibles();
