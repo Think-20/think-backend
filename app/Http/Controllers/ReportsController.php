@@ -33,21 +33,23 @@ class ReportsController extends Controller
             return response()->json(["error" => false, "message" => "Jobs not found"]);
         }
 
-        foreach($jobs as $job){
-            foreach($job->tasks as $task){
-                if(isset($data['creation']) && in_array('external', $data['creation'])){
-                    $task->responsible = ["name" => "EXTERNO"];
-                }else{
+        foreach ($jobs as &$job) {
+            foreach ($job->tasks as $task) {
+                
+                if (isset($data['creation']) && in_array('external', $data['creation'])) {
+                    unset($task->responsible);
+                    $task->setAttribute("responsible", ["name" => "EXTERNO"]);
+                } else {
                     if ($task->job_activity->description == 'Projeto' || $task->job_activity->description == 'Outsider') {
                         $job->setAttribute('creation_responsible', $task->responsible);
                     }
-                    if(isset($task->final_value) && $task->final_value != null){
+                    if (isset($task->final_value) && $task->final_value != null) {
                         $job->setAttribute('lastValue', $task->final_value);
                     }
                 }
             }
-        };
-
+        }
+        return response()->json($jobs);
         $adjustedIndex = ($currentPage - 1) * $jobsPerPage;
         $jobs->transform(function ($job) use (&$adjustedIndex) {
             $adjustedIndex++;
@@ -97,13 +99,13 @@ class ReportsController extends Controller
                 'job_activity',
                 'job_type',
                 'client',
-                'main_expectation',
-                'levels',
-                'how_come',
+                // 'main_expectation',
+                // 'levels',
+                // 'how_come',
                 'agency',
                 'attendance',
-                'competition',
-                'files',
+                // 'competition',
+                // 'files',
                 'status',
                 'creation',
                 'tasks'
