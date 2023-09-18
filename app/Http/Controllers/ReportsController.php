@@ -29,22 +29,26 @@ class ReportsController extends Controller
         $currentPage = $request->query('page', 1);
 
         $jobs = self::baseQuery($data)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
-        // return($jobs[0]->tasks[0]);
         if ($jobs->isEmpty()) {
             return response()->json(["error" => false, "message" => "Jobs not found"]);
         }
-  
-        foreach($jobs as $job){
-            foreach($job->tasks as $task){
-                if ($task->job_activity->description == 'Projeto' || $task->job_activity->description == 'Outsider') {
-                    $job->setAttribute('creation_responsible', $task->responsible);
-                }
 
-                if(isset($task->final_value) && $task->final_value != null){
-                    $job->setAttribute('lastValue', $task->final_value);
+        foreach ($jobs as &$job) {
+            foreach ($job->tasks as $task) {
+                
+                if (isset($data['creation']) && in_array('external', $data['creation'])) {
+                    unset($task->responsible);
+                    $task->setAttribute("responsible", ["name" => "Externo"]);
+                } else {
+                    if ($task->job_activity->description == 'Projeto' || $task->job_activity->description == 'Outsider') {
+                        $job->setAttribute('creation_responsible', $task->responsible);
+                    }
+                    if (isset($task->final_value) && $task->final_value != null) {
+                        $job->setAttribute('lastValue', $task->final_value);
+                    }
                 }
             }
-        };
+        }
 
         $adjustedIndex = ($currentPage - 1) * $jobsPerPage;
         $jobs->transform(function ($job) use (&$adjustedIndex) {
@@ -95,13 +99,13 @@ class ReportsController extends Controller
                 'job_activity',
                 'job_type',
                 'client',
-                'main_expectation',
-                'levels',
-                'how_come',
+                // 'main_expectation',
+                // 'levels',
+                // 'how_come',
                 'agency',
                 'attendance',
-                'competition',
-                'files',
+                // 'competition',
+                // 'files',
                 'status',
                 'creation',
                 'tasks'
@@ -128,16 +132,18 @@ class ReportsController extends Controller
             $jobs->whereIn('job_type_id', $jobTypeId);
         }
 
+        if ($creationId && in_array('external', $creationId)){
+            $jobs->whereHas('job_activity', function ($query) {
+                $query->where('description', 'like', '%externo%');
+            });
+        }
+
         if ($event) {
             $jobs->where('event', 'LIKE', '%' . $event . '%');
         }
 
         if ($status) {
             $jobs->whereIn('status_id', $status);
-        }
-
-        if ($creationId && in_array('external', $creationId)){
-            $jobs->whereDoesntHave('creation');
         }
 
         if ($creationId && !in_array('external', $creationId)) {
