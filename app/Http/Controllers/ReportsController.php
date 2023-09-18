@@ -49,7 +49,7 @@ class ReportsController extends Controller
                 }
             }
         }
-        return response()->json($jobs);
+
         $adjustedIndex = ($currentPage - 1) * $jobsPerPage;
         $jobs->transform(function ($job) use (&$adjustedIndex) {
             $adjustedIndex++;
