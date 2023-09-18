@@ -32,11 +32,11 @@ class ReportsController extends Controller
         if ($jobs->isEmpty()) {
             return response()->json(["error" => false, "message" => "Jobs not found"]);
         }
-  
+
         foreach($jobs as $job){
             foreach($job->tasks as $task){
                 if ($task->job_activity->description == 'Projeto' || $task->job_activity->description == 'Outsider') {
-                    if($data['creation'] != 'external'){
+                    if(in_array('external', $data['creation'])){
                         $job->setAttribute('creation_responsible', null);
                     }else{
                         $job->setAttribute('creation_responsible', $task->responsible);
