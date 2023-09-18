@@ -36,7 +36,7 @@ class ReportsController extends Controller
         foreach($jobs as $job){
             foreach($job->tasks as $task){
                 if(isset($data['creation']) && in_array('external', $data['creation'])){
-                    $job->setAttribute('creation_responsible', 'EXTERNO');
+                    $task->responsible = ["name" => "EXTERNO"];
                 }else{
                     if ($task->job_activity->description == 'Projeto' || $task->job_activity->description == 'Outsider') {
                         $job->setAttribute('creation_responsible', $task->responsible);
