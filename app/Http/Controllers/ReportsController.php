@@ -128,16 +128,18 @@ class ReportsController extends Controller
             $jobs->whereIn('job_type_id', $jobTypeId);
         }
 
+        if ($creationId && in_array('external', $creationId)){
+            $jobs->whereHas('job_activity', function ($query) {
+                $query->where('description', 'like', '%externo%');
+            });
+        }
+
         if ($event) {
             $jobs->where('event', 'LIKE', '%' . $event . '%');
         }
 
         if ($status) {
             $jobs->whereIn('status_id', $status);
-        }
-
-        if ($creationId && in_array('external', $creationId)){
-            $jobs->whereDoesntHave('creation');
         }
 
         if ($creationId && !in_array('external', $creationId)) {
