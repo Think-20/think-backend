@@ -135,7 +135,7 @@ class ReportsController extends Controller
 
         if ($jobActivity){
             $jobs->whereHas('job_activity', function ($query) use($jobActivity) {
-                $query->where('id', $jobActivity);
+                $query->whereIn('id', $jobActivity);
             });
         }
 
