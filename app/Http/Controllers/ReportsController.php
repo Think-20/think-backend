@@ -20,6 +20,7 @@ class ReportsController extends Controller
             'creation',
             'attendance',
             'job_type',
+            'job_activity',
             'status',
             'jobs_amount',
             'event'
@@ -92,6 +93,7 @@ class ReportsController extends Controller
         $jobTypeId = isset($data['job_type']) ? $data['job_type'] : null;
         $status = isset($data['status']) ? $data['status'] : null;
         $event = isset($data['event']) ? $data['event'] : null;
+        $jobActivity = isset($data['job_activity']) ? $data['job_activity'] : null;
         $jobs = Job::selectRaw('job.*')
             ->with(
                 'job_activity',
@@ -128,6 +130,12 @@ class ReportsController extends Controller
         if ($creationId && in_array('external', $creationId)){
             $jobs->whereHas('job_activity', function ($query) {
                 $query->where('description', 'like', '%externo%');
+            });
+        }
+
+        if ($jobActivity){
+            $jobs->whereHas('job_activity', function ($query) use($jobActivity) {
+                $query->where('id', $jobActivity);
             });
         }
 
