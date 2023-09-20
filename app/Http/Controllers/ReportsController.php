@@ -43,6 +43,9 @@ class ReportsController extends Controller
                 } else {
                     if ($task->job_activity->description == 'Projeto' || $task->job_activity->description == 'Outsider') {
                         $job->setAttribute('creation_responsible', $task->responsible);
+                        if($task->updated_at != $task->created_at){
+                            $job->setAttribute('project_conclusion', $task->updated_at->toArray()['formatted']); 
+                        }
                     }
                     if (isset($task->final_value) && $task->final_value != null) {
                         $job->setAttribute('lastValue', $task->final_value);
@@ -135,7 +138,7 @@ class ReportsController extends Controller
 
         if ($jobActivity){
             $jobs->whereHas('job_activity', function ($query) use($jobActivity) {
-                $query->where('id', $jobActivity);
+                $query->whereIn('id', $jobActivity);
             });
         }
 
