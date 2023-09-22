@@ -991,7 +991,7 @@ class Task extends Model
 
     public static function editValues($data){
         $task = Task::find($data['id']);
-        // return $task->job;
+
         $clientName = "";
 
         if(isset($task->job->client->name)){
@@ -1020,7 +1020,7 @@ class Task extends Model
         $task->updated_by = User::logged()->employee->name;
         $task->save();
         
-        Notification::createAndNotify(User::logged()->employee, ['message' => "Alteração realizada no Orçamento do projeto " . $clientName], [], 'Alteração de tarefa');
+        Notification::createAndNotify(User::logged()->employee, ['message' => "Modificação do Orçamento de " . $task->job->job_activity->description . ": " . $clientName . " | " . $task->job->event], [], 'Alteração de tarefa');
     }
 
     public function items()
