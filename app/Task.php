@@ -2,6 +2,7 @@
 
 namespace App;
 
+use App\User;
 use DateTime;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
@@ -990,6 +991,15 @@ class Task extends Model
 
     public static function editValues($data){
         $task = Task::find($data['id']);
+        // return $task->job;
+        $clientName = "";
+
+        if(isset($task->job->client->name)){
+            $clientName = $task->job->client->fantasy_name ?? $task->job->client->name;
+        }else{
+            $clientName = $task->job->not_client;
+        }
+
         isset($data['orders_value']) || $data['orders_value'] == "" ? $task->orders_value = $data['orders_value'] : null;
         isset($data['attendance_value']) || $data['attendance_value'] == "" ? $task->attendance_value = $data['attendance_value'] : null;
         isset($data['creation_value']) || $data['creation_value'] == "" ? $task->creation_value = $data['creation_value'] : null;
@@ -1009,6 +1019,8 @@ class Task extends Model
         isset($data['final_value']) || $data['final_value'] == "" ? $task->final_value = $data['final_value'] : null;
         $task->updated_by = User::logged()->employee->name;
         $task->save();
+        
+        Notification::createAndNotify(User::logged()->employee, ['message' => "Alteração realizada no Orçamento do projeto " . $clientName], [], 'Alteração de tarefa');
     }
 
     public function items()
