@@ -1020,7 +1020,7 @@ class Task extends Model
         $task->updated_by = User::logged()->employee->name;
         
         try{
-            $task_orcamento = Task::where('job_id', $$task->job_id)->where('job_activity_id', 2)->first();
+            $task_orcamento = Task::where('job_id', $task->job_id)->where('job_activity_id', 2)->first();
             if($task_orcamento){
                 $task_orcamento->done = true;
             }
