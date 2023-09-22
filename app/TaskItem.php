@@ -250,7 +250,7 @@ class TaskItem extends Model
             $total = $taskItems->count();
             $page = 0;
         }
-
+        return response()->json($result[0]->task);
         return [
             'pagination' => [
                 'data' => $result,
