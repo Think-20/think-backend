@@ -1018,6 +1018,7 @@ class Task extends Model
         isset($data['profit_value']) || $data['profit_value'] == "" ? $task->profit_value = $data['profit_value'] : null;
         isset($data['final_value']) || $data['final_value'] == "" ? $task->final_value = $data['final_value'] : null;
         $task->updated_by = User::logged()->employee->name;
+        $task->done = true;
         $task->save();
         
         Notification::createAndNotify(User::logged()->employee, ['message' => "Modificação do Orçamento de " . $task->job->job_activity->description . ": " . $clientName . " | " . $task->job->event], [], 'Alteração de tarefa');
