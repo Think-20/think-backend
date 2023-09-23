@@ -119,7 +119,8 @@ class Job extends Model
 
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
-            ], NotificationSpecial::createMulti([
+            ], 
+            NotificationSpecial::createMulti([
                 'user_id' => $task->responsible->user->id,
                 'message' => $message,
             ], [
