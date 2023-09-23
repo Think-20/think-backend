@@ -1022,8 +1022,8 @@ class Task extends Model
         $task->updated_by = User::logged()->employee->name;
         $task->save();
 
-        if ($data['taskId']) {
-            $taskToDone = Task::where('id', $data['taskId'])->first();
+        if ($data['task_id']) {
+            $taskToDone = Task::where('id', $data['task_id'])->first();
             if ($taskToDone) {
                 $taskToDone->done = true;
                 $taskToDone->save();
