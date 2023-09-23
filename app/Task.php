@@ -1030,7 +1030,7 @@ class Task extends Model
             }
         }
 
-        Notification::createAndNotify(User::logged()->employee, ['message' => "Entrega de Orçamento de " . $task->job->job_activity->description . ": " . $clientName . " | " . $task->job->event . " para atendimento " . $task->job->attendance->name], [], 'Alteração de tarefa');
+        Notification::createAndNotify(User::logged()->employee, ['message' => "Entrega de Orçamento de " . $task->job->job_activity->description . ": " . $clientName . " | " . $task->job->event . " para " . $task->job->attendance->name], [], 'Alteração de tarefa');
     }
 
     public function items()
