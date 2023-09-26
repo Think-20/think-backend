@@ -109,7 +109,7 @@ class TaskController extends Controller
 
         try {
             $task = Task::editValues($data);
-
+            
             $message = 'Task alterada com sucesso!';
             $status = true;
             DB::commit();

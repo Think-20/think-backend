@@ -1028,6 +1028,14 @@ class Task extends Model
                 $taskToDone->done = true;
                 $taskToDone->save();
             }
+        }else{
+            $jobs = Task::where('job_id', $task->job_id)->where('job_activity_id', 2)->get();
+            if($jobs){
+                foreach($jobs as $job){
+                    $job->done = true;
+                    $job->save();
+                }
+            }
         }
 
         Notification::createAndNotify(User::logged()->employee, ['message' => "Entrega de Orçamento de " . $task->job->job_activity->description . ": " . $clientName . " | " . $task->job->event . " para " . $task->job->attendance->name], [], 'Alteração de tarefa');
