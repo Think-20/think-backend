@@ -81,7 +81,7 @@ class Job extends Model
 
     public function statusChange(Job $oldJob)
     {
-        if ($this->status->id == '3') {
+        if ($this->status->id == '3' || $this->status->id == '2' || $this->status->id == '4') {
             $difference = strtotime($oldJob->created_at) - strtotime((new DateTime())->format('y-m-d'));
             $days = floor($difference / (60 * 60 * 24));
             $this->time_to_aproval = abs($days);
