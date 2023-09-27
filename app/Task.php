@@ -1022,6 +1022,13 @@ class Task extends Model
         $task->updated_by = User::logged()->employee->name;
         $task->save();
 
+        //Atualiza o final value do JOB PAI para o final value inputado
+        $jobFinalValue = Job::where('id', $task->job_id)->first();
+        $jobFinalValue->final_value = $data['final_value'];
+        $jobFinalValue->save();
+
+
+        // Busca a TASK do tipo ORÇAMENTO do JOB PAI e dá DONE nela
         if (isset($data['task_id'])) {
             $taskToDone = Task::where('id', $data['task_id'])->first();
             if ($taskToDone) {
@@ -1038,7 +1045,13 @@ class Task extends Model
             }
         }
 
-        Notification::createAndNotify(User::logged()->employee, ['message' => "Entrega de Orçamento de " . $task->job->job_activity->description . ": " . $clientName . " | " . $task->job->event . " para " . $task->job->attendance->name], [], 'Alteração de tarefa');
+        // Cria mensagem da notificação
+        $message = "Entrega de Orçamento de " . $task->job->job_activity->description . ": " . $clientName . " | " . $task->job->event . " para " . $task->job->attendance->name;
+        // Antes de enviar notificação verifica se essa notificação já foi enviada por esse usuário antes, pra não gerar duplicado
+        $findNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->employee)->first();
+        if(!$findNotification){
+            Notification::createAndNotify(User::logged()->employee, ['message' => $message], [], 'Alteração de tarefa');
+        }
     }
 
     public function items()

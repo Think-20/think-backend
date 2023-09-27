@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Job;
+use App\Task;
 use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -62,25 +63,36 @@ class ReportsController extends Controller
         });
 
         $total_value = self::sumBudgetValue($data);
-        $average_ticket = $total_value ? $total_value['sum'] / $total_value['count'] : 0;
-
         $standby = self::sumStandby($data);
-
         $types = self::getTypes($data);
         $averageTimeToAproval = self::sumTimeToAproval($data);
         $aprovalsAmount = self::sumAprovals($data);
-        $conversionRate = ceil(($aprovalsAmount / $total_value['sum']) * 100);
         $approvedJobs = self::averageApprovedJobsPerMonth($data);
         $advancedJobs = self::averageAdvancedJobsPerMonth($data);
+
+        if($total_value['sum'] > 0){
+            $conversionRate = ceil(($aprovalsAmount['sum'] / $total_value['sum']) * 100) . "%";
+            $conversionCount = $total_value['count'];
+        }else{
+            $conversionRate = 0;
+            $conversionCount = 0;
+        }
+        
+        if($total_value['count'] > 0){
+            $average_ticket = $total_value['sum'] / $total_value['count'];
+        }else{
+            $average_ticket = 0;
+
+        }
 
         return response()->json([
             "jobs" => $jobs,
             "total_value" => number_format($total_value['sum'], 2, ',', '.'),
             "average_ticket" => number_format($average_ticket, 2, ',', '.'),
             "averate_time_to_aproval" => $averageTimeToAproval,
-            "aprovals_value" => number_format($aprovalsAmount, 2, ',', '.'),
+            "aprovals_value" => number_format($aprovalsAmount['sum'], 2, ',', '.'),
             "aprovals_amount" => $aprovalsAmount,
-            "conversion_rate" => $conversionRate . "%",
+            "conversion_rate" => [$conversionRate, $conversionCount],
             "standby_projects" => ["amount" => $standby['count'], "value" => $standby['sum']],
             "types" => $types,
             "averageApprovedJobsPerMonth" => $approvedJobs,
@@ -192,16 +204,9 @@ class ReportsController extends Controller
     {
         $jobs = self::baseQuery($data);
 
-        $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.budget_value) as sum'))->first();
+        $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->first();
 
-        $count = $result->count;
-        $sum = $result->sum;
-
-        if ($count > 0 && $sum != null) {
-            return ["sum" => $sum, "count" => $count];
-        } else {
-            return false;
-        }
+        return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
     }
 
     public static function sumTimeToAproval($data)
@@ -210,12 +215,12 @@ class ReportsController extends Controller
 
         $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.time_to_aproval) as sumTimeToAproval'))->first();
 
-        $count = $result->count;
-        $sumTimeToAproval = $result->sumTimeToAproval;
+        $count = $result->count > 0 ? $result->count : 0;
+        $sumTimeToAproval = $result->sumTimeToAproval != null ? $result->sumTimeToAproval : 0 ;
 
-        if ($sumTimeToAproval != null) {
+        if ($count > 0) {
             return ceil($sumTimeToAproval / $count);
-        } else {
+        }else{
             return 0;
         }
     }
@@ -224,15 +229,9 @@ class ReportsController extends Controller
     {
         $jobs = self::baseQuery($data);
 
-        $result = $jobs->select(DB::raw('SUM(job.budget_value) as sum'))->where('status_id', 3)->first();
+        $result = $jobs->select(DB::raw('COUNT(*) as count, SUM(job.final_value) as sum'))->where('status_id', 3)->first();
 
-        $sum = $result->sum;
-
-        if ($sum != null) {
-            return $sum;
-        } else {
-            return 0;
-        }
+        return ["sum" =>$result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
     }
 
     public static function sumStandby($data)
@@ -241,7 +240,7 @@ class ReportsController extends Controller
 
         $result = $jobs
         ->select(DB::raw('COUNT(*) as count'), 
-            DB::raw('SUM(job.budget_value) as sum'))
+            DB::raw('SUM(job.final_value) as sum'))
         ->where('status_id', 1)
         ->first();
 
@@ -311,7 +310,7 @@ class ReportsController extends Controller
 
         $baseQuery = self::baseQuery($data);
 
-        $jobs = $baseQuery->select(DB::raw('COUNT(*) as count, MONTH(created_at) as month, SUM(budget_value) as budget_value'))
+        $jobs = $baseQuery->select(DB::raw('COUNT(*) as count, MONTH(created_at) as month, SUM(final_value) as final_value'))
             ->where('status_id', 3)
             ->groupBy(DB::raw('MONTH(created_at)'))
             ->get();
@@ -325,7 +324,7 @@ class ReportsController extends Controller
         $totalValueJobsApproved = 0;
         foreach ($jobs as $job) {
             $totalJobsApproved += $job->count;
-            $totalValueJobsApproved += $job->budget_value;
+            $totalValueJobsApproved += $job->final_value;
         }
 
         // Calcular a média de jobs aprovados por mês
@@ -341,7 +340,7 @@ class ReportsController extends Controller
 
         $result = $jobs
         ->select(DB::raw('COUNT(*) as count'), 
-            DB::raw('SUM(job.budget_value) as sum'))
+            DB::raw('SUM(job.final_value) as sum'))
         ->where('status_id', 5)
         ->first();
 
@@ -349,5 +348,20 @@ class ReportsController extends Controller
             return ["sum" => number_format(0, 2, ',', '.'), "count" => 0];
         }
         return ["sum" => number_format($result->sum, 2, ',', '.'), "count" => $result->count];
+    }
+
+    public function reprocess()
+    {
+        $tasks = Task::where('final_value', '<>', 'null')->orderBy('updated_at', 'desc')->get();
+        if($tasks){
+            foreach($tasks as $task){
+                $job = Job::where('id', $task->job_id)->where('final_value', null)->first();
+                if($job){
+                    $job->final_value = $task->final_value;
+                    $job->save();
+                }
+            }
+        }
+        return response()->json("ok");
     }
 }

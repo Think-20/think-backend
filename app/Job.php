@@ -21,7 +21,7 @@ class Job extends Model
         'job_activity_id', 'client_id', 'event', 'deadline', 'job_type_id', 'agency_id', 'attendance_id',
         'rate', 'competition_id', 'last_provider', 'not_client', 'how_come_id', 'approval_expectation_rate',
         'main_expectation_id', 'budget_value', 'status_id', 'note', 'place', 'area', 'moments', 'created_at', 'time_to_aproval',
-        'created_at', 'updated_at'
+        'created_at', 'updated_at', 'final_value'
     ];
 
     protected $dates = [
