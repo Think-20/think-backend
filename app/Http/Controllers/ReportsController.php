@@ -71,11 +71,9 @@ class ReportsController extends Controller
         $advancedJobs = self::averageAdvancedJobsPerMonth($data);
 
         if($total_value['sum'] > 0){
-            $conversionRate = ceil(($aprovalsAmount['sum'] / $total_value['sum']) * 100) . "%";
-            $conversionCount = $total_value['count'];
+            $conversionRate = ceil(($aprovalsAmount['count'] / $total_value['count']) * 100) . "%";
         }else{
             $conversionRate = 0;
-            $conversionCount = 0;
         }
         
         if($total_value['count'] > 0){
