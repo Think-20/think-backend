@@ -88,7 +88,6 @@ class ReportsController extends Controller
             "total_value" => number_format($total_value['sum'], 2, ',', '.'),
             "average_ticket" => number_format($average_ticket, 2, ',', '.'),
             "averate_time_to_aproval" => $averageTimeToAproval,
-            "aprovals_value" => number_format($aprovalsAmount['sum'], 2, ',', '.'),
             "aprovals_amount" => $aprovalsAmount,
             "conversion_rate" => [$conversionRate, $aprovalsAmount['count']],
             "standby_projects" => ["amount" => $standby['count'], "value" => $standby['sum']],
