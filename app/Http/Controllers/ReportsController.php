@@ -70,17 +70,17 @@ class ReportsController extends Controller
         $approvedJobs = self::averageApprovedJobsPerMonth($data);
         $advancedJobs = self::averageAdvancedJobsPerMonth($data);
 
-        if($total_value['sum'] > 0){
-            $conversionRate = ceil(($aprovalsAmount['count'] / $total_value['count']) * 100) . "%";
-        }else{
+
+        if ($total_value['sum'] > 0) {
+            $conversionRate = ceil(($aprovalsAmount['sum'] / $total_value['sum']) * 100) . "%";
+        } else {
             $conversionRate = 0;
         }
-        
-        if($total_value['count'] > 0){
-            $average_ticket = $total_value['sum'] / $total_value['count'];
-        }else{
-            $average_ticket = 0;
 
+        if ($total_value['count'] > 0) {
+            $average_ticket = $total_value['sum'] / $total_value['count'];
+        } else {
+            $average_ticket = 0;
         }
 
         return response()->json([
@@ -88,7 +88,6 @@ class ReportsController extends Controller
             "total_value" => number_format($total_value['sum'], 2, ',', '.'),
             "average_ticket" => number_format($average_ticket, 2, ',', '.'),
             "averate_time_to_aproval" => $averageTimeToAproval,
-            "aprovals_value" => number_format($aprovalsAmount['sum'], 2, ',', '.'),
             "aprovals_amount" => $aprovalsAmount,
             "conversion_rate" => [$conversionRate, $aprovalsAmount['count']],
             "standby_projects" => ["amount" => $standby['count'], "value" => $standby['sum']],
@@ -214,11 +213,11 @@ class ReportsController extends Controller
         $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.time_to_aproval) as sumTimeToAproval'))->first();
 
         $count = $result->count > 0 ? $result->count : 0;
-        $sumTimeToAproval = $result->sumTimeToAproval != null ? $result->sumTimeToAproval : 0 ;
+        $sumTimeToAproval = $result->sumTimeToAproval != null ? $result->sumTimeToAproval : 0;
 
         if ($count > 0) {
             return ceil($sumTimeToAproval / $count);
-        }else{
+        } else {
             return 0;
         }
     }
@@ -229,7 +228,7 @@ class ReportsController extends Controller
 
         $result = $jobs->select(DB::raw('COUNT(*) as count, SUM(job.final_value) as sum'))->where('status_id', 3)->first();
 
-        return ["sum" =>$result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
+        return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
     }
 
     public static function sumStandby($data)
@@ -237,10 +236,12 @@ class ReportsController extends Controller
         $jobs = self::baseQuery($data);
 
         $result = $jobs
-        ->select(DB::raw('COUNT(*) as count'), 
-            DB::raw('SUM(job.final_value) as sum'))
-        ->where('status_id', 1)
-        ->first();
+            ->select(
+                DB::raw('COUNT(*) as count'),
+                DB::raw('SUM(job.final_value) as sum')
+            )
+            ->where('status_id', 1)
+            ->first();
 
         if (!$result) {
             return ["sum" => number_format(0, 2, ',', '.'), "count" => 0];
@@ -290,22 +291,9 @@ class ReportsController extends Controller
 
     public static function averageApprovedJobsPerMonth($data)
     {
-        // Converte as datas para objetos Carbon
-        $inicio = isset($dataInicio) ? Carbon::parse($data["date_init"]) : Carbon::now()->startOfYear();
-        $fim = isset($dataFim) ? Carbon::parse($data['date_end']) : Carbon::now()->endOfMonth();
-
 
         // Calcula a diferença de meses
-        $monthsPassed = $fim->diffInMonths($inicio);
-
-        // Se as datas estão no mesmo mês, a diferença é 1
-        if ($monthsPassed === 0) {
-            $monthsPassed = 1;
-        } else {
-            // Adiciona mais um pq a diferença de meses nunca conta o mês inicial
-            $monthsPassed = $monthsPassed + 1;
-        }
-
+        $monthsPassed = self::monthDiff($data);
         $baseQuery = self::baseQuery($data);
 
         $jobs = $baseQuery->select(DB::raw('COUNT(*) as count, MONTH(created_at) as month, SUM(final_value) as final_value'))
@@ -337,10 +325,12 @@ class ReportsController extends Controller
         $jobs = self::baseQuery($data);
 
         $result = $jobs
-        ->select(DB::raw('COUNT(*) as count'), 
-            DB::raw('SUM(job.final_value) as sum'))
-        ->where('status_id', 5)
-        ->first();
+            ->select(
+                DB::raw('COUNT(*) as count'),
+                DB::raw('SUM(job.final_value) as sum')
+            )
+            ->where('status_id', 5)
+            ->first();
 
         if (!$result) {
             return ["sum" => number_format(0, 2, ',', '.'), "count" => 0];
@@ -351,15 +341,36 @@ class ReportsController extends Controller
     public function reprocess()
     {
         $tasks = Task::where('final_value', '<>', 'null')->orderBy('updated_at', 'desc')->get();
-        if($tasks){
-            foreach($tasks as $task){
+        if ($tasks) {
+            foreach ($tasks as $task) {
                 $job = Job::where('id', $task->job_id)->where('final_value', null)->first();
-                if($job){
+                if ($job) {
                     $job->final_value = $task->final_value;
                     $job->save();
                 }
             }
         }
         return response()->json("ok");
+    }
+
+    public static function monthDiff($data)
+    {
+        // Converte as datas para objetos Carbon
+        $inicio = isset($data["date_init"]) ? Carbon::parse($data["date_init"]) : Carbon::now()->startOfYear();
+        $fim = isset($data['date_end']) ? Carbon::parse($data['date_end']) : Carbon::now()->endOfMonth();
+
+
+        // Calcula a diferença de meses
+        $monthsPassed = $fim->diffInMonths($inicio);
+
+        // Se as datas estão no mesmo mês, a diferença é 1
+        if ($monthsPassed === 0) {
+            $monthsPassed = 1;
+        } else {
+            // Adiciona mais um pq a diferença de meses nunca conta o mês inicial
+            $monthsPassed = $monthsPassed + 1;
+        }
+
+        return $monthsPassed;
     }
 }
