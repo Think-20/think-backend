@@ -84,6 +84,8 @@ Route::get('/specification-files/view/{id}', function ($id)
 
 Route::group(['middleware' => ['auth.api']], function() {
 
+    Route::get('/reprocessOrcamento', 'ReportsController@reprocess');
+
     Route::post('/upload-file', 'UploadFileController@upload');
 
     Route::get('/states/all', 'AddressController@allStates')->name('allStates');
