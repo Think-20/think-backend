@@ -92,7 +92,7 @@ class ReportsController extends Controller
             "averate_time_to_aproval" => $averageTimeToAproval,
             "aprovals_value" => number_format($aprovalsAmount['sum'], 2, ',', '.'),
             "aprovals_amount" => $aprovalsAmount,
-            "conversion_rate" => [$conversionRate, $conversionCount],
+            "conversion_rate" => [$conversionRate, $aprovalsAmount['count']],
             "standby_projects" => ["amount" => $standby['count'], "value" => $standby['sum']],
             "types" => $types,
             "averageApprovedJobsPerMonth" => $approvedJobs,
