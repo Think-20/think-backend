@@ -295,9 +295,11 @@ class TaskItem extends Model
                 $query->where('attendance_id', '=', $user->employee->id);
             });
         } else {
-            $tasks->whereHas('task.job', function ($query) use ($attendances) {
-                $query->whereIn('attendance_id', $attendances);
-            });
+            if($attendances){
+                $tasks->whereHas('task.job', function ($query) use ($attendances) {
+                    $query->whereIn('attendance_id', $attendances);
+                });
+            }
             $tasks->whereHas('task', function ($query) use ($user) {
                 $query->where('responsible_id', '=', $user->employee->id);
             });
