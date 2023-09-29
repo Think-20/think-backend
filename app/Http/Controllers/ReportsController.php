@@ -83,14 +83,16 @@ class ReportsController extends Controller
             $average_ticket = 0;
         }
 
+        $anualTendenceAprovation = $approvedJobs['valueNumber'] * 12;
+
         return response()->json([
             "jobs" => $jobs,
             "total_value" => number_format($total_value['sum'], 2, ',', '.'),
             "average_ticket" => number_format($average_ticket, 2, ',', '.'),
             "averate_time_to_aproval" => $averageTimeToAproval,
             "aprovals_amount" => $aprovalsAmount,
-            "conversion_rate" => [$conversionRate, $aprovalsAmount['count']],
-            "anualTendenceAprovation" => number_format(($aprovalsAmount['sum'] * 12), 2, ',', '.'),
+            "conversion_rate" => [$conversionRate,  number_format($aprovalsAmount['sum'], 2, ',', '.')],
+            "anualTendenceAprovation" => number_format($anualTendenceAprovation, 2, ',', '.'),
             "standby_projects" => ["amount" => $standby['count'], "value" => $standby['sum']],
             "types" => $types,
             "averageApprovedJobsPerMonth" => $approvedJobs,
@@ -292,7 +294,6 @@ class ReportsController extends Controller
 
     public static function averageApprovedJobsPerMonth($data)
     {
-
         // Calcula a diferença de meses
         $monthsPassed = self::monthDiff($data);
         $baseQuery = self::baseQuery($data);
@@ -316,9 +317,10 @@ class ReportsController extends Controller
 
         // Calcular a média de jobs aprovados por mês
         $averageJobsPerMonth = ceil($totalJobsApproved / $monthsPassed);
+        $totalValueJobsApprovedNumber = $totalValueJobsApproved / $monthsPassed;
         $totalValueJobsApproved = number_format(($totalValueJobsApproved / $monthsPassed), 2, ',', '.');
 
-        return ["amount" => $averageJobsPerMonth, "value" => $totalValueJobsApproved];
+        return ["amount" => $averageJobsPerMonth, "value" => $totalValueJobsApproved, "valueNumber" => $totalValueJobsApprovedNumber];
     }
 
     public static function averageAdvancedJobsPerMonth($data)
