@@ -304,7 +304,7 @@ class ReportsController extends Controller
             ->get();
 
         if ($jobs->isEmpty()) {
-            return ["amount" => 0, "value" => 0];
+            return ["amount" => 0, "value" => 0, "valueNumber" => 0];
         }
 
         // Somar a quantidade de jobs aprovados por mês
