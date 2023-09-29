@@ -89,7 +89,7 @@ class ReportsController extends Controller
             "average_ticket" => number_format($average_ticket, 2, ',', '.'),
             "averate_time_to_aproval" => $averageTimeToAproval,
             "aprovals_amount" => $aprovalsAmount,
-            "conversion_rate" => [$conversionRate, $aprovalsAmount['count']],
+            "conversion_rate" => [$conversionRate, $aprovalsAmount['sum']],
             "anualTendenceAprovation" => number_format(($aprovalsAmount['sum'] * 12), 2, ',', '.'),
             "standby_projects" => ["amount" => $standby['count'], "value" => $standby['sum']],
             "types" => $types,
@@ -292,7 +292,6 @@ class ReportsController extends Controller
 
     public static function averageApprovedJobsPerMonth($data)
     {
-
         // Calcula a diferença de meses
         $monthsPassed = self::monthDiff($data);
         $baseQuery = self::baseQuery($data);
