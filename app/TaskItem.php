@@ -264,11 +264,16 @@ class TaskItem extends Model
     public static function filterMyItems($params)
     {
         $user = User::logged();
-
         $iniDate = isset($params['iniDate']) ? $params['iniDate'] : null;
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
+        $attendances = [];
 
+        if(isset($params['attendance_array'])){
+            foreach($params['attendance_array'] as $attendance){
+                array_push($attendances, $attendance['id']);
+            }
+        }
         $tasks = TaskItem::with(
             'task',
             'task.items',
@@ -286,14 +291,21 @@ class TaskItem extends Model
         );
 
         if ($user->employee->department->description == 'Atendimento') {
-            $tasks->whereHas('job', function ($query) use ($user) {
+            $tasks->whereHas('task.job', function ($query) use ($user) {
                 $query->where('attendance_id', '=', $user->employee->id);
             });
         } else {
+            if($attendances){
+                $tasks->whereHas('task.job', function ($query) use ($attendances) {
+                    $query->whereIn('attendance_id', $attendances);
+                });
+            }
             $tasks->whereHas('task', function ($query) use ($user) {
                 $query->where('responsible_id', '=', $user->employee->id);
             });
         }
+
+
 
         if (!is_null($iniDate) && !is_null($finDate)) {
             $tasks->where('task_item.date', '>=', $iniDate);

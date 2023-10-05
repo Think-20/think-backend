@@ -20,7 +20,7 @@ class Job extends Model
         'job_activity_id', 'client_id', 'event', 'deadline', 'job_type_id', 'agency_id', 'attendance_id',
         'rate', 'competition_id', 'last_provider', 'not_client', 'how_come_id', 'approval_expectation_rate',
         'main_expectation_id', 'budget_value', 'status_id', 'note', 'place', 'area', 'moments', 'created_at', 'time_to_aproval', 'attendance_comission_id', 'comission_percentage',
-        'created_at', 'updated_at'
+        'created_at', 'updated_at', 'final_value'
     ];
 
     protected $dates = [
@@ -85,7 +85,7 @@ class Job extends Model
 
     public function statusChange(Job $oldJob)
     {
-        if ($this->status->id == '3') {
+        if ($this->status->id == '3' || $this->status->id == '2' || $this->status->id == '4') {
             $difference = strtotime($oldJob->created_at) - strtotime((new DateTime())->format('y-m-d'));
             $days = floor($difference / (60 * 60 * 24));
             $this->time_to_aproval = abs($days);
@@ -123,7 +123,8 @@ class Job extends Model
 
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
-            ], NotificationSpecial::createMulti([
+            ], 
+            NotificationSpecial::createMulti([
                 'user_id' => $task->responsible->user->id,
                 'message' => $message,
             ], [

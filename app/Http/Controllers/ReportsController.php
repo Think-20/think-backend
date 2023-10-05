@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Job;
+use App\Task;
 use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -54,14 +55,15 @@ class ReportsController extends Controller
             }
             
             foreach ($job->tasks as $task) {
+
                 if (isset($data['creation']) && in_array('external', $data['creation'])) {
                     unset($task->responsible);
                     $task->setAttribute("responsible", ["name" => "Externo"]);
                 } else {
                     if ($task->job_activity->description == 'Projeto' || $task->job_activity->description == 'Outsider') {
                         $job->setAttribute('creation_responsible', $task->responsible);
-                        if($task->updated_at != $task->created_at){
-                            $job->setAttribute('project_conclusion', $task->updated_at->toArray()['formatted']); 
+                        if ($task->updated_at != $task->created_at) {
+                            $job->setAttribute('project_conclusion', $task->updated_at->toArray()['formatted']);
                         }
                     }
                     if (isset($task->final_value) && $task->final_value != null) {
@@ -79,28 +81,40 @@ class ReportsController extends Controller
         });
 
         $total_value = self::sumBudgetValue($data);
-        $average_ticket = $total_value ? $total_value['sum'] / $total_value['count'] : 0;
-
         $standby = self::sumStandby($data);
-        $countStandby = $standby ? $standby['count'] : 0;
-        $sumStandby = $standby ? $standby['sum'] : 0;
-
         $types = self::getTypes($data);
         $averageTimeToAproval = self::sumTimeToAproval($data);
-        $valueAprovals = self::sumAprovals($data);
-        $conversionRate = ceil(($valueAprovals / $total_value['sum']) * 100);
-        $averageJobsPerMonth = self::averageApprovedJobsPerMonth($data);
+        $aprovalsAmount = self::sumAprovals($data);
+        $approvedJobs = self::averageApprovedJobsPerMonth($data);
+        $advancedJobs = self::averageAdvancedJobsPerMonth($data);
+
+
+        if ($total_value['sum'] > 0) {
+            $conversionRate = ceil(($aprovalsAmount['sum'] / $total_value['sum']) * 100) . "%";
+        } else {
+            $conversionRate = 0;
+        }
+
+        if ($total_value['count'] > 0) {
+            $average_ticket = $total_value['sum'] / $total_value['count'];
+        } else {
+            $average_ticket = 0;
+        }
+
+        $anualTendenceAprovation = $approvedJobs['valueNumber'] * 12;
 
         return response()->json([
             "jobs" => $jobs,
             "total_value" => number_format($total_value['sum'], 2, ',', '.'),
             "average_ticket" => number_format($average_ticket, 2, ',', '.'),
             "averate_time_to_aproval" => $averageTimeToAproval,
-            "aprovals_value" => number_format($valueAprovals, 2, ',', '.'),
-            "conversion_rate" => $conversionRate . "%",
-            "standby_projects" => ["amount" => $countStandby, "value" => $sumStandby],
+            "aprovals_amount" => $aprovalsAmount,
+            "conversion_rate" => [$conversionRate,  number_format($aprovalsAmount['sum'], 2, ',', '.')],
+            "anualTendenceAprovation" => number_format($anualTendenceAprovation, 2, ',', '.'),
+            "standby_projects" => ["amount" => $standby['count'], "value" => $standby['sum']],
             "types" => $types,
-            "averageApprovedJobsPerMonth" => $averageJobsPerMonth,
+            "averageApprovedJobsPerMonth" => $approvedJobs,
+            "averageAdvancedJobs" => $advancedJobs,
             'updatedInfo' => Job::updatedInfo()
         ]);
     }
@@ -148,14 +162,14 @@ class ReportsController extends Controller
             $jobs->whereIn('job_type_id', $jobTypeId);
         }
 
-        if ($creationId && in_array('external', $creationId)){
+        if ($creationId && in_array('external', $creationId)) {
             $jobs->whereHas('job_activity', function ($query) {
                 $query->where('description', 'like', '%externo%');
             });
         }
 
-        if ($jobActivity){
-            $jobs->whereHas('job_activity', function ($query) use($jobActivity) {
+        if ($jobActivity) {
+            $jobs->whereHas('job_activity', function ($query) use ($jobActivity) {
                 $query->whereIn('id', $jobActivity);
             });
         }
@@ -183,13 +197,13 @@ class ReportsController extends Controller
 
         if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
-        }else{
+        } else {
             $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
         }
 
         if (isset($data['date_end'])) {
             $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
-        }else{
+        } else {
             $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
         }
         return $jobs;
@@ -210,16 +224,9 @@ class ReportsController extends Controller
     {
         $jobs = self::baseQuery($data);
 
-        $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.budget_value) as sum'))->first();
+        $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->first();
 
-        $count = $result->count;
-        $sum = $result->sum;
-
-        if ($count > 0 && $sum != null) {
-            return ["sum" => $sum, "count" => $count];
-        } else {
-            return false;
-        }
+        return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
     }
 
     public static function sumTimeToAproval($data)
@@ -228,10 +235,10 @@ class ReportsController extends Controller
 
         $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.time_to_aproval) as sumTimeToAproval'))->first();
 
-        $count = $result->count;
-        $sumTimeToAproval = $result->sumTimeToAproval;
+        $count = $result->count > 0 ? $result->count : 0;
+        $sumTimeToAproval = $result->sumTimeToAproval != null ? $result->sumTimeToAproval : 0;
 
-        if ($sumTimeToAproval != null) {
+        if ($count > 0) {
             return ceil($sumTimeToAproval / $count);
         } else {
             return 0;
@@ -242,31 +249,27 @@ class ReportsController extends Controller
     {
         $jobs = self::baseQuery($data);
 
-        $result = $jobs->select(DB::raw('SUM(job.budget_value) as sum'))->where('status_id', 3)->first();
+        $result = $jobs->select(DB::raw('COUNT(*) as count, SUM(job.final_value) as sum'))->where('status_id', 3)->first();
 
-        $sum = $result->sum;
-
-        if ($sum != null) {
-            return $sum;
-        } else {
-            return 0;
-        }
+        return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
     }
 
     public static function sumStandby($data)
     {
         $jobs = self::baseQuery($data);
 
-        $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.budget_value) as sum'))->where('status_id', 1)->first();
+        $result = $jobs
+            ->select(
+                DB::raw('COUNT(*) as count'),
+                DB::raw('SUM(job.final_value) as sum')
+            )
+            ->where('status_id', 1)
+            ->first();
 
-        $sum = $result->sum;
-        $count = $result->count;
-
-        if ($sum != null) {
-            return ["sum" => number_format($sum, 2, ',', '.'), "count" => $count];
-        } else {
-            return false;
+        if (!$result) {
+            return ["sum" => number_format(0, 2, ',', '.'), "count" => 0];
         }
+        return ["sum" => number_format($result->sum, 2, ',', '.'), "count" => $result->count];
     }
 
     public static function getTypes($data)
@@ -309,38 +312,88 @@ class ReportsController extends Controller
         return $counts;
     }
 
-    public static function averageApprovedJobsPerMonth()
+    public static function averageApprovedJobsPerMonth($data)
     {
-        // Obter a data de início (1º de janeiro do ano atual)
-        $initialDate = date('Y') . '-01-01';
+        // Calcula a diferença de meses
+        $monthsPassed = self::monthDiff($data);
+        $baseQuery = self::baseQuery($data);
 
-        // Obter a data atual
-        $currentDate = date('Y-m-d');
-
-        $jobs = Job::selectRaw('COUNT(*) as count, MONTH(created_at) as month, SUM(budget_value) as budget_value')
+        $jobs = $baseQuery->select(DB::raw('COUNT(*) as count, MONTH(created_at) as month, SUM(final_value) as final_value'))
             ->where('status_id', 3)
-            ->where('created_at', '>=', $initialDate)
-            ->where('created_at', '<=', $currentDate)
             ->groupBy(DB::raw('MONTH(created_at)'))
             ->get();
-        // dd($jobs->isEmpty());
+
         if ($jobs->isEmpty()) {
-            return ["averageJobsPerMonth" => 0, "totalValueJobsApproved" => 0];
+            return ["amount" => 0, "value" => 0, "valueNumber" => 0];
         }
-        // Contar a quantidade de meses desde janeiro até o mês atual
-        $monthsPassed = date('n');
 
         // Somar a quantidade de jobs aprovados por mês
         $totalJobsApproved = 0;
         $totalValueJobsApproved = 0;
         foreach ($jobs as $job) {
             $totalJobsApproved += $job->count;
-            $totalValueJobsApproved += $job->budget_value;
+            $totalValueJobsApproved += $job->final_value;
         }
 
         // Calcular a média de jobs aprovados por mês
-        $averageJobsPerMonth = $totalJobsApproved / $monthsPassed;
+        $averageJobsPerMonth = ceil($totalJobsApproved / $monthsPassed);
+        $totalValueJobsApprovedNumber = $totalValueJobsApproved / $monthsPassed;
+        $totalValueJobsApproved = number_format(($totalValueJobsApproved / $monthsPassed), 2, ',', '.');
 
-        return ["amount" => ceil($averageJobsPerMonth), "value" => number_format($totalValueJobsApproved, 2, ',', '.')];
+        return ["amount" => $averageJobsPerMonth, "value" => $totalValueJobsApproved, "valueNumber" => $totalValueJobsApprovedNumber];
+    }
+
+    public static function averageAdvancedJobsPerMonth($data)
+    {
+        $jobs = self::baseQuery($data);
+
+        $result = $jobs
+            ->select(
+                DB::raw('COUNT(*) as count'),
+                DB::raw('SUM(job.final_value) as sum')
+            )
+            ->where('status_id', 5)
+            ->first();
+
+        if (!$result) {
+            return ["sum" => number_format(0, 2, ',', '.'), "count" => 0];
+        }
+        return ["sum" => number_format($result->sum, 2, ',', '.'), "count" => $result->count];
+    }
+
+    public function reprocess()
+    {
+        $tasks = Task::where('final_value', '<>', 'null')->orderBy('updated_at', 'desc')->get();
+        if ($tasks) {
+            foreach ($tasks as $task) {
+                $job = Job::where('id', $task->job_id)->where('final_value', null)->first();
+                if ($job) {
+                    $job->final_value = $task->final_value;
+                    $job->save();
+                }
+            }
+        }
+        return response()->json("ok");
+    }
+
+    public static function monthDiff($data)
+    {
+        // Converte as datas para objetos Carbon
+        $inicio = isset($data["date_init"]) ? Carbon::parse($data["date_init"]) : Carbon::now()->startOfYear();
+        $fim = isset($data['date_end']) ? Carbon::parse($data['date_end']) : Carbon::now()->endOfMonth();
+
+
+        // Calcula a diferença de meses
+        $monthsPassed = $fim->diffInMonths($inicio);
+
+        // Se as datas estão no mesmo mês, a diferença é 1
+        if ($monthsPassed === 0) {
+            $monthsPassed = 1;
+        } else {
+            // Adiciona mais um pq a diferença de meses nunca conta o mês inicial
+            $monthsPassed = $monthsPassed + 1;
+        }
+
+        return $monthsPassed;
     }
 }

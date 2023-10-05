@@ -2,6 +2,7 @@
 
 namespace App;
 
+use App\User;
 use DateTime;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
@@ -492,10 +493,10 @@ class Task extends Model
 
         $nextItem = $items->pop();
         $responsible = Employee::find($nextItem->responsible_id);
-        
+
         //100%, 30% do valor, conforme o parâmetro fixed_budget_value
         //Acrescentar pelo tipo de tarefa.
-        $jobValue = (float) $this->job->budget_value 
+        $jobValue = (float) $this->job->budget_value
             * $jobActivity->fixed_budget_value
             * $this->job->job_type->fixed_budget_value;
 
@@ -505,7 +506,8 @@ class Task extends Model
             $usedInThisDate = (float) $nextItem->budget_value;
 
             //Racionar em vários dias somente atendendo requisito mínimo de valor
-            if ($usedInThisDate < $maxValuePerDay 
+            if (
+                $usedInThisDate < $maxValuePerDay
                 && ($jobValueWithoutModify > $jobActivity->min_budget_value_to_more_days
                     || $jobValueWithoutModify <= ($maxValuePerDay - $usedInThisDate))
             ) {
@@ -988,8 +990,18 @@ class Task extends Model
         return TaskFactory::build($this->job_activity->description);
     }
 
-    public static function editValues($data){
+    public static function editValues($data)
+    {
         $task = Task::find($data['id']);
+
+        $clientName = "";
+
+        if (isset($task->job->client->name)) {
+            $clientName = $task->job->client->fantasy_name ?? $task->job->client->name;
+        } else {
+            $clientName = $task->job->not_client;
+        }
+
         isset($data['orders_value']) || $data['orders_value'] == "" ? $task->orders_value = $data['orders_value'] : null;
         isset($data['attendance_value']) || $data['attendance_value'] == "" ? $task->attendance_value = $data['attendance_value'] : null;
         isset($data['creation_value']) || $data['creation_value'] == "" ? $task->creation_value = $data['creation_value'] : null;
@@ -1009,6 +1021,37 @@ class Task extends Model
         isset($data['final_value']) || $data['final_value'] == "" ? $task->final_value = $data['final_value'] : null;
         $task->updated_by = User::logged()->employee->name;
         $task->save();
+
+        //Atualiza o final value do JOB PAI para o final value inputado
+        $jobFinalValue = Job::where('id', $task->job_id)->first();
+        $jobFinalValue->final_value = $data['final_value'];
+        $jobFinalValue->save();
+
+
+        // Busca a TASK do tipo ORÇAMENTO do JOB PAI e dá DONE nela
+        if (isset($data['task_id'])) {
+            $taskToDone = Task::where('id', $data['task_id'])->first();
+            if ($taskToDone) {
+                $taskToDone->done = true;
+                $taskToDone->save();
+            }
+        }else{
+            $jobs = Task::where('job_id', $task->job_id)->where('job_activity_id', 2)->get();
+            if($jobs){
+                foreach($jobs as $job){
+                    $job->done = true;
+                    $job->save();
+                }
+            }
+        }
+
+        // Cria mensagem da notificação
+        $message = "Entrega de Orçamento de " . $task->job->job_activity->description . ": " . $clientName . " | " . $task->job->event . " para " . $task->job->attendance->name;
+        // Antes de enviar notificação verifica se essa notificação já foi enviada por esse usuário antes, pra não gerar duplicado
+        $findNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->employee)->first();
+        if(!$findNotification){
+            Notification::createAndNotify(User::logged()->employee, ['message' => $message], [], 'Alteração de tarefa');
+        }
     }
 
     public function items()
