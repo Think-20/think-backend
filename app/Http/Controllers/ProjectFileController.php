@@ -57,7 +57,7 @@ class ProjectFileController extends Controller
         /* Catch com FileException tamanho máximo */
         catch(Exception $e) {
             DB::rollBack();
-            $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
+            $message = 'Um erro ocorreu ('.$e->getFile() .' '. $e->getLine().') ao cadastrar: ' . $e->getMessage();
              //. $e->getFile() . $e->getLine();
         }
 

@@ -1027,7 +1027,6 @@ class Task extends Model
         $jobFinalValue->final_value = $data['final_value'];
         $jobFinalValue->save();
 
-
         // Busca a TASK do tipo ORÇAMENTO do JOB PAI e dá DONE nela
         if (isset($data['task_id'])) {
             $taskToDone = Task::where('id', $data['task_id'])->first();
@@ -1035,12 +1034,20 @@ class Task extends Model
                 $taskToDone->done = true;
                 $taskToDone->save();
             }
-        }else{
-            $jobs = Task::where('job_id', $task->job_id)->where('job_activity_id', 2)->get();
-            if($jobs){
-                foreach($jobs as $job){
+        } else {
+            $jobs = Task::where('job_id', $task->job_id)->where('job_activity_id', 2)->where('done', false)->get();
+            if ($jobs) {
+                foreach ($jobs as $job) {
                     $job->done = true;
                     $job->save();
+                }
+            } else {
+                $jobs = Task::where('job_id', $task->job_id)->where('job_activity_id', 15)->where('done', false)->get();
+                if ($jobs) {
+                    foreach ($jobs as $job) {
+                        $job->done = true;
+                        $job->save();
+                    }
                 }
             }
         }
@@ -1049,7 +1056,7 @@ class Task extends Model
         $message = "Entrega de Orçamento de " . $task->job->job_activity->description . ": " . $clientName . " | " . $task->job->event . " para " . $task->job->attendance->name;
         // Antes de enviar notificação verifica se essa notificação já foi enviada por esse usuário antes, pra não gerar duplicado
         $findNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->employee)->first();
-        if(!$findNotification){
+        if (!$findNotification) {
             Notification::createAndNotify(User::logged()->employee, ['message' => $message], [], 'Alteração de tarefa');
         }
     }

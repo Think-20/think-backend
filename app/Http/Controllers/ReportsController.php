@@ -35,7 +35,35 @@ class ReportsController extends Controller
             return response()->json(["error" => false, "message" => "Jobs not found"]);
         }
 
-        foreach ($jobs as &$job) {
+        foreach ($jobs as $job) {
+            // Concatena o nome dos 2 atendentes caso seja comissionado
+            if(isset($job["attendance_comission"])){
+                if(isset($data['attendance'])){
+                    if(!in_array($job["attendance_comission"]['id'], $data['attendance']) && in_array($job->attendance->id, $data['attendance'])){
+                        $job->attendance->name = $job->attendance->name;
+    
+                        //Exibe os valores sem a comissão do outro atendente
+                        $percentage = (100 - $job->comission_percentage) / 100;
+                        $job->budget_value = $job->budget_value * $percentage;
+                        if($job->final_value != null && $job->final_value > 0){
+                            $job->final_value = $job->final_value * $percentage;
+                        }
+                    }elseif(in_array($job["attendance_comission"]['id'], $data['attendance']) && !in_array($job->attendance->id, $data['attendance'])){
+                        $job->attendance->name = $job->attendance_comission->name;
+    
+                        $percentage = $job->comission_percentage / 100;
+                        $job->budget_value = $job->budget_value * $percentage;
+                        if($job->final_value != null && $job->final_value > 0){
+                            $job->final_value = $job->final_value * $percentage;
+                        }
+                    }else{
+                        $job->attendance->name = $job->attendance->name . "/" . $job->attendance_comission->name;
+                    }
+                }else{
+                    $job->attendance->name = $job->attendance->name . "/" . $job->attendance_comission->name;
+                }
+            }
+            
             foreach ($job->tasks as $task) {
 
                 if (isset($data['creation']) && in_array('external', $data['creation'])) {
@@ -119,14 +147,15 @@ class ReportsController extends Controller
                 'attendance',
                 'status',
                 'creation',
-                'tasks'
+                'tasks',
+                'attendance_comission'
             )
             ->with(['creation.items' => function ($query) {
                 $query->limit(1);
             }]);
 
         if ((User::logged()->employee->department->description != "Diretoria" && User::logged()->employee->department->description != "Planejamento")) {
-            $jobs->where('attendance_id', User::logged()->employee->id);
+            $jobs->where('attendance_id', User::logged()->employee->id)->orWhere('attendance_comission_id', User::logged()->employee->id);
         }
 
         if ($name) {
@@ -173,6 +202,7 @@ class ReportsController extends Controller
             $jobs->whereHas('attendance', function ($query) use ($attendanceId) {
                 $query->whereIn('id', $attendanceId);
             });
+            $jobs->orWHereIn('attendance_comission_id', $attendanceId);
         }
 
         if (isset($data['date_init'])) {

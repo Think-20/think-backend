@@ -144,23 +144,6 @@ class ProjectFile extends Model {
         return $project_file;
     }
 
-    /*
-    public static function edit(array $data) {
-        $id = isset($data['id']) ? $data['id'] : null;
-        $task_id = isset($data['task']['id']) ? $data['task']['id'] : null;
-        $responsible_id = User::logged()->employee->id;
-
-        $project_file = ProjectFile::find($id);
-        
-        $project_file->update(array_merge($data, [
-            'task_id' => $task_id,
-            'responsible_id' => $responsible_id
-        ]));
-        
-        return $project_file;
-    }
-    */
-
     public static function remove($id) {
         $projectFile = ProjectFile::find($id);
         $task = $projectFile->task;

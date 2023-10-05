@@ -8,7 +8,6 @@ use DB;
 use DateTime;
 use DateInterval;
 use Exception;
-use Illuminate\Support\Carbon;
 
 class Job extends Model
 {
@@ -20,7 +19,7 @@ class Job extends Model
         'code',
         'job_activity_id', 'client_id', 'event', 'deadline', 'job_type_id', 'agency_id', 'attendance_id',
         'rate', 'competition_id', 'last_provider', 'not_client', 'how_come_id', 'approval_expectation_rate',
-        'main_expectation_id', 'budget_value', 'status_id', 'note', 'place', 'area', 'moments', 'created_at', 'time_to_aproval',
+        'main_expectation_id', 'budget_value', 'status_id', 'note', 'place', 'area', 'moments', 'created_at', 'time_to_aproval', 'attendance_comission_id', 'comission_percentage',
         'created_at', 'updated_at', 'final_value'
     ];
 
@@ -65,6 +64,11 @@ class Job extends Model
         isset($data['how_come']['id']) ? $job->how_come_id = $data['how_come']['id'] : null;
         isset($data['attendance']['id']) ? $job->attendance_id = $data['attendance']['id'] : null;
         isset($data['competition']['id']) ? $job->competition_id = $data['competition']['id'] : null;
+
+        if(isset($data['comission'])){
+            $job->attendance_comission_id = $data['comission']['attendance']['id'];
+            $job->comission_percentage = $data['comission']['percentage'];
+        }
 
         $job->save();
         $job->update($data);
@@ -151,6 +155,11 @@ class Job extends Model
                 'competition_id' => $data['competition']['id'],
             ])
         );
+
+        if(isset($data['comission'])){
+            $job->attendance_comission_id = $data['comission']['attendance']['id'];
+            $job->comission_percentage = $data['comission']['percentage'];
+        }
 
         $job->save();
 
@@ -409,6 +418,10 @@ class Job extends Model
 
         if ($job->attendance_id != User::logged()->employee->id) {
             throw new \Exception('Você não tem permissão para editar esse job.');
+        }
+        if(isset($data['comission'])){
+            $job->attendance_comission_id = $data['comission']['attendance']['id'];
+            $job->comission_percentage = $data['comission']['percentage'];
         }
 
         $job->update(
@@ -708,7 +721,12 @@ class Job extends Model
         $path = env('FILES_FOLDER') . '/jobs/' . $this->id;
 
         if (!is_dir($path)) {
-            mkdir($path);
+            try {
+                mkdir($path);
+            } catch (Exception $e) {
+                $sudoCommand = "sudo mkdir -p $path";
+                shell_exec($sudoCommand);
+            }
         }
 
         foreach ($data as $file) {
@@ -1016,6 +1034,11 @@ class Job extends Model
     public function attendance()
     {
         return $this->belongsTo('App\Employee', 'attendance_id')->withTrashed();
+    }
+
+    public function attendance_comission()
+    {
+        return $this->belongsTo('App\Employee', 'attendance_comission_id');
     }
 
     public function competition()
