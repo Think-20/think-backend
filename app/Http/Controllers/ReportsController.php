@@ -37,7 +37,7 @@ class ReportsController extends Controller
 
         foreach ($jobs as $job) {
             // Concatena o nome dos 2 atendentes caso seja comissionado
-            if(isset($job["attendance_comission"])){
+            if(isset($job["attendance_comission"]['id']) && $job["attendance_comission"]['id'] != null){
                 if(isset($data['attendance'])){
                     if(!in_array($job["attendance_comission"]['id'], $data['attendance']) && in_array($job->attendance->id, $data['attendance'])){
                         $job->attendance->name = $job->attendance->name;
