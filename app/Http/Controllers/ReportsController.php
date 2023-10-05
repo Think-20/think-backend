@@ -41,13 +41,20 @@ class ReportsController extends Controller
                 if(!in_array($job["attendance_comission"]['id'], $data['attendance']) && in_array($job->attendance->id, $data['attendance'])){
                     $job->attendance->name = $job->attendance->name;
 
+                    //Exibe os valores sem a comissão do outro atendente
                     $percentage = (100 - $job->comission_percentage) / 100;
                     $job->budget_value = $job->budget_value * $percentage;
+                    if($job->final_value != null && $job->final_value > 0){
+                        $job->final_value = $job->final_value * $percentage;
+                    }
                 }elseif(in_array($job["attendance_comission"]['id'], $data['attendance']) && !in_array($job->attendance->id, $data['attendance'])){
                     $job->attendance->name = $job->attendance_comission->name;
 
                     $percentage = $job->comission_percentage / 100;
                     $job->budget_value = $job->budget_value * $percentage;
+                    if($job->final_value != null && $job->final_value > 0){
+                        $job->final_value = $job->final_value * $percentage;
+                    }
                 }else{
                     $job->attendance->name = $job->attendance->name . "/" . $job->attendance_comission->name;
                 }
