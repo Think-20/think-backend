@@ -213,8 +213,6 @@ class JobController extends Controller
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
-        //$oldJob = Job::find($request->id);
-        //$oldChild = Job::getJobChild($oldJob);
 
         try {
             $job = Job::editMyJob($data);
