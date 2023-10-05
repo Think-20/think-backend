@@ -62,8 +62,6 @@ class ReportsController extends Controller
                 }else{
                     $job->attendance->name = $job->attendance->name . "/" . $job->attendance_comission->name;
                 }
-
-                return response()->json($job);
             }
             
             foreach ($job->tasks as $task) {
