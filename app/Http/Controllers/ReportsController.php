@@ -35,7 +35,7 @@ class ReportsController extends Controller
             return response()->json(["error" => false, "message" => "Jobs not found"]);
         }
 
-        foreach ($jobs as $job) {
+        foreach ($jobs as &$job) {
             foreach ($job->tasks as $task) {
                 if (isset($data['creation']) && in_array('external', $data['creation'])) {
                     unset($task->responsible);
@@ -79,7 +79,7 @@ class ReportsController extends Controller
 
 
         $adjustedIndex = ($currentPage - 1) * $jobsPerPage;
-        $jobs->transform(function ($job) use ($adjustedIndex) {
+        $jobs->transform(function ($job) use (&$adjustedIndex) {
             $adjustedIndex++;
             $job->setAttribute('index', $adjustedIndex);
             return $job;
