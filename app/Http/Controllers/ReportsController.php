@@ -36,36 +36,7 @@ class ReportsController extends Controller
         }
 
         foreach ($jobs as $job) {
-            // Concatena o nome dos 2 atendentes caso seja comissionado
-            if(isset($job["attendance_comission"])){
-                if(isset($data['attendance'])){
-                    if(!in_array($job["attendance_comission"]['id'], $data['attendance']) && in_array($job->attendance->id, $data['attendance'])){
-                        $job->attendance->name = $job->attendance->name;
-    
-                        //Exibe os valores sem a comissão do outro atendente
-                        $percentage = (100 - $job->comission_percentage) / 100;
-                        $job->budget_value = $job->budget_value * $percentage;
-                        if($job->final_value != null && $job->final_value > 0){
-                            $job->final_value = $job->final_value * $percentage;
-                        }
-                    }elseif(in_array($job["attendance_comission"]['id'], $data['attendance']) && !in_array($job->attendance->id, $data['attendance'])){
-                        $job->attendance->name = $job->attendance_comission->name;
-    
-                        $percentage = $job->comission_percentage / 100;
-                        $job->budget_value = $job->budget_value * $percentage;
-                        if($job->final_value != null && $job->final_value > 0){
-                            $job->final_value = $job->final_value * $percentage;
-                        }
-                    }else{
-                        $job->attendance->name = $job->attendance->name . "/" . $job->attendance_comission->name;
-                    }
-                }else{
-                    $job->attendance->name = $job->attendance->name . "/" . $job->attendance_comission->name;
-                }
-            }
-            
             foreach ($job->tasks as $task) {
-
                 if (isset($data['creation']) && in_array('external', $data['creation'])) {
                     unset($task->responsible);
                     $task->setAttribute("responsible", ["name" => "Externo"]);
@@ -81,10 +52,34 @@ class ReportsController extends Controller
                     }
                 }
             }
+            if ($job["attendance_comission_id"] != null) {
+                if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
+                    $job->setAttribute('specialAttendance', $job->attendance->name . '/' . $job->attendance_comission->name);
+                    $job->setAttribute('specialBudget', $job->budget_value);
+                    $job->setAttribute('specialFinalValue', $job->final_value);
+                } else {
+                    if (!in_array($job["attendance_comission_id"], $data['attendance']) && in_array($job->attendance->id, $data['attendance'])) {
+                        $percentage = (100 - $job->comission_percentage) / 100;
+                        $job->setAttribute('specialAttendance', $job->attendance->name);
+                        $job->setAttribute('specialBudget', $job->budget_value * $percentage);
+                        $job->setAttribute('specialFinalValue', $job->final_value * $percentage);
+                    } elseif (in_array($job["attendance_comission_id"], $data['attendance']) && !in_array($job->attendance->id, $data['attendance'])) {
+                        $percentage = $job->comission_percentage / 100;
+                        $job->setAttribute('specialAttendance', $job->attendance_comission->name);
+                        $job->setAttribute('specialBudget', $job->budget_value * $percentage);
+                        $job->setAttribute('specialFinalValue', $job->final_value * $percentage);
+                    } elseif (in_array($job["attendance_comission_id"], $data['attendance']) && in_array($job->attendance->id, $data['attendance'])) {
+                        $job->setAttribute('specialAttendance', $job->attendance->name . '/' . $job->attendance_comission->name);
+                        $job->setAttribute('specialBudget', $job->budget_value);
+                        $job->setAttribute('specialFinalValue', $job->final_value);
+                    }
+                }
+            }
         }
 
+
         $adjustedIndex = ($currentPage - 1) * $jobsPerPage;
-        $jobs->transform(function ($job) use (&$adjustedIndex) {
+        $jobs->transform(function ($job) use ($adjustedIndex) {
             $adjustedIndex++;
             $job->setAttribute('index', $adjustedIndex);
             return $job;
