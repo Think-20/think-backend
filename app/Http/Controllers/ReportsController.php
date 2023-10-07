@@ -202,17 +202,17 @@ class ReportsController extends Controller
         }
     
         if ((User::logged()->employee->department->description != "Diretoria" && User::logged()->employee->department->description != "Planejamento")) {
-            $jobs->where('attendance_id', User::logged()->employee->id);
-            // $jobs->where(function ($query) {
-                // $query->where('attendance_id', User::logged()->employee->id)
-                    //   ->orWhere('attendance_comission_id', User::logged()->employee->id);
-            // });
+            // $jobs->where('attendance_id', User::logged()->employee->id);
+            $jobs->where(function ($query) {
+                $query->where('attendance_id', User::logged()->employee->id)
+                      ->orWhere('attendance_comission_id', User::logged()->employee->id);
+            });
         }else{
             if ($attendanceId) {
                 $jobs->whereHas('attendance', function ($query) use ($attendanceId) {
                     $query->whereIn('id', $attendanceId);
+                    $query->orWHereIn('attendance_comission_id', $attendanceId);
                 });
-                // $jobs->orWHereIn('attendance_comission_id', $attendanceId);
             }
         }
 
