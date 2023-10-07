@@ -149,25 +149,6 @@ class ReportsController extends Controller
                 $query->limit(1);
             }]);
 
-            if (isset($data['date_init'])) {
-                $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
-            } else {
-                $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
-            }
-    
-            if (isset($data['date_end'])) {
-                $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
-            } else {
-                $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
-            }
-        
-            if ((User::logged()->employee->department->description != "Diretoria" && User::logged()->employee->department->description != "Planejamento")) {
-                $jobs->where(function ($query) {
-                    $query->where('attendance_id', User::logged()->employee->id)
-                          ->orWhere('attendance_comission_id', User::logged()->employee->id);
-                });
-            }
-
         if ($name) {
             $jobs->where(function ($query) use ($name) {
                 $query->whereHas('client', function ($subquery) use ($name) {
@@ -208,11 +189,30 @@ class ReportsController extends Controller
             });
         }
 
-        if ($attendanceId) {
-            $jobs->whereHas('attendance', function ($query) use ($attendanceId) {
-                $query->whereIn('id', $attendanceId);
+        if (isset($data['date_init'])) {
+            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
+        }
+
+        if (isset($data['date_end'])) {
+            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        }
+    
+        if ((User::logged()->employee->department->description != "Diretoria" && User::logged()->employee->department->description != "Planejamento")) {
+            $jobs->where(function ($query) {
+                $query->where('attendance_id', User::logged()->employee->id)
+                      ->orWhere('attendance_comission_id', User::logged()->employee->id);
             });
-            $jobs->orWHereIn('attendance_comission_id', $attendanceId);
+        }else{
+            if ($attendanceId) {
+                $jobs->whereHas('attendance', function ($query) use ($attendanceId) {
+                    $query->whereIn('id', $attendanceId);
+                });
+                $jobs->orWHereIn('attendance_comission_id', $attendanceId);
+            }
         }
 
         return $jobs;
