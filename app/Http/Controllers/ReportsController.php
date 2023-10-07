@@ -149,9 +149,24 @@ class ReportsController extends Controller
                 $query->limit(1);
             }]);
 
-        if ((User::logged()->employee->department->description != "Diretoria" && User::logged()->employee->department->description != "Planejamento")) {
-            $jobs->where('attendance_id', User::logged()->employee->id)->orWhere('attendance_comission_id', User::logged()->employee->id);
-        }
+            if (isset($data['date_init'])) {
+                $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+            } else {
+                $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
+            }
+    
+            if (isset($data['date_end'])) {
+                $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+            } else {
+                $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+            }
+        
+            if ((User::logged()->employee->department->description != "Diretoria" && User::logged()->employee->department->description != "Planejamento")) {
+                $jobs->where(function ($query) {
+                    $query->where('attendance_id', User::logged()->employee->id)
+                          ->orWhere('attendance_comission_id', User::logged()->employee->id);
+                });
+            }
 
         if ($name) {
             $jobs->where(function ($query) use ($name) {
@@ -200,17 +215,6 @@ class ReportsController extends Controller
             $jobs->orWHereIn('attendance_comission_id', $attendanceId);
         }
 
-        if (isset($data['date_init'])) {
-            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
-        }
-
-        if (isset($data['date_end'])) {
-            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
-        }
         return $jobs;
     }
 
