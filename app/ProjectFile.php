@@ -16,7 +16,7 @@ class ProjectFile extends Model {
     public function moveFile() {
         $browserFiles = [];
         $path = env('FILES_FOLDER') . '/project-files';
-        
+
         if (!is_dir($path)) {
             try {
                 mkdir($path);
