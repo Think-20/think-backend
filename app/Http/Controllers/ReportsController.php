@@ -56,7 +56,7 @@ class ReportsController extends Controller
                 if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
                     $job->setAttribute('specialAttendance', $job->attendance->name . '/' . $job->attendance_comission->name);
                     $job->setAttribute('specialBudget', number_format($job->budget_value, 2, ',', '.'));
-                    $job->setAttribute('specialFinalValue', $job->final_value), 2, ',', '.'));
+                    $job->setAttribute('specialFinalValue', number_format($job->final_value), 2, ',', '.');
                 } else {
                     if (!in_array($job["attendance_comission_id"], $data['attendance']) && in_array($job->attendance->id, $data['attendance'])) {
                         $percentage = (100 - $job->comission_percentage) / 100;
