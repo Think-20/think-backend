@@ -16,31 +16,25 @@ class ProjectFile extends Model {
     public function moveFile() {
         $browserFiles = [];
         $path = env('FILES_FOLDER') . '/project-files';
-
-        if ($this->file_contents) {
-            file_put_contents($path . '/' . $this->name, $this->file_contents);
-        } else {
-            throw new Exception('Dados do arquivo não encontrados para mover');
-        }
         
-        // if (!is_dir($path)) {
-        //     try {
-        //         mkdir($path);
-        //     } catch (Exception $e) {
-        //         $sudoCommand = "sudo mkdir -p $path";
-        //         shell_exec($sudoCommand);
-        //     }
-        // }
+        if (!is_dir($path)) {
+            try {
+                mkdir($path);
+            } catch (Exception $e) {
+                $sudoCommand = "sudo mkdir -p $path";
+                shell_exec($sudoCommand);
+            }
+        }
 
-        // if(is_file(sys_get_temp_dir() . '/' .  $this->original_name)) {
-        //     $res = rename(sys_get_temp_dir() . '/' .  $this->original_name, $path . '/' . $this->name);
+        if(is_file(sys_get_temp_dir() . '/' .  $this->original_name)) {
+            $res = rename(sys_get_temp_dir() . '/' .  $this->original_name, $path . '/' . $this->name);
             
-        //     if(!$res) {
-        //         throw new Exception('Erro ao mover o arquivo para a pasta de projetos');
-        //     }
-        // } else {
-        //     throw new Exception('Arquivo não encontrado para mover');
-        // }
+            if(!$res) {
+                throw new Exception('Erro ao mover o arquivo para a pasta de projetos');
+            }
+        } else {
+            throw new Exception('Arquivo não encontrado para mover');
+        }
     }
 
     public static function downloadFile($id) {
@@ -130,16 +124,11 @@ class ProjectFile extends Model {
         $name = sha1($tempPath . time());
         $type = (new \SplFileInfo($tempPath))->getExtension();
 
-        $fileContents = isset($data['file_contents']) ? $data['file_contents'] : null;
-        $fileExtension = isset($data['file_extension']) ? $data['file_extension'] : null;
-    
-
         $project_file = new ProjectFile(array_merge($data, [
             'task_id' => $task_id,
             'name' => $name,
-            'type' => $fileExtension,
-            'responsible_id' => $responsible->id,
-            'file_contents' => $fileContents
+            'type' => $type,
+            'responsible_id' => $responsible->id
         ]));
 
         $project_file->save();
