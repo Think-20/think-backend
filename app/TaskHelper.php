@@ -5,6 +5,7 @@ namespace App;
 use DateTime;
 use Exception;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Log;
 use stdClass;
 
 class TaskHelper
@@ -88,6 +89,7 @@ class TaskHelper
         $responsibles = $jobActivity->responsibles;
 
         if ($responsibles->count() === 0) {
+            Log::debug(["ERRO ATIVIDADE" => $responsibles, "JOB" => $job]);
             throw new Exception('Não há responsáveis para essa atividade.');
         }
 
