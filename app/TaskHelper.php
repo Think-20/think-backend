@@ -96,7 +96,8 @@ class TaskHelper
         if ($onlyResponsible !== null && $responsibles->filter(function ($res) use ($onlyResponsible) {
             return $res->id == $onlyResponsible->id;
         })->count() === 0) {
-            throw new Exception('Não há responsáveis para essa atividade.');
+            Log::debug(["ERRO ATIVIDADE" => $responsibles, "JOB" => $job]);
+            throw new Exception('Não há responsáveis para essa atividade. ' . 'job: ' . $job . ' responsibles: ' . $responsibles);
         }
 
 
