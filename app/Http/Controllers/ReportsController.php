@@ -95,7 +95,7 @@ class ReportsController extends Controller
 
 
         if ($total_value['sum'] > 0) {
-            $conversionRate = ceil(($aprovalsAmount['sum'] / $total_value['sum']) * 100) . "%";
+            $conversionRate = round(($aprovalsAmount['sum'] / $total_value['sum']) * 100) . "%";
         } else {
             $conversionRate = 0;
         }
@@ -268,7 +268,7 @@ class ReportsController extends Controller
         $sumTimeToAproval = $result->sumTimeToAproval != null ? $result->sumTimeToAproval : 0;
 
         if ($count > 0) {
-            return ceil($sumTimeToAproval / $count);
+            return round($sumTimeToAproval / $count);
         } else {
             return 0;
         }
@@ -367,7 +367,7 @@ class ReportsController extends Controller
         }
 
         // Calcular a média de jobs aprovados por mês
-        $averageJobsPerMonth = ceil($totalJobsApproved / $monthsPassed);
+        $averageJobsPerMonth = round($totalJobsApproved / $monthsPassed);
         $totalValueJobsApprovedNumber = $totalValueJobsApproved / $monthsPassed;
         $totalValueJobsApproved = number_format(($totalValueJobsApproved / $monthsPassed), 2, ',', '.');
 
