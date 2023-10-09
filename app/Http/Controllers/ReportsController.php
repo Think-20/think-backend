@@ -55,22 +55,22 @@ class ReportsController extends Controller
             if ($job["attendance_comission_id"] != null) {
                 if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
                     $job->setAttribute('specialAttendance', $job->attendance->name . '/' . $job->attendance_comission->name);
-                    $job->setAttribute('specialBudget', $job->budget_value);
+                    $job->setAttribute('specialBudget', number_format($job->budget_value, 2, ',', '.'));
                     $job->setAttribute('specialFinalValue', $job->final_value);
                 } else {
                     if (!in_array($job["attendance_comission_id"], $data['attendance']) && in_array($job->attendance->id, $data['attendance'])) {
                         $percentage = (100 - $job->comission_percentage) / 100;
                         $job->setAttribute('specialAttendance', $job->attendance->name);
-                        $job->setAttribute('specialBudget', $job->budget_value * $percentage);
+                        $job->setAttribute('specialBudget', number_format(($job->budget_value * $percentage), 2, ',', '.'));
                         $job->setAttribute('specialFinalValue', $job->final_value * $percentage);
                     } elseif (in_array($job["attendance_comission_id"], $data['attendance']) && !in_array($job->attendance->id, $data['attendance'])) {
                         $percentage = $job->comission_percentage / 100;
                         $job->setAttribute('specialAttendance', $job->attendance_comission->name);
-                        $job->setAttribute('specialBudget', $job->budget_value * $percentage);
+                        $job->setAttribute('specialBudget', number_format(($job->budget_value * $percentage), 2, ',', '.'));
                         $job->setAttribute('specialFinalValue', $job->final_value * $percentage);
                     } elseif (in_array($job["attendance_comission_id"], $data['attendance']) && in_array($job->attendance->id, $data['attendance'])) {
                         $job->setAttribute('specialAttendance', $job->attendance->name . '/' . $job->attendance_comission->name);
-                        $job->setAttribute('specialBudget', $job->budget_value);
+                        $job->setAttribute('specialBudget', number_format($job->budget_value, 2, ',', '.'));
                         $job->setAttribute('specialFinalValue', $job->final_value);
                     }
                 }
@@ -200,14 +200,14 @@ class ReportsController extends Controller
         } else {
             $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
         }
-    
+
         if ((User::logged()->employee->department->description != "Diretoria" && User::logged()->employee->department->description != "Planejamento")) {
             // $jobs->where('attendance_id', User::logged()->employee->id);
             $jobs->where(function ($query) {
                 $query->where('attendance_id', User::logged()->employee->id)
-                      ->orWhere('attendance_comission_id', User::logged()->employee->id);
+                    ->orWhere('attendance_comission_id', User::logged()->employee->id);
             });
-        }else{
+        } else {
             if ($attendanceId) {
                 $jobs->whereHas('attendance', function ($query) use ($attendanceId) {
                     $query->whereIn('id', $attendanceId);
@@ -234,7 +234,27 @@ class ReportsController extends Controller
     {
         $jobs = self::baseQuery($data);
 
-        $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->first();
+        if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
+            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->first();
+        } else {
+            $result = $jobs->select(
+                DB::raw('COUNT(*) as count'),
+                DB::raw('SUM(
+                    CASE
+                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
+                            CASE
+                                WHEN 
+                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
+                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
+                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
+                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
+                                ELSE final_value
+                            END
+                        ELSE final_value
+                    END
+                ) as sum')
+            )->first();
+        }
 
         return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
     }
@@ -242,7 +262,6 @@ class ReportsController extends Controller
     public static function sumTimeToAproval($data)
     {
         $jobs = self::baseQuery($data);
-
         $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.time_to_aproval) as sumTimeToAproval'))->first();
 
         $count = $result->count > 0 ? $result->count : 0;
@@ -258,9 +277,10 @@ class ReportsController extends Controller
     public static function sumAprovals($data)
     {
         $jobs = self::baseQuery($data);
+        // dd($jobs->where('status_id', 3)->get()->toArray());
 
         $result = $jobs->select(DB::raw('COUNT(*) as count, SUM(job.final_value) as sum'))->where('status_id', 3)->first();
-
+        // dd($result->toArray());
         return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
     }
 
@@ -326,6 +346,7 @@ class ReportsController extends Controller
     {
         // Calcula a diferença de meses
         $monthsPassed = self::monthDiff($data);
+
         $baseQuery = self::baseQuery($data);
 
         $jobs = $baseQuery->select(DB::raw('COUNT(*) as count, MONTH(created_at) as month, SUM(final_value) as final_value'))
@@ -350,6 +371,7 @@ class ReportsController extends Controller
         $totalValueJobsApprovedNumber = $totalValueJobsApproved / $monthsPassed;
         $totalValueJobsApproved = number_format(($totalValueJobsApproved / $monthsPassed), 2, ',', '.');
 
+        // dd($averageJobsPerMonth, $totalJobsApproved, $monthsPassed);
         return ["amount" => $averageJobsPerMonth, "value" => $totalValueJobsApproved, "valueNumber" => $totalValueJobsApprovedNumber];
     }
 
