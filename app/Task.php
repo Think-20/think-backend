@@ -1036,7 +1036,7 @@ class Task extends Model
             }
         } else {
             $jobs = Task::where('job_id', $task->job_id)->where('job_activity_id', 2)->where('done', false)->get();
-            if ($jobs) {
+            if ($jobs->count() > 0) {
                 foreach ($jobs as $job) {
                     $job->done = true;
                     $job->save();
