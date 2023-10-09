@@ -16,9 +16,14 @@ class ProjectFile extends Model {
     public function moveFile() {
         $browserFiles = [];
         $path = env('FILES_FOLDER') . '/project-files';
-
-        if(!is_dir($path)) {
-            mkdir($path);
+        
+        if (!is_dir($path)) {
+            try {
+                mkdir($path);
+            } catch (Exception $e) {
+                $sudoCommand = "sudo mkdir -p $path";
+                shell_exec($sudoCommand);
+            }
         }
 
         if(is_file(sys_get_temp_dir() . '/' .  $this->original_name)) {
