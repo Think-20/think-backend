@@ -405,9 +405,9 @@ class ReportsController extends Controller
 
         // $jobs = $baseQuery->select(DB::raw('COUNT(*) as count, MONTH(created_at) as month, SUM(final_value) as final_value'))->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
-            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
+            $result = $baseQuery->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
         } else {
-            $result = $jobs->select(
+            $result = $baseQuery->select(
                 DB::raw('COUNT(*) as count'),
                 DB::raw('SUM(
                     CASE
