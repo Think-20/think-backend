@@ -88,15 +88,15 @@ class TaskHelper
 
         $responsibles = $jobActivity->responsibles;
 
-        // if ($responsibles->count() === 0) {
-        //     throw new Exception('Não há responsáveis para essa atividade.');
-        // }
+        if ($responsibles->count() === 0) {
+            throw new Exception('Não há responsáveis para essa atividade.');
+        }
 
-        // if ($onlyResponsible !== null && $responsibles->filter(function ($res) use ($onlyResponsible) {
-        //     return $res->id == $onlyResponsible->id;
-        // })->count() === 0) {
-        //     throw new Exception('Não há responsáveis para essa atividade.');
-        // }
+        if ($onlyResponsible !== null && $responsibles->filter(function ($res) use ($onlyResponsible) {
+            return $res->id == $onlyResponsible->id;
+        })->count() === 0) {
+            throw new Exception('Não há responsáveis para essa atividade.');
+        }
 
 
         $completeDates = TaskHelper::completeDates($initialDate, $finalDate, $responsibles);

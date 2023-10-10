@@ -123,6 +123,15 @@ class ProjectFile extends Model {
         $tempPath = sys_get_temp_dir() . '/' .  $original_name;
         $name = sha1($tempPath . time());
         $type = (new \SplFileInfo($tempPath))->getExtension();
+        $attendance = null;
+
+        if($task_id != null){
+            $taskFind = Task::where('id', $task_id)->first();
+            $jobFind = Job::where('id', $taskFind->job_id)->first();
+            if($jobFind){
+                $attendance = $jobFind->attendance_id;
+            }
+        }
 
         $project_file = new ProjectFile(array_merge($data, [
             'task_id' => $task_id,
@@ -142,7 +151,7 @@ class ProjectFile extends Model {
         ->count();
 
         if($count == 0) {
-            $task->insertAutomatic($newJobActivity, $task->job->attendance, $task->job->attendance);
+            $task->insertAutomatic($newJobActivity, $task->job->attendance ?? $attendance, $task->job->attendance ?? $attendance);
         }
 
         $project_file->updateDone($task);
