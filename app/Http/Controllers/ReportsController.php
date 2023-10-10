@@ -262,7 +262,27 @@ class ReportsController extends Controller
     public static function sumTimeToAproval($data)
     {
         $jobs = self::baseQuery($data);
-        $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.time_to_aproval) as sumTimeToAproval'))->first();
+        if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
+            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->first();
+        } else {
+            $result = $jobs->select(
+                DB::raw('COUNT(*) as count'),
+                DB::raw('SUM(
+                    CASE
+                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
+                            CASE
+                                WHEN 
+                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
+                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
+                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
+                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
+                                ELSE final_value
+                            END
+                        ELSE final_value
+                    END
+                ) as sum')
+            )->first();
+        }
 
         $count = $result->count > 0 ? $result->count : 0;
         $sumTimeToAproval = $result->sumTimeToAproval != null ? $result->sumTimeToAproval : 0;
@@ -277,9 +297,28 @@ class ReportsController extends Controller
     public static function sumAprovals($data)
     {
         $jobs = self::baseQuery($data);
-        // dd($jobs->where('status_id', 3)->get()->toArray());
-
-        $result = $jobs->select(DB::raw('COUNT(*) as count, SUM(job.final_value) as sum'))->where('status_id', 3)->first();
+        // $result = $jobs->select(DB::raw('COUNT(*) as count, SUM(job.final_value) as sum'))->where('status_id', 3)->first();
+        if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
+            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 3)->first();
+        } else {
+            $result = $jobs->select(
+                DB::raw('COUNT(*) as count'),
+                DB::raw('SUM(
+                    CASE
+                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
+                            CASE
+                                WHEN 
+                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
+                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
+                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
+                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
+                                ELSE final_value
+                            END
+                        ELSE final_value
+                    END
+                ) as sum')
+            )->where('status_id', 3)->first();
+        }
         // dd($result->toArray());
         return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
     }
@@ -288,13 +327,28 @@ class ReportsController extends Controller
     {
         $jobs = self::baseQuery($data);
 
-        $result = $jobs
-            ->select(
+        // $result = $jobs->select(DB::raw('COUNT(*) as count'),DB::raw('SUM(job.final_value) as sum'))->where('status_id', 1)->first();
+        if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
+            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 1)->first();
+        } else {
+            $result = $jobs->select(
                 DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(job.final_value) as sum')
-            )
-            ->where('status_id', 1)
-            ->first();
+                DB::raw('SUM(
+                    CASE
+                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
+                            CASE
+                                WHEN 
+                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
+                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
+                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
+                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
+                                ELSE final_value
+                            END
+                        ELSE final_value
+                    END
+                ) as sum')
+            )->where('status_id', 1)->first();
+        }
 
         if (!$result) {
             return ["sum" => number_format(0, 2, ',', '.'), "count" => 0];
@@ -349,19 +403,37 @@ class ReportsController extends Controller
 
         $baseQuery = self::baseQuery($data);
 
-        $jobs = $baseQuery->select(DB::raw('COUNT(*) as count, MONTH(created_at) as month, SUM(final_value) as final_value'))
-            ->where('status_id', 3)
-            ->groupBy(DB::raw('MONTH(created_at)'))
-            ->get();
+        // $jobs = $baseQuery->select(DB::raw('COUNT(*) as count, MONTH(created_at) as month, SUM(final_value) as final_value'))->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
+        if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
+            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
+        } else {
+            $result = $jobs->select(
+                DB::raw('COUNT(*) as count'),
+                DB::raw('SUM(
+                    CASE
+                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
+                            CASE
+                                WHEN 
+                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
+                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
+                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
+                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
+                                ELSE final_value
+                            END
+                        ELSE final_value
+                    END
+                ) as sum')
+            )->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
+        }
 
-        if ($jobs->isEmpty()) {
+        if ($result->isEmpty()) {
             return ["amount" => 0, "value" => 0, "valueNumber" => 0];
         }
 
         // Somar a quantidade de jobs aprovados por mês
         $totalJobsApproved = 0;
         $totalValueJobsApproved = 0;
-        foreach ($jobs as $job) {
+        foreach ($result as $job) {
             $totalJobsApproved += $job->count;
             $totalValueJobsApproved += $job->final_value;
         }
@@ -379,13 +451,27 @@ class ReportsController extends Controller
     {
         $jobs = self::baseQuery($data);
 
-        $result = $jobs
-            ->select(
+        if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
+            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 5)->first();
+        } else {
+            $result = $jobs->select(
                 DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(job.final_value) as sum')
-            )
-            ->where('status_id', 5)
-            ->first();
+                DB::raw('SUM(
+                    CASE
+                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
+                            CASE
+                                WHEN 
+                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
+                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
+                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
+                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
+                                ELSE final_value
+                            END
+                        ELSE final_value
+                    END
+                ) as sum')
+            )->where('status_id', 5)->first();
+        }
 
         if (!$result) {
             return ["sum" => number_format(0, 2, ',', '.'), "count" => 0];
