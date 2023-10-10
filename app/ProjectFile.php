@@ -107,11 +107,11 @@ class ProjectFile extends Model {
     }
     
     public function updateDone(Task $task) {
-        if($task->project_files->count() > 0) {
+        // if($task->project_files->count() > 0) {
             $task->done = 1;
-        } else {
-            $task->done = 0;
-        }
+        // } else {
+        //     $task->done = 0;
+        // }
 
         $task->save();
     }
@@ -141,18 +141,7 @@ class ProjectFile extends Model {
         ->where('job_activity_id', $newJobActivity->id)
         ->count();
 
-        $attendance = $task->job->attendance;
-
-        if(!$attendance){
-            $taskFind = Task::where('id', $task_id)->first();
-            $jobFind = Job::where('id', $taskFind->job_id)->first();
-            if($jobFind){
-                $attendance = Employee::where('id', $jobFind->attendance_id)->first();
-            }
-        }
-
         if($count == 0) {
-            // $task->insertAutomatic($newJobActivity, $attendance, $attendance);
             $task->insertAutomatic($newJobActivity, $task->job->attendance, $task->job->attendance);
         }
 
