@@ -10,7 +10,6 @@ use DB;
 
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
-use App\FileHelper;
 
 class ProjectFileController extends Controller
 {
@@ -72,8 +71,6 @@ class ProjectFileController extends Controller
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
-        //$oldProjectFile = ProjectFile::find($request->id);
-        //$oldChild = ProjectFile::getProjectFileChild($oldProjectFile);
 
         try {
             $project_file = ProjectFile::edit($data);
