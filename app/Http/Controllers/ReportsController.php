@@ -403,7 +403,6 @@ class ReportsController extends Controller
 
         $baseQuery = self::baseQuery($data);
 
-        // $jobs = $baseQuery->select(DB::raw('COUNT(*) as count, MONTH(created_at) as month, SUM(final_value) as final_value'))->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
             $result = $baseQuery->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
         } else {
@@ -435,7 +434,7 @@ class ReportsController extends Controller
         $totalValueJobsApproved = 0;
         foreach ($result as $job) {
             $totalJobsApproved += $job->count;
-            $totalValueJobsApproved += $job->final_value;
+            $totalValueJobsApproved += $job->sum;
         }
 
         // Calcular a média de jobs aprovados por mês
@@ -443,7 +442,6 @@ class ReportsController extends Controller
         $totalValueJobsApprovedNumber = $totalValueJobsApproved / $monthsPassed;
         $totalValueJobsApproved = number_format(($totalValueJobsApproved / $monthsPassed), 2, ',', '.');
 
-        // dd($averageJobsPerMonth, $totalJobsApproved, $monthsPassed);
         return ["amount" => $averageJobsPerMonth, "value" => $totalValueJobsApproved, "valueNumber" => $totalValueJobsApprovedNumber];
     }
 
