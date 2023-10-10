@@ -152,8 +152,8 @@ class ProjectFile extends Model {
         }
 
         if($count == 0) {
-            $task->insertAutomatic($newJobActivity, $attendance, $attendance);
-            // $task->insertAutomatic($newJobActivity, $task->job->attendance, $task->job->attendance);
+            // $task->insertAutomatic($newJobActivity, $attendance, $attendance);
+            $task->insertAutomatic($newJobActivity, $task->job->attendance, $task->job->attendance);
         }
 
         $project_file->updateDone($task);
