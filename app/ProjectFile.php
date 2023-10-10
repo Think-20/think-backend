@@ -123,15 +123,6 @@ class ProjectFile extends Model {
         $tempPath = sys_get_temp_dir() . '/' .  $original_name;
         $name = sha1($tempPath . time());
         $type = (new \SplFileInfo($tempPath))->getExtension();
-        $attendance = null;
-
-        if($task_id != null){
-            $taskFind = Task::where('id', $task_id)->first();
-            $jobFind = Job::where('id', $taskFind->job_id)->first();
-            if($jobFind){
-                $attendance = Employee::where('id', $jobFind->attendance_id)->first();
-            }
-        }
 
         $project_file = new ProjectFile(array_merge($data, [
             'task_id' => $task_id,
@@ -150,10 +141,20 @@ class ProjectFile extends Model {
         ->where('job_activity_id', $newJobActivity->id)
         ->count();
 
-        // if($count == 0) {
-        //     // $task->insertAutomatic($newJobActivity, $task->job->attendance ?? $attendance, $task->job->attendance ?? $attendance);
-        //     $task->insertAutomatic($newJobActivity, $task->job->attendance, $task->job->attendance);
-        // }
+        $attendance = $task->job->attendance;
+
+        if(!$attendance){
+            $taskFind = Task::where('id', $task_id)->first();
+            $jobFind = Job::where('id', $taskFind->job_id)->first();
+            if($jobFind){
+                $attendance = Employee::where('id', $jobFind->attendance_id)->first();
+            }
+        }
+
+        if($count == 0) {
+            $task->insertAutomatic($newJobActivity, $attendance, $attendance);
+            // $task->insertAutomatic($newJobActivity, $task->job->attendance, $task->job->attendance);
+        }
 
         $project_file->updateDone($task);
         return $project_file;
