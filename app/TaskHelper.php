@@ -93,6 +93,7 @@ class TaskHelper
         }
 
         if ($onlyResponsible !== null && $responsibles->filter(function ($res) use ($onlyResponsible) {
+            dd($res->id, $onlyResponsible->id);
             return $res->id == $onlyResponsible->id;
         })->count() === 0) {
             throw new Exception('Não há responsáveis para essa atividade.');
