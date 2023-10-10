@@ -150,10 +150,10 @@ class ProjectFile extends Model {
         ->where('job_activity_id', $newJobActivity->id)
         ->count();
 
-        if($count == 0) {
-            $task->insertAutomatic($newJobActivity, $attendance, $attendance);
-            // $task->insertAutomatic($newJobActivity, $task->job->attendance ?? $attendance, $task->job->attendance ?? $attendance);
-        }
+        // if($count == 0) {
+        //     // $task->insertAutomatic($newJobActivity, $task->job->attendance ?? $attendance, $task->job->attendance ?? $attendance);
+        //     $task->insertAutomatic($newJobActivity, $task->job->attendance, $task->job->attendance);
+        // }
 
         $project_file->updateDone($task);
         return $project_file;
