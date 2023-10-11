@@ -132,10 +132,9 @@ class ProjectFile extends Model {
         ]));
 
         $project_file->save();
-        // $project_file->moveFile();
+        $project_file->moveFile();
 
         $task = $project_file->task;
-        $project_file->updateDone($task);
         $newJobActivity = JobActivity::where('description', '=', 'Memorial descritivo')->first();
 
         $count = Task::where('task_id', $task->id)
