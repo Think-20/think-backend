@@ -55,23 +55,23 @@ class ReportsController extends Controller
             if ($job["attendance_comission_id"] != null) {
                 if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
                     $job->setAttribute('specialAttendance', $job->attendance->name . '/' . $job->attendance_comission->name);
-                    $job->setAttribute('specialBudget', number_format($job->budget_value, 2, ',', '.'));
-                    $job->setAttribute('specialFinalValue', number_format($job->final_value), 2, ',', '.');
+                    $job->setAttribute('specialBudget', $job->budget_value);
+                    $job->setAttribute('specialFinalValue', $job->final_value);
                 } else {
                     if (!in_array($job["attendance_comission_id"], $data['attendance']) && in_array($job->attendance->id, $data['attendance'])) {
                         $percentage = (100 - $job->comission_percentage) / 100;
                         $job->setAttribute('specialAttendance', $job->attendance->name);
-                        $job->setAttribute('specialBudget', number_format(($job->budget_value * $percentage), 2, ',', '.'));
-                        $job->setAttribute('specialFinalValue',number_format(($job->final_value * $percentage), 2, ',', '.'));
+                        $job->setAttribute('specialBudget', $job->budget_value * $percentage);
+                        $job->setAttribute('specialFinalValue',$job->final_value * $percentage);
                     } elseif (in_array($job["attendance_comission_id"], $data['attendance']) && !in_array($job->attendance->id, $data['attendance'])) {
                         $percentage = $job->comission_percentage / 100;
                         $job->setAttribute('specialAttendance', $job->attendance_comission->name);
-                        $job->setAttribute('specialBudget', number_format(($job->budget_value * $percentage), 2, ',', '.'));
-                        $job->setAttribute('specialFinalValue', number_format(($job->final_value * $percentage), 2, ',', '.'));
+                        $job->setAttribute('specialBudget', $job->budget_value * $percentage);
+                        $job->setAttribute('specialFinalValue', $job->final_value * $percentage);
                     } elseif (in_array($job["attendance_comission_id"], $data['attendance']) && in_array($job->attendance->id, $data['attendance'])) {
                         $job->setAttribute('specialAttendance', $job->attendance->name . '/' . $job->attendance_comission->name);
-                        $job->setAttribute('specialBudget', number_format($job->budget_value, 2, ',', '.'));
-                        $job->setAttribute('specialFinalValue', number_format($job->final_value), 2, ',', '.');
+                        $job->setAttribute('specialBudget', $job->budget_value);
+                        $job->setAttribute('specialFinalValue', $job->final_value);
                     }
                 }
             }
@@ -110,12 +110,12 @@ class ReportsController extends Controller
 
         return response()->json([
             "jobs" => $jobs,
-            "total_value" => number_format($total_value['sum'], 2, ',', '.'),
-            "average_ticket" => number_format($average_ticket, 2, ',', '.'),
+            "total_value" => $total_value['sum'],
+            "average_ticket" => $average_ticket,
             "averate_time_to_aproval" => $averageTimeToAproval,
             "aprovals_amount" => $aprovalsAmount,
-            "conversion_rate" => [$conversionRate,  number_format($aprovalsAmount['sum'], 2, ',', '.')],
-            "anualTendenceAprovation" => number_format($anualTendenceAprovation, 2, ',', '.'),
+            "conversion_rate" => [$conversionRate, $aprovalsAmount['sum']],
+            "anualTendenceAprovation" => $anualTendenceAprovation,
             "standby_projects" => ["amount" => $standby['count'], "value" => $standby['sum']],
             "types" => $types,
             "averageApprovedJobsPerMonth" => $approvedJobs,
