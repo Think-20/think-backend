@@ -437,8 +437,8 @@ class Task extends Model
             return;
         }
 
-        $latestReopened = Task::where('job_activity_id', $task->job_activity_id)->max('reopened');
-        
+        $latestReopened = Task::where('job_activity_id', $task->job_activity_id)->were('job_id', $task->job->id)->max('reopened');
+
             if($latestReopened){
                 $task->reopened = $latestReopened + 1;
             }else{
