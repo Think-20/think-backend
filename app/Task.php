@@ -437,9 +437,27 @@ class Task extends Model
             return;
         }
 
-        $sum = 1;
+        $latestReopened = Task::where('job_activity_id', $task->job_activity_id)->where('job_id', $task->job->id)->max('reopened');
 
-        foreach ($task->job->tasks as $t) {
+            if($latestReopened){
+                $task->reopened = $latestReopened + 1;
+            }else{
+                $task->reopened = 1; 
+            }
+
+        $task->save();
+    }
+
+    public static function modifyReopened2(Task $task)
+    {
+        if ($task->job_activity->counter == 0) {
+            return;
+        }
+
+        $sum = 1;
+        $tasks = $task->job->tasks->sortBy('id');
+
+        foreach ($tasks as $t) {
             if ($t->job_activity->description == $task->job_activity->description) {
                 $t->reopened = $sum;
                 $t->save();
