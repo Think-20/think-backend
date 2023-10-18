@@ -448,16 +448,15 @@ class Task extends Model
         $task->save();
     }
 
-    public static function modifyReopened2(Task $task)
+    public static function modifyReopened2(Task $task) // DESCONTINUED
     {
         if ($task->job_activity->counter == 0) {
             return;
         }
 
         $sum = 1;
-        $tasks = $task->job->tasks->sortBy('id');
 
-        foreach ($tasks as $t) {
+        foreach ($$task->job->tasks as $t) {
             if ($t->job_activity->description == $task->job_activity->description) {
                 $t->reopened = $sum;
                 $t->save();

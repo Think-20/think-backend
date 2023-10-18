@@ -1,6 +1,5 @@
 <?php
 
-use App\UserNotification;
 use Illuminate\Support\Facades\Route;
 /*
 |--------------------------------------------------------------------------
@@ -153,6 +152,8 @@ Route::group(['middleware' => ['auth.api']], function() {
 
     Route::post('/positions/all', 'PositionController@all');
     Route::post('/positions/filter', 'PositionController@filter');
+
+    Route::post('/dashboard', 'DashboardController@index');
 
     Route::get('/jobs/calculate', 'JobController@calculate');
     Route::prefix('reports')->group(function(){
