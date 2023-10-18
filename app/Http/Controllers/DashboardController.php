@@ -71,8 +71,16 @@ class DashboardController extends Controller
                         "#00abeb",
                         "#ffcd37"
                     ],
+                    "series" => [
+                        20,
+                        10,
+                        10,
+                        30,
+                        40
+                    ],
                     "meta_jobs" => 1200000,
                     "meta_aprovacao" => 400000,
+                    "total" => 103,
                     "aprovados" => [
                         "total" => 7,
                         "porcentagem" => 20,
@@ -122,19 +130,23 @@ class DashboardController extends Controller
                         "jobs" => [
                             [
                                 "total" => 100,
-                                "valor" => 90
+                                "valor" => 90,
+                                "nome" => "Ford | Salão Automóvel"
                             ],
                             [
                                 "total" => 100,
-                                "valor" => 80
+                                "valor" => 80,
+                                "nome" => "Microsoft | Futurecomm"
                             ],
                             [
                                 "total" => 100,
-                                "valor" => 40
+                                "valor" => 40,
+                                "nome" => "Nestlé | Rock in Rio"
                             ],
                             [
                                 "total" => 100,
-                                "valor" => 35
+                                "valor" => 35,
+                                "nome" => "Coca-Cola | Apas"
                             ]
                         ]
                     ],
@@ -158,8 +170,15 @@ class DashboardController extends Controller
                         "#00abeb",
                         "#ffcd37"
                     ],
+                    "series" => [
+                        44,
+                        55,
+                        41,
+                        17
+                    ],
                     "meta_jobs" => 1200000,
-                    "meta_aprovacao" => 103
+                    "total" => 103,
+                    "meta_aprovacao" => 400000,
                 ],
                 "tendencia" => [
                     "meses_ano" => [
