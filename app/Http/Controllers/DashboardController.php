@@ -11,12 +11,14 @@ use Illuminate\Support\Carbon;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $dtInicio = Carbon::parse($request->date_init);
+        $dtFim = Carbon::parse($request->date_end);
 
         return response()->json(
             [
-                "alertas" => $this->CountAlerts(),
+                "alertas" => $this->CountAlerts($dtInicio, $dtFim),
                 "memorias" => $this->CountReminders(),
                 "tempo_medio_aprovacao_dias" => [
                     "ref" => 38,
@@ -108,18 +110,22 @@ class DashboardController extends Controller
                     ],
                     "metas" => [
                         "ultimos_doze_meses" => [
+                            "porcentagem" => 50,
                             "atual" => 4950000,
                             "meta" => 4800000
                         ],
                         "mes" => [
+                            "porcentagem" => 75,
                             "atual" => 280000,
                             "meta" => 4800000
                         ],
                         "quarter" => [
+                            "porcentagem" => 40,
                             "atual" => 1300000,
                             "meta" => 1200000
                         ],
                         "anual" => [
+                            "porcentagem" => 35,
                             "atual" => 3810000,
                             "meta" => 4800000
                         ]
@@ -245,20 +251,19 @@ class DashboardController extends Controller
         );
     }
 
-    public static function CountAlerts(){
+    public static function CountAlerts($inicio, $fim){
+
         $jobs = Job::where('attendance_id', User::logged()->employee->id)
         ->with('client')
         ->where('status_id', 1)
-        ->whereYear('created_at', 2023)
-        ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
+        ->whereDate('created_at', '>=', $inicio->subYear())
+        ->whereDate('created_at', '<=', $fim->subYear())
         ->count();
         
         return $jobs;
     }
 
-    public static function CountReminders(){
-        $startDate = Carbon::now()->subYear()->startOfDay();
-        $endDate = Carbon::now()->subYear()->endOfDay();
+    public static function CountReminders($startDate, $endDate){
 
         $OneYearClientRegister = Client::where('employee_id', User::logged()->employee->id)
         ->with('type', 'status')
