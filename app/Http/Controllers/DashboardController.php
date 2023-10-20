@@ -11,18 +11,23 @@ use Illuminate\Support\Carbon;
 
 class DashboardController extends Controller
 {
+    private $reportsController;
+    public function __construct(ReportsController $reportsController){
+        $this->reportsController = $reportsController;
+    }
+
     public function index(Request $request)
     {
         $dtInicio = Carbon::parse($request->date_init);
         $dtFim = Carbon::parse($request->date_end);
-
+        
         return response()->json(
             [
                 "alertas" => $this->CountAlerts($dtInicio, $dtFim),
-                "memorias" => $this->CountReminders(),
+                "memorias" => $this->CountReminders($dtInicio, $dtFim),
                 "tempo_medio_aprovacao_dias" => [
-                    "ref" => 38,
-                    "total" => 45
+                    "ref" => $this->reportsController->sumAprovalsGeneral(),
+                    "total" => $this->reportsController->sumTimeToAproval($request->all())
                 ],
                 "intervalo_medio_aprovacao_dias" => [
                     "ref" => 13,

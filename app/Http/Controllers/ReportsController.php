@@ -262,42 +262,16 @@ class ReportsController extends Controller
     public static function sumTimeToAproval($data)
     {
         $jobs = self::baseQuery($data);
-        if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
-            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->first();
-        } else {
-            $result = $jobs->select(
-                DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(
-                    CASE
-                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
-                            CASE
-                                WHEN 
-                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
-                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
-                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
-                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
-                                ELSE final_value
-                            END
-                        ELSE final_value
-                    END
-                ) as sum')
-            )->first();
-        }
-
+        $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.time_to_aproval) as sum'))->first();
         $count = $result->count > 0 ? $result->count : 0;
-        $sumTimeToAproval = $result->sumTimeToAproval != null ? $result->sumTimeToAproval : 0;
+        $sum = $result->sum > 0 ? $result->sum : 0;
 
-        if ($count > 0) {
-            return round($sumTimeToAproval / $count);
-        } else {
-            return 0;
-        }
+        return round($sum / $count);
     }
 
     public static function sumAprovals($data)
     {
         $jobs = self::baseQuery($data);
-        // $result = $jobs->select(DB::raw('COUNT(*) as count, SUM(job.final_value) as sum'))->where('status_id', 3)->first();
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
             $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 3)->first();
         } else {
@@ -319,8 +293,18 @@ class ReportsController extends Controller
                 ) as sum')
             )->where('status_id', 3)->first();
         }
-        // dd($result->toArray());
+
         return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
+    }
+
+    public static function sumAprovalsGeneral()
+    {
+        $jobs = Job::where('time_to_aproval', '<>', null);
+        $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.time_to_aproval) as sum'))->first();
+        $count = $result->count > 0 ? $result->count : 0;
+        $sum = $result->sum > 0 ? $result->sum : 0;
+
+        return round($sum / $count);
     }
 
     public static function sumStandby($data)
