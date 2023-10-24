@@ -8,12 +8,12 @@ use App\JobActivity;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-
+use App\Http\Service\ReportsService;
 class DashboardController extends Controller
 {
-    private $reportsController;
-    public function __construct(ReportsController $reportsController){
-        $this->reportsController = $reportsController;
+    private $reportsService;
+    public function __construct(ReportsService $reportsService){
+        $this->reportsService = $reportsService;
     }
 
     public function index(Request $request)
@@ -26,20 +26,20 @@ class DashboardController extends Controller
                 "alertas" => $this->CountAlerts($dtInicio, $dtFim),
                 "memorias" => $this->CountReminders($dtInicio, $dtFim),
                 "tempo_medio_aprovacao_dias" => [
-                    "ref" => $this->reportsController->sumAprovalsGeneral(),
-                    "total" => $this->reportsController->sumTimeToAproval($request->all())
+                    "ref" => $this->reportsService->sumGeneralTimeToAproval($request->all()),
+                    "total" => $this->reportsService->sumTimeToAproval($request->all()),
                 ],
                 "intervalo_medio_aprovacao_dias" => [
                     "ref" => 13,
-                    "total" => 7
+                    "total" => 7 // pular, não temos dados
                 ],
                 "ticket_medio_aprovacao" => [
-                    "ref" => 190000,
-                    "total" => 183000
+                    "ref" => $this->reportsService->averageTicketRef($request->all()),
+                    "total" => $this->reportsService->averageTicket($request->all())
                 ],
                 "maior_venda" => [
-                    "ref" => 5338000,
-                    "total" => 453000
+                    "ref" => $this->reportsService->biggestSaleRef($request->all()),
+                    "total" => $this->reportsService->biggestSale($request->all()),
                 ],
                 "tendencia_aprovacao_anual" => [
                     "ref" => 4.23108,
