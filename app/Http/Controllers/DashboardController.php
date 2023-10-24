@@ -26,16 +26,16 @@ class DashboardController extends Controller
                 "alertas" => $this->CountAlerts($dtInicio, $dtFim),
                 "memorias" => $this->CountReminders($dtInicio, $dtFim),
                 "tempo_medio_aprovacao_dias" => [
-                    "ref" => $this->reportsService->sumGeneralTimeToAproval($request->all()),
-                    "total" => $this->reportsService->sumTimeToAproval($request->all()),
+                    "ref" => $this->reportsService::sumGeneralTimeToAproval($request->all()),
+                    "total" => $this->reportsService::sumTimeToAproval($request->all()),
                 ],
                 "intervalo_medio_aprovacao_dias" => [
                     "ref" => 13,
                     "total" => 7 // pular, não temos dados
                 ],
                 "ticket_medio_aprovacao" => [
-                    "ref" => $this->reportsService->averageTicketRef($request->all()),
-                    "total" => $this->reportsService->averageTicket($request->all())
+                    "ref" => $this->reportsService::averageTicketRef($request->all()),
+                    "total" => $this->reportsService::averageTicket($request->all())
                 ],
                 "maior_venda" => [
                     "ref" => $this->reportsService->biggestSaleRef($request->all()),
