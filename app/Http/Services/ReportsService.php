@@ -219,20 +219,7 @@ class ReportsService
         } else {
             $result = $jobs->select(
                 DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(
-                    CASE
-                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
-                            CASE
-                                WHEN 
-                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
-                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
-                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
-                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
-                                ELSE final_value
-                            END
-                        ELSE final_value
-                    END
-                ) as sum')
+                DB::raw('SUM(final_value) as sum')
             )->first();
         }
         return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
@@ -415,6 +402,41 @@ class ReportsService
         return ["amount" => $averageJobsPerMonth, "value" => $totalValueJobsApproved, "valueNumber" => $totalValueJobsApprovedNumber];
     }
 
+    public static function averageApprovedJobsPerMonthRef($data)
+    {
+        // Calcula a diferença de meses
+        $monthsPassed = self::monthDiff($data);
+
+        $baseQuery = self::queryNoUserFilter($data);
+
+        if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
+            $result = $baseQuery->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
+        } else {
+            $result = $baseQuery->select(
+                DB::raw('COUNT(*) as count'),
+                DB::raw('SUM(final_value)) as sum')
+            )->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
+        }
+
+        if ($result->isEmpty()) {
+            return ["amount" => 0, "value" => 0, "valueNumber" => 0];
+        }
+
+        $totalJobsApproved = 0;
+        $totalValueJobsApproved = 0;
+        foreach ($result as $job) {
+            $totalJobsApproved += $job->count;
+            $totalValueJobsApproved += $job->sum;
+        }
+
+        // Calcular a média de jobs aprovados por mês
+        $averageJobsPerMonth = round($totalJobsApproved / $monthsPassed);
+        $totalValueJobsApprovedNumber = $totalValueJobsApproved / $monthsPassed;
+        $totalValueJobsApproved = number_format(($totalValueJobsApproved / $monthsPassed), 2, ',', '.');
+
+        return ["amount" => $averageJobsPerMonth, "value" => $totalValueJobsApproved, "valueNumber" => $totalValueJobsApprovedNumber];
+    }
+
     public static function monthDiff($data)
     {
         // Converte as datas para objetos Carbon
@@ -510,10 +532,24 @@ class ReportsService
     {
         $sale = Job::select('final_value')->orderBy('final_value', 'desc')->first();
 
-        if ($sale) {
-            return $sale->final_value;
-        } else {
-            return 0;
-        }
+        return $sale->final_value ?? 0;
+    }
+
+    public function myLastJobApproved()
+    {
+        $job = Job::where('attendance_id', User::logged()->employee->id)->where('status_id', 3)->orderBy('status_updated_at', 'desc')->with('client')->first();
+        
+        $clientName = ($job->client->fantasy_name ?? $job->client->name) . " | " . $job->event;
+
+        return $clientName;
+    }
+
+    public function LastJobApproved()
+    {
+        $job = Job::where('status_id', 3)->orderBy('status_updated_at', 'desc')->with('client')->first();
+        
+        $clientName = ($job->client->fantasy_name ?? $job->client->name) . " | " . $job->event;
+
+        return $clientName;
     }
 }

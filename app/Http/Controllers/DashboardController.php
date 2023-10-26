@@ -34,27 +34,27 @@ class DashboardController extends Controller
                     "total" => 7 // pular, não temos dados
                 ],
                 "ticket_medio_aprovacao" => [
-                    "ref" => $this->reportsService::averageTicketRef($request->all()),
-                    "total" => $this->reportsService::averageTicket($request->all())
+                    "ref" => $this->reportsService->averageTicketRef($request->all()),
+                    "total" => $this->reportsService->averageTicket($request->all())
                 ],
                 "maior_venda" => [
                     "ref" => $this->reportsService->biggestSaleRef($request->all()),
                     "total" => $this->reportsService->biggestSale($request->all()),
                 ],
                 "tendencia_aprovacao_anual" => [
-                    "ref" => 4.23108,
-                    "total" => 4200000
+                    "ref" => $this->reportsService->averageApprovedJobsPerMonthRef($request->all())['valueNumber'] * 12,
+                    "total" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber'] * 12
                 ],
                 "media_aprovacao_mes" => [
-                    "ref" => 400000,
-                    "total" => 420000
+                    "ref" => $this->reportsService->averageApprovedJobsPerMonth($request->all()),
+                    "total" => $this->reportsService->averageApprovedJobsPerMonthRef($request->all())
                 ],
                 "ticket_medio_jobs" => [
-                    "ref" => 170000,
-                    "total" => 183000
+                    "ref" => $this->reportsService->averageTicket($request->all()),
+                    "total" => $this->reportsService->averageTicket($request->all())
                 ],
-                "ultimo_aprovado" => "Nestlé | Apas",
-                "ultimo_job_aprovado" => "",
+                "ultimo_aprovado" => $this->reportsService->myLastJobApproved(),
+                "ultimo_job_aprovado" => $this->reportsService->LastJobApproved(),
                 "eventos_rolando" => "",
                 "aniversariante" => "",
                 "comunicados" => "",
