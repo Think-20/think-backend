@@ -46,8 +46,8 @@ class DashboardController extends Controller
                     "total" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber'] * 12
                 ],
                 "media_aprovacao_mes" => [
-                    "ref" => $this->reportsService->averageApprovedJobsPerMonth($request->all()),
-                    "total" => $this->reportsService->averageApprovedJobsPerMonthRef($request->all())
+                    "ref" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber'],
+                    "total" => $this->reportsService->averageApprovedJobsPerMonthRef($request->all())['valueNumber']
                 ],
                 "ticket_medio_jobs" => [
                     "ref" => $this->reportsService->averageTicket($request->all()),
