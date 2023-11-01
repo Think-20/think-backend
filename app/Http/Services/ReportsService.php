@@ -104,68 +104,7 @@ class ReportsService
 
     public static function queryNoUserFilter($data)
     {
-        $name = $data['name'] ?? null;
-        $creationId = isset($data['creation']) ? $data['creation'] : null;
-        $attendanceId = isset($data['attendance']) ? $data['attendance'] : null;
-        $jobTypeId = isset($data['job_type']) ? $data['job_type'] : null;
-        $status = isset($data['status']) ? $data['status'] : null;
-        $event = isset($data['event']) ? $data['event'] : null;
-        $jobActivity = isset($data['job_activity']) ? $data['job_activity'] : null;
-        $jobs = Job::selectRaw('job.*')
-            ->with(
-                'job_activity',
-                'job_type',
-                'client',
-                'agency',
-                'attendance',
-                'status',
-                'creation',
-                'tasks',
-                'attendance_comission'
-            )
-            ->with(['creation.items' => function ($query) {
-                $query->limit(1);
-            }]);
-
-        if ($name) {
-            $jobs->where(function ($query) use ($name) {
-                $query->whereHas('client', function ($subquery) use ($name) {
-                    $subquery->where('fantasy_name', 'LIKE', '%' . $name . '%');
-                    $subquery->orWhere('name', 'LIKE', '%' . $name . '%');
-                });
-                $query->orWhere('not_client', 'LIKE', '%' . $name . '%');
-            });
-        }
-
-        if ($jobTypeId) {
-            $jobs->whereIn('job_type_id', $jobTypeId);
-        }
-
-        if ($creationId && in_array('external', $creationId)) {
-            $jobs->whereHas('job_activity', function ($query) {
-                $query->where('description', 'like', '%externo%');
-            });
-        }
-
-        if ($jobActivity) {
-            $jobs->whereHas('job_activity', function ($query) use ($jobActivity) {
-                $query->whereIn('id', $jobActivity);
-            });
-        }
-
-        if ($event) {
-            $jobs->where('event', 'LIKE', '%' . $event . '%');
-        }
-
-        if ($status) {
-            $jobs->whereIn('status_id', $status);
-        }
-
-        if ($creationId && !in_array('external', $creationId)) {
-            $jobs->whereHas('creation', function ($query) use ($creationId) {
-                $query->whereIn('responsible_id', $creationId);
-            });
-        }
+        $jobs = Job::selectRaw('job.*');
 
         if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));

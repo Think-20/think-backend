@@ -20,32 +20,33 @@ class DashboardController extends Controller
     {
         $dtInicio = Carbon::parse($request->date_init);
         $dtFim = Carbon::parse($request->date_end);
+        $request["userFilter"] = false;
         
         return response()->json(
             [
                 "alertas" => $this->CountAlerts($dtInicio, $dtFim),
                 "memorias" => $this->CountReminders($dtInicio, $dtFim),
                 "tempo_medio_aprovacao_dias" => [
-                    "total" => $this->reportsService::sumTimeToAproval(["userFilter" => false]),
+                    "total" => $this->reportsService::sumTimeToAproval($request->all()),
                 ],
                 "intervalo_medio_aprovacao_dias" => [
                     "ref" => 13,
                     "total" => 7 // pular, não temos dados
                 ],
                 "ticket_medio_aprovacao" => [
-                    "total" => $this->reportsService->averageTicket(["userFilter" => false])
+                    "total" => $this->reportsService->averageTicket($request->all())
                 ],
                 "maior_venda" => [
-                    "total" => $this->reportsService->biggestSale(["userFilter" => false])
+                    "total" => $this->reportsService->biggestSale($request->all())
                 ],
                 "tendencia_aprovacao_anual" => [
-                    "total" => $this->reportsService->averageApprovedJobsPerMonth(["userFilter" => false])['valueNumber'] * 12
+                    "total" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber'] * 12
                 ],
                 "media_aprovacao_mes" => [
-                    "ref" => $this->reportsService->averageApprovedJobsPerMonth(["userFilter" => false])['valueNumber']
+                    "ref" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber']
                 ],
                 "ticket_medio_jobs" => [
-                    "total" => $this->reportsService->averageTicket(["userFilter" => false])
+                    "total" => $this->reportsService->averageTicket($request->all())
                 ],
                 "ultimo_aprovado" => $this->reportsService->LastJobApproved(),
                 "ultimo_job_aprovado" => $this->reportsService->LastJobApproved(),
