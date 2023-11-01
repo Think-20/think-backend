@@ -184,7 +184,11 @@ class ReportsService
 
     public static function sumBudgetValue($data)
     {
-        $jobs = self::baseQuery($data);
+        if (isset($data['userFilter']) && $data['userFilter'] == false) {
+            $jobs = self::queryNoUserFilter($data);
+        } else {
+            $jobs = self::baseQuery($data);
+        }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
             $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->first();
@@ -210,24 +214,14 @@ class ReportsService
         return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
     }
 
-    public static function sumBudgetValueRef($data)
-    {
-        $jobs = self::queryNoUserFilter($data);
-
-        if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
-            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->first();
-        } else {
-            $result = $jobs->select(
-                DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(final_value) as sum')
-            )->first();
-        }
-        return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
-    }
-
     public static function sumTimeToAproval($data)
     {
-        $jobs = self::baseQuery($data);
+        if (isset($data['userFilter']) && $data['userFilter'] == false) {
+            $jobs = self::queryNoUserFilter($data);
+        } else {
+            $jobs = self::baseQuery($data);
+        }
+
         $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.time_to_aproval) as sum'))->first();
         $count = $result->count > 0 ? $result->count : 0;
         $sum = $result->sum > 0 ? $result->sum : 0;
@@ -237,7 +231,11 @@ class ReportsService
 
     public static function sumGeneralTimeToAproval($data)
     {
-        $jobs = self::queryNoUserFilter($data);
+        if (isset($data['userFilter']) && $data['userFilter'] == false) {
+            $jobs = self::queryNoUserFilter($data);
+        } else {
+            $jobs = self::baseQuery($data);
+        }
         $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.time_to_aproval) as sum'))->first();
         $count = $result->count > 0 ? $result->count : 0;
         $sum = $result->sum > 0 ? $result->sum : 0;
@@ -247,7 +245,12 @@ class ReportsService
 
     public static function sumAprovals($data)
     {
-        $jobs = self::baseQuery($data);
+        if (isset($data['userFilter']) && $data['userFilter'] == false) {
+            $jobs = self::queryNoUserFilter($data);
+        } else {
+            $jobs = self::baseQuery($data);
+        }
+
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
             $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 3)->first();
         } else {
@@ -285,7 +288,11 @@ class ReportsService
 
     public static function sumStandby($data)
     {
-        $jobs = self::baseQuery($data);
+        if (isset($data['userFilter']) && $data['userFilter'] == false) {
+            $jobs = self::queryNoUserFilter($data);
+        } else {
+            $jobs = self::baseQuery($data);
+        }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
             $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 1)->first();
@@ -317,7 +324,11 @@ class ReportsService
 
     public static function getTypes($data)
     {
-        $jobs = self::baseQuery($data);
+        if (isset($data['userFilter']) && $data['userFilter'] == false) {
+            $jobs = self::queryNoUserFilter($data);
+        } else {
+            $jobs = self::baseQuery($data);
+        }
 
         $countStand = clone $jobs;
         $countStand = $countStand->whereHas('job_type', function ($query) {
@@ -359,7 +370,11 @@ class ReportsService
         // Calcula a diferença de meses
         $monthsPassed = self::monthDiff($data);
 
-        $baseQuery = self::baseQuery($data);
+        if (isset($data['userFilter']) && $data['userFilter'] == false) {
+            $baseQuery = self::queryNoUserFilter($data);
+        } else {
+            $baseQuery = self::baseQuery($data);
+        }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
             $result = $baseQuery->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
@@ -380,41 +395,6 @@ class ReportsService
                         ELSE final_value
                     END
                 ) as sum')
-            )->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
-        }
-
-        if ($result->isEmpty()) {
-            return ["amount" => 0, "value" => 0, "valueNumber" => 0];
-        }
-
-        $totalJobsApproved = 0;
-        $totalValueJobsApproved = 0;
-        foreach ($result as $job) {
-            $totalJobsApproved += $job->count;
-            $totalValueJobsApproved += $job->sum;
-        }
-
-        // Calcular a média de jobs aprovados por mês
-        $averageJobsPerMonth = round($totalJobsApproved / $monthsPassed);
-        $totalValueJobsApprovedNumber = $totalValueJobsApproved / $monthsPassed;
-        $totalValueJobsApproved = number_format(($totalValueJobsApproved / $monthsPassed), 2, ',', '.');
-
-        return ["amount" => $averageJobsPerMonth, "value" => $totalValueJobsApproved, "valueNumber" => $totalValueJobsApprovedNumber];
-    }
-
-    public static function averageApprovedJobsPerMonthRef($data)
-    {
-        // Calcula a diferença de meses
-        $monthsPassed = self::monthDiff($data);
-
-        $baseQuery = self::queryNoUserFilter($data);
-
-        if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
-            $result = $baseQuery->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
-        } else {
-            $result = $baseQuery->select(
-                DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(final_value)) as sum')
             )->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
         }
 
@@ -460,7 +440,11 @@ class ReportsService
 
     public static function averageAdvancedJobsPerMonth($data)
     {
-        $jobs = self::baseQuery($data);
+        if (isset($data['userFilter']) && $data['userFilter'] == false) {
+            $jobs = self::queryNoUserFilter($data);
+        } else {
+            $jobs = self::baseQuery($data);
+        }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
             $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 5)->first();
@@ -501,17 +485,6 @@ class ReportsService
         }
     }
 
-    public static function averageTicketRef($data)
-    {
-        $total_value = self::sumBudgetValueRef($data);
-
-        if ($total_value['count'] > 0) {
-            return $total_value['sum'] / $total_value['count'];
-        } else {
-            return 0;
-        }
-    }
-
     public function biggestSale($data)
     {
         $sale = Job::select('final_value')->where(
@@ -538,17 +511,33 @@ class ReportsService
     public function myLastJobApproved()
     {
         $job = Job::where('attendance_id', User::logged()->employee->id)->where('status_id', 3)->orderBy('status_updated_at', 'desc')->with('client')->first();
-        
-        $clientName = ($job->client->fantasy_name ?? $job->client->name) . " | " . $job->event;
+
+        if($job){
+            if(isset($job->client)){
+                $clientName = ($job->client->fantasy_name ?? $job->client->name) . " | " . $job->event;
+            }else{
+                $clientName = ($job->agency->fantasy_name ?? $job->agency->name) . " | " . $job->event;
+            }
+        }else{
+            $clientName = "";
+        }
 
         return $clientName;
     }
 
     public function LastJobApproved()
     {
-        $job = Job::where('status_id', 3)->orderBy('status_updated_at', 'desc')->with('client')->first();
-        
-        $clientName = ($job->client->fantasy_name ?? $job->client->name) . " | " . $job->event;
+        $job = Job::where('status_id', 3)->orderBy('status_updated_at', 'desc')->with('client')->with('agency')->first();
+
+        if($job){
+            if(isset($job->client)){
+                $clientName = ($job->client->fantasy_name ?? $job->client->name) . " | " . $job->event;
+            }else{
+                $clientName = ($job->agency->fantasy_name ?? $job->agency->name) . " | " . $job->event;
+            }
+        }else{
+            $clientName = "";
+        }
 
         return $clientName;
     }

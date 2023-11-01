@@ -26,31 +26,25 @@ class DashboardController extends Controller
                 "alertas" => $this->CountAlerts($dtInicio, $dtFim),
                 "memorias" => $this->CountReminders($dtInicio, $dtFim),
                 "tempo_medio_aprovacao_dias" => [
-                    "ref" => $this->reportsService::sumGeneralTimeToAproval($request->all()),
-                    "total" => $this->reportsService::sumTimeToAproval($request->all()),
+                    "total" => $this->reportsService::sumTimeToAproval(["userFilter" => false]),
                 ],
                 "intervalo_medio_aprovacao_dias" => [
                     "ref" => 13,
                     "total" => 7 // pular, não temos dados
                 ],
                 "ticket_medio_aprovacao" => [
-                    "ref" => $this->reportsService->averageTicketRef($request->all()),
                     "total" => $this->reportsService->averageTicket($request->all())
                 ],
                 "maior_venda" => [
-                    "ref" => $this->reportsService->biggestSaleRef($request->all()),
-                    "total" => $this->reportsService->biggestSale($request->all()),
+                    "total" => $this->reportsService->biggestSale($request->all())
                 ],
                 "tendencia_aprovacao_anual" => [
-                    "ref" => $this->reportsService->averageApprovedJobsPerMonthRef($request->all())['valueNumber'] * 12,
                     "total" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber'] * 12
                 ],
                 "media_aprovacao_mes" => [
-                    "ref" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber'],
-                    "total" => $this->reportsService->averageApprovedJobsPerMonthRef($request->all())['valueNumber']
+                    "ref" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber']
                 ],
                 "ticket_medio_jobs" => [
-                    "ref" => $this->reportsService->averageTicket($request->all()),
                     "total" => $this->reportsService->averageTicket($request->all())
                 ],
                 "ultimo_aprovado" => $this->reportsService->myLastJobApproved(),
