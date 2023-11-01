@@ -33,21 +33,21 @@ class DashboardController extends Controller
                     "total" => 7 // pular, não temos dados
                 ],
                 "ticket_medio_aprovacao" => [
-                    "total" => $this->reportsService->averageTicket($request->all())
+                    "total" => $this->reportsService->averageTicket(["userFilter" => false])
                 ],
                 "maior_venda" => [
-                    "total" => $this->reportsService->biggestSale($request->all())
+                    "total" => $this->reportsService->biggestSale(["userFilter" => false])
                 ],
                 "tendencia_aprovacao_anual" => [
-                    "total" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber'] * 12
+                    "total" => $this->reportsService->averageApprovedJobsPerMonth(["userFilter" => false])['valueNumber'] * 12
                 ],
                 "media_aprovacao_mes" => [
-                    "ref" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber']
+                    "ref" => $this->reportsService->averageApprovedJobsPerMonth(["userFilter" => false])['valueNumber']
                 ],
                 "ticket_medio_jobs" => [
-                    "total" => $this->reportsService->averageTicket($request->all())
+                    "total" => $this->reportsService->averageTicket(["userFilter" => false])
                 ],
-                "ultimo_aprovado" => $this->reportsService->myLastJobApproved(),
+                "ultimo_aprovado" => $this->reportsService->LastJobApproved(),
                 "ultimo_job_aprovado" => $this->reportsService->LastJobApproved(),
                 "eventos_rolando" => "",
                 "aniversariante" => "",
