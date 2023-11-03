@@ -30,7 +30,6 @@ class DashboardController extends Controller
                     "total" => $this->reportsService::sumTimeToAproval($request->all()),
                 ],
                 "intervalo_medio_aprovacao_dias" => [
-                    "ref" => 13,
                     "total" => 7 // pular, não temos dados
                 ],
                 "ticket_medio_aprovacao" => [
@@ -55,9 +54,7 @@ class DashboardController extends Controller
                 "comunicados" => "",
                 "metas" => "",
                 "recordes" => "",
-                "ranking" => [
-                    "total" => 1
-                ],
+                "ranking" => $this->reportsService->SaleRanking(),
                 "jobs" => [
                     "labels" => [
                         "Aprovados",

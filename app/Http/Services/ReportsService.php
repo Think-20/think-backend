@@ -451,13 +451,13 @@ class ReportsService
     {
         $job = Job::where('attendance_id', User::logged()->employee->id)->where('status_id', 3)->orderBy('status_updated_at', 'desc')->with('client')->first();
 
-        if($job){
-            if(isset($job->client)){
+        if ($job) {
+            if (isset($job->client)) {
                 $clientName = ($job->client->fantasy_name ?? $job->client->name) . " | " . $job->event;
-            }else{
+            } else {
                 $clientName = ($job->agency->fantasy_name ?? $job->agency->name) . " | " . $job->event;
             }
-        }else{
+        } else {
             $clientName = "";
         }
 
@@ -468,16 +468,76 @@ class ReportsService
     {
         $job = Job::where('status_id', 3)->orderBy('status_updated_at', 'desc')->with('client')->with('agency')->first();
 
-        if($job){
-            if(isset($job->client)){
+        if ($job) {
+            if (isset($job->client)) {
                 $clientName = ($job->client->fantasy_name ?? $job->client->name) . " | " . $job->event;
-            }else{
+            } else {
                 $clientName = ($job->agency->fantasy_name ?? $job->agency->name) . " | " . $job->event;
             }
-        }else{
+        } else {
             $clientName = "";
         }
 
         return $clientName;
+    }
+
+    public function SaleRanking()
+    {
+        // Vendedor com maior venda no primeiro trimestre do ano
+        $firstQuarterTopSeller = Job::selectRaw('job.*')
+            ->select('attendance_id', DB::raw('SUM(final_value) as total_sales'))
+            ->with('attendance:id,name')
+            ->whereYear('created_at', '=', date('Y'))
+            ->whereBetween(DB::raw('QUARTER(created_at)'), [1, 1])
+            ->groupBy('attendance_id')
+            ->orderByDesc('total_sales')
+            ->first();
+
+        // Vendedor com maior venda no segundo trimestre do ano
+        $secondQuarterTopSeller = Job::selectRaw('job.*')
+            ->select('attendance_id', DB::raw('SUM(final_value) as total_sales'))
+            ->with('attendance:id,name')
+            ->whereYear('created_at', '=', date('Y'))
+            ->whereBetween(DB::raw('QUARTER(created_at)'), [2, 2])
+            ->groupBy('attendance_id')
+            ->orderByDesc('total_sales')
+            ->first();
+
+        // Vendedor com maior venda no terceiro trimestre do ano
+        $thirdQuarterTopSeller = Job::selectRaw('job.*')
+            ->select('attendance_id', DB::raw('SUM(final_value) as total_sales'))
+            ->with('attendance:id,name')
+            ->whereYear('created_at', '=', date('Y'))
+            ->whereBetween(DB::raw('QUARTER(created_at)'), [3, 3])
+            ->groupBy('attendance_id')
+            ->orderByDesc('total_sales')
+            ->first();
+
+        // Vendedor com maior venda no quarto trimestre do ano
+        $fourthQuarterTopSeller = Job::selectRaw('job.*')
+            ->select('attendance_id', DB::raw('SUM(final_value) as total_sales'))
+            ->with('attendance:id,name')
+            ->whereYear('created_at', '=', date('Y'))
+            ->whereBetween(DB::raw('QUARTER(created_at)'), [4, 4])
+            ->groupBy('attendance_id')
+            ->orderByDesc('total_sales')
+            ->first();
+
+        // Vendedor com maior venda nos últimos 12 meses
+        $last12MonthsTopSeller = Job::selectRaw('job.*')
+            ->with('attendance:id,name')
+            ->select('attendance_id', DB::raw('SUM(final_value) as total_sales'))
+            ->whereBetween('created_at', [now()->subMonths(12), now()])
+            ->groupBy('attendance_id')
+            ->orderByDesc('total_sales')
+            ->first();
+
+        return [
+            "firstQuarterTopSeller" => $firstQuarterTopSeller ?? null,
+            "secondQuarterTopSeller" => $secondQuarterTopSeller ?? null,
+            "thirdQuarterTopSeller" => $thirdQuarterTopSeller ?? null,
+            "fourthQuarterTopSeller" => $fourthQuarterTopSeller ?? null,
+            "last12MonthsTopSeller" => $last12MonthsTopSeller ?? null
+        ];
     }
 }
