@@ -489,6 +489,7 @@ class ReportsService
             ->with('attendance:id,name')
             ->whereYear('created_at', '=', date('Y'))
             ->whereBetween(DB::raw('QUARTER(created_at)'), [1, 1])
+            ->where('status_id', 3)
             ->groupBy('attendance_id')
             ->orderByDesc('total_sales')
             ->first();
@@ -499,6 +500,7 @@ class ReportsService
             ->with('attendance:id,name')
             ->whereYear('created_at', '=', date('Y'))
             ->whereBetween(DB::raw('QUARTER(created_at)'), [2, 2])
+            ->where('status_id', 3)
             ->groupBy('attendance_id')
             ->orderByDesc('total_sales')
             ->first();
@@ -509,6 +511,7 @@ class ReportsService
             ->with('attendance:id,name')
             ->whereYear('created_at', '=', date('Y'))
             ->whereBetween(DB::raw('QUARTER(created_at)'), [3, 3])
+            ->where('status_id', 3)
             ->groupBy('attendance_id')
             ->orderByDesc('total_sales')
             ->first();
@@ -519,6 +522,7 @@ class ReportsService
             ->with('attendance:id,name')
             ->whereYear('created_at', '=', date('Y'))
             ->whereBetween(DB::raw('QUARTER(created_at)'), [4, 4])
+            ->where('status_id', 3)
             ->groupBy('attendance_id')
             ->orderByDesc('total_sales')
             ->first();
@@ -528,16 +532,17 @@ class ReportsService
             ->with('attendance:id,name')
             ->select('attendance_id', DB::raw('SUM(final_value) as total_sales'))
             ->whereBetween('created_at', [now()->subMonths(12), now()])
+            ->where('status_id', 3)
             ->groupBy('attendance_id')
             ->orderByDesc('total_sales')
             ->first();
 
         return [
-            "firstQuarterTopSeller" => $firstQuarterTopSeller ?? null,
-            "secondQuarterTopSeller" => $secondQuarterTopSeller ?? null,
-            "thirdQuarterTopSeller" => $thirdQuarterTopSeller ?? null,
-            "fourthQuarterTopSeller" => $fourthQuarterTopSeller ?? null,
-            "last12MonthsTopSeller" => $last12MonthsTopSeller ?? null
+            "firstQuarterTopSeller" => $firstQuarterTopSeller,
+            "secondQuarterTopSeller" => $secondQuarterTopSeller,
+            "thirdQuarterTopSeller" => $thirdQuarterTopSeller,
+            "fourthQuarterTopSeller" => $fourthQuarterTopSeller,
+            "last12MonthsTopSeller" => $last12MonthsTopSeller
         ];
     }
 }
