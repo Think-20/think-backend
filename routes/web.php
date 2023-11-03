@@ -1,6 +1,5 @@
 <?php
 
-use App\UserNotification;
 use Illuminate\Support\Facades\Route;
 /*
 |--------------------------------------------------------------------------
@@ -83,6 +82,7 @@ Route::get('/specification-files/view/{id}', function ($id)
 });
 
 Route::group(['middleware' => ['auth.api']], function() {
+    Route::post('/dashboard', 'DashboardController@index');
 
     Route::get('/reprocessOrcamento', 'ReportsController@reprocess');
 
