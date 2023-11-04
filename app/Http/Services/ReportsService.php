@@ -426,7 +426,9 @@ class ReportsService
 
     public function biggestSale($data)
     {
-        $sale = Job::selectRaw('job.final_value')->where('status_id', 3)->orderBy('final_value', 'desc');
+        $sale = Job::selectRaw('job.*, CAST(final_value AS DECIMAL) AS final_value_numeric')
+            ->where('status_id', 3)
+            ->orderBy('final_value_numeric', 'desc');
 
         if (isset($data['date_init'])) {
             $sale->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));

@@ -36,7 +36,7 @@ class DashboardController extends Controller
                     "total" => $this->reportsService->averageTicket($request->all())
                 ],
                 "maior_venda" => [
-                    "total" => $this->reportsService->biggestSale($request->all())
+                    "total" => $this->reportsService->BiggestSale($request->all())
                 ],
                 "tendencia_aprovacao_anual" => [
                     "total" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber'] * 12
