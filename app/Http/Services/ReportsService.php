@@ -426,7 +426,21 @@ class ReportsService
 
     public function biggestSale($data)
     {
-        $sale = Job::select('final_value')->where('status_id', 3)->orderBy('final_value', 'desc')->first();
+        $sale = Job::selectRaw('job.final_value')->where('status_id', 3)->orderBy('final_value', 'desc');
+
+        if (isset($data['date_init'])) {
+            $sale->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+        } else {
+            $sale->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
+        }
+
+        if (isset($data['date_end'])) {
+            $sale->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+        } else {
+            $sale->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        }
+
+        $sale = $sale->first();
 
         if ($sale) {
             return $sale->final_value;
