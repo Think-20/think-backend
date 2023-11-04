@@ -426,12 +426,7 @@ class ReportsService
 
     public function biggestSale($data)
     {
-        $sale = Job::select('final_value')->where(
-            function ($query) {
-                $query->where('attendance_id', User::logged()->employee->id)
-                    ->orWhere('attendance_comission_id', User::logged()->employee->id);
-            }
-        )->orderBy('final_value', 'desc')->first();
+        $sale = Job::select('final_value')->where('status_id', 3)->orderBy('final_value', 'desc')->first();
 
         if ($sale) {
             return $sale->final_value;
