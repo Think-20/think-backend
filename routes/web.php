@@ -82,7 +82,9 @@ Route::get('/specification-files/view/{id}', function ($id)
 });
 
 Route::group(['middleware' => ['auth.api']], function() {
-    Route::post('/dashboard', 'DashboardController@index');
+    Route::group(['middleware' => 'checkDepartment'], function () {
+        Route::post('/dashboard', 'DashboardController@index');
+    });
 
     Route::get('/reprocessOrcamento', 'ReportsController@reprocess');
 
