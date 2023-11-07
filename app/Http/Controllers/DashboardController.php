@@ -20,8 +20,8 @@ class DashboardController extends Controller
 
     public function index(Request $request)
     {
-        $dtInicio = Carbon::parse($request->date_init);
-        $dtFim = Carbon::parse($request->date_end);
+        $dtInicio = isset($request->date_init) ? Carbon::parse($request->date_init) : Carbon::now()->startOfYear();
+        $dtFim = isset($request->date_end) ? Carbon::parse($request->date_end) : Carbon::now()->endOfMonth();
         $request["userFilter"] = false;
 
         $aprovados = $this->reportsService->GetApproveds(["date_init" => $dtInicio, "date_end" => $dtFim]);
