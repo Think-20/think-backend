@@ -9,10 +9,12 @@ use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use App\Http\Service\ReportsService;
+
 class DashboardController extends Controller
 {
     private $reportsService;
-    public function __construct(ReportsService $reportsService){
+    public function __construct(ReportsService $reportsService)
+    {
         $this->reportsService = $reportsService;
     }
 
@@ -21,13 +23,19 @@ class DashboardController extends Controller
         $dtInicio = Carbon::parse($request->date_init);
         $dtFim = Carbon::parse($request->date_end);
         $request["userFilter"] = false;
-        
+
+        $aprovados = $this->reportsService->GetApproveds(["date_init" => $dtInicio, "date_end" => $dtFim]);
+        $avancados = $this->reportsService->GetAdvanceds(["date_init" => $dtInicio, "date_end" => $dtFim]);
+        $standby = $this->reportsService->GetStandbys(["date_init" => $dtInicio, "date_end" => $dtFim]);
+        $reprovados = $this->reportsService->GetReproveds(["date_init" => $dtInicio, "date_end" => $dtFim]);
+        $soma = $aprovados->count + $avancados->count + $standby->count + $reprovados->count;
+
         return response()->json(
             [
                 "alertas" => $this->CountAlerts($dtInicio, $dtFim),
                 "memorias" => $this->CountReminders($dtInicio, $dtFim),
                 "tempo_medio_aprovacao_dias" => [
-                    "total" => $this->reportsService::sumTimeToAproval($request->all()),
+                    "total" => $this->reportsService->sumTimeToAproval($request->all()),
                 ],
                 "intervalo_medio_aprovacao_dias" => [
                     "total" => 7 // pular, não temos dados
@@ -71,24 +79,24 @@ class DashboardController extends Controller
                         "#ffcd37"
                     ],
                     "series" => [
-                        20,
-                        10,
-                        10,
-                        30,
-                        40
+                        $aprovados->count,
+                        $avancados->count,
+                        0,
+                        $standby->count,
+                        $reprovados->count
                     ],
                     "meta_jobs" => 1200000,
                     "meta_aprovacao" => 400000,
                     "total" => 103,
                     "aprovados" => [
-                        "total" => 7,
-                        "porcentagem" => 20,
-                        "valor" => 2000000
+                        "total" => $aprovados->count,
+                        "porcentagem" => round(($aprovados->count * 100) / $soma, 2),
+                        "valor" => $aprovados->sum
                     ],
                     "avancados" => [
-                        "total" => 12,
-                        "porcentagem" => 10,
-                        "valor" => 2000000
+                        "total" => $avancados->count,
+                        "porcentagem" => round(($avancados->count * 100) / $soma, 2),
+                        "valor" => $avancados->sum
                     ],
                     "ajustes" => [
                         "total" => 23,
@@ -96,14 +104,14 @@ class DashboardController extends Controller
                         "valor" => 2000000
                     ],
                     "stand_by" => [
-                        "total" => 54,
-                        "porcentagem" => 30,
-                        "valor" => 2000000
+                        "total" => $standby->count,
+                        "porcentagem" => round(($standby->count * 100) / $soma, 2),
+                        "valor" => $standby->sum
                     ],
                     "reprovados" => [
-                        "total" => 73,
-                        "porcentagem" => 40,
-                        "valor" => 2000000
+                        "total" => $reprovados->count,
+                        "porcentagem" => round(($reprovados->count * 100) / $soma, 2),
+                        "valor" => $reprovados->sum
                     ],
                     "metas" => [
                         "ultimos_doze_meses" => [
@@ -248,46 +256,48 @@ class DashboardController extends Controller
         );
     }
 
-    public static function CountAlerts($inicio, $fim){
+    public static function CountAlerts($inicio, $fim)
+    {
 
         $jobs = Job::where('attendance_id', User::logged()->employee->id)
-        ->with('client')
-        ->where('status_id', 1)
-        ->whereDate('created_at', '>=', $inicio->subYear())
-        ->whereDate('created_at', '<=', $fim->subYear())
-        ->count();
-        
+            ->with('client')
+            ->where('status_id', 1)
+            ->whereDate('created_at', '>=', $inicio->subYear())
+            ->whereDate('created_at', '<=', $fim->subYear())
+            ->count();
+
         return $jobs;
     }
 
-    public static function CountReminders($startDate, $endDate){
+    public static function CountReminders($startDate, $endDate)
+    {
 
         $OneYearClientRegister = Client::where('employee_id', User::logged()->employee->id)
-        ->with('type', 'status')
-        ->whereDate('created_at', '>=', $startDate)
-        ->whereDate('created_at', '<=', $endDate)
-        ->count();
+            ->with('type', 'status')
+            ->whereDate('created_at', '>=', $startDate)
+            ->whereDate('created_at', '<=', $endDate)
+            ->count();
 
         $OneYearJobCreation = Job::selectRaw('job.*')
-        ->where('attendance_id', User::logged()->employee->id)
-        ->whereDate('created_at', '>=', $startDate)
-        ->whereDate('created_at', '<=', $endDate)
-        ->count();
+            ->where('attendance_id', User::logged()->employee->id)
+            ->whereDate('created_at', '>=', $startDate)
+            ->whereDate('created_at', '<=', $endDate)
+            ->count();
 
         $OneYearJobApproved = Job::selectRaw('job.*')
-        ->with('job_activity','tasks')
-        ->where(function ($query) {
-            $query->where('attendance_id', User::logged()->employee->id)
-            ->orWhereHas('tasks', function ($query) {
-                $query->where('responsible_id', User::logged()->employee->id)
-                    ->where('job_activity_id', JobActivity::where('description', 'Projeto')
-                    ->first()->id);
-                });
+            ->with('job_activity', 'tasks')
+            ->where(function ($query) {
+                $query->where('attendance_id', User::logged()->employee->id)
+                    ->orWhereHas('tasks', function ($query) {
+                        $query->where('responsible_id', User::logged()->employee->id)
+                            ->where('job_activity_id', JobActivity::where('description', 'Projeto')
+                                ->first()->id);
+                    });
             })
-        ->where('status_id', 3)
-        ->whereDate('status_updated_at', '>=', $startDate)
-        ->whereDate('status_updated_at', '<=', $endDate)
-        ->count();
+            ->where('status_id', 3)
+            ->whereDate('status_updated_at', '>=', $startDate)
+            ->whereDate('status_updated_at', '<=', $endDate)
+            ->count();
         return $OneYearClientRegister + $OneYearJobCreation + $OneYearJobApproved;
     }
 }
