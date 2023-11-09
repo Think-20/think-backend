@@ -114,28 +114,7 @@ class DashboardController extends Controller
                         "porcentagem" => round(($reprovados->count * 100) / $soma, 2),
                         "valor" => $reprovados->sum
                     ],
-                    "metas" => [
-                        "ultimos_doze_meses" => [
-                            "porcentagem" => 50,
-                            "atual" => 4950000,
-                            "meta" => 4800000
-                        ],
-                        "mes" => [
-                            "porcentagem" => 75,
-                            "atual" => 280000,
-                            "meta" => 4800000
-                        ],
-                        "quarter" => [
-                            "porcentagem" => 40,
-                            "atual" => 1300000,
-                            "meta" => 1200000
-                        ],
-                        "anual" => [
-                            "porcentagem" => 35,
-                            "atual" => 3810000,
-                            "meta" => 4800000
-                        ]
-                    ],
+                    "metas" => $this->reportsService->GetGoals(),
                     "em_producao" => [
                         "total" => 4,
                         "total_em_producao" => 500,

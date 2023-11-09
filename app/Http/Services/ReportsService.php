@@ -2,6 +2,7 @@
 
 namespace App\Http\Service;
 
+use App\Goal;
 use App\Job;
 use App\User;
 use Carbon\Carbon;
@@ -676,5 +677,99 @@ class ReportsService
         $result = $jobs->first();
 
         return $result;
+    }
+
+    public function GetGoals()
+    {
+        $CurrentMonthGoal = $this->getCurrentMonthGoal();
+        $Last3MonthsGoals = $this->getLast3MonthsGoals();
+        $Last12MonthsGoals = $this->getLast12MonthsGoals();
+        $CurrentYearGoals = $this->getCurrentYearGoals();
+
+        $goals = [
+            "ultimos_doze_meses" => [
+                "porcentagem" => 50,
+                "atual" => 4950000,
+                "meta" =>  $Last12MonthsGoals
+            ],
+            "mes" => [
+                "porcentagem" => 75,
+                "atual" => 280000,
+                "meta" =>  $CurrentMonthGoal
+            ],
+            "quarter" => [
+                "porcentagem" => 40,
+                "atual" => 1300000,
+                "meta" =>  $Last3MonthsGoals
+            ],
+            "anual" => [
+                "porcentagem" => 35,
+                "atual" => 3810000,
+                "meta" =>  $CurrentYearGoals
+            ]
+        ];
+
+        return $goals;
+    }
+
+    public function getCurrentMonthGoal()
+    {
+        $currentMonth = date('n');
+        $currentYear = date('Y');
+
+        $goal = Goal::where('month', $currentMonth)->where('year', $currentYear)->sum('value');
+
+        if (!$goal) {
+            return response()->json(['error' => 'true', 'message' => 'Meta não encontrada para o mês atual'], 404);
+        }
+
+        return $goal;
+    }
+
+    public function getLast3MonthsGoals()
+    {
+        $currentMonth = date('n');
+        $currentYear = date('Y');
+
+        $goals = Goal::where(function ($query) use ($currentMonth, $currentYear) {
+            for ($i = 0; $i < 3; $i++) {
+                $query->orWhere(function ($subquery) use ($currentMonth, $currentYear, $i) {
+                    $subquery->where('month', $currentMonth - $i)->where('year', $currentYear);
+                });
+            }
+        })->sum('value');
+
+        return $goals;
+    }
+
+    public function getLast12MonthsGoals()
+    {
+
+        $currentMonth = date('n');
+        $currentYear = date('Y');
+
+        $goals = Goal::where(function ($query) use ($currentMonth, $currentYear) {
+            $query->orWhere(function ($subquery) use ($currentMonth, $currentYear) {
+                $subquery->where('year', $currentYear)->where('month', '=', $currentMonth);
+            });
+
+            for ($i = 1; $i <= 12; $i++) {
+                $query->orWhere(function ($subquery) use ($currentMonth, $currentYear, $i) {
+                    $subquery->where('year', $currentYear - (($currentMonth - $i) < 0 ? 1 : 0))
+                        ->where('month', (($currentMonth - $i + 12) % 12) + 1);
+                });
+            }
+        })->sum('value');
+
+        return $goals;
+    }
+
+    public function getCurrentYearGoals()
+    {
+        $currentYear = date('Y');
+
+        $goals = Goal::where('year', $currentYear)->sum('value');
+
+        return $goals;
     }
 }
