@@ -692,6 +692,7 @@ class ReportsService
         $Last12MonthsValue = $this->GetApproveds(['date_init' => Carbon::now()->startOfMonth()->subMonth(11)->format('Y-m-d'), 'date_end' => Carbon::now()->endOfMonth()->format('Y-m-d')]);
         $CurrentYearValue = $this->GetApproveds(['date_init' => Carbon::now()->startOfYear()->format('Y-m-d'), 'date_end' => Carbon::now()->endOfYear()->format('Y-m-d')]);
 
+
         $goals = [
             "ultimos_doze_meses" => [
                 "porcentagem" => (($Last12MonthsValue->sum * 100) / $Last12MonthsGoals) > 100 ? 100 : (($Last12MonthsValue->sum * 100) / $Last12MonthsGoals),
@@ -723,13 +724,9 @@ class ReportsService
         $currentMonth = date('n');
         $currentYear = date('Y');
 
-        $goal = Goal::where('month', $currentMonth)->where('year', $currentYear)->sum('value');
+        $goals = Goal::where('month', $currentMonth)->where('year', $currentYear)->sum('value');
 
-        if (!$goal) {
-            return response()->json(['error' => 'true', 'message' => 'Meta não encontrada para o mês atual'], 404);
-        }
-
-        return $goal;
+        return $goals == 0 ? 1 : $goals;
     }
 
     public function getLast3MonthsGoals()
@@ -745,7 +742,7 @@ class ReportsService
             }
         })->sum('value');
 
-        return $goals;
+        return $goals == 0 ? 1 : $goals;
     }
 
     public function getLast12MonthsGoals()
@@ -767,7 +764,7 @@ class ReportsService
             }
         })->sum('value');
 
-        return $goals;
+        return $goals == 0 ? 1 : $goals;
     }
 
     public function getCurrentYearGoals()
@@ -776,6 +773,6 @@ class ReportsService
 
         $goals = Goal::where('year', $currentYear)->sum('value');
 
-        return $goals;
+        return $goals == 0 ? 1 : $goals;
     }
 }
