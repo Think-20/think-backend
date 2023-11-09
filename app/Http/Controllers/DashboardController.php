@@ -28,7 +28,8 @@ class DashboardController extends Controller
         $avancados = $this->reportsService->GetAdvanceds(["date_init" => $dtInicio, "date_end" => $dtFim]);
         $standby = $this->reportsService->GetStandbys(["date_init" => $dtInicio, "date_end" => $dtFim]);
         $reprovados = $this->reportsService->GetReproveds(["date_init" => $dtInicio, "date_end" => $dtFim]);
-        $soma = $aprovados->count + $avancados->count + $standby->count + $reprovados->count;
+        $ajustes = $this->reportsService->GetAdjusts(["date_init" => $dtInicio, "date_end" => $dtFim]);
+        $soma = $aprovados->count + $avancados->count + $standby->count + $reprovados->count + $ajustes->sum;
 
         return response()->json(
             [
@@ -99,9 +100,9 @@ class DashboardController extends Controller
                         "valor" => $avancados->sum
                     ],
                     "ajustes" => [
-                        "total" => 23,
-                        "porcentagem" => 10,
-                        "valor" => 2000000
+                        "total" => $ajustes->count,
+                        "porcentagem" => round(($ajustes->count * 100) / $soma, 2),
+                        "valor" => $ajustes->sum
                     ],
                     "stand_by" => [
                         "total" => $standby->count,

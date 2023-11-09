@@ -562,10 +562,10 @@ class ReportsService
     public function GetApproveds($data)
     {
         $jobs =  Job::where('status_id', 3);
-        
+
         $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'));
-        
-        
+
+
         if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
         } else {
@@ -585,10 +585,10 @@ class ReportsService
     public function GetAdvanceds($data)
     {
         $jobs =  Job::where('status_id', 5);
-        
+
         $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'));
-        
-        
+
+
         if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
         } else {
@@ -608,10 +608,10 @@ class ReportsService
     public function GetStandbys($data)
     {
         $jobs =  Job::where('status_id', 1);
-        
+
         $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'));
-        
-        
+
+
         if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
         } else {
@@ -631,10 +631,37 @@ class ReportsService
     public function GetReproveds($data)
     {
         $jobs =  Job::where('status_id', 4);
-        
+
         $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'));
-        
-        
+
+
+        if (isset($data['date_init'])) {
+            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
+        }
+
+        if (isset($data['date_end'])) {
+            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        }
+        $result = $jobs->first();
+
+        return $result;
+    }
+
+    public function GetAdjusts($data)
+    {
+        $jobs = Job::where('status_id', 1);
+        $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))
+            ->whereHas('tasks', function ($query) {
+                $query->whereHas('job_activity', function ($innerQuery) {
+                    $innerQuery->where('description', 'like', '%Modificação%');
+                });
+            })
+            ->with('tasks.job_activity', 'tasks.responsible');
+
         if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
         } else {
