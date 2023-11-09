@@ -654,30 +654,36 @@ class ReportsService
 
     public function GetGoals()
     {
+
         $CurrentMonthGoal = $this->getCurrentMonthGoal();
         $Last3MonthsGoals = $this->getLast3MonthsGoals();
         $Last12MonthsGoals = $this->getLast12MonthsGoals();
         $CurrentYearGoals = $this->getCurrentYearGoals();
 
+        $CurrentMonthValue = $this->GetApproveds(['date_init' => Carbon::now()->startOfMonth()->format('Y-m-d'), 'date_end' => Carbon::now()->endOfQuarter()->format('Y-m-d')]);
+        $Last3MonthsValue = $this->GetApproveds(['date_init' => Carbon::now()->startOfQuarter()->format('Y-m-d'), 'date_end' => Carbon::now()->endOfQuarter()->format('Y-m-d')]);
+        $Last12MonthsValue = $this->GetApproveds(['date_init' => Carbon::now()->startOfMonth()->subMonth(11)->format('Y-m-d'), 'date_end' => Carbon::now()->endOfMonth()->format('Y-m-d')]);
+        $CurrentYearValue = $this->GetApproveds(['date_init' => Carbon::now()->startOfYear()->format('Y-m-d'), 'date_end' => Carbon::now()->endOfYear()->format('Y-m-d')]);
+
         $goals = [
             "ultimos_doze_meses" => [
-                "porcentagem" => 50,
-                "atual" => 4950000,
+                "porcentagem" => (($Last12MonthsValue->sum * 100) / $Last12MonthsGoals) > 100 ? 100 : (($Last12MonthsValue->sum * 100) / $Last12MonthsGoals),
+                "atual" =>  $Last12MonthsValue->sum,
                 "meta" =>  $Last12MonthsGoals
             ],
             "mes" => [
-                "porcentagem" => 75,
-                "atual" => 280000,
+                "porcentagem" => (($CurrentMonthValue->sum * 100) / $CurrentMonthGoal) > 100 ? 100 : (($CurrentMonthValue->sum * 100) / $CurrentMonthGoal),
+                "atual" => $CurrentMonthValue->sum,
                 "meta" =>  $CurrentMonthGoal
             ],
             "quarter" => [
-                "porcentagem" => 40,
-                "atual" => 1300000,
+                "porcentagem" => (($Last3MonthsValue->sum * 100) / $Last3MonthsGoals) > 100 ? 100 : (($Last3MonthsValue->sum * 100) / $Last3MonthsGoals),
+                "atual" =>  $Last3MonthsValue->sum,
                 "meta" =>  $Last3MonthsGoals
             ],
             "anual" => [
-                "porcentagem" => 35,
-                "atual" => 3810000,
+                "porcentagem" => (($CurrentYearValue->sum * 100) / $CurrentYearGoals) > 100 ? 100 : (($CurrentYearValue->sum * 100) / $CurrentYearGoals),
+                "atual" =>  $CurrentYearValue->sum,
                 "meta" =>  $CurrentYearGoals
             ]
         ];
