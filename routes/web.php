@@ -20,7 +20,7 @@ Route::post('/login', 'UserController@login')->name('login');
 Route::get('/check-token', 'UserController@checkToken')->name('checkToken');
 Route::post('/logout', 'UserController@logout')->name('logout');
 
-Route::get('/notify-past', function() {
+Route::get('/notify-past', function () {
     return (new App\CreateNotifyPastTasks())->test();
 });
 
@@ -28,8 +28,7 @@ Route::get('/notify-past', function() {
     Construir authenticate request para imagens 
     http://blog.jsgoupil.com/request-image-files-with-angular-2-and-an-bearer-access-token/
 */
-Route::get('/assets/images/temp/{filename}', function ($filename)
-{
+Route::get('/assets/images/temp/{filename}', function ($filename) {
     $path = sys_get_temp_dir() . '/' . $filename;
 
     if (!File::exists($path)) {
@@ -45,8 +44,7 @@ Route::get('/assets/images/temp/{filename}', function ($filename)
     return $response;
 });
 
-Route::get('/project-files/view/{id}', function ($id)
-{
+Route::get('/project-files/view/{id}', function ($id) {
     $projectFile = App\ProjectFile::find($id);
     $path = env('FILES_FOLDER') . '/project-files/' . $projectFile->name;
 
@@ -63,8 +61,7 @@ Route::get('/project-files/view/{id}', function ($id)
     return $response;
 });
 
-Route::get('/specification-files/view/{id}', function ($id)
-{
+Route::get('/specification-files/view/{id}', function ($id) {
     $specificationFile = App\SpecificationFile::find($id);
     $path = env('FILES_FOLDER') . '/specification-files/' . $specificationFile->name;
 
@@ -81,7 +78,7 @@ Route::get('/specification-files/view/{id}', function ($id)
     return $response;
 });
 
-Route::group(['middleware' => ['auth.api']], function() {
+Route::group(['middleware' => ['auth.api']], function () {
     Route::group(['middleware' => 'checkDepartment'], function () {
         Route::post('/dashboard', 'DashboardController@index');
     });
@@ -102,42 +99,42 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::get('/person-types/all', 'PersonTypeController@all');
     Route::get('/bank-account-types/all', 'BankAccountTypeController@all');
     Route::get('/banks/all', 'BankController@all');
-    
+
     Route::get('/measures/all', 'MeasureController@all');
     Route::get('/measures/filter/{query}', 'MeasureController@filter');
-    
+
     Route::get('/job-activities/all', 'JobActivityController@all');
     Route::get('/job-activities/filter/{query}', 'JobActivityController@filter');
-    
+
     Route::get('timecard/places/all', 'TimecardPlaceController@all');
-    
+
     Route::get('/job-types/all', 'JobTypeController@all');
     Route::get('/job-types/filter/{query}', 'JobTypeController@filter');
-    
+
     Route::get('/briefing-competitions/all', 'BriefingCompetitionController@all');
     Route::get('/briefing-competitions/filter/{query}', 'BriefingCompetitionController@filter');
-    
+
     Route::get('/job-status/all', 'JobStatusController@all');
     Route::get('/job-status/filter/{query}', 'JobStatusController@filter');
-    
+
     Route::get('/briefing-presentations/all', 'BriefingPresentationController@all');
     Route::get('/briefing-presentations/filter/{query}', 'BriefingPresentationController@filter');
-    
+
     Route::get('/stand-configurations/all', 'StandConfigurationController@all');
     Route::get('/stand-configurations/filter/{query}', 'StandConfigurationController@filter');
-    
+
     Route::get('/stand-genres/all', 'StandGenreController@all');
     Route::get('/stand-genres/filter/{query}', 'StandGenreController@filter');
-    
+
     Route::get('/briefing-main-expectations/all', 'BriefingMainExpectationController@all');
     Route::get('/briefing-main-expectations/filter/{query}', 'BriefingMainExpectationController@filter');
-    
+
     Route::get('/briefing-levels/all', 'BriefingLevelController@all');
     Route::get('/briefing-levels/filter/{query}', 'BriefingLevelController@filter');
-    
+
     Route::get('/briefing-how-comes/all', 'BriefingHowComeController@all');
     Route::get('/briefing-how-comes/filter/{query}', 'BriefingHowComeController@filter');
-    
+
     Route::get('/jobs/load-form', 'JobController@loadForm');
     Route::get('/tasks/get-next-available-date/{availableDate}/{estimatedTime}/{jobActivity}/{budgetValue}', 'TaskController@getNextAvailableDate');
     Route::post('/tasks/get-available-dates', 'TaskController@getNextAvailableDates');
@@ -157,7 +154,7 @@ Route::group(['middleware' => ['auth.api']], function() {
     Route::post('/positions/filter', 'PositionController@filter');
 
     Route::get('/jobs/calculate', 'JobController@calculate');
-    Route::prefix('reports')->group(function(){
+    Route::prefix('reports')->group(function () {
         Route::post('/', 'ReportsController@read');
     });
     Route::get('/reminders', 'RemindersController@index');
@@ -169,9 +166,14 @@ Route::group(['middleware' => ['auth.api']], function() {
 
     Route::post('/employees/all', 'EmployeeController@all');
     Route::post('/employees/filter', 'EmployeeController@filter');
+
+    Route::get('/goal', 'GoalController@selectGoal');
+    Route::post('/goal', 'GoalController@createGoal');
+    Route::put('/goal', 'GoalController@updateGoal');
+    
 });
 
-Route::group(['middleware' => ['auth.api','permission']], function() {
+Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::get('/employees/get/{id}', 'EmployeeController@get');
     Route::get('/my-employees/get/{id}', 'EmployeeController@myGet');
     Route::post('/employee/save', 'EmployeeController@save');
@@ -186,14 +188,14 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::put('/user/edit', 'UserController@edit');
     Route::put('/my-user/edit', 'UserController@myEdit');
     Route::put('/user/edit-permission', 'UserController@editPermission');
-    
+
     Route::post('/displays/all', 'DisplayController@all');
     Route::post('/displays/filter', 'DisplayController@filter');
     Route::get('/displays/get/{id}', 'DisplayController@get');
     Route::post('/display/save', 'DisplayController@save');
     Route::put('/display/edit', 'DisplayController@edit');
     Route::delete('/display/remove/{id}', 'DisplayController@remove');
-    
+
     Route::post('/functionalities/all', 'FunctionalityController@all');
     Route::post('/functionalities/filter', 'FunctionalityController@filter');
     Route::get('/functionalities/get/{id}', 'FunctionalityController@get');
@@ -276,7 +278,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/my-jobs/get/{id}', 'JobController@getMyJob');
     Route::post('/my-jobs/filter', 'JobController@filterMyJob');
     Route::get('/my-job/download/{id}/{type}/{file}', 'JobController@downloadFileMyJob');
-    
+
     /*
     Route::post('/briefing/save', 'BriefingController@save');
     Route::put('/briefing/edit', 'BriefingController@edit');
@@ -292,7 +294,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/tasks/get/{id}', 'TaskController@get');
     Route::put('/task/edit-available-date', 'TaskController@editAvailableDate');
     Route::delete('/task/remove/{id}', 'TaskController@remove');
-    
+
     Route::get('/task/memorial/{id}', 'TaskController@memorialPdf');
 
     Route::post('/my-task/save', 'TaskController@save');
@@ -300,7 +302,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::get('/my-tasks/get/{id}', 'TaskController@getMyTask');
     Route::put('/my-task/edit-available-date', 'TaskController@myEditAvailableDate');
     Route::delete('/my-task/remove/{id}', 'TaskController@removeMyTask');
-    
+
     Route::post('/budget/save', 'BudgetController@save');
     Route::put('/budget/edit', 'BudgetController@edit');
 
@@ -313,7 +315,7 @@ Route::group(['middleware' => ['auth.api','permission']], function() {
     Route::delete('/specification-files/remove/{id}', 'SpecificationFileController@remove');
     Route::get('/specification-files/download/{id}', 'SpecificationFileController@downloadFile');
     Route::get('/specification-files/download-all/{taskId}', 'SpecificationFileController@downloadAll');
-    
+
     Route::post('/schedule-block/save', 'ScheduleBlockController@save');
     Route::delete('/schedule-block/remove/{id}', 'ScheduleBlockController@remove');
     Route::post('/schedule-blocks/all', 'ScheduleBlockController@all');
