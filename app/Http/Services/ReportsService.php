@@ -2,6 +2,7 @@
 
 namespace App\Http\Service;
 
+use App\Goal;
 use App\Job;
 use App\User;
 use Carbon\Carbon;
@@ -430,6 +431,8 @@ class ReportsService
             ->where('status_id', 3)
             ->orderBy('final_value_numeric', 'desc');
 
+
+
         if (isset($data['date_init'])) {
             $sale->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
         } else {
@@ -555,5 +558,221 @@ class ReportsService
             "fourthQuarterTopSeller" => $fourthQuarterTopSeller,
             "last12MonthsTopSeller" => $last12MonthsTopSeller
         ];
+    }
+
+    public function GetApproveds($data)
+    {
+        $jobs =  Job::where('status_id', 3);
+
+        $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'));
+
+
+        if (isset($data['date_init'])) {
+            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
+        }
+
+        if (isset($data['date_end'])) {
+            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        }
+        $result = $jobs->first();
+
+        return $result;
+    }
+
+    public function GetAdvanceds($data)
+    {
+        $jobs =  Job::where('status_id', 5);
+
+        $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'));
+
+
+        if (isset($data['date_init'])) {
+            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
+        }
+
+        if (isset($data['date_end'])) {
+            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        }
+        $result = $jobs->first();
+
+        return $result;
+    }
+
+    public function GetStandbys($data)
+    {
+        $jobs =  Job::where('status_id', 1);
+
+        $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'));
+
+
+        if (isset($data['date_init'])) {
+            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
+        }
+
+        if (isset($data['date_end'])) {
+            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        }
+        $result = $jobs->first();
+
+        return $result;
+    }
+
+    public function GetReproveds($data)
+    {
+        $jobs =  Job::where('status_id', 4);
+
+        $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'));
+
+
+        if (isset($data['date_init'])) {
+            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
+        }
+
+        if (isset($data['date_end'])) {
+            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        }
+        $result = $jobs->first();
+
+        return $result;
+    }
+
+    public function GetAdjusts($data)
+    {
+        $jobs = Job::where('status_id', 1);
+        $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))
+            ->whereHas('tasks', function ($query) {
+                $query->whereHas('job_activity', function ($innerQuery) {
+                    $innerQuery->where('description', 'like', '%Modificação%');
+                });
+            })
+            ->with('tasks.job_activity', 'tasks.responsible');
+
+        if (isset($data['date_init'])) {
+            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
+        }
+
+        if (isset($data['date_end'])) {
+            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        }
+        $result = $jobs->first();
+
+        return $result;
+    }
+
+    public function GetGoals()
+    {
+
+        $CurrentMonthGoal = $this->getCurrentMonthGoal();
+        $Last3MonthsGoals = $this->getLast3MonthsGoals();
+        $Last12MonthsGoals = $this->getLast12MonthsGoals();
+        $CurrentYearGoals = $this->getCurrentYearGoals();
+
+        $CurrentMonthValue = $this->GetApproveds(['date_init' => Carbon::now()->startOfMonth()->format('Y-m-d'), 'date_end' => Carbon::now()->endOfQuarter()->format('Y-m-d')]);
+        $Last3MonthsValue = $this->GetApproveds(['date_init' => Carbon::now()->startOfQuarter()->format('Y-m-d'), 'date_end' => Carbon::now()->endOfQuarter()->format('Y-m-d')]);
+        $Last12MonthsValue = $this->GetApproveds(['date_init' => Carbon::now()->startOfMonth()->subMonth(11)->format('Y-m-d'), 'date_end' => Carbon::now()->endOfMonth()->format('Y-m-d')]);
+        $CurrentYearValue = $this->GetApproveds(['date_init' => Carbon::now()->startOfYear()->format('Y-m-d'), 'date_end' => Carbon::now()->endOfYear()->format('Y-m-d')]);
+
+
+        $goals = [
+            "ultimos_doze_meses" => [
+                "porcentagem" => (($Last12MonthsValue->sum * 100) / $Last12MonthsGoals) > 100 ? 100 : (($Last12MonthsValue->sum * 100) / $Last12MonthsGoals),
+                "atual" =>  $Last12MonthsValue->sum,
+                "meta" =>  $Last12MonthsGoals
+            ],
+            "mes" => [
+                "porcentagem" => (($CurrentMonthValue->sum * 100) / $CurrentMonthGoal) > 100 ? 100 : (($CurrentMonthValue->sum * 100) / $CurrentMonthGoal),
+                "atual" => $CurrentMonthValue->sum,
+                "meta" =>  $CurrentMonthGoal
+            ],
+            "quarter" => [
+                "porcentagem" => (($Last3MonthsValue->sum * 100) / $Last3MonthsGoals) > 100 ? 100 : (($Last3MonthsValue->sum * 100) / $Last3MonthsGoals),
+                "atual" =>  $Last3MonthsValue->sum,
+                "meta" =>  $Last3MonthsGoals
+            ],
+            "anual" => [
+                "porcentagem" => (($CurrentYearValue->sum * 100) / $CurrentYearGoals) > 100 ? 100 : (($CurrentYearValue->sum * 100) / $CurrentYearGoals),
+                "atual" =>  $CurrentYearValue->sum,
+                "meta" =>  $CurrentYearGoals
+            ]
+        ];
+
+        return $goals;
+    }
+
+    public function getCurrentMonthGoal()
+    {
+        $currentMonth = date('n');
+        $currentYear = date('Y');
+
+        $goals = Goal::where('month', $currentMonth)->where('year', $currentYear)->sum('value');
+
+        return $goals == 0 ? 1 : $goals;
+    }
+
+    public function getLast3MonthsGoals()
+    {
+        $currentMonth = date('n');
+        $currentYear = date('Y');
+
+        $goals = Goal::where(function ($query) use ($currentMonth, $currentYear) {
+            for ($i = 0; $i < 3; $i++) {
+                $query->orWhere(function ($subquery) use ($currentMonth, $currentYear, $i) {
+                    $subquery->where('month', $currentMonth - $i)->where('year', $currentYear);
+                });
+            }
+        })->sum('value');
+
+        return $goals == 0 ? 1 : $goals;
+    }
+
+    public function getLast12MonthsGoals()
+    {
+
+        $currentMonth = date('n');
+        $currentYear = date('Y');
+
+        $goals = Goal::where(function ($query) use ($currentMonth, $currentYear) {
+            $query->orWhere(function ($subquery) use ($currentMonth, $currentYear) {
+                $subquery->where('year', $currentYear)->where('month', '=', $currentMonth);
+            });
+
+            for ($i = 1; $i <= 12; $i++) {
+                $query->orWhere(function ($subquery) use ($currentMonth, $currentYear, $i) {
+                    $subquery->where('year', $currentYear - (($currentMonth - $i) < 0 ? 1 : 0))
+                        ->where('month', (($currentMonth - $i + 12) % 12) + 1);
+                });
+            }
+        })->sum('value');
+
+        return $goals == 0 ? 1 : $goals;
+    }
+
+    public function getCurrentYearGoals()
+    {
+        $currentYear = date('Y');
+
+        $goals = Goal::where('year', $currentYear)->sum('value');
+
+        return $goals == 0 ? 1 : $goals;
     }
 }
