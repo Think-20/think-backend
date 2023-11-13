@@ -65,12 +65,12 @@ class GoalController extends Controller
         return response()->json(['error' => 'false', 'message' => 'Meta atualizada com sucesso']);
     }
 
-    public function selectGoal(Request $request)
+    public function selectGoal(Request $request, int $id)
     {
-        if (!isset($request->id)) {
+        if (!isset($id)) {
             $goal = Goal::get();
             if (!$goal) {
-                return response()->json(['error' => 'true', 'message' => 'Meta ' . $request->id . ' não encontrada'], 400);
+                return response()->json(['error' => 'true', 'message' => 'Meta ' . $id . ' nao encontrada'], 400);
             }
 
             return $goal;
@@ -80,7 +80,7 @@ class GoalController extends Controller
             $goal = Goal::where('id', $request->id)->first();
 
             if (!$goal) {
-                return response()->json(['error' => 'true', 'message' => 'Meta ' . $request->id . ' não encontrada'], 400);
+                return response()->json(['error' => 'true', 'message' => 'Meta ' . $request->id . ' nao encontrada'], 400);
             }
 
             return $goal;
