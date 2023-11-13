@@ -170,7 +170,6 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::get('/goal', 'GoalController@selectGoal');
     Route::post('/goal', 'GoalController@createGoal');
     Route::put('/goal', 'GoalController@updateGoal');
-    
 });
 
 Route::group(['middleware' => ['auth.api', 'permission']], function () {

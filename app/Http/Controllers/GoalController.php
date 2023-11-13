@@ -65,18 +65,25 @@ class GoalController extends Controller
         return response()->json(['error' => 'false', 'message' => 'Meta atualizada com sucesso']);
     }
 
-    public function select(Request $request)
+    public function selectGoal(Request $request)
     {
         if (!isset($request->id)) {
-            return response()->json(['error' => 'true', 'message' => 'Id não informado'], 400);
+            $goal = Goal::get();
+            if (!$goal) {
+                return response()->json(['error' => 'true', 'message' => 'Meta ' . $request->id . ' não encontrada'], 400);
+            }
+
+            return $goal;
+
+            //return response()->json(['error' => 'true', 'message' => 'Id não informado'], 400);
+        } else {
+            $goal = Goal::where('id', $request->id)->first();
+
+            if (!$goal) {
+                return response()->json(['error' => 'true', 'message' => 'Meta ' . $request->id . ' não encontrada'], 400);
+            }
+
+            return $goal;
         }
-
-        $goal = Goal::where('id', $request->id)->first();
-
-        if (!$goal) {
-            return response()->json(['error' => 'true', 'message' => 'Meta ' . $request->id . ' não encontrada'], 400);
-        }
-
-        return $goal;
     }
 }
