@@ -29,7 +29,8 @@ class DashboardController extends Controller
         $standby = $this->reportsService->GetStandbys(["date_init" => $dtInicio, "date_end" => $dtFim]);
         $reprovados = $this->reportsService->GetReproveds(["date_init" => $dtInicio, "date_end" => $dtFim]);
         $ajustes = $this->reportsService->GetAdjusts(["date_init" => $dtInicio, "date_end" => $dtFim]);
-        $soma = $aprovados->count + $avancados->count + $standby->count + $reprovados->count + $ajustes->sum;
+        
+        $soma = $aprovados->count + $avancados->count + $standby->count + $reprovados->count + $ajustes->count;
 
         return response()->json(
             [

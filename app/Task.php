@@ -575,7 +575,6 @@ class Task extends Model
         }) : collect([]);
         $admin = isset($data['admin']) ? $data['admin'] : false;
 
-
         $task = Task::find($id);
 
         $oldResponsible = $task->responsible->name;
@@ -612,7 +611,7 @@ class Task extends Model
                 'message' => $message
             ]), 'Alteração de tarefa', $task->id);
         }
-
+        dd(["oldDuration" => $oldDuration, "duration" => $task->getDuration()]);
         if ($oldDuration != $task->getDuration()) {
             $message = 'Duração de ' . mb_strtolower($task->getTaskName()) . ' da ';
             $message .= $task->job->getJobName();
