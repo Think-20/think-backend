@@ -29,8 +29,10 @@ class DashboardController extends Controller
         $standby = $this->reportsService->GetStandbys(["date_init" => $dtInicio, "date_end" => $dtFim]);
         $reprovados = $this->reportsService->GetReproveds(["date_init" => $dtInicio, "date_end" => $dtFim]);
         $ajustes = $this->reportsService->GetAdjusts(["date_init" => $dtInicio, "date_end" => $dtFim]);
-        
+
+        $jobsByCategories = $this->reportsService->GetByCategories(["date_init" => $dtInicio, "date_end" => $dtFim]);
         $soma = $aprovados->count + $avancados->count + $standby->count + $reprovados->count + $ajustes->count;
+        $somaAmount = $aprovados->amount + $avancados->amount + $standby->amount + $reprovados->amount + $ajustes->amount;
 
         return response()->json(
             [
@@ -40,7 +42,7 @@ class DashboardController extends Controller
                     "total" => $this->reportsService->sumTimeToAproval($request->all()),
                 ],
                 "intervalo_medio_aprovacao_dias" => [
-                    "total" => 7 // pular, não temos dados
+                    "total" => 7
                 ],
                 "ticket_medio_aprovacao" => [
                     "total" => $this->reportsService->averageTicket($request->all())
@@ -163,10 +165,11 @@ class DashboardController extends Controller
                         "#ffcd37"
                     ],
                     "series" => [
-                        44,
-                        55,
-                        41,
-                        17
+                        $jobsByCategories['Cenografia']["count"] ?? 0,
+                        $jobsByCategories['Stand']["count"] ?? 0,
+                        $jobsByCategories['PDV']["count"] ?? 0,
+                        $jobsByCategories['Showroom']["count"] ?? 0,
+                        $jobsByCategories['Outsiders']["count"] ?? 0,
                     ],
                     "meta_jobs" => 1200000,
                     "total" => $soma,

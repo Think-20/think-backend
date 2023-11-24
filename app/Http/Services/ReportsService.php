@@ -563,9 +563,7 @@ class ReportsService
     public function GetApproveds($data)
     {
         $jobs =  Job::where('status_id', 3);
-
         $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'));
-
 
         if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
@@ -579,8 +577,39 @@ class ReportsService
             $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
         }
         $result = $jobs->first();
-
         return $result;
+    }
+
+    public function GetByCategories($data)
+    {
+        $jobs = Job::with('job_type')
+            ->select('job_type_id', DB::raw('COUNT(*) as count'), DB::raw('SUM(final_value) as sum'))
+            ->groupBy('job_type_id');
+    
+        if (isset($data['date_init'])) {
+            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
+        }
+    
+        if (isset($data['date_end'])) {
+            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        }
+    
+        $results = $jobs->get();
+    
+        // Processar os resultados para o formato desejado
+        $formattedResults = [];
+        foreach ($results as $result) {
+            $formattedResults[$result->job_type->description] = [
+                'job_type_id' => $result->job_type_id,
+                'count' => $result->count,
+                'sum' => $result->sum,
+            ];
+        }
+        return $formattedResults;
     }
 
     public function GetAdvanceds($data)
