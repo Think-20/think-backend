@@ -171,8 +171,8 @@ class DashboardController extends Controller
                         $jobsByCategories['Showroom']["count"] ?? 0,
                         $jobsByCategories['Outsiders']["count"] ?? 0,
                     ],
-                    "meta_jobs" => 1200000,
-                    "total" => $soma,
+                    "meta_jobs" => $jobsByCategories['totals']['totalSum'],
+                    "total" => $jobsByCategories['totals']['totalCount'],
                     "meta_aprovacao" => 400000,
                 ],
                 "tendencia" => [

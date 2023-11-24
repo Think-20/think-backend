@@ -602,13 +602,20 @@ class ReportsService
     
         // Processar os resultados para o formato desejado
         $formattedResults = [];
+        $totalCount = 0;
+        $totalSum = 0;
         foreach ($results as $result) {
             $formattedResults[$result->job_type->description] = [
                 'job_type_id' => $result->job_type_id,
                 'count' => $result->count,
                 'sum' => $result->sum,
             ];
+            $totalCount = $totalCount + $result->count;
+            $totalSum = $totalSum + $result->sum;
         }
+
+        $formattedResults["totals"] = ["totalCount" => $totalCount, "totalSum" => $totalSum];
+
         return $formattedResults;
     }
 
