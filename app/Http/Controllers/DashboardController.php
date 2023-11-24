@@ -85,7 +85,7 @@ class DashboardController extends Controller
                     "series" => [
                         $aprovados->count,
                         $avancados->count,
-                        0,
+                        $ajustes->count,
                         $standby->count,
                         $reprovados->count
                     ],
