@@ -582,7 +582,7 @@ class ReportsService
 
     public function GetByCategories($data)
     {
-        $jobs = Job::with('job_type')
+        $jobs = Job::where('status_id', "<>", 2)->with('job_type')
             ->select('job_type_id', DB::raw('COUNT(*) as count'), DB::raw('SUM(final_value) as sum'))
             ->groupBy('job_type_id');
     
