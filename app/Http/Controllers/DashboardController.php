@@ -34,6 +34,8 @@ class DashboardController extends Controller
         $soma = $aprovados->count + $avancados->count + $standby->count + $reprovados->count + $ajustes->count;
         $somaAmount = $aprovados->amount + $avancados->amount + $standby->amount + $reprovados->amount + $ajustes->amount;
 
+        $listaAprovados = $this->reportsService->GetLastApproveds(["date_init" => $dtInicio, "date_end" => $dtFim]);
+
         return response()->json(
             [
                 "alertas" => $this->CountAlerts($dtInicio, $dtFim),
@@ -120,27 +122,27 @@ class DashboardController extends Controller
                     "metas" => $this->reportsService->GetGoals(),
                     "em_producao" => [
                         "total" => 4,
-                        "total_em_producao" => 500,
+                        "total_em_producao" => $listaAprovados->count(),
                         "jobs" => [
                             [
-                                "total" => 100,
-                                "valor" => 90,
-                                "nome" => "Ford | Salão Automóvel"
+                                "total" => $listaAprovados[0]['final_value'],
+                                "valor" => $listaAprovados[0]['budget_value'],
+                                "nome" => $listaAprovados[0]->getJobName()
                             ],
                             [
-                                "total" => 100,
-                                "valor" => 80,
-                                "nome" => "Microsoft | Futurecomm"
+                                "total" => $listaAprovados[1]['final_value'],
+                                "valor" => $listaAprovados[1]['budget_value'],
+                                "nome" => $listaAprovados[1]->getJobName()
                             ],
                             [
-                                "total" => 100,
-                                "valor" => 40,
-                                "nome" => "Nestlé | Rock in Rio"
+                                "total" => $listaAprovados[2]['final_value'],
+                                "valor" => $listaAprovados[2]['budget_value'],
+                                "nome" => $listaAprovados[2]->getJobName()
                             ],
                             [
-                                "total" => 100,
-                                "valor" => 35,
-                                "nome" => "Coca-Cola | Apas"
+                                "total" => $listaAprovados[3]['final_value'],
+                                "valor" => $listaAprovados[3]['budget_value'],
+                                "nome" => $listaAprovados[3]->getJobName()
                             ]
                         ]
                     ],

@@ -580,6 +580,26 @@ class ReportsService
         return $result;
     }
 
+    public function GetLastApproveds($data)
+    {
+        $jobs = Job::where('status_id', 3);
+        $jobs->select("*")->orderBy('created_at', 'desc');;
+
+        if (isset($data['date_init'])) {
+            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
+        }
+
+        if (isset($data['date_end'])) {
+            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        }
+        $result = $jobs->get();
+        return $result;
+    }
+
     public function GetByCategories($data)
     {
         $jobs = Job::where('status_id', "<>", 2)->with('job_type')
