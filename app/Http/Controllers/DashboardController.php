@@ -110,7 +110,7 @@ class DashboardController extends Controller
                         "valor" => $ajustes->sum
                     ],
                     "stand_by" => [
-                        "total" => $standby->count,
+                        "total" => $standby->count - $ajustes->count,
                         "porcentagem" => round(($standby->count * 100) / $soma, 2),
                         "valor" => $standby->sum
                     ],
