@@ -196,18 +196,18 @@ class DashboardController extends Controller
                         [
                             "name" => "Meta",
                             "data" => [
-                                1600000,
-                                1600000,
-                                1600000,
-                                1600000,
-                                1600000,
-                                1600000,
-                                1600000,
-                                1600000,
-                                1600000,
-                                1600000,
-                                1600000,
-                                1600000
+                                $this->reportsService->getGoal(1),
+                                $this->reportsService->getGoal(2),
+                                $this->reportsService->getGoal(3),
+                                $this->reportsService->getGoal(4),
+                                $this->reportsService->getGoal(5),
+                                $this->reportsService->getGoal(6),
+                                $this->reportsService->getGoal(7),
+                                $this->reportsService->getGoal(8),
+                                $this->reportsService->getGoal(9),
+                                $this->reportsService->getGoal(10),
+                                $this->reportsService->getGoal(11),
+                                $this->reportsService->getGoal(12)
                             ]
                         ],
                         [

@@ -775,6 +775,14 @@ class ReportsService
         return $goals;
     }
 
+    public function getGoal($mount)
+    {
+        $currentYear = date('Y');
+        $goals = Goal::where('month', $mount)->where('year', $currentYear)->sum('value');
+
+        return $goals == 0 ? 1 : $goals;
+    }
+
     public function getCurrentMonthGoal()
     {
         $currentMonth = date('n');
