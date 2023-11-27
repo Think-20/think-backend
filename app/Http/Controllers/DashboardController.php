@@ -31,7 +31,7 @@ class DashboardController extends Controller
         $ajustes = $this->reportsService->GetAdjusts(["date_init" => $dtInicio, "date_end" => $dtFim]);
 
         $jobsByCategories = $this->reportsService->GetByCategories(["date_init" => $dtInicio, "date_end" => $dtFim]);
-        $soma = $aprovados->count + $avancados->count + $standby->count + $reprovados->count;
+        $soma = $aprovados->count + $avancados->count + $standby->count + $reprovados->count; // Aqui não entra o count do ajustes porque o ajustes tbm são jobs em standby
         $somaAmount = $aprovados->amount + $avancados->amount + $standby->amount + $reprovados->amount + $ajustes->amount;
 
         $listaAprovados = $this->reportsService->GetLastApproveds(["date_init" => $dtInicio, "date_end" => $dtFim]);
@@ -88,7 +88,7 @@ class DashboardController extends Controller
                         $aprovados->count,
                         $avancados->count,
                         $ajustes->count,
-                        $standby->count - $ajustes->count,
+                        $standby->count - $ajustes->count, // Aqui é retirado o count do ajustes do stand-by porque o ajustes tbm são jobs em standby
                         $reprovados->count
                     ],
                     "meta_jobs" => 1200000,
@@ -110,7 +110,7 @@ class DashboardController extends Controller
                         "valor" => $ajustes->sum
                     ],
                     "stand_by" => [
-                        "total" => $standby->count - $ajustes->count,
+                        "total" => $standby->count - $ajustes->count, // Aqui é retirado o count do ajustes do stand-by porque o ajustes tbm são jobs em standby
                         "porcentagem" => round(($standby->count * 100) / $soma, 2),
                         "valor" => $standby->sum
                     ],
