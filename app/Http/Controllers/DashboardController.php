@@ -88,7 +88,7 @@ class DashboardController extends Controller
                         $aprovados->count,
                         $avancados->count,
                         $ajustes->count,
-                        $standby->count,
+                        $standby->count - $ajustes->count,
                         $reprovados->count
                     ],
                     "meta_jobs" => 1200000,
