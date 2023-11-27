@@ -196,35 +196,35 @@ class DashboardController extends Controller
                         [
                             "name" => "Meta",
                             "data" => [
-                                $this->reportsService->getGoal(1),
-                                $this->reportsService->getGoal(2),
-                                $this->reportsService->getGoal(3),
-                                $this->reportsService->getGoal(4),
-                                $this->reportsService->getGoal(5),
-                                $this->reportsService->getGoal(6),
-                                $this->reportsService->getGoal(7),
-                                $this->reportsService->getGoal(8),
-                                $this->reportsService->getGoal(9),
-                                $this->reportsService->getGoal(10),
-                                $this->reportsService->getGoal(11),
-                                $this->reportsService->getGoal(12)
+                                $this->reportsService->getGoal(1)['goals'],
+                                $this->reportsService->getGoal(2)['goals'],
+                                $this->reportsService->getGoal(3)['goals'],
+                                $this->reportsService->getGoal(4)['goals'],
+                                $this->reportsService->getGoal(5)['goals'],
+                                $this->reportsService->getGoal(6)['goals'],
+                                $this->reportsService->getGoal(7)['goals'],
+                                $this->reportsService->getGoal(8)['goals'],
+                                $this->reportsService->getGoal(9)['goals'],
+                                $this->reportsService->getGoal(10)['goals'],
+                                $this->reportsService->getGoal(11)['goals'],
+                                $this->reportsService->getGoal(12)['goals']
                             ]
                         ],
                         [
                             "name" => "Realizado",
                             "data" => [
-                                120000,
-                                200000,
-                                250000,
-                                600000,
-                                320000,
-                                200000,
-                                100000,
-                                500000,
-                                250000,
-                                330000,
-                                330000,
-                                300003
+                                $this->reportsService->getGoal(1)['realized'],
+                                $this->reportsService->getGoal(2)['realized'],
+                                $this->reportsService->getGoal(3)['realized'],
+                                $this->reportsService->getGoal(4)['realized'],
+                                $this->reportsService->getGoal(5)['realized'],
+                                $this->reportsService->getGoal(6)['realized'],
+                                $this->reportsService->getGoal(7)['realized'],
+                                $this->reportsService->getGoal(8)['realized'],
+                                $this->reportsService->getGoal(9)['realized'],
+                                $this->reportsService->getGoal(10)['realized'],
+                                $this->reportsService->getGoal(11)['realized'],
+                                $this->reportsService->getGoal(12)['realized']
                             ]
                         ]
                     ],
