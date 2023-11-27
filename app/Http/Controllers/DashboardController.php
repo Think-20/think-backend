@@ -31,7 +31,7 @@ class DashboardController extends Controller
         $ajustes = $this->reportsService->GetAdjusts(["date_init" => $dtInicio, "date_end" => $dtFim]);
 
         $jobsByCategories = $this->reportsService->GetByCategories(["date_init" => $dtInicio, "date_end" => $dtFim]);
-        $soma = $aprovados->count + $avancados->count + $standby->count + $reprovados->count + $ajustes->count;
+        $soma = $aprovados->count + $avancados->count + $standby->count + $reprovados->count;
         $somaAmount = $aprovados->amount + $avancados->amount + $standby->amount + $reprovados->amount + $ajustes->amount;
 
         $listaAprovados = $this->reportsService->GetLastApproveds(["date_init" => $dtInicio, "date_end" => $dtFim]);
