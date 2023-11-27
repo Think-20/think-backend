@@ -783,8 +783,8 @@ class ReportsService
         $realized = Job::where('status_id', 3)->whereYear('status_updated_at', '=', $currentYear)->whereMonth('status_updated_at', '=', $mount)->sum('final_value');
 
         $goals == 0 ? 1 : $goals;
-        $realized == 0 ? 1 : number_format($realized, 2, ',', '.');
-        return ["goals" => $goals, "realized" => $realized];
+        $realized == 0 ? 1 : $realized;
+        return ["goals" => number_format($goals, 2, ',', '.'), "realized" => number_format($realized, 2, ',', '.')];
     }
 
     public function getCurrentMonthGoal()
