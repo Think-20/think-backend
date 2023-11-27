@@ -784,7 +784,7 @@ class ReportsService
 
         $goals == 0 ? 1 : $goals;
         $realized == 0 ? 1 : $realized;
-        return ["goals" => number_format($goals, 2, ',', '.'), "realized" => number_format($realized, 2, ',', '.')];
+        return ["goals" => $goals, "realized" => $realized];
     }
 
     public function getCurrentMonthGoal()
