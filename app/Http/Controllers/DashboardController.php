@@ -31,7 +31,6 @@ class DashboardController extends Controller
         $ajustes = $this->reportsService->GetAdjusts(["date_init" => $dtInicio, "date_end" => $dtFim]);
 
         $jobsByCategories = $this->reportsService->GetByCategories(["date_init" => $dtInicio, "date_end" => $dtFim]);
-        dd($jobsByCategories);
         $soma = $aprovados->count + $avancados->count + $standby->count + $reprovados->count; // Aqui não entra o count do ajustes porque o ajustes tbm são jobs em standby
 
         $listaAprovados = $this->reportsService->GetLastApproveds(["date_init" => $dtInicio, "date_end" => $dtFim]);
