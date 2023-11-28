@@ -97,27 +97,27 @@ class DashboardController extends Controller
                     "aprovados" => [
                         "total" => $aprovados->count,
                         "porcentagem" => round(($aprovados->count * 100) / $soma, 2),
-                        "valor" => 0 //$aprovados->sum
+                        "valor" => $aprovados->sum
                     ],
                     "avancados" => [
                         "total" => $avancados->count,
                         "porcentagem" => round(($avancados->count * 100) / $soma, 2),
-                        "valor" => 0 //$avancados->sum
+                        "valor" => $avancados->sum
                     ],
                     "ajustes" => [
                         "total" => $ajustes->count,
                         "porcentagem" => round(($ajustes->count * 100) / $soma, 2),
-                        "valor" => 0 //$ajustes->sum
+                        "valor" => $ajustes->sum
                     ],
                     "stand_by" => [
                         "total" => $standby->count - $ajustes->count, // Aqui é retirado o count do ajustes do stand-by porque o ajustes tbm são jobs em standby
                         "porcentagem" => round(($standby->count * 100) / $soma, 2),
-                        "valor" => 0 //$standby->sum
+                        "valor" => $standby->sum
                     ],
                     "reprovados" => [
                         "total" => $reprovados->count,
                         "porcentagem" => round(($reprovados->count * 100) / $soma, 2),
-                        "valor" => 0 //$reprovados->sum
+                        "valor" => $reprovados->sum
                     ],
                     "metas" => $this->reportsService->GetGoals(),
                     "em_producao" => [
@@ -126,22 +126,22 @@ class DashboardController extends Controller
                         "jobs" => [
                             [
                                 "total" => $listaAprovados[0]['final_value'],
-                                "valor" => $listaAprovados[0]['budget_value'],
+                                "valor" => 0, //$listaAprovados[0]['budget_value'],
                                 "nome" => $listaAprovados[0]->getJobName()
                             ],
                             [
                                 "total" => $listaAprovados[1]['final_value'],
-                                "valor" => $listaAprovados[1]['budget_value'],
+                                "valor" => 0, //$listaAprovados[1]['budget_value'],
                                 "nome" => $listaAprovados[1]->getJobName()
                             ],
                             [
                                 "total" => $listaAprovados[2]['final_value'],
-                                "valor" => $listaAprovados[2]['budget_value'],
+                                "valor" => 0, //$listaAprovados[2]['budget_value'],
                                 "nome" => $listaAprovados[2]->getJobName()
                             ],
                             [
                                 "total" => $listaAprovados[3]['final_value'],
-                                "valor" => $listaAprovados[3]['budget_value'],
+                                "valor" => 0, //$listaAprovados[3]['budget_value'],
                                 "nome" => $listaAprovados[3]->getJobName()
                             ]
                         ]
