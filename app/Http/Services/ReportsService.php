@@ -776,11 +776,20 @@ class ReportsService
         return $goals;
     }
 
-    public function GetGoalByMount($mount)
+    public function GetGoalByMount($month)
     {
         $currentYear = date('Y');
-        $goals = Goal::where('month', $mount)->where('year', $currentYear)->sum('value');
-        $realized = Job::where('status_id', 3)->whereYear('status_updated_at', '=', $currentYear)->whereMonth('status_updated_at', '=', $mount)->sum('final_value');
+
+        $goals = Goal::where('month', $month)->where('year', $currentYear)->sum('value');
+
+        $data = [
+           'date_init' => Carbon::create($currentYear, $month, 1)->toDateString(),
+            'date_end' => Carbon::create($currentYear, $month, 1)->endOfMonth()->toDateString(),
+            'status' => [3]
+        ];
+
+        $realized = $this->baseQuery($data)->sum('final_value');
+        Job::where('status_id', 3)->whereYear('created_at', '=', $currentYear)->whereMonth('created_at', '=', $month)->sum('final_value');
 
         $goals == 0 ? 1 : $goals;
         $realized == 0 ? 1 : $realized;
