@@ -194,37 +194,37 @@ class DashboardController extends Controller
                     ],
                     "series" => [
                         [
-                            "name" => "High - 2013",
+                            "name" => "Meta",
                             "data" => [
-                                28,
-                                29,
-                                33,
-                                30,
-                                45,
-                                68,
-                                68,
-                                43,
-                                42,
-                                55,
-                                33,
-                                33
+                                $this->reportsService->GetGoalByMount(1)['goals'],
+                                $this->reportsService->GetGoalByMount(2)['goals'],
+                                $this->reportsService->GetGoalByMount(3)['goals'],
+                                $this->reportsService->GetGoalByMount(4)['goals'],
+                                $this->reportsService->GetGoalByMount(5)['goals'],
+                                $this->reportsService->GetGoalByMount(6)['goals'],
+                                $this->reportsService->GetGoalByMount(7)['goals'],
+                                $this->reportsService->GetGoalByMount(8)['goals'],
+                                $this->reportsService->GetGoalByMount(9)['goals'],
+                                $this->reportsService->GetGoalByMount(10)['goals'],
+                                $this->reportsService->GetGoalByMount(11)['goals'],
+                                $this->reportsService->GetGoalByMount(12)['goals']
                             ]
                         ],
                         [
-                            "name" => "Low - 2013",
+                            "name" => "Realizado",
                             "data" => [
-                                12,
-                                20,
-                                25,
-                                60,
-                                32,
-                                20,
-                                10,
-                                50,
-                                25,
-                                33,
-                                33,
-                                33
+                                $this->reportsService->GetGoalByMount(1)['realized'],
+                                $this->reportsService->GetGoalByMount(2)['realized'],
+                                $this->reportsService->GetGoalByMount(3)['realized'],
+                                $this->reportsService->GetGoalByMount(4)['realized'],
+                                $this->reportsService->GetGoalByMount(5)['realized'],
+                                $this->reportsService->GetGoalByMount(6)['realized'],
+                                $this->reportsService->GetGoalByMount(7)['realized'],
+                                $this->reportsService->GetGoalByMount(8)['realized'],
+                                $this->reportsService->GetGoalByMount(9)['realized'],
+                                $this->reportsService->GetGoalByMount(10)['realized'],
+                                $this->reportsService->GetGoalByMount(11)['realized'],
+                                $this->reportsService->GetGoalByMount(12)['realized']
                             ]
                         ]
                     ],

@@ -4,6 +4,7 @@ namespace App\Http\Service;
 
 use App\Goal;
 use App\Job;
+use App\JobStatus;
 use App\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -773,6 +774,17 @@ class ReportsService
         ];
 
         return $goals;
+    }
+
+    public function GetGoalByMount($mount)
+    {
+        $currentYear = date('Y');
+        $goals = Goal::where('month', $mount)->where('year', $currentYear)->sum('value');
+        $realized = Job::where('status_id', 3)->whereYear('status_updated_at', '=', $currentYear)->whereMonth('status_updated_at', '=', $mount)->sum('final_value');
+
+        $goals == 0 ? 1 : $goals;
+        $realized == 0 ? 1 : $realized;
+        return ["goals" => $goals, "realized" => $realized];
     }
 
     public function getCurrentMonthGoal()
