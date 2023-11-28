@@ -97,27 +97,27 @@ class DashboardController extends Controller
                     "aprovados" => [
                         "total" => $aprovados->count,
                         "porcentagem" => round(($aprovados->count * 100) / $soma, 2),
-                        "valor" => $aprovados->sum
+                        "valor" => 0 //$aprovados->sum
                     ],
                     "avancados" => [
                         "total" => $avancados->count,
                         "porcentagem" => round(($avancados->count * 100) / $soma, 2),
-                        "valor" => $avancados->sum
+                        "valor" => 0 //$avancados->sum
                     ],
                     "ajustes" => [
                         "total" => $ajustes->count,
                         "porcentagem" => round(($ajustes->count * 100) / $soma, 2),
-                        "valor" => $ajustes->sum
+                        "valor" => 0 //$ajustes->sum
                     ],
                     "stand_by" => [
                         "total" => $standby->count - $ajustes->count, // Aqui é retirado o count do ajustes do stand-by porque o ajustes tbm são jobs em standby
                         "porcentagem" => round(($standby->count * 100) / $soma, 2),
-                        "valor" => $standby->sum
+                        "valor" => 0 //$standby->sum
                     ],
                     "reprovados" => [
                         "total" => $reprovados->count,
                         "porcentagem" => round(($reprovados->count * 100) / $soma, 2),
-                        "valor" => $reprovados->sum
+                        "valor" => 0 //$reprovados->sum
                     ],
                     "metas" => $this->reportsService->GetGoals(),
                     "em_producao" => [
