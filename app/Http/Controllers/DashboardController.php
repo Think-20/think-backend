@@ -126,22 +126,22 @@ class DashboardController extends Controller
                         "jobs" => [
                             [
                                 "total" => $listaAprovados[0]['final_value'],
-                                "valor" => $listaAprovados[0]['budget_value'],
+                                "valor" => 0, //$listaAprovados[0]['budget_value'],
                                 "nome" => $listaAprovados[0]->getJobName()
                             ],
                             [
                                 "total" => $listaAprovados[1]['final_value'],
-                                "valor" => $listaAprovados[1]['budget_value'],
+                                "valor" => 0, //$listaAprovados[1]['budget_value'],
                                 "nome" => $listaAprovados[1]->getJobName()
                             ],
                             [
                                 "total" => $listaAprovados[2]['final_value'],
-                                "valor" => $listaAprovados[2]['budget_value'],
+                                "valor" => 0, //$listaAprovados[2]['budget_value'],
                                 "nome" => $listaAprovados[2]->getJobName()
                             ],
                             [
                                 "total" => $listaAprovados[3]['final_value'],
-                                "valor" => $listaAprovados[3]['budget_value'],
+                                "valor" => 0, //$listaAprovados[3]['budget_value'],
                                 "nome" => $listaAprovados[3]->getJobName()
                             ]
                         ]
