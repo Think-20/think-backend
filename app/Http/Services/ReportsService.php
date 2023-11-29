@@ -603,24 +603,25 @@ class ReportsService
 
     public function GetByCategories($data)
     {
-        $jobs = Job::where('status_id', "<>", 2)->with('job_type')
+        $jobs = $this->baseQuery([]);
+        $jobs = Job::where('status_id', "<>", 2)
             ->select('job_type_id', DB::raw('COUNT(*) as count'), DB::raw('SUM(final_value) as sum'))
             ->groupBy('job_type_id');
-    
+
         if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
         } else {
             $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
         }
-    
+
         if (isset($data['date_end'])) {
             $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
         } else {
             $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
         }
-    
+
         $results = $jobs->get();
-    
+
         // Processar os resultados para o formato desejado
         $formattedResults = [];
         $totalCount = 0;
@@ -646,7 +647,6 @@ class ReportsService
 
         $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'));
 
-
         if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
         } else {
@@ -669,7 +669,6 @@ class ReportsService
 
         $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'));
 
-
         if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
         } else {
@@ -691,7 +690,6 @@ class ReportsService
         $jobs =  Job::where('status_id', 4);
 
         $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'));
-
 
         if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
@@ -783,7 +781,7 @@ class ReportsService
         $goals = Goal::where('month', $month)->where('year', $currentYear)->sum('value');
 
         $data = [
-           'date_init' => Carbon::create($currentYear, $month, 1)->toDateString(),
+            'date_init' => Carbon::create($currentYear, $month, 1)->toDateString(),
             'date_end' => Carbon::create($currentYear, $month, 1)->endOfMonth()->toDateString(),
             'status' => [3]
         ];

@@ -22,6 +22,10 @@ class GoalController extends Controller
             return response()->json(['error' => 'true', 'message' => 'Valor invalido'], 400);
         }
 
+        if ($request->expected_value <=  0) {
+            return response()->json(['error' => 'true', 'message' => 'Valor Geral invalido'], 400);
+        }
+
         $goal = Goal::where('month', $request->month)->where('year', $request->year)->first();
         if ($goal) {
             return response()->json(['error' => 'true', 'message' => 'Meta ja cadastrada para este periodo'], 400);
@@ -31,6 +35,7 @@ class GoalController extends Controller
         $newGoal->month = $request->month;
         $newGoal->year = $request->year;
         $newGoal->value = $request->value;
+        $newGoal->expected_value = $request->expected_value;
         $newGoal->save();
 
         return response()->json(['error' => 'false', 'message' => 'Meta cadastrada com sucesso']);
@@ -42,13 +47,18 @@ class GoalController extends Controller
             return response()->json(['error' => 'true', 'message' => 'Id não informado'], 400);
         }
 
-        if (!isset($request->value)) {
+        if (!isset($request->value) && !isset($request->expected_value)) {
             return response()->json(['error' => 'true', 'message' => 'Valor não informado'], 400);
         }
 
-        if ($request->value <=  0) {
+        if (isset($request->value) && $request->value <=  0) {
             return response()->json(['error' => 'true', 'message' => 'Valor invalido'], 400);
         }
+
+        if (isset($request->expected_value) && $request->expected_value <=  0) {
+            return response()->json(['error' => 'true', 'message' => 'Valor invalido'], 400);
+        }
+
 
         $goal = Goal::where('id', $request->id)->first();
 
@@ -57,8 +67,18 @@ class GoalController extends Controller
         }
 
         if (isset($request->value)) {
-            $goal->value = $request->value;
+
+            if ($request->value) {
+                $goal->value = $request->value;
+            }
         }
+
+        if (isset($request->expected_value)) {
+            if ($request->expected_value) {
+                $goal->expected_value = $request->expected_value;
+            }
+        }
+
 
         $goal->save();
 
@@ -74,15 +94,12 @@ class GoalController extends Controller
             }
 
             return $goal;
-
-            //return response()->json(['error' => 'true', 'message' => 'Id não informado'], 400);
         } else {
             $goal = Goal::where('id', $id)->first();
 
             if (!$goal) {
                 return response()->json(['error' => 'true', 'message' => 'Meta ' . $id . ' nao encontrada'], 400);
             }
-
             return $goal;
         }
     }

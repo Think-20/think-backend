@@ -32,7 +32,6 @@ class DashboardController extends Controller
 
         $jobsByCategories = $this->reportsService->GetByCategories(["date_init" => $dtInicio, "date_end" => $dtFim]);
         $soma = $aprovados->count + $avancados->count + $standby->count + $reprovados->count; // Aqui não entra o count do ajustes porque o ajustes tbm são jobs em standby
-        $somaAmount = $aprovados->amount + $avancados->amount + $standby->amount + $reprovados->amount + $ajustes->amount;
 
         $listaAprovados = $this->reportsService->GetLastApproveds(["date_init" => $dtInicio, "date_end" => $dtFim]);
 
@@ -167,11 +166,11 @@ class DashboardController extends Controller
                         "#ffcd37"
                     ],
                     "series" => [
-                        $jobsByCategories['Cenografia']["count"] ?? 0,
-                        $jobsByCategories['Stand']["count"] ?? 0,
-                        $jobsByCategories['PDV']["count"] ?? 0,
-                        $jobsByCategories['Showroom']["count"] ?? 0,
-                        $jobsByCategories['Outsiders']["count"] ?? 0,
+                        isset($jobsByCategories['Cenografia']["count"]) ? number_format(($jobsByCategories['Cenografia']["count"] / $soma) * 100, 2, '.', '') : "0",
+                        isset($jobsByCategories['Stand']["count"]) ? number_format(($jobsByCategories['Stand']["count"] / $soma) * 100, 2, '.', '') : "0",
+                        isset($jobsByCategories['PDV']["count"]) ? number_format(($jobsByCategories['PDV']["count"] / $soma) * 100, 2, '.', '') : "0",
+                        isset($jobsByCategories['Showroom']["count"]) ? number_format(($jobsByCategories['Showroom']["count"] / $soma) * 100, 2, '.', '') : "0",
+                        isset($jobsByCategories['Outsiders']["count"]) ? number_format(($jobsByCategories['Outsiders']["count"] / $soma) * 100, 2, '.', '') : "0",
                     ],
                     "meta_jobs" => $jobsByCategories['totals']['totalSum'],
                     "total" => $jobsByCategories['totals']['totalCount'],

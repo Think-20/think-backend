@@ -10,6 +10,6 @@ class Goal extends Model
 
 
     protected $fillable = [
-        'month', 'year', 'value'
+        'month', 'year', 'value', 'expected_value'
     ];
 }
