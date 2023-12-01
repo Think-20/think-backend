@@ -10,93 +10,102 @@ use DB;
 
 class EmployeeController extends Controller
 {
-    public static function all() {
+    public static function all()
+    {
         return Employee::list();
     }
 
-    public static function filter(Request $request) {
+    public static function filter(Request $request)
+    {
         return Employee::filter($request->all());
     }
 
-    public static function get(int $id) {
+    public static function get(int $id)
+    {
         return Employee::get($id);
     }
 
-    public static function myGet(int $id) {
+    public static function myGet(int $id)
+    {
         return Employee::myGet($id);
     }
 
-    public static function canInsertClients(Request $request) {
+    public static function canInsertClients(Request $request)
+    {
         return Employee::canInsertClients($request->all());
     }
 
-    public static function save(Request $request) {
+    public static function save(Request $request)
+    {
         $status = false;
 
         try {
             $employee = Employee::insert($request->all());
             $message = 'Funcionário cadastrado com sucesso!';
             $status = true;
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             $message = 'Um erro desconhecido ocorreu ao cadastrar: ' . $e->getMessage();
         }
 
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-         ]), 200);
+        ]), 200);
     }
 
-    public static function edit(Request $request) {
+    public static function edit(Request $request)
+    {
         $status = false;
 
         try {
             Employee::edit($request->all());
             $message = 'Funcionário alterado com sucesso!';
             $status = true;
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             $message = 'Um erro desconhecido ocorreu ao atualizar: ' . $e->getMessage();
         }
 
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-         ]), 200);
+        ]), 200);
     }
 
-    public static function myEdit(Request $request) {
+    public static function myEdit(Request $request)
+    {
         $status = false;
 
         try {
             Employee::myEdit($request->all());
             $message = 'Funcionário alterado com sucesso!';
             $status = true;
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             $message = 'Um erro desconhecido ocorreu ao atualizar: ' . $e->getMessage();
         }
 
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-         ]), 200);
+        ]), 200);
     }
 
-    public static function toggleDeleted(int $id) {
+    public static function toggleDeleted(int $id)
+    {
         $status = false;
 
         try {
             $employee = Employee::toggleDeleted($id);
             $message = 'Funcionário alterado com sucesso!';
             $status = true;
-        } catch(QueryException $queryException) {
+        } catch (QueryException $queryException) {
             $message = 'Um erro ocorreu ao alterar no banco de dados. ' . $queryException->getMessage();
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             $message = 'Um erro desconhecido ocorreu ao alterar: ' . $e->getMessage();
         }
 
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-         ]), 200);
+        ]), 200);
     }
 }
