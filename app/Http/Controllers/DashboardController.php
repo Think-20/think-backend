@@ -46,7 +46,7 @@ class DashboardController extends Controller
                     "total" => 7
                 ],
                 "ticket_medio_aprovacao" => [
-                    "total" => $this->reportsService->averageTicket($request->all())
+                    "total" => $this->reportsService->averageApprovedsTicket($request->all())
                 ],
                 "maior_venda" => [
                     "total" => $this->reportsService->BiggestSale($request->all())
