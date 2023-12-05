@@ -542,7 +542,7 @@ class ReportsService
             ->orderByDesc('total_sales')
             ->first();
 
-        // Vendedor com maior venda nos últimos 12 meses
+        // Vendedor com a 1º maior venda nos últimos 12 meses
         $last12MonthsTopSeller = Job::selectRaw('job.*')
             ->with('attendance:id,name')
             ->select('attendance_id', DB::raw('SUM(final_value) as total_sales'))
@@ -552,12 +552,48 @@ class ReportsService
             ->orderByDesc('total_sales')
             ->first();
 
+        // Vendedor com a 2º maior venda nos últimos 12 meses
+        $last12MonthsTop2Seller = Job::selectRaw('job.*')
+            ->with('attendance:id,name')
+            ->select('attendance_id', DB::raw('SUM(final_value) as total_sales'))
+            ->whereBetween('created_at', [now()->subMonths(12), now()])
+            ->where('status_id', 3)
+            ->groupBy('attendance_id')
+            ->orderByDesc('total_sales')
+            ->offset(1)->limit(1)
+            ->first();
+
+        // Vendedor com a 3º maior venda nos últimos 12 meses
+        $last12MonthsTop3Seller = Job::selectRaw('job.*')
+            ->with('attendance:id,name')
+            ->select('attendance_id', DB::raw('SUM(final_value) as total_sales'))
+            ->whereBetween('created_at', [now()->subMonths(12), now()])
+            ->where('status_id', 3)
+            ->groupBy('attendance_id')
+            ->orderByDesc('total_sales')
+            ->offset(2)->limit(1)
+            ->first();
+
+        // Vendedor com a 4º maior venda nos últimos 12 meses
+        $last12MonthsTop4Seller = Job::selectRaw('job.*')
+            ->with('attendance:id,name')
+            ->select('attendance_id', DB::raw('SUM(final_value) as total_sales'))
+            ->whereBetween('created_at', [now()->subMonths(12), now()])
+            ->where('status_id', 3)
+            ->groupBy('attendance_id')
+            ->orderByDesc('total_sales')
+            ->offset(3)->limit(1)
+            ->first();
+
         return [
             "firstQuarterTopSeller" => $firstQuarterTopSeller,
             "secondQuarterTopSeller" => $secondQuarterTopSeller,
             "thirdQuarterTopSeller" => $thirdQuarterTopSeller,
             "fourthQuarterTopSeller" => $fourthQuarterTopSeller,
-            "last12MonthsTopSeller" => $last12MonthsTopSeller
+            "last12MonthsTopSeller" => $last12MonthsTopSeller,
+            "last12MonthsTop2Seller" => $last12MonthsTop2Seller,
+            "last12MonthsTop3Seller" => $last12MonthsTop3Seller,
+            "last12MonthsTop4Seller" => $last12MonthsTop4Seller
         ];
     }
 
