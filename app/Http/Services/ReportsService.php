@@ -155,6 +155,40 @@ class ReportsService
         return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
     }
 
+    public static function sumBudgetValueApproveds($data)
+    {
+        if (isset($data['userFilter']) && $data['userFilter'] == false) {
+            $jobs = self::queryNoUserFilter($data);
+        } else {
+            $jobs = self::baseQuery($data);
+        }
+
+        if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
+            $jobs = $jobs->where('status_id', 3);
+            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->first();
+        } else {
+            $jobs = $jobs->where('status_id', 3);
+            $result = $jobs->select(
+                DB::raw('COUNT(*) as count'),
+                DB::raw('SUM(
+                    CASE
+                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
+                            CASE
+                                WHEN 
+                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
+                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
+                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
+                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
+                                ELSE final_value
+                            END
+                        ELSE final_value
+                    END
+                ) as sum')
+            )->first();
+        }
+        return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
+    }
+
     public static function sumTimeToAproval($data)
     {
         if (isset($data['userFilter']) && $data['userFilter'] == false) {
@@ -418,6 +452,17 @@ class ReportsService
     public static function averageTicket($data)
     {
         $total_value = self::sumBudgetValue($data);
+
+        if ($total_value['count'] > 0) {
+            return $total_value['sum'] / $total_value['count'];
+        } else {
+            return 0;
+        }
+    }
+
+    public static function averageApprovedsTicket($data)
+    {
+        $total_value = self::sumBudgetValueApproveds($data);
 
         if ($total_value['count'] > 0) {
             return $total_value['sum'] / $total_value['count'];
