@@ -114,7 +114,7 @@ class GoalController extends Controller
 
     public function calendarGoals(Request $request,  $date_init,  $date_end)
     {
-        $response = new ArrayObject();
+        $response = [];
 
         for ($i = 0; $i < Carbon::parse($date_end)->diffInDays(Carbon::parse($date_init)) + 1; $i++) {
 
@@ -153,8 +153,7 @@ class GoalController extends Controller
                     "metaJobs" => $yearGoals['expected_value'],
                 ]
             ];
-
-            $response->append($goals);
+            array_push($response, $goals);
         }
 
         return $response;
