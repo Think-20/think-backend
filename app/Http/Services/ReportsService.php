@@ -875,6 +875,21 @@ class ReportsService
         return ["goals" => $goals, "realized" => $realized];
     }
 
+    public function GetGoalByMountAndYear($month, $year)
+    {
+        $goals = Goal::where('month', $month)->where('year', $year)->first();
+
+        return $goals;
+    }
+
+    public function GetGoalYear($year)
+    {
+        $goals =  array("value" => Goal::where('year', $year)->sum('value'), "expected_value" => Goal::where('year', $year)->sum('expected_value'));
+
+
+        return $goals;
+    }
+
     public function getCurrentMonthGoal()
     {
         $currentMonth = date('n');

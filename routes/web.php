@@ -171,6 +171,8 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::get('/goal/{id}', 'GoalController@selectGoal');
     Route::post('/goal', 'GoalController@createGoal');
     Route::put('/goal', 'GoalController@updateGoal');
+    
+    Route::get('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
 });
 
 Route::group(['middleware' => ['auth.api', 'permission']], function () {
