@@ -133,7 +133,8 @@ class GoalController extends Controller
             $goals = [
                 "date" => $dtFim->format('Y-m-d'),
                 "mes" => [
-                    "porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value) > 100 ? 100 : (($CurrentMonthValue->sum * 100) / $monthGoal->value),
+                    //"porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value) > 100 ? 100 : (($CurrentMonthValue->sum * 100) / $monthGoal->value),
+                    "porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value),
                     "atualReais" => $CurrentMonthValue->sum == null ? 0 : $CurrentMonthValue->sum,
                     "metaReais" =>  $monthGoal->value,
 
@@ -143,7 +144,8 @@ class GoalController extends Controller
 
                 ],
                 "anual" => [
-                    "porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals['value']) > 100 ? 100 : (($CurrentYearValue->sum * 100) / $yearGoals['value']),
+                    //"porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals['value']) > 100 ? 100 : (($CurrentYearValue->sum * 100) / $yearGoals['value']),
+                    "porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals['value']),
                     "atualReais" =>  $CurrentYearValue->sum == null ? 0 : $CurrentYearValue->sum,
                     "metaReais" =>  $yearGoals['value'],
 
