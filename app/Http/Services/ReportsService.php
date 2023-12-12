@@ -587,7 +587,7 @@ class ReportsService
             ->orderByDesc('total_sales')
             ->first();
 
-        // Vendedor com maior venda nos últimos 12 meses
+        // Vendedor com a 1º maior venda nos últimos 12 meses
         $last12MonthsTopSeller = Job::selectRaw('job.*')
             ->with('attendance:id,name')
             ->select('attendance_id', DB::raw('SUM(final_value) as total_sales'))
@@ -597,12 +597,48 @@ class ReportsService
             ->orderByDesc('total_sales')
             ->first();
 
+        // Vendedor com a 2º maior venda nos últimos 12 meses
+        $last12MonthsTop2Seller = Job::selectRaw('job.*')
+            ->with('attendance:id,name')
+            ->select('attendance_id', DB::raw('SUM(final_value) as total_sales'))
+            ->whereBetween('created_at', [now()->subMonths(12), now()])
+            ->where('status_id', 3)
+            ->groupBy('attendance_id')
+            ->orderByDesc('total_sales')
+            ->offset(1)->limit(1)
+            ->first();
+
+        // Vendedor com a 3º maior venda nos últimos 12 meses
+        $last12MonthsTop3Seller = Job::selectRaw('job.*')
+            ->with('attendance:id,name')
+            ->select('attendance_id', DB::raw('SUM(final_value) as total_sales'))
+            ->whereBetween('created_at', [now()->subMonths(12), now()])
+            ->where('status_id', 3)
+            ->groupBy('attendance_id')
+            ->orderByDesc('total_sales')
+            ->offset(2)->limit(1)
+            ->first();
+
+        // Vendedor com a 4º maior venda nos últimos 12 meses
+        $last12MonthsTop4Seller = Job::selectRaw('job.*')
+            ->with('attendance:id,name')
+            ->select('attendance_id', DB::raw('SUM(final_value) as total_sales'))
+            ->whereBetween('created_at', [now()->subMonths(12), now()])
+            ->where('status_id', 3)
+            ->groupBy('attendance_id')
+            ->orderByDesc('total_sales')
+            ->offset(3)->limit(1)
+            ->first();
+
         return [
             "firstQuarterTopSeller" => $firstQuarterTopSeller,
             "secondQuarterTopSeller" => $secondQuarterTopSeller,
             "thirdQuarterTopSeller" => $thirdQuarterTopSeller,
             "fourthQuarterTopSeller" => $fourthQuarterTopSeller,
-            "last12MonthsTopSeller" => $last12MonthsTopSeller
+            "last12MonthsTopSeller" => $last12MonthsTopSeller,
+            "last12MonthsTop2Seller" => $last12MonthsTop2Seller,
+            "last12MonthsTop3Seller" => $last12MonthsTop3Seller,
+            "last12MonthsTop4Seller" => $last12MonthsTop4Seller
         ];
     }
 
@@ -837,6 +873,21 @@ class ReportsService
         $goals == 0 ? 1 : $goals;
         $realized == 0 ? 1 : $realized;
         return ["goals" => $goals, "realized" => $realized];
+    }
+
+    public function GetGoalByMountAndYear($month, $year)
+    {
+        $goals = Goal::where('month', $month)->where('year', $year)->first();
+
+        return $goals;
+    }
+
+    public function GetGoalYear($year)
+    {
+        $goals =  array("value" => Goal::where('year', $year)->sum('value'), "expected_value" => Goal::where('year', $year)->sum('expected_value'));
+
+
+        return $goals;
     }
 
     public function getCurrentMonthGoal()
