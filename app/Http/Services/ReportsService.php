@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Service;
+namespace App\Http\Services;
 
 use App\Goal;
 use App\Job;
