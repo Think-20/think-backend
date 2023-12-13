@@ -8,7 +8,7 @@ use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Http\Service\ReportsService;
+use App\Http\Services\ReportsService;
 
 class ReportsController extends Controller
 {
