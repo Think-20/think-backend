@@ -8,7 +8,7 @@ use App\JobActivity;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use App\Http\Service\ReportsService;
+use App\Http\Services\ReportsService;
 
 class DashboardController extends Controller
 {
