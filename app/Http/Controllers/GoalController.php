@@ -6,6 +6,7 @@ use App\Goal;
 use App\Http\Service\ReportsService;
 use ArrayObject;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\Request;
 
 class GoalController extends Controller
@@ -130,27 +131,32 @@ class GoalController extends Controller
             $CurrentMonthValue = $this->reportsService->GetApproveds(['date_init' => $dtInicio->format('Y-m-d'), 'date_end' => $dtFim->format('Y-m-d')]);
             $CurrentYearValue = $this->reportsService->GetApproveds(['date_init' => Carbon::now()->startOfYear(), 'date_end' => $dtFim->format('Y-m-d')]);
 
-            $goals = [
-                "date" => $dtFim->format('Y-m-d'),
-                "mes" => [
-                    "porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value),
-                    "atualReais" => $CurrentMonthValue->sum == null ? 0 : $CurrentMonthValue->sum,
-                    "metaReais" =>  $monthGoal->value,
+            try {
+                $goals = [
+                    "date" => $dtFim->format('Y-m-d'),
+                    "mes" => [
+                        "porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value),
+                        "atualReais" => $CurrentMonthValue->sum == null ? 0 : $CurrentMonthValue->sum,
+                        "metaReais" =>  $monthGoal->value,
 
-                    "porcentagemJobs" => ($aprovadosMes * 100) / $monthGoal->expected_value,
-                    "atualJobs" => $aprovadosMes,
-                    "metaJobs" => $monthGoal->expected_value,
-                ],
-                "anual" => [
-                    "porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value),
-                    "atualReais" =>  $CurrentYearValue->sum == null ? 0 : $CurrentYearValue->sum,
-                    "metaReais" =>  $yearGoals->value,
+                        "porcentagemJobs" => ($aprovadosMes * 100) / $monthGoal->expected_value,
+                        "atualJobs" => $aprovadosMes,
+                        "metaJobs" => $monthGoal->expected_value,
+                    ],
+                    "anual" => [
+                        "porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value),
+                        "atualReais" =>  $CurrentYearValue->sum == null ? 0 : $CurrentYearValue->sum,
+                        "metaReais" =>  $yearGoals->value,
 
-                    "porcentagemJobs" => ($aprovadosAno * 100) / $yearGoals->expected_value,
-                    "atualJobs" => $aprovadosAno,
-                    "metaJobs" => $yearGoals->expected_value,
-                ]
-            ];
+                        "porcentagemJobs" => ($aprovadosAno * 100) / $yearGoals->expected_value,
+                        "atualJobs" => $aprovadosAno,
+                        "metaJobs" => $yearGoals->expected_value,
+                    ]
+                ];
+            } catch (Exception $e) {
+                return ($goals);
+            }
+
             array_push($response, $goals);
         }
 
