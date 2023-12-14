@@ -642,6 +642,7 @@ class ReportsService
         ];
     }
 
+    //Função responsavel por somar os valores de todos os jobs aprovados
     public function GetApproveds($data)
     {
         $jobs =  Job::where('status_id', 3);
@@ -663,9 +664,9 @@ class ReportsService
         return $result;
     }
 
+    //Função responsavel por somar os valores de todos os jobs independente do status
     public function GetAllBudgets($data)
     {
-        //$jobs =  where('status_id', 3);
         $jobs = Job::select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(SUM(job.final_value), 0) as sum'));
 
         if (isset($data['date_init'])) {
