@@ -92,7 +92,7 @@ class DashboardController extends Controller
                     ],
                     "meta_jobs" => 1200000,
                     "meta_aprovacao" => 400000,
-                    "total" => $soma > 0 ? $soma : 1, // 1 pra evitar erro de divisão por 0 caso não tenha
+                    "total" => $soma,
                     "aprovados" => [
                         "total" => $aprovados->count,
                         "porcentagem" => round(($aprovados->count * 100) / $soma, 2),
