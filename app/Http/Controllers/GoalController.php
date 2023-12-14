@@ -122,8 +122,8 @@ class GoalController extends Controller
             $dtInicio = Carbon::parse($date_init);
             $dtFim = Carbon::parse($date_init)->addDay($i);
 
-            $aprovadosMes = $this->reportsService->GetApproveds(["date_init" => $dtInicio, "date_end" => $dtFim])->count;
-            $aprovadosAno = $this->reportsService->GetApproveds(["date_init" => Carbon::now()->startOfYear(), "date_end" => $dtFim])->count;
+            $aprovadosMes = $this->reportsService->GetAllBudgets(["date_init" => $dtInicio, "date_end" => $dtFim]);
+            $aprovadosAno = $this->reportsService->GetAllBudgets(["date_init" => Carbon::now()->startOfYear(), "date_end" => $dtFim]);
 
             $monthGoal =  $this->reportsService->GetGoalByMountAndYear(intval($dtFim->format('m')), intval($dtFim->format('Y')));
             $yearGoals =  $this->reportsService->GetGoalYear(intval($dtFim->format('Y')));
@@ -139,8 +139,8 @@ class GoalController extends Controller
                         "atualReais" => $CurrentMonthValue->sum == null ? 0 : $CurrentMonthValue->sum,
                         "metaReais" =>  $monthGoal->value,
 
-                        "porcentagemJobs" => ($aprovadosMes * 100) / $monthGoal->expected_value,
-                        "atualJobs" => $aprovadosMes,
+                        "porcentagemJobs" => ($aprovadosMes->sum * 100) / $monthGoal->expected_value,
+                        "atualJobs" => $aprovadosMes->sum,
                         "metaJobs" => $monthGoal->expected_value,
                     ],
                     "anual" => [
@@ -148,13 +148,13 @@ class GoalController extends Controller
                         "atualReais" =>  $CurrentYearValue->sum == null ? 0 : $CurrentYearValue->sum,
                         "metaReais" =>  $yearGoals->value,
 
-                        "porcentagemJobs" => ($aprovadosAno * 100) / $yearGoals->expected_value,
-                        "atualJobs" => $aprovadosAno,
+                        "porcentagemJobs" => ($aprovadosAno->sum * 100) / $yearGoals->expected_value,
+                        "atualJobs" => $aprovadosAno->sum,
                         "metaJobs" => $yearGoals->expected_value,
                     ]
                 ];
             } catch (Exception $e) {
-                return ([$yearGoals, $i]);
+                return ($e);
             }
 
             array_push($response, $goals);

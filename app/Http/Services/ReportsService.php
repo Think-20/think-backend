@@ -663,6 +663,27 @@ class ReportsService
         return $result;
     }
 
+    public function GetAllBudgets($data)
+    {
+        //$jobs =  where('status_id', 3);
+        $jobs = Job::select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(SUM(job.final_value), 0) as sum'));
+
+        if (isset($data['date_init'])) {
+            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
+        }
+
+        if (isset($data['date_end'])) {
+            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        }
+        $result = $jobs->first();
+
+        return $result;
+    }
+
     public function GetLastApproveds($data)
     {
         $jobs = Job::where('status_id', 3);
