@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Goal;
-use App\Http\Service\ReportsService;
+use App\Http\Services\ReportsService;
 use ArrayObject;
 use Carbon\Carbon;
 use Illuminate\Http\Request;

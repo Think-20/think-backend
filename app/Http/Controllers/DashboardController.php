@@ -8,7 +8,7 @@ use App\JobActivity;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use App\Http\Service\ReportsService;
+use App\Http\Services\ReportsService;
 
 class DashboardController extends Controller
 {
@@ -92,7 +92,7 @@ class DashboardController extends Controller
                     ],
                     "meta_jobs" => 1200000,
                     "meta_aprovacao" => 400000,
-                    "total" => $soma,
+                    "total" => $soma > 0 ? $soma : 1, // 1 pra evitar erro de divisão por 0 caso não tenha
                     "aprovados" => [
                         "total" => $aprovados->count,
                         "porcentagem" => round(($aprovados->count * 100) / $soma, 2),
