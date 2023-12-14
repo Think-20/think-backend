@@ -879,13 +879,19 @@ class ReportsService
     {
         $goals = Goal::where('month', $month)->where('year', $year)->first();
 
+        if (!$goals) {
+            return (object) array('value' => 1, 'expected_value' => 1);
+        }
+
         return $goals;
     }
 
     public function GetGoalYear($year)
     {
-        $goals =  array("value" => Goal::where('year', $year)->sum('value'), "expected_value" => Goal::where('year', $year)->sum('expected_value'));
-
+        $goals = (object) array("value" => Goal::where('year', $year)->sum('value'), "expected_value" => Goal::where('year', $year)->sum('expected_value'));
+        if (!$goals) {
+            return (object) array("value" => 1, 'expected_value' => 1);
+        }
 
         return $goals;
     }
