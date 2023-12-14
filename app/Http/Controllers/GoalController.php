@@ -147,8 +147,7 @@ class GoalController extends Controller
                     "atualReais" =>  $CurrentYearValue->sum == null ? 0 : $CurrentYearValue->sum,
                     "metaReais" =>  $yearGoals->value,
 
-
-                    "porcentagemJobs" => ($aprovadosAno * 100) / $yearGoals->expected_value,
+                    //"porcentagemJobs" => ($aprovadosAno * 100) / $yearGoals->expected_value,
                     "atualJobs" => $aprovadosAno,
                     "metaJobs" => $yearGoals->expected_value,
                 ]
