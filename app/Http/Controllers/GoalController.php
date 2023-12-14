@@ -154,7 +154,7 @@ class GoalController extends Controller
                     ]
                 ];
             } catch (Exception $e) {
-                return ($goals);
+                return ($yearGoals);
             }
 
             array_push($response, $goals);
