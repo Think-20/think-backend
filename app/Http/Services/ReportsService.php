@@ -645,20 +645,21 @@ class ReportsService
     public function GetApproveds($data)
     {
         $jobs =  Job::where('status_id', 3);
-        $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'));
-
+        $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(SUM(job.final_value), 0) as sum'));
+    
         if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
         } else {
             $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
         }
-
+    
         if (isset($data['date_end'])) {
             $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
         } else {
             $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
         }
         $result = $jobs->first();
+        
         return $result;
     }
 
@@ -878,14 +879,13 @@ class ReportsService
     public function GetGoalByMountAndYear($month, $year)
     {
         $goals = Goal::where('month', $month)->where('year', $year)->first();
-
-        return $goals;
+        $emptyGoal = (object)["value" => 1, "expected_value" => 1];
+        return $goals ?? $emptyGoal;
     }
 
     public function GetGoalYear($year)
     {
-        $goals =  array("value" => Goal::where('year', $year)->sum('value'), "expected_value" => Goal::where('year', $year)->sum('expected_value'));
-
+        $goals =  ["value" => Goal::where('year', $year)->sum('value') > 0 ? Goal::where('year', $year)->sum('value') : 1, "expected_value" => Goal::where('year', $year)->sum('expected_value') > 0 ? Goal::where('year', $year)->sum('expected_value') : 1];
 
         return $goals;
     }
