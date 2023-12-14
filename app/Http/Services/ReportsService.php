@@ -879,6 +879,14 @@ class ReportsService
     {
         $goals = Goal::where('month', $month)->where('year', $year)->first();
 
+        if ($goals->value == 0) {
+            $goals->value = 1;
+        }
+
+        if ($goals->expected_value == 0) {
+            $goals->expected_value = 1;
+        }
+
         if (!$goals) {
             return (object) array('value' => 1, 'expected_value' => 1);
         }
@@ -889,6 +897,16 @@ class ReportsService
     public function GetGoalYear($year)
     {
         $goals = (object) array("value" => Goal::where('year', $year)->sum('value'), "expected_value" => Goal::where('year', $year)->sum('expected_value'));
+
+        //Remove totalmente a chance de divis]ão por 0
+        if ($goals->value == 0) {
+            $goals->value = 1;
+        }
+
+        if ($goals->expected_value == 0) {
+            $goals->expected_value = 1;
+        }
+
 
         if (!$goals) {
             return (object) array("value" => 1, 'expected_value' => 1);
