@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Services;
+namespace App\Http\Service;
 
 use App\Goal;
 use App\Job;
@@ -879,13 +879,21 @@ class ReportsService
     public function GetGoalByMountAndYear($month, $year)
     {
         $goals = Goal::where('month', $month)->where('year', $year)->first();
-        $emptyGoal = (object)["value" => 1, "expected_value" => 1];
-        return $goals ?? $emptyGoal;
+
+        if (!$goals) {
+            return (object) array('value' => 1, 'expected_value' => 1);
+        }
+
+        return $goals;
     }
 
     public function GetGoalYear($year)
     {
-        $goals =  ["value" => Goal::where('year', $year)->sum('value') > 0 ? Goal::where('year', $year)->sum('value') : 1, "expected_value" => Goal::where('year', $year)->sum('expected_value') > 0 ? Goal::where('year', $year)->sum('expected_value') : 1];
+        $goals = (object) array("value" => Goal::where('year', $year)->sum('value'), "expected_value" => Goal::where('year', $year)->sum('expected_value'));
+
+        if (!$goals) {
+            return (object) array("value" => 1, 'expected_value' => 1);
+        }
 
         return $goals;
     }
