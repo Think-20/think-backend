@@ -140,14 +140,13 @@ class GoalController extends Controller
                     "porcentagemJobs" => ($aprovadosMes * 100) / $monthGoal->expected_value,
                     "atualJobs" => $aprovadosMes,
                     "metaJobs" => $monthGoal->expected_value,
-
                 ],
                 "anual" => [
-                    //"porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value),
+                    "porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value),
                     "atualReais" =>  $CurrentYearValue->sum == null ? 0 : $CurrentYearValue->sum,
                     "metaReais" =>  $yearGoals->value,
 
-                    //"porcentagemJobs" => ($aprovadosAno * 100) / $yearGoals->expected_value,
+                    "porcentagemJobs" => ($aprovadosAno * 100) / $yearGoals->expected_value,
                     "atualJobs" => $aprovadosAno,
                     "metaJobs" => $yearGoals->expected_value,
                 ]
