@@ -116,7 +116,7 @@ class GoalController extends Controller
     {
         $response = [];
 
-        /*for ($i = 0; $i < Carbon::parse($date_end)->diffInDays(Carbon::parse($date_init)) + 1; $i++) {
+        for ($i = 0; $i < Carbon::parse($date_end)->diffInDays(Carbon::parse($date_init)) + 1; $i++) {
 
             $dtInicio = Carbon::parse($date_init);
             $dtFim = Carbon::parse($date_init)->addDay($i);
@@ -154,7 +154,7 @@ class GoalController extends Controller
                 ]
             ];
             array_push($response, $goals);
-        }*/
+        }
 
         return $response;
     }
