@@ -117,6 +117,7 @@ class ReportsController extends Controller
             "aprovals_amount" => $aprovalsAmount,
             "conversion_rate" => [$conversionRate, $aprovalsAmount['sum']],
             "anualTendenceAprovation" => $anualTendenceAprovation,
+            "anualTendenceAprovationCount" => $approvedJobs['amount'],
             "standby_projects" => ["amount" => $standby['count'], "value" => $standby['sum']],
             "types" => $types,
             "averageApprovedJobsPerMonth" => $approvedJobs,

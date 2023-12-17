@@ -385,7 +385,7 @@ class ReportsService
         }
 
         // Calcular a média de jobs aprovados por mês
-        $averageJobsPerMonth = round($totalJobsApproved / $monthsPassed);
+        $averageJobsPerMonth = ceil($totalJobsApproved / $monthsPassed);
         $totalValueJobsApprovedNumber = $totalValueJobsApproved / $monthsPassed;
         $totalValueJobsApproved = number_format(($totalValueJobsApproved / $monthsPassed), 2, ',', '.');
 
@@ -642,10 +642,32 @@ class ReportsService
         ];
     }
 
+    //Função responsavel por somar os valores de todos os jobs aprovados
     public function GetApproveds($data)
     {
         $jobs =  Job::where('status_id', 3);
         $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(SUM(job.final_value), 0) as sum'));
+
+        if (isset($data['date_init'])) {
+            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
+        }
+
+        if (isset($data['date_end'])) {
+            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+        } else {
+            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        }
+        $result = $jobs->first();
+
+        return $result;
+    }
+
+    //Função responsavel por somar os valores de todos os jobs independente do status
+    public function GetAllBudgets($data)
+    {
+        $jobs = Job::select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(SUM(job.final_value), 0) as sum'));
 
         if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
