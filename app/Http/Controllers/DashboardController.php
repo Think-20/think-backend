@@ -35,210 +35,420 @@ class DashboardController extends Controller
 
         $listaAprovados = $this->reportsService->GetLastApproveds(["date_init" => $dtInicio, "date_end" => $dtFim]);
 
-        return response()->json(
-            [
-                "alertas" => $this->CountAlerts($dtInicio, $dtFim),
-                "memorias" => $this->CountReminders($dtInicio, $dtFim),
-                "tempo_medio_aprovacao_dias" => [
-                    "total" => $this->reportsService->sumTimeToAproval($request->all()),
-                ],
-                "intervalo_medio_aprovacao_dias" => [
-                    "total" => 7
-                ],
-                "ticket_medio_aprovacao" => [
-                    "total" => $this->reportsService->averageApprovedsTicket($request->all())
-                ],
-                "maior_venda" => [
-                    "total" => $this->reportsService->BiggestSale($request->all())
-                ],
-                "tendencia_aprovacao_anual" => [
-                    "total" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber'] * 12
-                ],
-                "media_aprovacao_mes" => [
-                    "total" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber']
-                ],
-                "ticket_medio_jobs" => [
-                    "total" => $this->reportsService->averageTicket($request->all())
-                ],
-                "ultimo_aprovado" => $this->reportsService->LastJobApproved(),
-                "ultimo_job_aprovado" => $this->reportsService->LastJobApproved(),
-                "eventos_rolando" => "",
-                "aniversariante" => "",
-                "comunicados" => "",
-                "metas" => "",
-                "recordes" => "",
-                "ranking" => $this->reportsService->SaleRanking(),
-                "jobs" => [
-                    "labels" => [
-                        "Aprovados",
-                        "Avançados",
-                        "Ajustes",
-                        "Stand-By",
-                        "Reprovados"
+
+        if ($soma == 0) {
+            //Caso o soma seja 0, quer dizer que não tem dados, então esta sendo enviado todos os campos numericos zerados
+
+            return response()->json(
+                [
+                    "alertas" => $this->CountAlerts($dtInicio, $dtFim),
+                    "memorias" => $this->CountReminders($dtInicio, $dtFim),
+                    "tempo_medio_aprovacao_dias" => [
+                        "total" => $this->reportsService->sumTimeToAproval($request->all()),
                     ],
-                    "colors" => [
-                        "#adca5f",
-                        "#e82489",
-                        "#4fa2b1",
-                        "#00abeb",
-                        "#ffcd37"
+                    "intervalo_medio_aprovacao_dias" => [
+                        "total" => 7
                     ],
-                    "series" => [
-                        $aprovados->count,
-                        $avancados->count,
-                        $ajustes->count,
-                        $standby->count - $ajustes->count, // Aqui é retirado o count do ajustes do stand-by porque o ajustes tbm são jobs em standby
-                        $reprovados->count
+                    "ticket_medio_aprovacao" => [
+                        "total" => $this->reportsService->averageApprovedsTicket($request->all())
                     ],
-                    "meta_jobs" => 1200000,
-                    "meta_aprovacao" => 400000,
-                    "total" => $soma,
-                    "aprovados" => [
-                        "total" => $aprovados->count,
-                        "porcentagem" => round(($aprovados->count * 100) / $soma, 2),
-                        "valor" => $aprovados->sum
+                    "maior_venda" => [
+                        "total" => $this->reportsService->BiggestSale($request->all())
                     ],
-                    "avancados" => [
-                        "total" => $avancados->count,
-                        "porcentagem" => round(($avancados->count * 100) / $soma, 2),
-                        "valor" => $avancados->sum
+                    "tendencia_aprovacao_anual" => [
+                        "total" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber'] * 12
                     ],
-                    "ajustes" => [
-                        "total" => $ajustes->count,
-                        "porcentagem" => round(($ajustes->count * 100) / $soma, 2),
-                        "valor" => $ajustes->sum
+                    "media_aprovacao_mes" => [
+                        "total" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber']
                     ],
-                    "stand_by" => [
-                        "total" => $standby->count - $ajustes->count, // Aqui é retirado o count do ajustes do stand-by porque o ajustes tbm são jobs em standby
-                        "porcentagem" => round(($standby->count * 100) / $soma, 2),
-                        "valor" => $standby->sum
+                    "ticket_medio_jobs" => [
+                        "total" => $this->reportsService->averageTicket($request->all())
                     ],
-                    "reprovados" => [
-                        "total" => $reprovados->count,
-                        "porcentagem" => round(($reprovados->count * 100) / $soma, 2),
-                        "valor" => $reprovados->sum
-                    ],
-                    "metas" => $this->reportsService->GetGoals(),
-                    "em_producao" => [
-                        "total" => 4,
-                        "total_em_producao" => $listaAprovados->count(),
-                        "jobs" => [
-                            [
-                                "total" => $listaAprovados[0]['final_value'],
-                                "valor" => 0, //$listaAprovados[0]['budget_value'],
-                                "nome" => $listaAprovados[0]->getJobName()
-                            ],
-                            [
-                                "total" => $listaAprovados[1]['final_value'],
-                                "valor" => 0, //$listaAprovados[1]['budget_value'],
-                                "nome" => $listaAprovados[1]->getJobName()
-                            ],
-                            [
-                                "total" => $listaAprovados[2]['final_value'],
-                                "valor" => 0, //$listaAprovados[2]['budget_value'],
-                                "nome" => $listaAprovados[2]->getJobName()
-                            ],
-                            [
-                                "total" => $listaAprovados[3]['final_value'],
-                                "valor" => 0, //$listaAprovados[3]['budget_value'],
-                                "nome" => $listaAprovados[3]->getJobName()
-                            ]
-                        ]
-                    ],
-                    "prazo_final" => [
-                        "total" => 5,
-                        "valor" => 7000000
-                    ]
-                ],
-                "jobs2" => [
-                    "labels" => [
-                        "Cenografia",
-                        "Stand",
-                        "PDV",
-                        "Showrooms",
-                        "Outsiders"
-                    ],
-                    "colors" => [
-                        "#adca5f",
-                        "#e82489",
-                        "#4fa2b1",
-                        "#00abeb",
-                        "#ffcd37"
-                    ],
-                    "series" => [
-                        isset($jobsByCategories['Cenografia']["count"]) ? number_format(($jobsByCategories['Cenografia']["count"] / $soma) * 100, 2, '.', '') : "0",
-                        isset($jobsByCategories['Stand']["count"]) ? number_format(($jobsByCategories['Stand']["count"] / $soma) * 100, 2, '.', '') : "0",
-                        isset($jobsByCategories['PDV']["count"]) ? number_format(($jobsByCategories['PDV']["count"] / $soma) * 100, 2, '.', '') : "0",
-                        isset($jobsByCategories['Showroom']["count"]) ? number_format(($jobsByCategories['Showroom']["count"] / $soma) * 100, 2, '.', '') : "0",
-                        isset($jobsByCategories['Outsiders']["count"]) ? number_format(($jobsByCategories['Outsiders']["count"] / $soma) * 100, 2, '.', '') : "0",
-                    ],
-                    "meta_jobs" => $jobsByCategories['totals']['totalSum'],
-                    "total" => $jobsByCategories['totals']['totalCount'],
-                    "meta_aprovacao" => 400000,
-                ],
-                "tendencia" => [
-                    "meses_ano" => [
-                        "Jan 23",
-                        "Fev 23",
-                        "Mar 23",
-                        "Abr 23",
-                        "Mai 23",
-                        "Jun 23",
-                        "Jul 23",
-                        "Ago 23",
-                        "Set 23",
-                        "Out 23",
-                        "Nov 23",
-                        "Dez 23"
-                    ],
-                    "series" => [
-                        [
-                            "name" => "Meta",
-                            "data" => [
-                                $this->reportsService->GetGoalByMount(1)['goals'],
-                                $this->reportsService->GetGoalByMount(2)['goals'],
-                                $this->reportsService->GetGoalByMount(3)['goals'],
-                                $this->reportsService->GetGoalByMount(4)['goals'],
-                                $this->reportsService->GetGoalByMount(5)['goals'],
-                                $this->reportsService->GetGoalByMount(6)['goals'],
-                                $this->reportsService->GetGoalByMount(7)['goals'],
-                                $this->reportsService->GetGoalByMount(8)['goals'],
-                                $this->reportsService->GetGoalByMount(9)['goals'],
-                                $this->reportsService->GetGoalByMount(10)['goals'],
-                                $this->reportsService->GetGoalByMount(11)['goals'],
-                                $this->reportsService->GetGoalByMount(12)['goals']
+                    "ultimo_aprovado" => $this->reportsService->LastJobApproved(),
+                    "ultimo_job_aprovado" => $this->reportsService->LastJobApproved(),
+                    "eventos_rolando" => "",
+                    "aniversariante" => "",
+                    "comunicados" => "",
+                    "metas" => "",
+                    "recordes" => "",
+                    "ranking" => $this->reportsService->SaleRanking(),
+                    "jobs" => [
+                        "labels" => [
+                            "Aprovados",
+                            "Avançados",
+                            "Ajustes",
+                            "Stand-By",
+                            "Reprovados"
+                        ],
+                        "colors" => [
+                            "#adca5f",
+                            "#e82489",
+                            "#4fa2b1",
+                            "#00abeb",
+                            "#ffcd37"
+                        ],
+                        "series" => [
+                            $aprovados->count,
+                            $avancados->count,
+                            $ajustes->count,
+                            $standby->count - $ajustes->count, // Aqui é retirado o count do ajustes do stand-by porque o ajustes tbm são jobs em standby
+                            $reprovados->count
+                        ],
+                        "meta_jobs" => 1200000,
+                        "meta_aprovacao" => 400000,
+                        "total" => $soma,
+                        "aprovados" => [
+                            "total" => $aprovados->count,
+                            "porcentagem" => 0,
+                            "valor" => $aprovados->sum
+                        ],
+                        "avancados" => [
+                            "total" => $avancados->count,
+                            "porcentagem" => 0,
+                            "valor" => $avancados->sum
+                        ],
+                        "ajustes" => [
+                            "total" => $ajustes->count,
+                            "porcentagem" => 0,
+                            "valor" => $ajustes->sum
+                        ],
+                        "stand_by" => [
+                            "total" => $standby->count - $ajustes->count, // Aqui é retirado o count do ajustes do stand-by porque o ajustes tbm são jobs em standby
+                            "porcentagem" => 0,
+                            "valor" => $standby->sum
+                        ],
+                        "reprovados" => [
+                            "total" => $reprovados->count,
+                            "porcentagem" => 0,
+                            "valor" => $reprovados->sum
+                        ],
+                        "metas" => $this->reportsService->GetGoals(),
+                        "em_producao" => [
+                            "total" => 4,
+                            "total_em_producao" => $listaAprovados->count(),
+                            "jobs" => [
+                                [
+                                    "total" => 0,
+                                    "valor" => 0, //$listaAprovados[0]['budget_value'],
+                                    "nome" => ""
+                                ],
+                                [
+                                    "total" => 0,
+                                    "valor" => 0, //$listaAprovados[1]['budget_value'],
+                                    "nome" => ""
+                                ],
+                                [
+                                    "total" => 0,
+                                    "valor" => 0, //$listaAprovados[2]['budget_value'],
+                                    "nome" => ""
+                                ],
+                                [
+                                    "total" => 0,
+                                    "valor" => 0, //$listaAprovados[3]['budget_value'],
+                                    "nome" => ""
+                                ]
                             ]
                         ],
-                        [
-                            "name" => "Realizado",
-                            "data" => [
-                                $this->reportsService->GetGoalByMount(1)['realized'],
-                                $this->reportsService->GetGoalByMount(2)['realized'],
-                                $this->reportsService->GetGoalByMount(3)['realized'],
-                                $this->reportsService->GetGoalByMount(4)['realized'],
-                                $this->reportsService->GetGoalByMount(5)['realized'],
-                                $this->reportsService->GetGoalByMount(6)['realized'],
-                                $this->reportsService->GetGoalByMount(7)['realized'],
-                                $this->reportsService->GetGoalByMount(8)['realized'],
-                                $this->reportsService->GetGoalByMount(9)['realized'],
-                                $this->reportsService->GetGoalByMount(10)['realized'],
-                                $this->reportsService->GetGoalByMount(11)['realized'],
-                                $this->reportsService->GetGoalByMount(12)['realized']
-                            ]
+                        "prazo_final" => [
+                            "total" => 5,
+                            "valor" => 7000000
                         ]
                     ],
-                    "colors" => [
-                        "#77B6EA",
-                        "#545454"
+                    "jobs2" => [
+                        "labels" => [
+                            "Cenografia",
+                            "Stand",
+                            "PDV",
+                            "Showrooms",
+                            "Outsiders"
+                        ],
+                        "colors" => [
+                            "#adca5f",
+                            "#e82489",
+                            "#4fa2b1",
+                            "#00abeb",
+                            "#ffcd37"
+                        ],
+                        "series" => [
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                        ],
+                        "meta_jobs" => $jobsByCategories['totals']['totalSum'],
+                        "total" => $jobsByCategories['totals']['totalCount'],
+                        "meta_aprovacao" => 400000,
                     ],
-                    "meta_mensal" => 400000
-                ],
-                "sold_out" => [
-                    "total" => 1,
-                    "valor" => 2000000
+                    "tendencia" => [
+                        "meses_ano" => [
+                            "Jan 23",
+                            "Fev 23",
+                            "Mar 23",
+                            "Abr 23",
+                            "Mai 23",
+                            "Jun 23",
+                            "Jul 23",
+                            "Ago 23",
+                            "Set 23",
+                            "Out 23",
+                            "Nov 23",
+                            "Dez 23"
+                        ],
+                        "series" => [
+                            [
+                                "name" => "Meta",
+                                "data" => [
+                                    $this->reportsService->GetGoalByMount(1)['goals'],
+                                    $this->reportsService->GetGoalByMount(2)['goals'],
+                                    $this->reportsService->GetGoalByMount(3)['goals'],
+                                    $this->reportsService->GetGoalByMount(4)['goals'],
+                                    $this->reportsService->GetGoalByMount(5)['goals'],
+                                    $this->reportsService->GetGoalByMount(6)['goals'],
+                                    $this->reportsService->GetGoalByMount(7)['goals'],
+                                    $this->reportsService->GetGoalByMount(8)['goals'],
+                                    $this->reportsService->GetGoalByMount(9)['goals'],
+                                    $this->reportsService->GetGoalByMount(10)['goals'],
+                                    $this->reportsService->GetGoalByMount(11)['goals'],
+                                    $this->reportsService->GetGoalByMount(12)['goals']
+                                ]
+                            ],
+                            [
+                                "name" => "Realizado",
+                                "data" => [
+                                    $this->reportsService->GetGoalByMount(1)['realized'],
+                                    $this->reportsService->GetGoalByMount(2)['realized'],
+                                    $this->reportsService->GetGoalByMount(3)['realized'],
+                                    $this->reportsService->GetGoalByMount(4)['realized'],
+                                    $this->reportsService->GetGoalByMount(5)['realized'],
+                                    $this->reportsService->GetGoalByMount(6)['realized'],
+                                    $this->reportsService->GetGoalByMount(7)['realized'],
+                                    $this->reportsService->GetGoalByMount(8)['realized'],
+                                    $this->reportsService->GetGoalByMount(9)['realized'],
+                                    $this->reportsService->GetGoalByMount(10)['realized'],
+                                    $this->reportsService->GetGoalByMount(11)['realized'],
+                                    $this->reportsService->GetGoalByMount(12)['realized']
+                                ]
+                            ]
+                        ],
+                        "colors" => [
+                            "#77B6EA",
+                            "#545454"
+                        ],
+                        "meta_mensal" => 400000
+                    ],
+                    "sold_out" => [
+                        "total" => 1,
+                        "valor" => 2000000
+                    ]
                 ]
-            ]
-        );
+            );
+        } else {
+            return response()->json(
+                [
+                    "alertas" => $this->CountAlerts($dtInicio, $dtFim),
+                    "memorias" => $this->CountReminders($dtInicio, $dtFim),
+                    "tempo_medio_aprovacao_dias" => [
+                        "total" => $this->reportsService->sumTimeToAproval($request->all()),
+                    ],
+                    "intervalo_medio_aprovacao_dias" => [
+                        "total" => 7
+                    ],
+                    "ticket_medio_aprovacao" => [
+                        "total" => $this->reportsService->averageApprovedsTicket($request->all())
+                    ],
+                    "maior_venda" => [
+                        "total" => $this->reportsService->BiggestSale($request->all())
+                    ],
+                    "tendencia_aprovacao_anual" => [
+                        "total" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber'] * 12
+                    ],
+                    "media_aprovacao_mes" => [
+                        "total" => $this->reportsService->averageApprovedJobsPerMonth($request->all())['valueNumber']
+                    ],
+                    "ticket_medio_jobs" => [
+                        "total" => $this->reportsService->averageTicket($request->all())
+                    ],
+                    "ultimo_aprovado" => $this->reportsService->LastJobApproved(),
+                    "ultimo_job_aprovado" => $this->reportsService->LastJobApproved(),
+                    "eventos_rolando" => "",
+                    "aniversariante" => "",
+                    "comunicados" => "",
+                    "metas" => "",
+                    "recordes" => "",
+                    "ranking" => $this->reportsService->SaleRanking(),
+                    "jobs" => [
+                        "labels" => [
+                            "Aprovados",
+                            "Avançados",
+                            "Ajustes",
+                            "Stand-By",
+                            "Reprovados"
+                        ],
+                        "colors" => [
+                            "#adca5f",
+                            "#e82489",
+                            "#4fa2b1",
+                            "#00abeb",
+                            "#ffcd37"
+                        ],
+                        "series" => [
+                            $aprovados->count,
+                            $avancados->count,
+                            $ajustes->count,
+                            $standby->count - $ajustes->count, // Aqui é retirado o count do ajustes do stand-by porque o ajustes tbm são jobs em standby
+                            $reprovados->count
+                        ],
+                        "meta_jobs" => 1200000,
+                        "meta_aprovacao" => 400000,
+                        "total" => $soma,
+                        "aprovados" => [
+                            "total" => $aprovados->count,
+                            "porcentagem" => round(($aprovados->count * 100) / $soma, 2),
+                            "valor" => $aprovados->sum
+                        ],
+                        "avancados" => [
+                            "total" => $avancados->count,
+                            "porcentagem" => round(($avancados->count * 100) / $soma, 2),
+                            "valor" => $avancados->sum
+                        ],
+                        "ajustes" => [
+                            "total" => $ajustes->count,
+                            "porcentagem" => round(($ajustes->count * 100) / $soma, 2),
+                            "valor" => $ajustes->sum
+                        ],
+                        "stand_by" => [
+                            "total" => $standby->count - $ajustes->count, // Aqui é retirado o count do ajustes do stand-by porque o ajustes tbm são jobs em standby
+                            "porcentagem" => round(($standby->count * 100) / $soma, 2),
+                            "valor" => $standby->sum
+                        ],
+                        "reprovados" => [
+                            "total" => $reprovados->count,
+                            "porcentagem" => round(($reprovados->count * 100) / $soma, 2),
+                            "valor" => $reprovados->sum
+                        ],
+                        "metas" => $this->reportsService->GetGoals(),
+                        "em_producao" => [
+                            "total" => 4,
+                            "total_em_producao" => $listaAprovados->count(),
+                            "jobs" => [
+                                [
+                                    "total" => $listaAprovados[0]['final_value'],
+                                    "valor" => 0, //$listaAprovados[0]['budget_value'],
+                                    "nome" => $listaAprovados[0]->getJobName()
+                                ],
+                                [
+                                    "total" => $listaAprovados[1]['final_value'],
+                                    "valor" => 0, //$listaAprovados[1]['budget_value'],
+                                    "nome" => $listaAprovados[1]->getJobName()
+                                ],
+                                [
+                                    "total" => $listaAprovados[2]['final_value'],
+                                    "valor" => 0, //$listaAprovados[2]['budget_value'],
+                                    "nome" => $listaAprovados[2]->getJobName()
+                                ],
+                                [
+                                    "total" => $listaAprovados[3]['final_value'],
+                                    "valor" => 0, //$listaAprovados[3]['budget_value'],
+                                    "nome" => $listaAprovados[3]->getJobName()
+                                ]
+                            ]
+                        ],
+                        "prazo_final" => [
+                            "total" => 5,
+                            "valor" => 7000000
+                        ]
+                    ],
+                    "jobs2" => [
+                        "labels" => [
+                            "Cenografia",
+                            "Stand",
+                            "PDV",
+                            "Showrooms",
+                            "Outsiders"
+                        ],
+                        "colors" => [
+                            "#adca5f",
+                            "#e82489",
+                            "#4fa2b1",
+                            "#00abeb",
+                            "#ffcd37"
+                        ],
+                        "series" => [
+                            isset($jobsByCategories['Cenografia']["count"]) ? number_format(($jobsByCategories['Cenografia']["count"] / $soma) * 100, 2, '.', '') : "0",
+                            isset($jobsByCategories['Stand']["count"]) ? number_format(($jobsByCategories['Stand']["count"] / $soma) * 100, 2, '.', '') : "0",
+                            isset($jobsByCategories['PDV']["count"]) ? number_format(($jobsByCategories['PDV']["count"] / $soma) * 100, 2, '.', '') : "0",
+                            isset($jobsByCategories['Showroom']["count"]) ? number_format(($jobsByCategories['Showroom']["count"] / $soma) * 100, 2, '.', '') : "0",
+                            isset($jobsByCategories['Outsiders']["count"]) ? number_format(($jobsByCategories['Outsiders']["count"] / $soma) * 100, 2, '.', '') : "0",
+                        ],
+                        "meta_jobs" => $jobsByCategories['totals']['totalSum'],
+                        "total" => $jobsByCategories['totals']['totalCount'],
+                        "meta_aprovacao" => 400000,
+                    ],
+                    "tendencia" => [
+                        "meses_ano" => [
+                            "Jan 23",
+                            "Fev 23",
+                            "Mar 23",
+                            "Abr 23",
+                            "Mai 23",
+                            "Jun 23",
+                            "Jul 23",
+                            "Ago 23",
+                            "Set 23",
+                            "Out 23",
+                            "Nov 23",
+                            "Dez 23"
+                        ],
+                        "series" => [
+                            [
+                                "name" => "Meta",
+                                "data" => [
+                                    $this->reportsService->GetGoalByMount(1)['goals'],
+                                    $this->reportsService->GetGoalByMount(2)['goals'],
+                                    $this->reportsService->GetGoalByMount(3)['goals'],
+                                    $this->reportsService->GetGoalByMount(4)['goals'],
+                                    $this->reportsService->GetGoalByMount(5)['goals'],
+                                    $this->reportsService->GetGoalByMount(6)['goals'],
+                                    $this->reportsService->GetGoalByMount(7)['goals'],
+                                    $this->reportsService->GetGoalByMount(8)['goals'],
+                                    $this->reportsService->GetGoalByMount(9)['goals'],
+                                    $this->reportsService->GetGoalByMount(10)['goals'],
+                                    $this->reportsService->GetGoalByMount(11)['goals'],
+                                    $this->reportsService->GetGoalByMount(12)['goals']
+                                ]
+                            ],
+                            [
+                                "name" => "Realizado",
+                                "data" => [
+                                    $this->reportsService->GetGoalByMount(1)['realized'],
+                                    $this->reportsService->GetGoalByMount(2)['realized'],
+                                    $this->reportsService->GetGoalByMount(3)['realized'],
+                                    $this->reportsService->GetGoalByMount(4)['realized'],
+                                    $this->reportsService->GetGoalByMount(5)['realized'],
+                                    $this->reportsService->GetGoalByMount(6)['realized'],
+                                    $this->reportsService->GetGoalByMount(7)['realized'],
+                                    $this->reportsService->GetGoalByMount(8)['realized'],
+                                    $this->reportsService->GetGoalByMount(9)['realized'],
+                                    $this->reportsService->GetGoalByMount(10)['realized'],
+                                    $this->reportsService->GetGoalByMount(11)['realized'],
+                                    $this->reportsService->GetGoalByMount(12)['realized']
+                                ]
+                            ]
+                        ],
+                        "colors" => [
+                            "#77B6EA",
+                            "#545454"
+                        ],
+                        "meta_mensal" => 400000
+                    ],
+                    "sold_out" => [
+                        "total" => 1,
+                        "valor" => 2000000
+                    ]
+                ]
+            );
+        }
     }
 
     public static function CountAlerts($inicio, $fim)
