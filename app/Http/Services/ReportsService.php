@@ -385,7 +385,7 @@ class ReportsService
         }
 
         // Calcular a média de jobs aprovados por mês
-        $averageJobsPerMonth = ceil($totalJobsApproved / $monthsPassed);
+        $averageJobsPerMonth = ($totalJobsApproved / $monthsPassed); //Foi pedido para remover o arredondamento(ceil) desse campo
         $totalValueJobsApprovedNumber = $totalValueJobsApproved / $monthsPassed;
         $totalValueJobsApproved = number_format(($totalValueJobsApproved / $monthsPassed), 2, ',', '.');
 
