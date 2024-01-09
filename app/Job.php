@@ -65,7 +65,7 @@ class Job extends Model
         isset($data['attendance']['id']) ? $job->attendance_id = $data['attendance']['id'] : null;
         isset($data['competition']['id']) ? $job->competition_id = $data['competition']['id'] : null;
 
-        if(isset($data['comission'])){
+        if (isset($data['comission'])) {
             $job->attendance_comission_id = $data['comission']['attendance']['id'];
             $job->comission_percentage = $data['comission']['percentage'];
         }
@@ -121,16 +121,21 @@ class Job extends Model
             $message .= $this->getJobName();
             $message .= ' teve o status alterado para ' . $this->status->description;
 
-            Notification::createAndNotify(User::logged()->employee, [
-                'message' => $message
-            ], 
-            NotificationSpecial::createMulti([
-                'user_id' => $task->responsible->user->id,
-                'message' => $message,
-            ], [
-                'user_id' => $this->attendance->user->id,
-                'message' => $message
-            ]), 'Alteração de job', $task->id);
+            Notification::createAndNotify(
+                User::logged()->employee,
+                [
+                    'message' => $message
+                ],
+                NotificationSpecial::createMulti([
+                    'user_id' => $task->responsible->user->id,
+                    'message' => $message,
+                ], [
+                    'user_id' => $this->attendance->user->id,
+                    'message' => $message
+                ]),
+                'Alteração de job',
+                $task->id
+            );
         }
     }
 
@@ -156,7 +161,7 @@ class Job extends Model
             ])
         );
 
-        if(isset($data['comission'])){
+        if (isset($data['comission'])) {
             $job->attendance_comission_id = $data['comission']['attendance']['id'];
             $job->comission_percentage = $data['comission']['percentage'];
         }
@@ -419,7 +424,7 @@ class Job extends Model
         if ($job->attendance_id != User::logged()->employee->id) {
             throw new \Exception('Você não tem permissão para editar esse job.');
         }
-        if(isset($data['comission'])){
+        if (isset($data['comission'])) {
             $job->attendance_comission_id = $data['comission']['attendance']['id'];
             $job->comission_percentage = $data['comission']['percentage'];
         }
