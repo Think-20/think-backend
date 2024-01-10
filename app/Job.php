@@ -146,6 +146,8 @@ class Job extends Model
         $agency_id = isset($data['agency']['id']) ? $data['agency']['id'] : null;
         $client_id = isset($data['client']['id']) ? $data['client']['id'] : null;
 
+
+
         $job = new Job(
             array_merge($data, [
                 'code' => $code,
@@ -164,6 +166,10 @@ class Job extends Model
         if (isset($data['comission'])) {
             $job->attendance_comission_id = $data['comission']['attendance']['id'];
             $job->comission_percentage = $data['comission']['percentage'];
+        }
+
+        if (isset($data['event_id'])) {
+            $job->event_id = $data['event_id'];
         }
 
         $job->save();

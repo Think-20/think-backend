@@ -103,14 +103,12 @@ class Event extends Model
             $event->place_id = isset($data['place']['id']) ? $data['place']['id'] : null;
             $event->employee_id = User::logged()->employee_id;
 
-            if (env('APP_URL') == "http://localhost") {
-                //APENAS PARA CASO SEJA TESTE LOCAL
-                $event->plan = "douglas";
-                $event->regulation = "douglas";
-                $event->manual = "douglas";
-            } else {
-                $event->saveFiles();
-            }
+            //APENAS PARA CASO SEJA TESTE LOCAL
+            $event->plan = "douglas";
+            $event->regulation = "douglas";
+            $event->manual = "douglas";
+
+            //$event->saveFiles();
 
             $event->save();
             DB::commit();
