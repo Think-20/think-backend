@@ -65,6 +65,8 @@ class Job extends Model
         isset($data['attendance']['id']) ? $job->attendance_id = $data['attendance']['id'] : null;
         isset($data['competition']['id']) ? $job->competition_id = $data['competition']['id'] : null;
 
+        isset($data['event_id']) ? $job->event_id = $data['event_id'] : null;
+
         if (isset($data['comission'])) {
             $job->attendance_comission_id = $data['comission']['attendance']['id'];
             $job->comission_percentage = $data['comission']['percentage'];
@@ -145,8 +147,6 @@ class Job extends Model
         $code = Job::generateCode();
         $agency_id = isset($data['agency']['id']) ? $data['agency']['id'] : null;
         $client_id = isset($data['client']['id']) ? $data['client']['id'] : null;
-
-
 
         $job = new Job(
             array_merge($data, [
