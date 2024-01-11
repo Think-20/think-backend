@@ -15,13 +15,15 @@ use App\JobActivity;
 
 class JobController extends Controller
 {
-    public static function loadForm() {        
+    public static function loadForm()
+    {
         return Response::make(json_encode([
             'data' => Job::loadForm()
-         ]), 200); 
+        ]), 200);
     }
-    
-    public static function save(Request $request) {
+
+    public static function save(Request $request)
+    {
         $data = $request->all();
         $status = false;
         $job = null;
@@ -34,27 +36,28 @@ class JobController extends Controller
             $message = 'Job ' . $code . ' cadastrado com sucesso!';
             DB::commit();
             $status = true;
-        } 
-        /* Catch com FileException tamanho máximo */
-        catch(Exception $e) {
+        }
+        /* Catch com FileException tamanho máximo */ catch (Exception $e) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
-             //. $e->getFile() . $e->getLine();
+            //. $e->getFile() . $e->getLine();
         }
 
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
             'job' => $job
-         ]), 200);
+        ]), 200);
     }
 
-    public static function calculate() {
+    public static function calculate()
+    {
         $job = Job::calculate();
         return $job;
     }
-    
-    public static function edit(Request $request) {
+
+    public static function edit(Request $request)
+    {
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
@@ -64,10 +67,10 @@ class JobController extends Controller
             $message = 'Job alterado com sucesso!';
             $status = true;
             DB::commit();
-        } catch(QueryException $queryException) {
+        } catch (QueryException $queryException) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
             // . $e->getFile() . $e->getLine();
@@ -76,10 +79,11 @@ class JobController extends Controller
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-         ]), 200);
+        ]), 200);
     }
 
-    public static function editAvailableDate(Request $request) {
+    public static function editAvailableDate(Request $request)
+    {
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
@@ -89,10 +93,10 @@ class JobController extends Controller
             $message = 'Job alterado com sucesso!';
             $status = true;
             DB::commit();
-        } catch(QueryException $queryException) {
+        } catch (QueryException $queryException) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
             // . $e->getFile() . $e->getLine();
@@ -101,21 +105,23 @@ class JobController extends Controller
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-         ]), 200);
+        ]), 200);
     }
 
-    public static function downloadFile($id, $type, $file) {
+    public static function downloadFile($id, $type, $file)
+    {
         try {
             $fileFound = Job::downloadFile($id, $type, $file);
             $status = true;
             return Response::make(file_get_contents($fileFound), 200, ['Content-Type' => mime_content_type($fileFound)]);
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             $message = 'Um erro ocorreu ao abrir o arquivo: ' . $e->getMessage();
             return Response::make($message, 404);
         }
     }
 
-    public static function remove(int $id) {
+    public static function remove(int $id)
+    {
         DB::beginTransaction();
         $status = false;
 
@@ -124,10 +130,10 @@ class JobController extends Controller
             $message = 'Job deletado com sucesso!';
             $status = true;
             DB::commit();
-        } catch(QueryException $queryException) {
+        } catch (QueryException $queryException) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao deletar no banco de dados. ' . $queryException->getMessage();
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             $message = 'Um erro desconhecido ocorreu ao deletar: ' . $e->getMessage();
         }
@@ -135,28 +141,33 @@ class JobController extends Controller
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-         ]), 200);
+        ]), 200);
     }
 
-    public static function get(int $id) {
+    public static function get(int $id)
+    {
         return Job::get($id);
     }
 
-    public static function all() {
+    public static function all()
+    {
         $jobs = Job::list();
 
         return $jobs;
     }
 
-    public static function filter(Request $request) {
+    public static function filter(Request $request)
+    {
         return Job::filter($request->all());
     }
 
-    public static function performanceLite(Request $request) {
+    public static function performanceLite(Request $request)
+    {
         return Job::performanceLite($request->all());
     }
 
-    public static function myEditAvailableDate(Request $request) {
+    public static function myEditAvailableDate(Request $request)
+    {
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
@@ -166,10 +177,10 @@ class JobController extends Controller
             $message = 'Job alterado com sucesso!';
             $status = true;
             DB::commit();
-        } catch(QueryException $queryException) {
+        } catch (QueryException $queryException) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
             // . $e->getFile() . $e->getLine();
@@ -178,10 +189,11 @@ class JobController extends Controller
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-         ]), 200);
+        ]), 200);
     }
 
-    public static function saveMyJob(Request $request) {
+    public static function saveMyJob(Request $request)
+    {
         $data = $request->all();
         $status = false;
         $job = null;
@@ -194,9 +206,8 @@ class JobController extends Controller
             $message = 'Job ' . $code . ' cadastrado com sucesso!';
             $status = true;
             DB::commit();
-        } 
-        /* Catch com FileException tamanho máximo */
-        catch(Exception $e) {
+        }
+        /* Catch com FileException tamanho máximo */ catch (Exception $e) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
             // . $e->getFile() . $e->getLine();
@@ -206,10 +217,11 @@ class JobController extends Controller
             'message' => $message,
             'status' => $status,
             'job' => $job
-         ]), 200);
+        ]), 200);
     }
 
-    public static function editMyJob(Request $request) {
+    public static function editMyJob(Request $request)
+    {
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
@@ -219,10 +231,10 @@ class JobController extends Controller
             $message = 'Job alterado com sucesso!';
             $status = true;
             DB::commit();
-        } catch(QueryException $queryException) {
+        } catch (QueryException $queryException) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
             // . $e->getFile() . $e->getLine();
@@ -231,24 +243,26 @@ class JobController extends Controller
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-         ]), 200);
+        ]), 200);
     }
 
-    public static function downloadFileMyJob($id, $type, $filename) {
+    public static function downloadFileMyJob($id, $type, $filename)
+    {
         try {
             $file = Job::downloadFileMyJob($id, $type, $filename);
             $status = true;
             return Response::make(file_get_contents($file), 200, [
-                'Content-Type' => mime_content_type($file), 
+                'Content-Type' => mime_content_type($file),
                 'Content-Disposition: inline; filename="' . $filename . '"'
             ]);
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             $message = 'Um erro ocorreu ao abrir o arquivo: ' . $e->getMessage();
             return Response::make($message, 404);
         }
     }
 
-    public static function removeMyJob(int $id) {
+    public static function removeMyJob(int $id)
+    {
         DB::beginTransaction();
         $status = false;
 
@@ -257,10 +271,10 @@ class JobController extends Controller
             $message = 'Job deletado com sucesso!';
             $status = true;
             DB::commit();
-        } catch(QueryException $queryException) {
+        } catch (QueryException $queryException) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao deletar no banco de dados. ' . $queryException->getMessage();
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             $message = 'Um erro desconhecido ocorreu ao deletar: ' . $e->getMessage();
         }
@@ -268,19 +282,22 @@ class JobController extends Controller
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-         ]), 200);
+        ]), 200);
     }
 
-    public static function getMyJob(int $id) {
+    public static function getMyJob(int $id)
+    {
         return Job::getMyJob($id);
     }
 
-    public static function allMyJob() {
+    public static function allMyJob()
+    {
         $jobs = Job::listMyJob();
         return $jobs;
     }
 
-    public static function filterMyJob(Request $request) {
+    public static function filterMyJob(Request $request)
+    {
         return Job::filterMyJob($request->all());
     }
 }

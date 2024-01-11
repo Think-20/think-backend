@@ -330,27 +330,27 @@ class DashboardController extends Controller
                         "metas" => $this->reportsService->GetGoals(),
                         "em_producao" => [
                             "total" => 4,
-                            "total_em_producao" => $listaAprovados->count(),
+                            "total_em_producao" => (isset($listaAprovados) == true) ? $listaAprovados->count() : 0,
                             "jobs" => [
                                 [
-                                    "total" => $listaAprovados[0]['final_value'],
+                                    "total" => (isset($listaAprovados[0]['final_value'])) ? $listaAprovados[0]['final_value'] : 0,
                                     "valor" => 0, //$listaAprovados[0]['budget_value'],
-                                    "nome" => $listaAprovados[0]->getJobName()
+                                    "nome" => (isset($listaAprovados[0])) ? $listaAprovados[0]->getJobName() : 0
                                 ],
                                 [
-                                    "total" => $listaAprovados[1]['final_value'],
-                                    "valor" => 0, //$listaAprovados[1]['budget_value'],
-                                    "nome" => $listaAprovados[1]->getJobName()
+                                    "total" => (isset($listaAprovados[1]['final_value'])) ? $listaAprovados[1]['final_value'] : 0,
+                                    "valor" => 0, //$listaAprovados[0]['budget_value'],
+                                    "nome" => (isset($listaAprovados[1])) ? $listaAprovados[1]->getJobName() : 0
                                 ],
                                 [
-                                    "total" => $listaAprovados[2]['final_value'],
-                                    "valor" => 0, //$listaAprovados[2]['budget_value'],
-                                    "nome" => $listaAprovados[2]->getJobName()
+                                    "total" => (isset($listaAprovados[2]['final_value'])) ? $listaAprovados[2]['final_value'] : 0,
+                                    "valor" => 0, //$listaAprovados[0]['budget_value'],
+                                    "nome" => (isset($listaAprovados[2])) ? $listaAprovados[2]->getJobName() : 0
                                 ],
                                 [
-                                    "total" => $listaAprovados[3]['final_value'],
-                                    "valor" => 0, //$listaAprovados[3]['budget_value'],
-                                    "nome" => $listaAprovados[3]->getJobName()
+                                    "total" => (isset($listaAprovados[3]['final_value'])) ? $listaAprovados[3]['final_value'] : 0,
+                                    "valor" => 0, //$listaAprovados[0]['budget_value'],
+                                    "nome" => (isset($listaAprovados[3])) ? $listaAprovados[3]->getJobName() : 0
                                 ]
                             ]
                         ],
