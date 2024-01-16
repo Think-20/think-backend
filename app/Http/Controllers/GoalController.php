@@ -119,37 +119,37 @@ class GoalController extends Controller
 
         for ($i = 0; $i < Carbon::parse($date_end)->diffInDays(Carbon::parse($date_init)) + 1; $i++) {
 
-            $dtInicio = Carbon::parse($date_init);
+            $dtInicio = Carbon::parse($date_init)/*->subDay(1)*/;
             $dtFim = Carbon::parse($date_init)->addDay($i);
 
-            $aprovadosMes = $this->reportsService->GetAllBudgets(["date_init" => $dtInicio, "date_end" => $dtFim]);
-            $aprovadosAno = $this->reportsService->GetAllBudgets(["date_init" => Carbon::now()->startOfYear(), "date_end" => $dtFim]);
+            $allMes = $this->reportsService->GetAllBudgets(["date_init" => $dtInicio->startOfMonth(), "date_end" => $dtFim]);
+            $allAno = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($date_init)->startOfYear(), "date_end" => $dtFim]);
 
             $monthGoal =  $this->reportsService->GetGoalByMountAndYear(intval($dtFim->format('m')), intval($dtFim->format('Y')));
             $yearGoals =  $this->reportsService->GetGoalYear(intval($dtFim->format('Y')));
 
             $CurrentMonthValue = $this->reportsService->GetApproveds(['date_init' => $dtInicio->format('Y-m-d'), 'date_end' => $dtFim->format('Y-m-d')]);
-            $CurrentYearValue = $this->reportsService->GetApproveds(['date_init' => Carbon::now()->startOfYear(), 'date_end' => $dtFim->format('Y-m-d')]);
+            $CurrentYearValue = $this->reportsService->GetApproveds(['date_init' => Carbon::parse($date_init)->startOfYear(), 'date_end' => $dtFim->format('Y-m-d')]);
 
             try {
                 $goals = [
                     "date" => $dtFim->format('Y-m-d'),
                     "mes" => [
-                        "porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value),
+                        "porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value) > 100 ? 100 : (($CurrentMonthValue->sum * 100) / $monthGoal->value),
                         "atualReais" => $CurrentMonthValue->sum == null ? 0 : $CurrentMonthValue->sum,
                         "metaReais" =>  $monthGoal->value,
 
-                        "porcentagemJobs" => ($aprovadosMes->sum * 100) / $monthGoal->expected_value,
-                        "atualJobs" => $aprovadosMes->sum,
+                        "porcentagemJobs" => (($allMes->count * 100) / $monthGoal->expected_value) > 100 ? 100 : (($allMes->count * 100) / $monthGoal->expected_value),
+                        "atualJobs" => $allMes->count,
                         "metaJobs" => $monthGoal->expected_value,
                     ],
                     "anual" => [
-                        "porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value),
+                        "porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value) > 100 ? 100 : (($CurrentYearValue->sum * 100) / $yearGoals->value),
                         "atualReais" =>  $CurrentYearValue->sum == null ? 0 : $CurrentYearValue->sum,
                         "metaReais" =>  $yearGoals->value,
 
-                        "porcentagemJobs" => ($aprovadosAno->sum * 100) / $yearGoals->expected_value,
-                        "atualJobs" => $aprovadosAno->sum,
+                        "porcentagemJobs" => (($allAno->sum * 100) / $yearGoals->expected_value) > 100 ? 100 : (($allAno->sum * 100) / $yearGoals->expected_value),
+                        "atualJobs" => $allAno->count,
                         "metaJobs" => $yearGoals->expected_value,
                     ]
                 ];

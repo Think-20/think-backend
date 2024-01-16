@@ -33,6 +33,8 @@ class ReportsController extends Controller
             'event'
         ]);
 
+        dd( User::logged());
+
         $jobsPerPage = $data['jobs_amount'] ?? 30;
         $currentPage = $request->query('page', 1);
 
