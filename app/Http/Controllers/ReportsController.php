@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Employee;
 use App\Job;
 use App\Task;
 use App\User;
@@ -13,7 +14,8 @@ use App\Http\Services\ReportsService;
 class ReportsController extends Controller
 {
     private $reportsService;
-    public function __construct(ReportsService $reportsService){
+    public function __construct(ReportsService $reportsService)
+    {
         $this->reportsService = $reportsService;
     }
 
@@ -33,15 +35,23 @@ class ReportsController extends Controller
             'event'
         ]);
 
-        dd( User::logged());
+
+        $loggedDepartament = Employee::where('id', User::logged()->employee_id)->first()->department_id;
+        if ($loggedDepartament == 1) {
+            //Caso o depargamente seja Diretoria
+        } else {
+            //Caso o depargamente seja qualquer outro alem de diretoria
+        }
 
         $jobsPerPage = $data['jobs_amount'] ?? 30;
         $currentPage = $request->query('page', 1);
 
         $jobs = $this->reportsService->baseQuery($data)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
+
         if ($jobs->isEmpty()) {
             return response()->json(["error" => false, "message" => "Jobs not found"]);
         }
+
 
         foreach ($jobs as &$job) {
             foreach ($job->tasks as $task) {
@@ -70,7 +80,7 @@ class ReportsController extends Controller
                         $percentage = (100 - $job->comission_percentage) / 100;
                         $job->setAttribute('specialAttendance', $job->attendance->name);
                         $job->setAttribute('specialBudget', $job->budget_value * $percentage);
-                        $job->setAttribute('specialFinalValue',$job->final_value * $percentage);
+                        $job->setAttribute('specialFinalValue', $job->final_value * $percentage);
                     } elseif (in_array($job["attendance_comission_id"], $data['attendance']) && !in_array($job->attendance->id, $data['attendance'])) {
                         $percentage = $job->comission_percentage / 100;
                         $job->setAttribute('specialAttendance', $job->attendance_comission->name);
