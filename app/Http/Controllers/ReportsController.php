@@ -36,17 +36,16 @@ class ReportsController extends Controller
         ]);
 
 
-        $loggedDepartament = Employee::where('id', User::logged()->employee_id)->first()->department_id;
-        if ($loggedDepartament == 1) {
-            //Caso o depargamente seja Diretoria
-        } else {
-            //Caso o depargamente seja qualquer outro alem de diretoria
-        }
+        $loggedDepartament = Employee::where('id', User::logged()->employee_id)->first();
 
         $jobsPerPage = $data['jobs_amount'] ?? 30;
         $currentPage = $request->query('page', 1);
 
-        $jobs = $this->reportsService->baseQuery($data)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
+        if ($loggedDepartament->department_id != 1) {
+            $jobs = $this->reportsService->baseQuery($data)->where('attendance_id', $loggedDepartament->id)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
+        } else {
+            $jobs = $this->reportsService->baseQuery($data)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
+        }
 
         if ($jobs->isEmpty()) {
             return response()->json(["error" => false, "message" => "Jobs not found"]);
@@ -54,6 +53,7 @@ class ReportsController extends Controller
 
 
         foreach ($jobs as &$job) {
+
             foreach ($job->tasks as $task) {
                 if (isset($data['creation']) && in_array('external', $data['creation'])) {
                     unset($task->responsible);
