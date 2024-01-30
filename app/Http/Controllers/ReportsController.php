@@ -41,10 +41,14 @@ class ReportsController extends Controller
         $jobsPerPage = $data['jobs_amount'] ?? 30;
         $currentPage = $request->query('page', 1);
 
-        if ($loggedDepartament->department_id != 1) {
-            $jobs = $this->reportsService->baseQuery($data)->where('attendance_id', $loggedDepartament->id)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
-        } else {
+
+        if ($loggedDepartament->department_id == 1) {
+            //Caso o usuario seja dos departamentos acima, quer dizer que pode ver todos os dados de relatório
             $jobs = $this->reportsService->baseQuery($data)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
+
+        } else {
+            //Caso o usuário não seja dos departamentos do IF, quer dizer que ele só pode ver dos jobs em que faz parte.
+            $jobs = $this->reportsService->baseQuery($data)->where('attendance_id', $loggedDepartament->id)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
         }
 
         if ($jobs->isEmpty()) {
