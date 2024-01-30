@@ -128,7 +128,7 @@ class GoalController extends Controller
             $monthGoal =  $this->reportsService->GetGoalByMountAndYear(intval($dtFim->format('m')), intval($dtFim->format('Y')));
             $yearGoals =  $this->reportsService->GetGoalYear(intval($dtFim->format('Y')));
 
-            $CurrentMonthValue = $this->reportsService->GetApproveds(['date_init' => $dtInicio->format('Y-m-d'), 'date_end' => $dtFim->format('Y-m-d')]);
+            $CurrentMonthValue = $this->reportsService->GetApproveds(['date_init' => Carbon::parse($dtFim)->startOfMonth()->format('Y-m-d'), 'date_end' => $dtFim->format('Y-m-d')]);
             $CurrentYearValue = $this->reportsService->GetApproveds(['date_init' => Carbon::parse($date_init)->startOfYear(), 'date_end' => $dtFim->format('Y-m-d')]);
 
             try {
