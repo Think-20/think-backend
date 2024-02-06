@@ -104,11 +104,11 @@ class Event extends Model
             $event->employee_id = User::logged()->employee_id;
 
             //APENAS PARA CASO SEJA TESTE LOCAL
-            $event->plan = "douglas";
+            /*$event->plan = "douglas";
             $event->regulation = "douglas";
-            $event->manual = "douglas";
+            $event->manual = "douglas";*/
 
-            //$event->saveFiles();
+            $event->saveFiles();
 
             $event->save();
             DB::commit();
