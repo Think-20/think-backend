@@ -72,6 +72,10 @@ class Job extends Model
             $job->comission_percentage = $data['comission']['percentage'];
         }
 
+        if (isset($data['critical'])) {
+            $job->critical = $data['critical'];
+        }
+
         $job->save();
         $job->update($data);
         $job->statusChange($oldJob);
@@ -160,6 +164,7 @@ class Job extends Model
                 'agency_id' => $agency_id,
                 'attendance_id' => $data['attendance']['id'],
                 'competition_id' => $data['competition']['id'],
+                'critical' => $data['critical']
             ])
         );
 
@@ -170,6 +175,10 @@ class Job extends Model
 
         if (isset($data['event_id'])) {
             $job->event_id = $data['event_id'];
+        }
+
+        if (isset($data['critical'])) {
+            $job->critical = $data['critical'];
         }
 
         $job->save();
