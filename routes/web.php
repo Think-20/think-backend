@@ -172,6 +172,9 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/goal', 'GoalController@createGoal');
     Route::put('/goal', 'GoalController@updateGoal');
 
+    Route::post('/testeGetS3', 'GoalController@testeGetS3');
+    Route::post('/testePutS3', 'GoalController@testePutS3');
+
     Route::get('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
 });
 
@@ -263,6 +266,7 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::delete('/item/{itemId}/remove-pricing/{pricingId}', 'ItemController@removePricing');
     Route::post('/item/save-child-item/{id}', 'ItemController@saveChildItem');
     Route::delete('/item/{itemId}/remove-child-item/{childItemId}', 'ItemController@removeChildItem');
+
 
     Route::post('/job/save', 'JobController@save');
     Route::put('/job/edit', 'JobController@edit');

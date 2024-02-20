@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
 use App\FileHelper;
 use App\JobActivity;
+use Aws\S3\S3Client;
+use AwsS3S3Client;
 
 class JobController extends Controller
 {
@@ -24,6 +26,7 @@ class JobController extends Controller
 
     public static function save(Request $request)
     {
+
         $data = $request->all();
         $status = false;
         $job = null;
