@@ -21,6 +21,9 @@ class ReportsController extends Controller
 
     public function read(Request $request)
     {
+
+
+
         $data = $request->only([
             'date_init',
             'date_end',
@@ -35,21 +38,24 @@ class ReportsController extends Controller
             'event'
         ]);
 
-
         $loggedDepartament = Employee::where('id', User::logged()->employee_id)->first();
 
         $jobsPerPage = $data['jobs_amount'] ?? 30;
         $currentPage = $request->query('page', 1);
 
+        $dtInit = Carbon::parse($data["date_init"]);
+        $dtEnd = Carbon::parse($data["date_end"]);
+        $monthDif = ($dtEnd->diffInMonths($dtInit) == 0) ? 1 : $dtEnd->diffInMonths($dtInit)+1;
 
         if ($loggedDepartament->department_id == 1) {
             //Caso o usuario seja dos departamentos acima, quer dizer que pode ver todos os dados de relatório
-            $jobs = $this->reportsService->baseQuery($data)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
-
+            $jobs = $this->reportsService->baseQuery($data)->orderBy('created_at', 'asc')
+                ->paginate($jobsPerPage);
         } else {
             //Caso o usuário não seja dos departamentos do IF, quer dizer que ele só pode ver dos jobs em que faz parte.
             $jobs = $this->reportsService->baseQuery($data)->where('attendance_id', $loggedDepartament->id)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
         }
+
 
         if ($jobs->isEmpty()) {
             return response()->json(["error" => false, "message" => "Jobs not found"]);
@@ -57,7 +63,6 @@ class ReportsController extends Controller
 
 
         foreach ($jobs as &$job) {
-
             foreach ($job->tasks as $task) {
                 if (isset($data['creation']) && in_array('external', $data['creation'])) {
                     unset($task->responsible);
@@ -116,7 +121,6 @@ class ReportsController extends Controller
         $advancedJobs = $this->reportsService->averageAdvancedJobsPerMonth($data);
         $average_ticket = $this->reportsService->averageTicket($data);
 
-
         if ($total_value['sum'] > 0) {
             $conversionRate = round(($aprovalsAmount['sum'] / $total_value['sum']) * 100) . "%";
         } else {
@@ -124,6 +128,17 @@ class ReportsController extends Controller
         }
 
         $anualTendenceAprovation = $approvedJobs['valueNumber'] * 12;
+
+        $jobs_month_average  = $jobs->total() / $monthDif;
+        $total_month_average  = $total_value['sum'] / $monthDif;
+
+        dd([
+            $monthDif,
+            $jobs->total(),
+            $total_value,
+            $jobs_month_average,
+            $total_month_average
+        ]);
 
         return response()->json([
             "jobs" => $jobs,
@@ -138,7 +153,9 @@ class ReportsController extends Controller
             "types" => $types,
             "averageApprovedJobsPerMonth" => $approvedJobs,
             "averageAdvancedJobs" => $advancedJobs,
-            'updatedInfo' => Job::updatedInfo()
+            'updatedInfo' => Job::updatedInfo(),
+            'total_month_average' => $total_month_average,
+            'jobs_month_average' => $jobs_month_average
         ]);
     }
 
