@@ -132,14 +132,6 @@ class ReportsController extends Controller
         $jobs_month_average  = $jobs->total() / $monthDif;
         $total_month_average  = $total_value['sum'] / $monthDif;
 
-        dd([
-            $monthDif,
-            $jobs->total(),
-            $total_value,
-            $jobs_month_average,
-            $total_month_average
-        ]);
-
         return response()->json([
             "jobs" => $jobs,
             "total_value" => $total_value['sum'],
