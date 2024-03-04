@@ -21,9 +21,6 @@ class ReportsController extends Controller
 
     public function read(Request $request)
     {
-
-
-
         $data = $request->only([
             'date_init',
             'date_end',
@@ -60,7 +57,6 @@ class ReportsController extends Controller
         if ($jobs->isEmpty()) {
             return response()->json(["error" => false, "message" => "Jobs not found"]);
         }
-
 
         foreach ($jobs as &$job) {
             foreach ($job->tasks as $task) {
