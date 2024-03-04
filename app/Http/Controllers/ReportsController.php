@@ -46,6 +46,7 @@ class ReportsController extends Controller
             $dtEnd = Carbon::now();
         }
 
+        
         if (isset($data["date_init"])) {
             $dtInit = Carbon::parse($data["date_init"]);
         } else {
