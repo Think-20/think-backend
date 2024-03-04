@@ -100,6 +100,7 @@ class ReportsController extends Controller
             }
         }
 
+        
 
         $adjustedIndex = ($currentPage - 1) * $jobsPerPage;
         $jobs->transform(function ($job) use (&$adjustedIndex) {
