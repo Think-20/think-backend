@@ -40,9 +40,20 @@ class ReportsController extends Controller
         $jobsPerPage = $data['jobs_amount'] ?? 30;
         $currentPage = $request->query('page', 1);
 
-        $dtInit = Carbon::parse($data["date_init"]);
-        $dtEnd = Carbon::parse($data["date_end"]);
-        $monthDif = ($dtEnd->diffInMonths($dtInit) == 0) ? 1 : $dtEnd->diffInMonths($dtInit)+1;
+        if (isset($data["date_end"])) {
+            $dtEnd = Carbon::parse($data["date_end"]);
+        } else {
+            $dtEnd = Carbon::now();
+        }
+
+        if (isset($data["date_init"])) {
+            $dtInit = Carbon::parse($data["date_init"]);
+        } else {
+            $dtInit = Carbon::now();
+            $dtInit = $dtInit->startOfYear();
+        }
+
+        $monthDif = ($dtEnd->diffInMonths($dtInit) == 0) ? 1 : $dtEnd->diffInMonths($dtInit) + 1;
 
         if ($loggedDepartament->department_id == 1) {
             //Caso o usuario seja dos departamentos acima, quer dizer que pode ver todos os dados de relatório
@@ -100,7 +111,7 @@ class ReportsController extends Controller
             }
         }
 
-        
+
 
         $adjustedIndex = ($currentPage - 1) * $jobsPerPage;
         $jobs->transform(function ($job) use (&$adjustedIndex) {
