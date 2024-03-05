@@ -305,8 +305,6 @@ class TaskItem extends Model
             });
         }
 
-
-
         if (!is_null($iniDate) && !is_null($finDate)) {
             $tasks->where('task_item.date', '>=', $iniDate);
             $tasks->where('task_item.date', '<=', $finDate);

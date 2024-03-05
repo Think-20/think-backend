@@ -164,7 +164,7 @@ class Job extends Model
                 'agency_id' => $agency_id,
                 'attendance_id' => $data['attendance']['id'],
                 'competition_id' => $data['competition']['id'],
-                'critical' => $data['critical']
+                //'critical' => $data['critical']
             ])
         );
 

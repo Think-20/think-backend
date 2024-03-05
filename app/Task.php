@@ -1047,21 +1047,21 @@ class Task extends Model
         if (isset($data['task_id'])) {
             $taskToDone = Task::where('id', $data['task_id'])->first();
             if ($taskToDone) {
-                $taskToDone->done = true;
+                $taskToDone->done = 1;
                 $taskToDone->save();
             }
         } else {
             $jobs = Task::where('job_id', $task->job_id)->where('job_activity_id', 2)->where('done', false)->get();
             if ($jobs->count() > 0) {
                 foreach ($jobs as $job) {
-                    $job->done = true;
+                    $job->done = 1;
                     $job->save();
                 }
             } else {
                 $jobs = Task::where('job_id', $task->job_id)->where('job_activity_id', 15)->where('done', false)->get();
                 if ($jobs) {
                     foreach ($jobs as $job) {
-                        $job->done = true;
+                        $job->done = 1;
                         $job->save();
                     }
                 }
