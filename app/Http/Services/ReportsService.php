@@ -667,7 +667,7 @@ class ReportsService
     //Função responsavel por somar os valores de todos os jobs independente do status
     public function GetAllBudgets($data)
     {
-        $jobs = Job::select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(SUM(job.final_value), 0) as sum'));
+        $jobs = Job::select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(SUM(COALESCE(job.final_value,job.budget_value)), 0) as sum'));
 
         if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
