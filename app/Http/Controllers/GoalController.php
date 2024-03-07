@@ -252,6 +252,7 @@ class GoalController extends Controller
 
                         "semStand" => $CurrentYearValue->sum,
                         "standValor" => $CurrentYearStand->sum
+                        
                     ]
                 ];
             } catch (Exception $e) {
