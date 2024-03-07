@@ -189,12 +189,19 @@ class GoalController extends Controller
     {
         $response = [];
 
+        
+
         for ($i = 0; $i < Carbon::parse($date_end)->diffInDays(Carbon::parse($date_init)) + 1; $i++) {
 
             $dtInicio = Carbon::parse($date_init)/*->subDay(1)*/;
-            $dtFim = Carbon::parse($date_init)->addDay($i);
+            $dtFim = Carbon::parse($date_init)->addDay($i+1);
 
-            $allMes = $this->reportsService->GetAllBudgets(["date_init" => $dtInicio->startOfMonth(), "date_end" => $dtFim]);
+            dd([
+                $dtInicio,
+                $dtFim
+            ]);
+
+            $allMes = $this->reportsService->GetAllBudgets(["date_init" => $dtInicio->startOfMonth()->subDay(1), "date_end" => $dtFim]);
             $allAno = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($date_init)->startOfYear(), "date_end" => $dtFim]);
 
             $monthGoal =  $this->reportsService->GetGoalByMountAndYear(intval($dtFim->format('m')), intval($dtFim->format('Y')));
@@ -252,7 +259,7 @@ class GoalController extends Controller
 
                         "semStand" => $CurrentYearValue->sum,
                         "standValor" => $CurrentYearStand->sum
-                        
+
                     ]
                 ];
             } catch (Exception $e) {
