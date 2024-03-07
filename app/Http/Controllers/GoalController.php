@@ -189,21 +189,21 @@ class GoalController extends Controller
     {
         $response = [];
 
-        
+
 
         for ($i = 0; $i < Carbon::parse($date_end)->diffInDays(Carbon::parse($date_init)) + 1; $i++) {
 
             $dtInicio = Carbon::parse($date_init)/*->subDay(1)*/;
-            $dtFim = Carbon::parse($date_init)->addDay($i+1);
+            $dtFim = Carbon::parse($date_init)->addDay($i);
 
-            $allMes = $this->reportsService->GetAllBudgets(["date_init" => $dtInicio->startOfMonth()->subDay(1), "date_end" => $dtFim]);
-            $allAno = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($date_init)->startOfYear(), "date_end" => $dtFim]);
+            $allMes = $this->reportsService->GetAllBudgets(["date_init" => $dtInicio->startOfMonth()->subDay(1), "date_end" => $dtFim->subDay(1)]);
+            $allAno = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($date_init)->startOfYear(), "date_end" => $dtFim->subDay(1)]);
 
-            $monthGoal =  $this->reportsService->GetGoalByMountAndYear(intval($dtFim->format('m')), intval($dtFim->format('Y')));
-            $yearGoals =  $this->reportsService->GetGoalYear(intval($dtFim->format('Y')));
+            $monthGoal =  $this->reportsService->GetGoalByMountAndYear(intval($dtFim->subDay(1)->format('m')), intval($dtFim->subDay(1)->format('Y')));
+            $yearGoals =  $this->reportsService->GetGoalYear(intval($dtFim->subDay(1)->format('Y')));
 
-            $CurrentMonthValue = $this->reportsService->GetAllBudgets(['date_init' => Carbon::parse($dtFim)->startOfMonth()->format('Y-m-d'), 'date_end' => $dtFim->format('Y-m-d')]);
-            $CurrentYearValue = $this->reportsService->GetAllBudgets(['date_init' => Carbon::parse($date_init)->startOfYear(), 'date_end' => $dtFim->format('Y-m-d')]);
+            $CurrentMonthValue = $this->reportsService->GetAllBudgets(['date_init' => Carbon::parse($dtFim->subDay(1))->startOfMonth()->format('Y-m-d'), 'date_end' => $dtFim->subDay(1)->format('Y-m-d')]);
+            $CurrentYearValue = $this->reportsService->GetAllBudgets(['date_init' => Carbon::parse($date_init)->startOfYear(), 'date_end' => $dtFim->subDay(1)->format('Y-m-d')]);
 
             //Caso CurrentMonthValue tenha valor nenhum, mostra 0
             if ($CurrentMonthValue->sum == null) {
@@ -215,8 +215,8 @@ class GoalController extends Controller
                 $CurrentYearValue->sum = 0;
             }
 
-            $CurrentMonthValueStand = $this->reportsService->GetStandbys(['date_init' => Carbon::parse($dtFim)->startOfMonth()->format('Y-m-d'), 'date_end' => $dtFim->format('Y-m-d')]);
-            $CurrentYearStand = $this->reportsService->GetStandbys(['date_init' => Carbon::parse($date_init)->startOfYear(), 'date_end' => $dtFim->format('Y-m-d')]);
+            $CurrentMonthValueStand = $this->reportsService->GetStandbys(['date_init' => Carbon::parse($dtFim->subDay(1))->startOfMonth()->format('Y-m-d'), 'date_end' => $dtFim->subDay(1)->format('Y-m-d')]);
+            $CurrentYearStand = $this->reportsService->GetStandbys(['date_init' => Carbon::parse($date_init)->startOfYear(), 'date_end' => $dtFim->subDay(1)->format('Y-m-d')]);
 
             //Caso CurrentMonthValueStand tenha valor nenhum, mostra 0
             if ($CurrentMonthValueStand->sum == null) {
@@ -230,7 +230,7 @@ class GoalController extends Controller
 
             try {
                 $goals = [
-                    "date" => $dtFim->format('Y-m-d'),
+                    "date" => Carbon::parse($date_init)->addDay($i)->format('Y-m-d'),
                     "mes" => [
                         "porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value) > 100 ? 100 : (($CurrentMonthValue->sum * 100) / $monthGoal->value),
                         "atualReais" => $CurrentMonthValue->sum + $CurrentMonthValueStand->sum,
