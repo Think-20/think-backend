@@ -196,11 +196,6 @@ class GoalController extends Controller
             $dtInicio = Carbon::parse($date_init)/*->subDay(1)*/;
             $dtFim = Carbon::parse($date_init)->addDay($i+1);
 
-            dd([
-                $dtInicio,
-                $dtFim
-            ]);
-
             $allMes = $this->reportsService->GetAllBudgets(["date_init" => $dtInicio->startOfMonth()->subDay(1), "date_end" => $dtFim]);
             $allAno = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($date_init)->startOfYear(), "date_end" => $dtFim]);
 
