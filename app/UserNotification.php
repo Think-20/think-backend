@@ -56,6 +56,7 @@ class UserNotification extends Model
     public static function recents()
     {
         self::checkStandByPendencies();
+        self::checkInativeClients();
 
         $usersNotification = UserNotification::select('user_notification.*')
             ->with(['notification', 'notification.type', 'notification.notifier'])
@@ -86,8 +87,7 @@ class UserNotification extends Model
 
         UserNotification::whereIn('id', $usersNotification->map(function ($u) {
             return $u->id;
-        }))
-            ->update(['received' => 1, 'received_date' => (new DateTime())->format('Y-m-d H:i:s')]);
+        }))->update(['received' => 1, 'received_date' => (new DateTime())->format('Y-m-d H:i:s')]);
 
         return $usersNotification;
     }
@@ -112,9 +112,9 @@ class UserNotification extends Model
             } elseif (isset($job->not_client)) {
                 $message .= $job->not_client;
             }
-            
+
             $message .= ' do evento ' . $job->event . ' em standby há mais de 15 dias.';
-            
+
             $searchNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->employee->id)->first();
             if (!$searchNotification) {
                 $notification = new Notification();
@@ -135,7 +135,56 @@ class UserNotification extends Model
                 $userNotification->received_date = null;
                 $userNotification->read = 0;
                 $userNotification->read_date = null;
-                $userNotification->save();   
+                $userNotification->save();
+            }
+        }
+    }
+
+    private static function checkInativeClients()
+    {
+        $jobs = Job::with('client')
+            ->where('attendance_id', User::logged()->employee->id)
+            ->whereDate('created_at', '<=', Carbon::now()->subMonth(3)->startOfDay())
+            ->whereYear('created_at', '>=', 2023)
+            ->get();
+
+        if ($jobs->isEmpty()) {
+            return;
+        }
+
+        foreach ($jobs as $job) {
+
+            $message = "Cliente ";
+
+            if (isset($job->client)) {
+                $message .= $job->client['name'];
+            } elseif (isset($job->not_client)) {
+                $message .= $job->not_client;
+            }
+
+            $message .= " a mais de 3 meses sem Jobs.";
+
+            $searchNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->employee->id)->first();
+            if (!$searchNotification) {
+                $notification = new Notification();
+                $notification->type_id = 14;
+                $notification->notifier_id = User::logged()->employee->id;
+                $notification->notifier_type = "App\Employee";
+                $notification->info = "Cliente em risco de ser perdido.";
+                $notification->date = Carbon::now()->toDateTimeString();
+                $notification->message = $message;
+                $notification->save();
+
+                $userNotification = new UserNotification();
+                $userNotification->notification_id = $notification->id;
+                $userNotification->user_id = User::logged()->id;
+                $userNotification->special = 1;
+                $userNotification->special_message = $message;
+                $userNotification->received = 0;
+                $userNotification->received_date = null;
+                $userNotification->read = 0;
+                $userNotification->read_date = null;
+                $userNotification->save();
             }
         }
     }
