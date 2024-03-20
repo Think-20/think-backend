@@ -6,7 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 use DateTime;
 use DB;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB as FacadesDB;
 
 class UserNotification extends Model
 {
@@ -140,21 +142,34 @@ class UserNotification extends Model
         }
     }
 
-    private static function checkInativeClients()
+    private static function  checkInativeClients()
     {
-        $jobs = Job::with('client')
-            ->where('attendance_id', User::logged()->employee->id)
-            ->whereDate('created_at', '<=', Carbon::now()->subMonth(3)->startOfDay())
-            ->whereYear('created_at', '>=', 2023)
-            ->get();
+        $agencyClients = FacadesDB::select(FacadesDB::raw("SELECT c.id,c.name, j1.created_at FROM client as c 
+        JOIN job as j1 ON j1.client_id = c.id AND j1.created_at = (SELECT MAX(j.created_at) FROM job as j WHERE j.client_id = c.id )
+        WHERE YEAR(j1.created_at) >= 2023
+        AND j1.attendance_id = " . User::logged()->employee->id . "
+        AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL 3 month)
+        AND c.client_type_id = 1
+        ORDER BY j1.created_at DESC"));
 
-        if ($jobs->isEmpty()) {
+        $exhibitorClients = FacadesDB::select(FacadesDB::raw("SELECT c.id,c.name, j1.created_at FROM client as c 
+        JOIN job as j1 ON j1.client_id = c.id AND j1.created_at = (SELECT MAX(j.created_at) FROM job as j WHERE j.client_id = c.id )
+        WHERE YEAR(j1.created_at) >= 2023
+        AND j1.attendance_id = " . User::logged()->employee->id . "
+        AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL 6 month)
+        AND c.client_type_id = 2
+        ORDER BY j1.created_at DESC"));
+
+
+        if (!isset($agencyClients[0]) && !isset($exhibitorClients[0])) {
             return;
         }
 
-        foreach ($jobs as $job) {
+        foreach ($agencyClients as $job) {
 
-            $message = "Cliente ";
+
+
+            $message = "Cliente do tipo agência ";
 
             if (isset($job->client)) {
                 $message .= $job->client['name'];
@@ -162,7 +177,41 @@ class UserNotification extends Model
                 $message .= $job->not_client;
             }
 
+
             $message .= " a mais de 3 meses sem Jobs.";
+
+            $searchNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->employee->id)->first();
+            if (!$searchNotification) {
+                $notification = new Notification();
+                $notification->type_id = 14;
+                $notification->notifier_id = User::logged()->employee->id;
+                $notification->notifier_type = "App\Employee";
+                $notification->info = "Cliente em risco de ser perdido.";
+                $notification->date = Carbon::now()->toDateTimeString();
+                $notification->message = $message;
+                $notification->save();
+
+                $userNotification = new UserNotification();
+                $userNotification->notification_id = $notification->id;
+                $userNotification->user_id = User::logged()->id;
+                $userNotification->special = 1;
+                $userNotification->special_message = $message;
+                $userNotification->received = 0;
+                $userNotification->received_date = null;
+                $userNotification->read = 0;
+                $userNotification->read_date = null;
+                $userNotification->save();
+            }
+        }
+
+        foreach ($exhibitorClients as $job) {
+
+
+            $message = "Cliente '" . $job->name . "' do tipo agência";
+
+            $message .= " a mais de 6 meses sem Jobs.";
+
+            dd($message);
 
             $searchNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->employee->id)->first();
             if (!$searchNotification) {
