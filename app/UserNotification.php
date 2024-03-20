@@ -167,16 +167,7 @@ class UserNotification extends Model
 
         foreach ($agencyClients as $job) {
 
-
-
-            $message = "Cliente do tipo agência ";
-
-            if (isset($job->client)) {
-                $message .= $job->client['name'];
-            } elseif (isset($job->not_client)) {
-                $message .= $job->not_client;
-            }
-
+            $message = "Cliente '" . $job->name . "' do tipo agência";
 
             $message .= " a mais de 3 meses sem Jobs.";
 
@@ -207,11 +198,9 @@ class UserNotification extends Model
         foreach ($exhibitorClients as $job) {
 
 
-            $message = "Cliente '" . $job->name . "' do tipo agência";
+            $message = "Cliente '" . $job->name . "' do tipo Expositor";
 
             $message .= " a mais de 6 meses sem Jobs.";
-
-            dd($message);
 
             $searchNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->employee->id)->first();
             if (!$searchNotification) {
