@@ -177,7 +177,7 @@ class UserNotification extends Model
                 $notification->type_id = 14;
                 $notification->notifier_id = User::logged()->employee->id;
                 $notification->notifier_type = "App\Employee";
-                $notification->info = "Cliente em risco de ser perdido.";
+                $notification->info = "";
                 $notification->date = Carbon::now()->toDateTimeString();
                 $notification->message = $message;
                 $notification->save();
@@ -208,7 +208,7 @@ class UserNotification extends Model
                 $notification->type_id = 14;
                 $notification->notifier_id = User::logged()->employee->id;
                 $notification->notifier_type = "App\Employee";
-                $notification->info = "Cliente em risco de ser perdido.";
+                $notification->info = "";
                 $notification->date = Carbon::now()->toDateTimeString();
                 $notification->message = $message;
                 $notification->save();
