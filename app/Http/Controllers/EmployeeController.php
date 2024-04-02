@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Employee;
+use App\JobActivity;
 use Illuminate\Http\Request;
 use Response;
 use Exception;
@@ -41,6 +42,25 @@ class EmployeeController extends Controller
 
         try {
             $employee = Employee::insert($request->all());
+
+            if ($employee['department_id'] == 5 && $employee['position_id'] == 7) {
+                DB::insert('INSERT INTO job_activity_employee(job_activity_id, employee_id) VALUES (?, ?),(?,?),(?, ?),(?,?),(?, ?),(?,?),(?, ?)', [
+                    1, $employee['id'],
+                    8, $employee['id'],
+                    9, $employee['id'],
+                    11, $employee['id'],
+                    17, $employee['id'],
+                    18, $employee['id'],
+                    20, $employee['id']
+                ]);
+            } else {
+                DB::insert('INSERT INTO job_activity_employee(job_activity_id, employee_id) VALUES (?, ?)', [
+                    13, $employee['id']
+                ]);
+            }
+
+
+
             $message = 'Funcionário cadastrado com sucesso!';
             $status = true;
         } catch (Exception $e) {
