@@ -232,11 +232,14 @@ class GoalController extends Controller
                 $goals = [
                     "date" => Carbon::parse($date_init)->addDay($i)->format('Y-m-d'),
                     "mes" => [
-                        "porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value) > 100 ? 100 : (($CurrentMonthValue->sum * 100) / $monthGoal->value),
+                        "porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value),
+                        //"porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value) > 100 ? 100 : (($CurrentMonthValue->sum * 100) / $monthGoal->value),
+
                         "atualReais" => $CurrentMonthValue->sum + $CurrentMonthValueStand->sum,
                         "metaReais" =>  $monthGoal->value,
+                        "porcentagemJobs" => (($allMes->count * 100) / $monthGoal->expected_value),
+                        //"porcentagemJobs" => (($allMes->count * 100) / $monthGoal->expected_value) > 100 ? 100 : (($allMes->count * 100) / $monthGoal->expected_value),
 
-                        "porcentagemJobs" => (($allMes->count * 100) / $monthGoal->expected_value) > 100 ? 100 : (($allMes->count * 100) / $monthGoal->expected_value),
                         "atualJobs" => $allMes->count,
                         "metaJobs" => $monthGoal->expected_value,
 
@@ -244,11 +247,14 @@ class GoalController extends Controller
                         "standValor" => $CurrentMonthValueStand->sum
                     ],
                     "anual" => [
-                        "porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value) > 100 ? 100 : (($CurrentYearValue->sum * 100) / $yearGoals->value),
+                        "porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value),
+                        //"porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value) > 100 ? 100 : (($CurrentYearValue->sum * 100) / $yearGoals->value),
                         "atualReais" =>  $CurrentYearValue->sum + $CurrentYearStand->sum,
                         "metaReais" =>  $yearGoals->value,
 
-                        "porcentagemJobs" => (($allAno->sum * 100) / $yearGoals->expected_value) > 100 ? 100 : (($allAno->sum * 100) / $yearGoals->expected_value),
+                        "porcentagemJobs" => (($allAno->sum * 100) / $yearGoals->expected_value),
+                        //"porcentagemJobs" => (($allAno->sum * 100) / $yearGoals->expected_value) > 100 ? 100 : (($allAno->sum * 100) / $yearGoals->expected_value),
+
                         "atualJobs" => $allAno->count,
                         "metaJobs" => $yearGoals->expected_value,
 
