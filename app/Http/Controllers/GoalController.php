@@ -266,11 +266,6 @@ class GoalController extends Controller
                 return ($e);
             }
 
-            dd([
-                Carbon::parse($date_init)->startOfMonth(),
-                $dtFim
-            ]);
-
             array_push($response, $goals);
         }
 
