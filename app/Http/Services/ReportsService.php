@@ -680,8 +680,8 @@ class ReportsService
         } else {
             $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
         }
-        $result = $jobs->first();
-
+        
+        $result = $jobs->first();        
         return $result;
     }
 
