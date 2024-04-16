@@ -193,17 +193,16 @@ class GoalController extends Controller
 
         for ($i = 0; $i < Carbon::parse($date_end)->diffInDays(Carbon::parse($date_init)) + 1; $i++) {
 
-            
             $dtFim = Carbon::parse($date_init)->addDay($i);
 
-            $allMes = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($date_init)->startOfMonth(), "date_end" => Carbon::parse($dtFim)->subDay(1)]);
-            $allAno = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($date_init)->startOfYear(),  "date_end" => Carbon::parse($dtFim)->subDay(1)]);
+            $allMes = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfMonth(), "date_end" => Carbon::parse($dtFim)->subDay(1)]);
+            $allAno = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfYear(),  "date_end" => Carbon::parse($dtFim)->subDay(1)]);
 
             $monthGoal =  $this->reportsService->GetGoalByMountAndYear(intval(Carbon::parse($dtFim)->subDay(1)->format('m')), intval(Carbon::parse($dtFim)->subDay(1)->format('Y')));
             $yearGoals =  $this->reportsService->GetGoalYear(intval(Carbon::parse($dtFim)->subDay(1)->format('Y')));
 
-            $CurrentMonthValue = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($date_init)->startOfMonth(), "date_end" => Carbon::parse($dtFim)->subDay(1)]);
-            $CurrentYearValue = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($date_init)->startOfYear(), "date_end" => Carbon::parse($dtFim)->subDay(1)]);
+            $CurrentMonthValue = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfMonth(), "date_end" => Carbon::parse($dtFim)->subDay(1)]);
+            $CurrentYearValue = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfYear(), "date_end" => Carbon::parse($dtFim)->subDay(1)]);
 
             //Caso CurrentMonthValue tenha valor nenhum, mostra 0
             if ($CurrentMonthValue->sum == null) {
@@ -215,8 +214,8 @@ class GoalController extends Controller
                 $CurrentYearValue->sum = 0;
             }
 
-            $CurrentMonthValueStand = $this->reportsService->GetStandbys(["date_init" => Carbon::parse($date_init)->startOfMonth(), "date_end" => Carbon::parse($dtFim)->subDay(1)]);
-            $CurrentYearStand = $this->reportsService->GetStandbys(['date_init' => Carbon::parse($date_init)->startOfYear(), 'date_end' => Carbon::parse($dtFim)->subDay(1)->format('Y-m-d')]);
+            $CurrentMonthValueStand = $this->reportsService->GetStandbys(["date_init" => Carbon::parse($dtFim)->startOfMonth(), "date_end" => Carbon::parse($dtFim)->subDay(1)]);
+            $CurrentYearStand = $this->reportsService->GetStandbys(['date_init' => Carbon::parse($dtFim)->startOfYear(), 'date_end' => Carbon::parse($dtFim)->subDay(1)->format('Y-m-d')]);
 
             //Caso CurrentMonthValueStand tenha valor nenhum, mostra 0
             if ($CurrentMonthValueStand->sum == null) {
@@ -266,6 +265,12 @@ class GoalController extends Controller
             } catch (Exception $e) {
                 return ($e);
             }
+
+            dd([
+                Carbon::parse($date_init)->startOfMonth(),
+                $dtFim
+            ]);
+
             array_push($response, $goals);
         }
 
