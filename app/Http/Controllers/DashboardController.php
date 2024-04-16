@@ -35,7 +35,6 @@ class DashboardController extends Controller
 
         $listaAprovados = $this->reportsService->GetLastApproveds(["date_init" => $dtInicio, "date_end" => $dtFim]);
 
-
         if ($soma == 0) {
             //Caso o soma seja 0, quer dizer que não tem dados, então esta sendo enviado todos os campos numericos zerados
 
