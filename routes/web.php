@@ -167,10 +167,10 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/employees/all', 'EmployeeController@all');
     Route::post('/employees/filter', 'EmployeeController@filter');
 
-    Route::get('/goal', 'GoalController@selectGoal');
+    /*Route::get('/goal', 'GoalController@selectGoal');
     Route::get('/goal/{id}', 'GoalController@selectGoal');
     Route::post('/goal', 'GoalController@createGoal');
-    Route::put('/goal', 'GoalController@updateGoal');
+    Route::put('/goal', 'GoalController@updateGoal');*/
 
     Route::get('/goal', 'GoalController@selectGoal');
     Route::get('/goal/{id}', 'GoalController@selectGoal');
