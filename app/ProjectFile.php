@@ -6,14 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 use Exception;
 use ZipArchive;
 
-class ProjectFile extends Model {
-    
+class ProjectFile extends Model
+{
+
     protected $table = 'project_file';
     protected $fillable = [
         'task_id', 'responsible_id', 'name', 'original_name', 'type'
     ];
 
-    public function moveFile() {
+    public function moveFile()
+    {
         $browserFiles = [];
         $path = env('FILES_FOLDER') . '/project-files';
 
@@ -26,10 +28,10 @@ class ProjectFile extends Model {
             }
         }
 
-        if(is_file(sys_get_temp_dir() . '/' .  $this->original_name)) {
+        if (is_file(sys_get_temp_dir() . '/' .  $this->original_name)) {
             $res = rename(sys_get_temp_dir() . '/' .  $this->original_name, $path . '/' . $this->name);
-            
-            if(!$res) {
+
+            if (!$res) {
                 throw new Exception('Erro ao mover o arquivo para a pasta de projetos');
             }
         } else {
@@ -37,10 +39,11 @@ class ProjectFile extends Model {
         }
     }
 
-    public static function downloadFile($id) {
+    public static function downloadFile($id)
+    {
         $projectFile = ProjectFile::find($id);
 
-        if(is_null($projectFile)) {
+        if (is_null($projectFile)) {
             throw new \Exception('O arquivo solicitado não existe.');
         }
 
@@ -50,17 +53,18 @@ class ProjectFile extends Model {
         return $path;
     }
 
-    public static function downloadAllFiles($taskId) {
+    public static function downloadAllFiles($taskId)
+    {
         $projectFiles = ProjectFile::where('task_id', '=', $taskId)->get();
         $zip = new ZipArchive;
         $path = sys_get_temp_dir() . '/' . $taskId . '.zip';
 
-        if($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) === false) {
-            throw new \Exception('Erro ao criar o arquivo zip.');            
+        if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) === false) {
+            throw new \Exception('Erro ao criar o arquivo zip.');
         }
 
         //$paths = [];
-        foreach($projectFiles as $projectFile) {
+        foreach ($projectFiles as $projectFile) {
             $name = $projectFile->name;
             $original_name = $projectFile->name . '.' . $projectFile->type;
             $pathFile = env('FILES_FOLDER') . '/project-files/' . $name;
@@ -73,19 +77,20 @@ class ProjectFile extends Model {
         return $path;
     }
 
-    public static function insertAll(array $data) {
+    public static function insertAll(array $data)
+    {
         $project_files = [];
-        
-        foreach($data as $projectFile) {
+
+        foreach ($data as $projectFile) {
             $project_files[] = ProjectFile::insert($projectFile);
         }
 
-        if(count($project_files) ==  0) return [];
+        if (count($project_files) ==  0) return [];
 
         $projectFile = $project_files[0];
         $task1 = $projectFile->task;
 
-        if($task1->job_activity->description != 'Projeto externo') {
+        if ($task1->job_activity->description != 'Projeto externo') {
             $message1 = $projectFile->responsible->name . ': Entrega de ' . $task1->getTaskName() . ' da ';
             $message1 .= $task1->job->getJobName();
             $message1 .= ' para ' . $task1->job->attendance->name;
@@ -94,7 +99,7 @@ class ProjectFile extends Model {
             $message1 .= $task1->job->getJobName();
         }
 
-        if( !Notification::hasPrevious($message1, 'Entrega de projeto', $task1->id) ) {
+        if (!Notification::hasPrevious($message1, 'Entrega de projeto', $task1->id)) {
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message1
             ], NotificationSpecial::createMulti([
@@ -105,10 +110,11 @@ class ProjectFile extends Model {
 
         return $project_files;
     }
-    
-    public function updateDone(Task $task) {
+
+    public function updateDone(Task $task)
+    {
         // if($task->project_files->count() > 0) {
-            $task->done = 1;
+        $task->done = 1;
         // } else {
         //     $task->done = 0;
         // }
@@ -116,7 +122,8 @@ class ProjectFile extends Model {
         $task->save();
     }
 
-    public static function insert(array $data) {
+    public static function insert(array $data)
+    {
         $original_name = isset($data['original_name']) ? $data['original_name'] : null;
         $task_id = isset($data['task']['id']) ? $data['task']['id'] : null;
         $responsible = User::logged()->employee;
@@ -138,10 +145,10 @@ class ProjectFile extends Model {
         $newJobActivity = JobActivity::where('description', '=', 'Memorial descritivo')->first();
 
         $count = Task::where('task_id', $task->id)
-        ->where('job_activity_id', $newJobActivity->id)
-        ->count();
+            ->where('job_activity_id', $newJobActivity->id)
+            ->count();
 
-        if($count == 0) {
+        if ($count == 0) {
             $task->insertAutomatic($newJobActivity, $task->job->attendance, $task->job->attendance);
         }
 
@@ -149,7 +156,8 @@ class ProjectFile extends Model {
         return $project_file;
     }
 
-    public static function remove($id) {
+    public static function remove($id)
+    {
         $projectFile = ProjectFile::find($id);
         $task = $projectFile->task;
         $projectFile->deleteFile();
@@ -158,12 +166,13 @@ class ProjectFile extends Model {
     }
 
 
-    public function deleteFile() {
+    public function deleteFile()
+    {
         $browserFiles = [];
         $path = env('FILES_FOLDER') . '/project-files';
         $file = $path . '/' . $this->name;
 
-        if(is_file($file)) {
+        if (is_file($file)) {
             unlink($file);
         }
     }
