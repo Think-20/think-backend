@@ -16,12 +16,6 @@ class UploadFileController extends Controller
 
         foreach ($files as $file) {
 
-            /*$normalizedName = str_ireplace(
-                array('\'', '"', ',', ';', '<', '>', '-', '_', '0', '1', '2', '3', '4', '6', '5', '7', '8', '9'),
-                '',
-                $file->getClientOriginalName()
-            );*/
-
             $file->move(sys_get_temp_dir(), $file->getClientOriginalName());
             $names[] = $file->getClientOriginalName();
         }
