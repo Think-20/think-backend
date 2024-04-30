@@ -17,11 +17,11 @@ class UploadFileController extends Controller
 
         foreach ($files as $file) {
 
-            dd([
+            /*dd([
                 sys_get_temp_dir(),
                 $file->getClientOriginalName(),
                 $file
-            ]);
+            ]);*/
 
             $file->move(sys_get_temp_dir(), $file->getClientOriginalName());
             $names[] = $file->getClientOriginalName();
