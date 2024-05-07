@@ -439,11 +439,11 @@ class Task extends Model
 
         $latestReopened = Task::where('job_activity_id', $task->job_activity_id)->where('job_id', $task->job->id)->max('reopened');
 
-            if($latestReopened){
-                $task->reopened = $latestReopened + 1;
-            }else{
-                $task->reopened = 1; 
-            }
+        if ($latestReopened) {
+            $task->reopened = $latestReopened + 1;
+        } else {
+            $task->reopened = 1;
+        }
 
         $task->save();
     }
@@ -1035,6 +1035,81 @@ class Task extends Model
         isset($data['gross_profit_value']) || $data['gross_profit_value'] == "" ? $task->gross_profit_value = $data['gross_profit_value'] : null;
         isset($data['profit_value']) || $data['profit_value'] == "" ? $task->profit_value = $data['profit_value'] : null;
         isset($data['final_value']) || $data['final_value'] == "" ? $task->final_value = $data['final_value'] : null;
+
+
+        $task->updated_by = User::logged()->employee->name;
+        $task->save();
+
+        //Atualiza o final value do JOB PAI para o final value inputado
+        $jobFinalValue = Job::where('id', $task->job_id)->first();
+        $jobFinalValue->final_value = $data['final_value'];
+        $jobFinalValue->save();
+
+        // Busca a TASK do tipo ORÇAMENTO do JOB PAI e dá DONE nela
+        if (isset($data['task_id'])) {
+            $taskToDone = Task::where('id', $data['task_id'])->first();
+            if ($taskToDone) {
+                $taskToDone->done = 1;
+                $taskToDone->save();
+            }
+        } else {
+            $jobs = Task::where('job_id', $task->job_id)->where('job_activity_id', 2)->where('done', false)->get();
+            if ($jobs->count() > 0) {
+                foreach ($jobs as $job) {
+                    $job->done = 1;
+                    $job->save();
+                }
+            } else {
+                $jobs = Task::where('job_id', $task->job_id)->where('job_activity_id', 15)->where('done', false)->get();
+                if ($jobs) {
+                    foreach ($jobs as $job) {
+                        $job->done = 1;
+                        $job->save();
+                    }
+                }
+            }
+        }
+
+        // Cria mensagem da notificação
+        $message = "Entrega de Orçamento de " . $task->job->job_activity->description . ": " . $clientName . " | " . $task->job->event . " para " . $task->job->attendance->name;
+        // Antes de enviar notificação verifica se essa notificação já foi enviada por esse usuário antes, pra não gerar duplicado
+        $findNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->employee)->first();
+        if (!$findNotification) {
+            Notification::createAndNotify(User::logged()->employee, ['message' => $message], [], 'Alteração de tarefa');
+        }
+    }
+
+    public static function editValuesBudget($data)
+    {
+        $task = Task::find($data['id']);
+
+        $clientName = "";
+
+        if (isset($task->job->client->name)) {
+            $clientName = $task->job->client->fantasy_name ?? $task->job->client->name;
+        } else {
+            $clientName = $task->job->not_client;
+        }
+
+        isset($data['marcenaria']) || $data['marcenaria'] == "" ? $task->marcenaria = $data['marcenaria'] : null;
+        isset($data['revestimentos_epeciais']) || $data['revestimentos_epeciais'] == "" ? $task->revestimentos_epeciais = $data['revestimentos_epeciais'] : null;
+        isset($data['estrutura_metalicas']) || $data['estrutura_metalicas'] == "" ? $task->estrutura_metalicas = $data['estrutura_metalicas'] : null;
+        isset($data['material_mezanino']) || $data['material_mezanino'] == "" ? $task->material_mezanino = $data['material_mezanino'] : null;
+        isset($data['fechamento_vidro']) || $data['fechamento_vidro'] == "" ? $task->fechamento_vidro = $data['fechamento_vidro'] : null;
+        isset($data['vitrines']) || $data['vitrines'] == "" ? $task->vitrines = $data['vitrines'] : null;
+        isset($data['acrilico']) || $data['acrilico'] == "" ? $task->acrilico = $data['acrilico'] : null;
+        isset($data['mobiliario']) || $data['mobiliario'] == "" ? $task->mobiliario = $data['mobiliario'] : null;
+        isset($data['refrigeracao_climatizacao']) || $data['refrigeracao_climatizacao'] == "" ? $task->refrigeracao_climatizacao = $data['refrigeracao_climatizacao'] : null;
+        isset($data['paisagismo']) || $data['paisagismo'] == "" ? $task->paisagismo = $data['paisagismo'] : null;
+        isset($data['comunicacao_visual']) || $data['comunicacao_visual'] == "" ? $task->comunicacao_visual = $data['comunicacao_visual'] : null;
+        isset($data['equipamento_audio_visual']) || $data['equipamento_audio_visual'] == "" ? $task->equipamento_audio_visual = $data['equipamento_audio_visual'] : null;
+        isset($data['itens_especiais']) || $data['itens_especiais'] == "" ? $task->itens_especiais = $data['itens_especiais'] : null;
+        isset($data['execucao']) || $data['execucao'] == "" ? $task->execucao = $data['execucao'] : null;
+        isset($data['logistica']) || $data['logistica'] == "" ? $task->logistica = $data['logistica'] : null;
+        isset($data['coeficiente_margem']) || $data['coeficiente_margem'] == "" ? $task->coeficiente_margem = $data['coeficiente_margem'] : null;
+        isset($data['final_value']) || $data['final_value'] == "" ? $task->final_value = $data['final_value'] : null;
+
+
         $task->updated_by = User::logged()->employee->name;
         $task->save();
 
