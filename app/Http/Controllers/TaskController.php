@@ -107,13 +107,11 @@ class TaskController extends Controller
 
     public static function editValues(Request $request)
     {
-
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
 
         try {
-            //$task = Task::editValues($data);
             $task = Task::editValuesBudget($data);
 
             $message = 'Task alterada com sucesso!';

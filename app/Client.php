@@ -206,6 +206,7 @@ class Client extends Model implements Contactable
         $clientStatusId = isset($data['client_status']['id']) ? $data['client_status']['id'] : null;
         $clientTypeId = isset($data['client_type']['id']) ? $data['client_type']['id'] : null;
         $rate = isset($data['rate']) ? $data['rate'] : null;
+        $dtCadastro = isset($data['dt_cadastro']) ? $data['dt_cadastro'] : null;
 
         $query = Client::select();
 
@@ -220,6 +221,11 @@ class Client extends Model implements Contactable
         if (!is_null($rate)) {
             $query->where('rate', '=', $rate);
         }
+
+        if (!is_null($dtCadastro)) {
+            $query->where('created_at', '>', $dtCadastro);
+        }
+
 
         if (!is_null($search)) {
             $query->where(function ($query2) use ($search) {

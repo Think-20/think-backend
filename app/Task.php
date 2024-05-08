@@ -1109,6 +1109,16 @@ class Task extends Model
         isset($data['coeficiente_margem']) || $data['coeficiente_margem'] == "" ? $task->coeficiente_margem = $data['coeficiente_margem'] : null;
         isset($data['final_value']) || $data['final_value'] == "" ? $task->final_value = $data['final_value'] : null;
 
+        isset($data['frete_logistica']) || $data['frete_logistica'] == "" ? $task->frete_logistica = $data['frete_logistica'] : null;
+        isset($data['diversos_operacional']) || $data['diversos_operacional'] == "" ? $task->diversos_operacional = $data['diversos_operacional'] : null;
+
+        isset($data['mezanino']) || $data['mezanino'] == "" ? $task->mezanino = $data['mezanino'] : null;
+        isset($data['dt_event']) || $data['dt_event'] == "" ? $task->dt_event = $data['dt_event'] : null;
+        isset($data['dt_inicio_event']) || $data['dt_inicio_event'] == "" ? $task->dt_inicio_event = $data['dt_inicio_event'] : null;
+        isset($data['dt_montagem']) || $data['dt_montagem'] == "" ? $task->dt_montagem = $data['dt_montagem'] : null;
+        isset($data['dt_fim_event']) || $data['dt_fim_event'] == "" ? $task->dt_fim_event = $data['dt_fim_event'] : null;
+        isset($data['dt_desmontagem']) || $data['dt_desmontagem'] == "" ? $task->dt_desmontagem = $data['dt_desmontagem'] : null;
+
 
         $task->updated_by = User::logged()->employee->name;
         $task->save();
@@ -1116,6 +1126,10 @@ class Task extends Model
         //Atualiza o final value do JOB PAI para o final value inputado
         $jobFinalValue = Job::where('id', $task->job_id)->first();
         $jobFinalValue->final_value = $data['final_value'];
+        
+        //Campos adicionados depois de JOB
+        $jobFinalValue->place = isset($data['place']) ?  $data['place'] : null;
+        $jobFinalValue->producer = isset($data['producer']) ?  $data['producer'] : null;
         $jobFinalValue->save();
 
         // Busca a TASK do tipo ORÇAMENTO do JOB PAI e dá DONE nela
