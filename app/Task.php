@@ -3,6 +3,7 @@
 namespace App;
 
 use App\User;
+use Carbon\Carbon;
 use DateTime;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
@@ -1081,11 +1082,13 @@ class Task extends Model
 
     public static function editValuesBudget($data)
     {
+
         $task = Task::find($data['id']);
+
 
         $clientName = "";
 
-        if (isset($task->job->client->name)) {
+        if (isset($task->job) && isset($task->job->client->name)) {
             $clientName = $task->job->client->fantasy_name ?? $task->job->client->name;
         } else {
             $clientName = $task->job->not_client;
@@ -1104,10 +1107,10 @@ class Task extends Model
         isset($data['comunicacao_visual']) || $data['comunicacao_visual'] == "" ? $task->comunicacao_visual = $data['comunicacao_visual'] : null;
         isset($data['equipamento_audio_visual']) || $data['equipamento_audio_visual'] == "" ? $task->equipamento_audio_visual = $data['equipamento_audio_visual'] : null;
         isset($data['itens_especiais']) || $data['itens_especiais'] == "" ? $task->itens_especiais = $data['itens_especiais'] : null;
-        
-        //isset($data['execucao']) || $data['execucao'] == "" ? $task->execucao = $data['execucao'] : null;
+
+        isset($data['execucao']) || $data['execucao'] == "" ? $task->execucao = $data['execucao'] : null;
         //isset($data['logistica']) || $data['logistica'] == "" ? $task->logistica = $data['logistica'] : null;
-        
+
         isset($data['coeficiente_margem']) || $data['coeficiente_margem'] == "" ? $task->coeficiente_margem = $data['coeficiente_margem'] : null;
         isset($data['final_value']) || $data['final_value'] == "" ? $task->final_value = $data['final_value'] : null;
 
@@ -1116,10 +1119,10 @@ class Task extends Model
 
         isset($data['mezanino']) || $data['mezanino'] == "" ? $task->mezanino = $data['mezanino'] : null;
         isset($data['dt_event']) || $data['dt_event'] == "" ? $task->dt_event = $data['dt_event'] : null;
-        isset($data['dt_inicio_event']) || $data['dt_inicio_event'] == "" ? $task->dt_inicio_event = $data['dt_inicio_event'] : null;
-        isset($data['dt_montagem']) || $data['dt_montagem'] == "" ? $task->dt_montagem = $data['dt_montagem'] : null;
-        isset($data['dt_fim_event']) || $data['dt_fim_event'] == "" ? $task->dt_fim_event = $data['dt_fim_event'] : null;
-        isset($data['dt_desmontagem']) || $data['dt_desmontagem'] == "" ? $task->dt_desmontagem = $data['dt_desmontagem'] : null;
+        isset($data['dt_inicio_event']) || $data['dt_inicio_event'] == "" ? $task->dt_inicio_event = Carbon::parse($data['dt_inicio_event']) : null;
+        isset($data['dt_montagem']) || $data['dt_montagem'] == "" ? $task->dt_montagem = Carbon::parse($data['dt_montagem']) : null;
+        isset($data['dt_fim_event']) || $data['dt_fim_event'] == "" ? $task->dt_fim_event = Carbon::parse($data['dt_fim_event']) : null;
+        isset($data['dt_desmontagem']) || $data['dt_desmontagem'] == "" ? $task->dt_desmontagem = Carbon::parse($data['dt_desmontagem']) : null;
 
 
         $task->updated_by = User::logged()->employee->name;
@@ -1128,7 +1131,7 @@ class Task extends Model
         //Atualiza o final value do JOB PAI para o final value inputado
         $jobFinalValue = Job::where('id', $task->job_id)->first();
         $jobFinalValue->final_value = $data['final_value'];
-        
+
         //Campos adicionados depois de JOB
         $jobFinalValue->place = isset($data['place']) ?  $data['place'] : null;
         $jobFinalValue->producer = isset($data['producer']) ?  $data['producer'] : null;

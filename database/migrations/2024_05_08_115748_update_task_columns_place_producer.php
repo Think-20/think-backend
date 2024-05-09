@@ -18,11 +18,11 @@ class UpdateTaskColumnsPlaceProducer extends Migration
             $table->string('diversos_operacional')->nullable();
 
             $table->double('mezanino')->nullable();
-            $table->date('dt_event')->nullable();
-            $table->date('dt_inicio_event')->nullable();
-            $table->date('dt_montagem')->nullable();
-            $table->date('dt_fim_event')->nullable();
-            $table->date('dt_desmontagem')->nullable();
+            $table->dateTime('dt_event')->nullable();
+            $table->dateTime('dt_inicio_event')->nullable();
+            $table->dateTime('dt_montagem')->nullable();
+            $table->dateTime('dt_fim_event')->nullable();
+            $table->dateTime('dt_desmontagem')->nullable();
         });
 
         Schema::table('job', function (Blueprint $table) {
