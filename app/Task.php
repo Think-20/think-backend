@@ -1104,8 +1104,10 @@ class Task extends Model
         isset($data['comunicacao_visual']) || $data['comunicacao_visual'] == "" ? $task->comunicacao_visual = $data['comunicacao_visual'] : null;
         isset($data['equipamento_audio_visual']) || $data['equipamento_audio_visual'] == "" ? $task->equipamento_audio_visual = $data['equipamento_audio_visual'] : null;
         isset($data['itens_especiais']) || $data['itens_especiais'] == "" ? $task->itens_especiais = $data['itens_especiais'] : null;
-        isset($data['execucao']) || $data['execucao'] == "" ? $task->execucao = $data['execucao'] : null;
-        isset($data['logistica']) || $data['logistica'] == "" ? $task->logistica = $data['logistica'] : null;
+        
+        //isset($data['execucao']) || $data['execucao'] == "" ? $task->execucao = $data['execucao'] : null;
+        //isset($data['logistica']) || $data['logistica'] == "" ? $task->logistica = $data['logistica'] : null;
+        
         isset($data['coeficiente_margem']) || $data['coeficiente_margem'] == "" ? $task->coeficiente_margem = $data['coeficiente_margem'] : null;
         isset($data['final_value']) || $data['final_value'] == "" ? $task->final_value = $data['final_value'] : null;
 
