@@ -1118,7 +1118,7 @@ class Task extends Model
         isset($data['diversos_operacional']) || $data['diversos_operacional'] == "" ? $task->diversos_operacional = $data['diversos_operacional'] : null;
 
         isset($data['mezanino']) || $data['mezanino'] == "" ? $task->mezanino = $data['mezanino'] : null;
-        isset($data['dt_event']) || $data['dt_event'] == "" ? $task->dt_event = $data['dt_event'] : null;
+        isset($data['dt_event']) || $data['dt_event'] == "" ? $task->dt_event = Carbon::parse($data['dt_event']) : null;
         isset($data['dt_inicio_event']) || $data['dt_inicio_event'] == "" ? $task->dt_inicio_event = Carbon::parse($data['dt_inicio_event']) : null;
         isset($data['dt_montagem']) || $data['dt_montagem'] == "" ? $task->dt_montagem = Carbon::parse($data['dt_montagem']) : null;
         isset($data['dt_fim_event']) || $data['dt_fim_event'] == "" ? $task->dt_fim_event = Carbon::parse($data['dt_fim_event']) : null;
