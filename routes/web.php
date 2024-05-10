@@ -172,11 +172,6 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/goal', 'GoalController@createGoal');
     Route::put('/goal', 'GoalController@updateGoal');*/
 
-    Route::get('/goal', 'GoalController@selectGoal');
-    Route::get('/goal/{id}', 'GoalController@selectGoal');
-    Route::post('/goal', 'GoalController@createGoal');
-    Route::put('/goal', 'GoalController@updateGoal');
-
     Route::post('/testeGetS3', 'GoalController@testeGetS3');
     Route::post('/testePutS3', 'GoalController@testePutS3');
 
@@ -316,6 +311,9 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
 
     Route::post('/budget/save', 'BudgetController@save');
     Route::put('/budget/edit', 'BudgetController@edit');
+
+    /*Route::post('/budget/save', 'BudgetController@save');
+    Route::put('/budget/edit', 'BudgetController@edit');*/
 
     Route::post('/project-files/save-multiple', 'ProjectFileController@saveMultiple');
     Route::delete('/project-files/remove/{id}', 'ProjectFileController@remove');
