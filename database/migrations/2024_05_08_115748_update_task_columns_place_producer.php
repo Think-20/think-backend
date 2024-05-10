@@ -14,8 +14,8 @@ class UpdateTaskColumnsPlaceProducer extends Migration
     public function up()
     {
         Schema::table('task', function (Blueprint $table) {
-            $table->string('frete_logistica')->nullable();
-            $table->string('diversos_operacional')->nullable();
+            $table->double('frete_logistica')->nullable();
+            $table->double('diversos_operacional')->nullable();
 
             $table->double('mezanino')->nullable();
             $table->dateTime('dt_event')->nullable();
