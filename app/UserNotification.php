@@ -144,22 +144,45 @@ class UserNotification extends Model
 
     private static function  checkInativeClients()
     {
+        //3 meses alerta, 4 meses inativa
+        //Cria os alertas para os cleintes do tipo agency quando já estão a mais de 3 meses sem job
         $agencyClients = FacadesDB::select(FacadesDB::raw("SELECT c.id,c.name, j1.created_at FROM client as c 
         JOIN job as j1 ON j1.client_id = c.id AND j1.created_at = (SELECT MAX(j.created_at) FROM job as j WHERE j.client_id = c.id )
         WHERE YEAR(j1.created_at) >= 2023
-        AND j1.attendance_id = " . User::logged()->employee->id . "
-        AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL 3 month)
+        AND j1.attendance_id = " . User::logged()->employee->id . " AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL 3 month)
         AND c.client_type_id = 1
         ORDER BY j1.created_at DESC"));
 
+        //Inativa os clientes do tipo agency quando ja esta a mais de 4 meses sem job
+        FacadesDB::select(FacadesDB::raw("UPDATE client as c 
+        JOIN job as j1 ON j1.client_id = c.id 
+        AND j1.created_at = (SELECT MAX(j.created_at) FROM job as j WHERE j.client_id = c.id )
+        SET client_status_id = 1
+        WHERE j1.attendance_id IS NOT NULL
+        AND j1.attendance_id = " . /*User::logged()->employee->id*/ 14 . " AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL 4 month)
+        AND c.client_type_id = 1"));
+
+
+        //6 meses alerta, 9 meses inativa
+        //Cria os alertas para os cleintes do tipo exhibitor quando já estão a mais de 6 meses sem job
         $exhibitorClients = FacadesDB::select(FacadesDB::raw("SELECT c.id,c.name, j1.created_at FROM client as c 
         JOIN job as j1 ON j1.client_id = c.id AND j1.created_at = (SELECT MAX(j.created_at) FROM job as j WHERE j.client_id = c.id )
         WHERE YEAR(j1.created_at) >= 2023
-        AND j1.attendance_id = " . User::logged()->employee->id . "
-        AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL 6 month)
+        AND j1.attendance_id = " . User::logged()->employee->id  . " AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL 6 month)
         AND c.client_type_id = 2
         ORDER BY j1.created_at DESC"));
 
+        //Inativa os clientes do tipo exhibitor quando já estão a mais de 9 meses sem job
+        FacadesDB::select(FacadesDB::raw("UPDATE client as c 
+        JOIN job as j1 ON j1.client_id = c.id 
+        AND j1.created_at = (SELECT MAX(j.created_at) FROM job as j WHERE j.client_id = c.id )
+        SET client_status_id = 1
+        WHERE j1.attendance_id IS NOT NULL
+        AND j1.attendance_id = " . /*User::logged()->employee->id*/ 14 . " AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL 9 month)
+        AND c.client_type_id = 2"));
+
+        //Inativa os clientes que nunca estiveram em nenhum job
+        FacadesDB::select(FacadesDB::raw("UPDATE client as c SET client_status_id = 1 WHERE c.id NOT IN (SELECT client_id FROM job WHERE client_id IS NOT NULL GROUP BY client_id);"));
 
         if (!isset($agencyClients[0]) && !isset($exhibitorClients[0])) {
             return;
