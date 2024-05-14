@@ -182,7 +182,7 @@ class UserNotification extends Model
         AND c.client_type_id = 2"));
 
         //Inativa os clientes que nunca estiveram em nenhum job
-        FacadesDB::select(FacadesDB::raw("UPDATE client as c SET client_status_id = 1 WHERE c.id NOT IN (SELECT client_id FROM job WHERE client_id IS NOT NULL GROUP BY client_id);"));
+        //FacadesDB::select(FacadesDB::raw("UPDATE client as c SET client_status_id = 1 WHERE c.id NOT IN (SELECT client_id FROM job WHERE client_id IS NOT NULL GROUP BY client_id);"));
 
         if (!isset($agencyClients[0]) && !isset($exhibitorClients[0])) {
             return;
