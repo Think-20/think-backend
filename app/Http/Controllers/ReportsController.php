@@ -71,6 +71,10 @@ class ReportsController extends Controller
         }
 
         foreach ($jobs as &$job) {
+            
+            //Forçando para ficar como pediram, passando o valor da ultima task
+            $job->setAttribute('lastValue', $job->final_value);
+
             foreach ($job->tasks as $task) {
                 if (isset($data['creation']) && in_array('external', $data['creation'])) {
                     unset($task->responsible);
@@ -82,9 +86,10 @@ class ReportsController extends Controller
                             $job->setAttribute('project_conclusion', $task->updated_at->toArray()['formatted']);
                         }
                     }
-                    if (isset($task->final_value) && $task->final_value != null) {
+                    //Removido para entender melhor a logica, e verificar se é realmente um erro
+                    /*if (isset($task->final_value) && $task->final_value != null) {
                         $job->setAttribute('lastValue', $task->final_value);
-                    }
+                    }*/
                 }
             }
             if ($job["attendance_comission_id"] != null) {
