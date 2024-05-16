@@ -200,9 +200,16 @@ class Client extends Model implements Contactable
     public static function filter(array $data)
     {
         $search = isset($data['search']) ? $data['search'] : null;
-        $attendanceArrayId = isset($data['attendance_array']) && !empty($data['attendance_array']) ? array_map(function ($v) {
-            return $v['id'];
-        }, $data['attendance_array']) : null;
+        
+        /* Removido dia 15/05/2024 por não estar sendo usado, então foi criado o filtro pro atendimento baseado no usuario logado
+        $attendanceArrayId = isset($data['attendance']) && !empty($data['attendance']) ? array_map(function ($v) {
+            //dd($v);
+            //return $v['id'];
+
+            return $v;
+        }, $data['attendance']) : null;
+        */
+
         $clientStatusId = isset($data['client_status']['id']) ? $data['client_status']['id'] : null;
         $clientTypeId = isset($data['client_type']['id']) ? $data['client_type']['id'] : null;
         $rate = isset($data['rate']) ? $data['rate'] : null;
@@ -239,8 +246,16 @@ class Client extends Model implements Contactable
             });
         }
 
+        /* Removido dia 15/05/2024 por não estar sendo usado, então foi criado o filtro pro atendimento baseado no usuario logado
         if (!is_null($attendanceArrayId)) {
             $query->whereIn('employee_id', $attendanceArrayId);
+            dd("entrou aq");
+        }*/
+
+        //Função que verifica se o usuario logado é atendimendo, se for o caso, então só mostra os clientes dele na busca de clientes
+        $user = User::logged();
+        if ($user && $user->employee->department_id == 4) {
+            $query->where('employee_id', $user->employee->id);            
         }
 
         $query->orderBy('fantasy_name', 'asc');
