@@ -173,12 +173,12 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::put('/goal', 'GoalController@updateGoal');
 
     //Adicionando periodos de inativação de cliente
-    /*
-    Route::get('/goal', 'GoalController@selectGoal');
-    Route::get('/goal/{id}', 'GoalController@selectGoal');
-    Route::post('/goal', 'GoalController@createGoal');
-    Route::put('/goal', 'GoalController@updateGoal');
-    */
+    Route::get('/inactiveTime', 'InactiveTimeController@selectInactiveTime');
+    Route::put('/inactiveTime', 'InactiveTimeController@updateInactiveTime');
+    //Route::get('/inactiveTime/{id}', 'InactiveTimeController@selectGoal');
+    //Route::post('/inactiveTime', 'InactiveTimeController@createGoal');
+    
+    
 
     Route::post('/testeGetS3', 'GoalController@testeGetS3');
     Route::post('/testePutS3', 'GoalController@testePutS3');
