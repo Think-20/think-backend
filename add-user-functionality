@@ -1,0 +1,7 @@
+select uf.functionality_id from user u 
+left join user_functionality uf on uf.user_id = u.id
+where u.id = 30
+
+insert into user_functionality (user_id, functionality_id) select 34, uf.functionality_id from user u 
+left join user_functionality uf on uf.user_id = u.id
+where u.id = 30
