@@ -13,7 +13,7 @@ class UpdateTaskColumnsPlaceProducer extends Migration
      */
     public function up()
     {
-        /*Schema::table('task', function (Blueprint $table) {
+        Schema::table('task', function (Blueprint $table) {
             $table->double('frete_logistica')->nullable();
             $table->double('diversos_operacional')->nullable();
 
@@ -27,7 +27,7 @@ class UpdateTaskColumnsPlaceProducer extends Migration
 
         Schema::table('job', function (Blueprint $table) {
             $table->string('producer')->nullable();
-        });*/
+        });
     }
 
     /**
@@ -37,7 +37,7 @@ class UpdateTaskColumnsPlaceProducer extends Migration
      */
     public function down()
     {
-        /*Schema::table('task', function (Blueprint $table) {
+        Schema::table('task', function (Blueprint $table) {
             $table->dropColumn('frete_logistica');
             $table->dropColumn('diversos_operacional');
 
@@ -51,6 +51,6 @@ class UpdateTaskColumnsPlaceProducer extends Migration
 
         Schema::table('job', function (Blueprint $table) {
             $table->dropColumn('producer');
-        });*/
+        });
     }
 }
