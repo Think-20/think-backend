@@ -3,7 +3,10 @@
 namespace App;
 
 use App\User;
+<<<<<<< HEAD
 use Carbon\Carbon;
+=======
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
 use DateTime;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
@@ -440,11 +443,19 @@ class Task extends Model
 
         $latestReopened = Task::where('job_activity_id', $task->job_activity_id)->where('job_id', $task->job->id)->max('reopened');
 
+<<<<<<< HEAD
         if ($latestReopened) {
             $task->reopened = $latestReopened + 1;
         } else {
             $task->reopened = 1;
         }
+=======
+            if($latestReopened){
+                $task->reopened = $latestReopened + 1;
+            }else{
+                $task->reopened = 1; 
+            }
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
 
         $task->save();
     }
@@ -1036,8 +1047,11 @@ class Task extends Model
         isset($data['gross_profit_value']) || $data['gross_profit_value'] == "" ? $task->gross_profit_value = $data['gross_profit_value'] : null;
         isset($data['profit_value']) || $data['profit_value'] == "" ? $task->profit_value = $data['profit_value'] : null;
         isset($data['final_value']) || $data['final_value'] == "" ? $task->final_value = $data['final_value'] : null;
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
         $task->updated_by = User::logged()->employee->name;
         $task->save();
 
@@ -1080,6 +1094,7 @@ class Task extends Model
         }
     }
 
+<<<<<<< HEAD
     public static function editValuesBudget($data)
     {
 
@@ -1171,6 +1186,8 @@ class Task extends Model
         }
     }
 
+=======
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
     public function items()
     {
         return $this->hasMany('App\TaskItem', 'task_id')->orderBy('task_item.date', 'ASC');

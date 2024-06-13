@@ -13,9 +13,19 @@ class CostSheet extends Migration
      */
     public function up()
     {
+<<<<<<< HEAD
         /*Schema::create('cost_sheet', function (Blueprint $table) {
             
         });*/
+=======
+        Schema::create('cost_sheet', function (Blueprint $table) {
+            /*$table->increments('id');
+            $table->integer('month');
+            $table->integer('year');
+            $table->double('value');
+            $table->timestamps();*/
+        });
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
     }
 
 

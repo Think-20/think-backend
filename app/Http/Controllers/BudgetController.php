@@ -14,8 +14,12 @@ use App\FileHelper;
 
 class BudgetController extends Controller
 {
+<<<<<<< HEAD
     public static function save(Request $request)
     {
+=======
+    public static function save(Request $request) {
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
         $data = $request->all();
         $status = false;
         $budget = null;
@@ -27,22 +31,38 @@ class BudgetController extends Controller
             $message = 'Orçamento cadastrado com sucesso!';
             DB::commit();
             $status = true;
+<<<<<<< HEAD
         }
         /* Catch com FileException tamanho máximo */ catch (Exception $e) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
             //. $e->getFile() . $e->getLine();
+=======
+        } 
+        /* Catch com FileException tamanho máximo */
+        catch(Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
+             //. $e->getFile() . $e->getLine();
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
         }
 
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
             'budget' => $budget
+<<<<<<< HEAD
         ]), 200);
     }
 
     public static function edit(Request $request)
     {
+=======
+         ]), 200);
+    }
+
+    public static function edit(Request $request) {
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
@@ -54,10 +74,17 @@ class BudgetController extends Controller
             $message = 'Orçamento alterado com sucesso!';
             $status = true;
             DB::commit();
+<<<<<<< HEAD
         } catch (QueryException $queryException) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
         } catch (Exception $e) {
+=======
+        } catch(QueryException $queryException) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
+        } catch(Exception $e) {
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
             DB::rollBack();
             $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
             // . $e->getFile() . $e->getLine();
@@ -67,11 +94,19 @@ class BudgetController extends Controller
             'message' => $message,
             'status' => $status,
             'budget' => $budget
+<<<<<<< HEAD
         ]), 200);
     }
 
     public static function remove(int $id)
     {
+=======
+         ]), 200);
+    }
+    
+    
+    public static function remove(int $id) {
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
         DB::beginTransaction();
         $status = false;
 
@@ -80,10 +115,17 @@ class BudgetController extends Controller
             $message = 'Orçamento removido com sucesso!';
             $status = true;
             DB::commit();
+<<<<<<< HEAD
         } catch (QueryException $queryException) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao deletar no banco de dados. ' . $queryException->getMessage();
         } catch (Exception $e) {
+=======
+        } catch(QueryException $queryException) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao deletar no banco de dados. ' . $queryException->getMessage();
+        } catch(Exception $e) {
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
             DB::rollBack();
             $message = 'Um erro desconhecido ocorreu ao deletar: ' . $e->getMessage();
         }
@@ -91,6 +133,7 @@ class BudgetController extends Controller
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
+<<<<<<< HEAD
         ]), 200);
     }
 
@@ -124,5 +167,8 @@ class BudgetController extends Controller
         ];
 
         return $budget;
+=======
+         ]), 200);
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
     }
 }

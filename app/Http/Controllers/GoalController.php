@@ -189,6 +189,11 @@ class GoalController extends Controller
     {
         $response = [];
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
         for ($i = 0; $i < Carbon::parse($date_end)->diffInDays(Carbon::parse($date_init)) + 1; $i++) {
 
             $dtFim = Carbon::parse($date_init)->addDay($i);

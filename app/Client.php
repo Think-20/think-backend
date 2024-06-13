@@ -200,7 +200,11 @@ class Client extends Model implements Contactable
     public static function filter(array $data)
     {
         $search = isset($data['search']) ? $data['search'] : null;
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
         /* Removido dia 15/05/2024 por não estar sendo usado, então foi criado o filtro pro atendimento baseado no usuario logado
         $attendanceArrayId = isset($data['attendance']) && !empty($data['attendance']) ? array_map(function ($v) {
             //dd($v);
@@ -252,11 +256,21 @@ class Client extends Model implements Contactable
             dd("entrou aq");
         }*/
 
+<<<<<<< HEAD
         //Função que verifica se o usuario logado é atendimendo, se for o caso, então só mostra os clientes dele na busca de clientes
         $user = User::logged();
         if ($user && $user->employee->department_id == 4) {
             $query->where('employee_id', $user->employee->id);            
         }
+=======
+
+        //Removida no dia 13/06 e feita no front para travar atendentes de alterar usuarios q n são deles
+        //Função que verifica se o usuario logado é atendimendo, se for o caso, então só mostra os clientes dele na busca de clientes
+        /*$user = User::logged();
+        if ($user && $user->employee->department_id == 4) {
+            $query->where('employee_id', $user->employee->id);            
+        }*/
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
 
         $query->orderBy('fantasy_name', 'asc');
         $clients = $query->paginate(20);

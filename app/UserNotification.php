@@ -144,12 +144,20 @@ class UserNotification extends Model
 
     private static function  checkInativeClients()
     {
+<<<<<<< HEAD
+=======
+
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
         //3 meses alerta, 4 meses inativa
         //Cria os alertas para os cleintes do tipo agency quando já estão a mais de 3 meses sem job
         $agencyClients = FacadesDB::select(FacadesDB::raw("SELECT c.id,c.name, j1.created_at FROM client as c 
         JOIN job as j1 ON j1.client_id = c.id AND j1.created_at = (SELECT MAX(j.created_at) FROM job as j WHERE j.client_id = c.id )
         WHERE YEAR(j1.created_at) >= 2023
+<<<<<<< HEAD
         AND j1.attendance_id = " . User::logged()->employee->id . " AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL 3 month)
+=======
+        AND j1.attendance_id = " . User::logged()->employee->id . " AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL (SELECT notification_time FROM inactive_time WHERE type='agency') month)
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
         AND c.client_type_id = 1
         ORDER BY j1.created_at DESC"));
 
@@ -159,7 +167,11 @@ class UserNotification extends Model
         AND j1.created_at = (SELECT MAX(j.created_at) FROM job as j WHERE j.client_id = c.id )
         SET client_status_id = 1
         WHERE j1.attendance_id IS NOT NULL
+<<<<<<< HEAD
         AND j1.attendance_id = " . /*User::logged()->employee->id*/ 14 . " AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL 4 month)
+=======
+        AND j1.attendance_id = " . User::logged()->employee->id . " AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL (SELECT inactive_time FROM inactive_time WHERE type='agency') month)
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
         AND c.client_type_id = 1"));
 
 
@@ -168,7 +180,11 @@ class UserNotification extends Model
         $exhibitorClients = FacadesDB::select(FacadesDB::raw("SELECT c.id,c.name, j1.created_at FROM client as c 
         JOIN job as j1 ON j1.client_id = c.id AND j1.created_at = (SELECT MAX(j.created_at) FROM job as j WHERE j.client_id = c.id )
         WHERE YEAR(j1.created_at) >= 2023
+<<<<<<< HEAD
         AND j1.attendance_id = " . User::logged()->employee->id  . " AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL 6 month)
+=======
+        AND j1.attendance_id = " . User::logged()->employee->id  . " AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL (SELECT notification_time FROM inactive_time WHERE type='expositor') month)
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
         AND c.client_type_id = 2
         ORDER BY j1.created_at DESC"));
 
@@ -178,7 +194,11 @@ class UserNotification extends Model
         AND j1.created_at = (SELECT MAX(j.created_at) FROM job as j WHERE j.client_id = c.id )
         SET client_status_id = 1
         WHERE j1.attendance_id IS NOT NULL
+<<<<<<< HEAD
         AND j1.attendance_id = " . /*User::logged()->employee->id*/ 14 . " AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL 9 month)
+=======
+        AND j1.attendance_id = " . User::logged()->employee->id . " AND j1.created_at <=  DATE_SUB(NOW(), INTERVAL (SELECT inactive_time FROM inactive_time WHERE type='expositor') month)
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
         AND c.client_type_id = 2"));
 
         //Inativa os clientes que nunca estiveram em nenhum job

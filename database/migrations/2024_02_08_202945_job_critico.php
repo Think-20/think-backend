@@ -14,7 +14,11 @@ class JobCritico extends Migration
     public function up()
     {
         Schema::table('job', function (Blueprint $table) {
+<<<<<<< HEAD
             $table->double('critical')->nullable();
+=======
+            $table->double('critical');
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
         });
     }
 

@@ -172,13 +172,19 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/goal', 'GoalController@createGoal');
     Route::put('/goal', 'GoalController@updateGoal');*/
 
+<<<<<<< HEAD
     //Adicionando periodos de inativação de cliente
     /*
+=======
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
     Route::get('/goal', 'GoalController@selectGoal');
     Route::get('/goal/{id}', 'GoalController@selectGoal');
     Route::post('/goal', 'GoalController@createGoal');
     Route::put('/goal', 'GoalController@updateGoal');
+<<<<<<< HEAD
     */
+=======
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
 
     Route::post('/testeGetS3', 'GoalController@testeGetS3');
     Route::post('/testePutS3', 'GoalController@testePutS3');
@@ -320,9 +326,12 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::post('/budget/save', 'BudgetController@save');
     Route::put('/budget/edit', 'BudgetController@edit');
 
+<<<<<<< HEAD
     /*Route::post('/budget/save', 'BudgetController@save');
     Route::put('/budget/edit', 'BudgetController@edit');*/
 
+=======
+>>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
     Route::post('/project-files/save-multiple', 'ProjectFileController@saveMultiple');
     Route::delete('/project-files/remove/{id}', 'ProjectFileController@remove');
     Route::get('/project-files/download/{id}', 'ProjectFileController@downloadFile');
