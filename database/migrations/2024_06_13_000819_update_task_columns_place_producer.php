@@ -47,9 +47,9 @@ class UpdateTaskColumnsPlaceProducer extends Migration
             $table->dropColumn('dt_montagem');
             $table->dropColumn('dt_fim_event');
             $table->dropColumn('dt_desmontagem');
-        });*/
+        });
 
-        /*Schema::table('job', function (Blueprint $table) {
+        Schema::table('job', function (Blueprint $table) {
             $table->dropColumn('producer');
         });*/
     }
