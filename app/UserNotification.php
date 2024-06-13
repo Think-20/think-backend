@@ -147,8 +147,11 @@ class UserNotification extends Model
 <<<<<<< HEAD
 =======
 
+<<<<<<< HEAD
 >>>>>>> 636e96ff3b72254c7fecbad1b8473ad8437571d2
         //3 meses alerta, 4 meses inativa
+=======
+>>>>>>> 70fb5a95af1eb372ecaa83856cb085bd40b21374
         //Cria os alertas para os cleintes do tipo agency quando já estão a mais de 3 meses sem job
         $agencyClients = FacadesDB::select(FacadesDB::raw("SELECT c.id,c.name, j1.created_at FROM client as c 
         JOIN job as j1 ON j1.client_id = c.id AND j1.created_at = (SELECT MAX(j.created_at) FROM job as j WHERE j.client_id = c.id )
@@ -175,7 +178,6 @@ class UserNotification extends Model
         AND c.client_type_id = 1"));
 
 
-        //6 meses alerta, 9 meses inativa
         //Cria os alertas para os cleintes do tipo exhibitor quando já estão a mais de 6 meses sem job
         $exhibitorClients = FacadesDB::select(FacadesDB::raw("SELECT c.id,c.name, j1.created_at FROM client as c 
         JOIN job as j1 ON j1.client_id = c.id AND j1.created_at = (SELECT MAX(j.created_at) FROM job as j WHERE j.client_id = c.id )
