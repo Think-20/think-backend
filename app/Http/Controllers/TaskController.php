@@ -104,6 +104,7 @@ class TaskController extends Controller
 
     public static function editValues(Request $request) {
         
+        dd('teste');
         dd($request->all());
         
         DB::beginTransaction();
