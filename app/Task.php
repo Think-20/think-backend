@@ -1018,7 +1018,7 @@ class Task extends Model
             $clientName = $task->job->not_client;
         }
 
-        isset($data['orders_value']) || $data['orders_value'] == "" ? $task->orders_value = $data['orders_value'] : null;
+        #isset($data['orders_value']) || $data['orders_value'] == "" ? $task->orders_value = $data['orders_value'] : null;
         isset($data['attendance_value']) || $data['attendance_value'] == "" ? $task->attendance_value = $data['attendance_value'] : null;
         isset($data['creation_value']) || $data['creation_value'] == "" ? $task->creation_value = $data['creation_value'] : null;
         isset($data['pre_production_value']) || $data['pre_production_value'] == "" ? $task->pre_production_value = $data['pre_production_value'] : null;
