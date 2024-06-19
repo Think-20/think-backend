@@ -13,7 +13,7 @@ class UpdateTaskColumPlaceProducer extends Migration
      */
     public function up()
     {
-        /*Schema::table('task', function (Blueprint $table) {
+        Schema::table('task', function (Blueprint $table) {
             $table->double('frete_logistica')->nullable();
             $table->double('diversos_operacional')->nullable();
 
@@ -27,7 +27,7 @@ class UpdateTaskColumPlaceProducer extends Migration
 
         Schema::table('job', function (Blueprint $table) {
             $table->string('producer')->nullable();
-        });*/
+        });
     }
 
     /**

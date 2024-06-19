@@ -13,7 +13,7 @@ class InactiveTime extends Migration
      */
     public function up()
     {
-        /*Schema::create('inactive_time', function (Blueprint $table) {
+        Schema::create('inactive_time', function (Blueprint $table) {
             $table->increments('id');
             $table->string('type');
             //$table->integer('month');
@@ -21,7 +21,7 @@ class InactiveTime extends Migration
             $table->double('notification_time');
             $table->double('inactive_time');
             $table->timestamps();
-        });*/
+        });
     }
 
     /**
