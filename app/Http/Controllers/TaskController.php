@@ -82,8 +82,6 @@ class TaskController extends Controller
         $status = false;
         $data = $request->all();
 
-        dd($data);
-
         try {
             $task = Task::edit($data);
             $message = 'Cronograma alterado com sucesso!';
@@ -108,6 +106,10 @@ class TaskController extends Controller
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
+
+        
+        dd($data);
+
 
         try {
             $task = Task::editValues($data);
