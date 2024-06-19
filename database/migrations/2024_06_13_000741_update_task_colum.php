@@ -13,7 +13,7 @@ class UpdateTaskColum extends Migration
      */
     public function up()
     {
-        Schema::table('task', function (Blueprint $table) {
+        /*Schema::table('task', function (Blueprint $table) {
             $table->double('marcenaria')->nullable();
             $table->double('revestimentos_epeciais')->nullable();
             $table->double('estrutura_metalicas')->nullable();
@@ -31,7 +31,7 @@ class UpdateTaskColum extends Migration
             $table->double('logistica')->nullable();
 
             $table->double('coeficiente_margem')->nullable();
-        });
+        });*/
     }
 
     /**
