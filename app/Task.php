@@ -1018,7 +1018,8 @@ class Task extends Model
             $clientName = $task->job->not_client;
         }
 
-        
+        dd($data);
+
         //isset($data['orders_value']) || $data['orders_value'] == "" ? $task->orders_value = $data['orders_value'] : null;
         isset($data['attendance_value']) || $data['attendance_value'] == "" ? $task->attendance_value = $data['attendance_value'] : null;
         isset($data['creation_value']) || $data['creation_value'] == "" ? $task->creation_value = $data['creation_value'] : null;
@@ -1039,7 +1040,6 @@ class Task extends Model
         $task->updated_by = User::logged()->employee->name;
 
         
-        dd($data);
 
         $task->save();
 
