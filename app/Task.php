@@ -1038,7 +1038,7 @@ class Task extends Model
         isset($data['final_value']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['final_value'] : null;
         $task->updated_by = User::logged()->employee->name;
 
-        
+        dd('teste');
 
         $task->save();
 
