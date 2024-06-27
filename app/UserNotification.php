@@ -99,7 +99,7 @@ class UserNotification extends Model
         $jobs = Job::where('attendance_id', User::logged()->employee->id)
             ->with('client')
             ->where('status_id', 1)
-            ->whereYear('created_at', 2023)
+            ->whereYear('created_at', '>=', 2023)
             ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
             ->get();
 
@@ -281,7 +281,7 @@ class UserNotification extends Model
     {
         $jobs = Job::where('attendance_id', User::logged()->employee->id)
             ->where('status_id', 1)
-            ->whereYear('created_at', 2023)
+            ->whereYear('created_at', '>=', 2023)
             ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
             ->whereDate('status_updated_at', '<=', Carbon::now()->subDays(15)->startOfDay())
             ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels', 'how_come', 'agency', 'attendance', 'competition', 'files', 'status', 'creation')
@@ -289,7 +289,7 @@ class UserNotification extends Model
 
         $count = Job::where('attendance_id', User::logged()->employee->id)
             ->where('status_id', 1)
-            ->whereYear('created_at', 2023)
+            ->whereYear('created_at', '>=', 2023)
             ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
             ->whereDate('status_updated_at', '<=', Carbon::now()->subDays(15)->startOfDay())
             ->count();
