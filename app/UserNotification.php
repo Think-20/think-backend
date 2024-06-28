@@ -58,7 +58,7 @@ class UserNotification extends Model
     public static function recents()
     {
         self::checkStandByPendencies();
-        //self::checkInativeClients();
+        self::checkInativeClients();
 
         $usersNotification = UserNotification::select('user_notification.*')
             ->with(['notification', 'notification.type', 'notification.notifier'])

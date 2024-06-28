@@ -1035,6 +1035,40 @@ class Task extends Model
         isset($data['gross_profit_value']) /*|| $data['gross_profit_value'] == ""*/ ? $task->gross_profit_value = $data['gross_profit_value'] : null;
         isset($data['profit_value']) /*|| $data['profit_value'] == ""*/ ? $task->profit_value = $data['profit_value'] : null;
         isset($data['final_value']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['final_value'] : null;
+        
+        isset($data['place']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['place'] : null;
+        isset($data['producer']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['producer'] : null;
+        isset($data['dt_event']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['dt_event'] : null;
+        isset($data['mezanino']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['mezanino'] : null;
+        isset($data['dt_inicio_event']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['dt_inicio_event'] : null;
+        isset($data['dt_montagem']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['dt_montagem'] : null;
+        isset($data['dt_fim_event']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['dt_fim_event'] : null;
+        isset($data['dt_desmontagem']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['dt_desmontagem'] : null;
+        isset($data['marcenaria']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['marcenaria'] : null;
+        isset($data['revestimentos_epeciais']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['revestimentos_epeciais'] : null;
+        isset($data['estrutura_metalicas']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['estrutura_metalicas'] : null;
+        isset($data['material_mezanino']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['material_mezanino'] : null;
+        isset($data['fechamento_vidro']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['fechamento_vidro'] : null;
+        isset($data['vitrines']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['vitrines'] : null;
+        isset($data['acrilico']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['acrilico'] : null;
+        isset($data['mobiliario']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['mobiliario'] : null;
+        isset($data['refrigeracao_climatizacao']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['refrigeracao_climatizacao'] : null;
+        isset($data['paisagismo']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['paisagismo'] : null;
+        isset($data['comunicacao_visual']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['comunicacao_visual'] : null;
+        isset($data['equipamento_audio_visual']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['equipamento_audio_visual'] : null;
+        isset($data['itens_especiais']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['itens_especiais'] : null;
+        isset($data['execucao']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['execucao'] : null;
+        isset($data['diversos_operacional']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['diversos_operacional'] : null;
+        isset($data['frete_logistica']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['frete_logistica'] : null;
+        isset($data['budget_value_visibily']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['budget_value_visibily'] : null;
+        isset($data['custo_total_visibily']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['custo_total_visibily'] : null;
+        isset($data['total_geral_estande_visibily']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['total_geral_estande_visibily'] : null;
+        isset($data['liquido_think_visibily']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['liquido_think_visibily'] : null;
+        isset($data['coeficiente_margem']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['coeficiente_margem'] : null;
+        isset($data['m2_venda_stand_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['m2_venda_stand_meta_porcentagem'] : null;
+        isset($data['m2_venda_stand_logistica_equipamentos_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['m2_venda_stand_logistica_equipamentos_meta_porcentagem'] : null;
+        isset($data['opcional_equipamento_audio_visual']) /*|| $data['final_value'] == ""*/ ? $task->final_value = $data['opcional_equipamento_audio_visual'] : null;
+
         $task->updated_by = User::logged()->employee->name;
 
         $task->save();
