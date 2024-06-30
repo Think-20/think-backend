@@ -21,6 +21,7 @@ class ReportsController extends Controller
 
     public function read(Request $request)
     {
+
         $data = $request->only([
             'date_init',
             'date_end',
@@ -46,7 +47,7 @@ class ReportsController extends Controller
             $dtEnd = Carbon::now();
         }
 
-        
+
         if (isset($data["date_init"])) {
             $dtInit = Carbon::parse($data["date_init"]);
         } else {
@@ -157,6 +158,17 @@ class ReportsController extends Controller
             'updatedInfo' => Job::updatedInfo(),
             'total_month_average' => $total_month_average,
             'jobs_month_average' => $jobs_month_average
+        ]);
+    }
+
+    public function readCallendar($data)
+    {
+        
+        $total_value = $this->reportsService->sumBudgetValue($data);
+       
+
+        return response()->json([
+            "total_value" => $total_value['sum'],
         ]);
     }
 

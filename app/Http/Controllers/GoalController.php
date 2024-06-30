@@ -16,9 +16,12 @@ use PhpParser\Node\Expr;
 class GoalController extends Controller
 {
     private $reportsService;
-    public function __construct(ReportsService $reportsService)
+    private $reportsController;
+
+    public function __construct(ReportsService $reportsService, ReportsController $reportsController)
     {
         $this->reportsService = $reportsService;
+        $this->reportsController = $reportsController;
     }
 
     public function createGoal(Request $request)
@@ -189,17 +192,99 @@ class GoalController extends Controller
     {
         $response = [];
 
-
-
         for ($i = 0; $i < Carbon::parse($date_end)->diffInDays(Carbon::parse($date_init)) + 1; $i++) {
 
             $dtFim = Carbon::parse($date_init)->addDay($i);
 
-            $allMes = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfMonth(), "date_end" => Carbon::parse($dtFim)]);
-            $allAno = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfYear(),  "date_end" => Carbon::parse($dtFim)]);
+            //Alteração para receber dados do relatorio para q seja possivel diferenciar entre valores de internos e de externos
+            $dataExtMes = [
+                "date_init" => Carbon::parse($dtFim)->startOfMonth(),
+                "date_end" => Carbon::parse($dtFim),
+                "name" => null,
+                "status" => [],
+                "creation" =>  [
+                    0 => "external"
+                ],
+                "attendance" => [],
+                "job_type" => [],
+                "job_activity" => [],
+                "jobs_amount" => 30,
+                "event" => null
+            ];
 
+            $dataExtAno = [
+                "date_init" => Carbon::parse($dtFim)->startOfYear(),
+                "date_end" => Carbon::parse($dtFim),
+                "name" => null,
+                "status" => [],
+                "creation" =>  [
+                    0 => "external"
+                ],
+                "attendance" => [],
+                "job_type" => [],
+                "job_activity" => [],
+                "jobs_amount" => 30,
+                "event" => null
+            ];
+
+            $dataIntMes = [
+                "date_init" => Carbon::parse($dtFim)->startOfMonth(),
+                "date_end" => Carbon::parse($dtFim),
+                "name" => null,
+                "status" => [],
+                "creation" =>  [],
+                "attendance" => [],
+                "job_type" => [],
+                "job_activity" => [],
+                "jobs_amount" => 30,
+                "event" => null
+            ];
+
+            $dataIntAno = [
+                "date_init" => Carbon::parse($dtFim)->startOfYear(),
+                "date_end" => Carbon::parse($dtFim),
+                "name" => null,
+                "status" => [],
+                "creation" =>  [],
+                "attendance" => [],
+                "job_type" => [],
+                "job_activity" => [],
+                "jobs_amount" => 30,
+                "event" => null
+            ];
+
+            //Dados recebidos pela função nova para criar relatorio expecificamente para o calendario
+            $CurrentMonthValueExt = json_decode($this->reportsController->readCallendar($dataExtMes)->getContent(), true);
+            $CurrentMonthValueInt = json_decode($this->reportsController->readCallendar($dataIntMes)->getContent(), true);
+
+            $CurrentYearValueExt = json_decode($this->reportsController->readCallendar($dataExtAno)->getContent(), true);
+            $CurrentYearValueInt = json_decode($this->reportsController->readCallendar($dataIntAno)->getContent(), true);
+
+            //Verifica se os campos estão null e seta 0 para que n tenha problemas
+            if (!isset($CurrentMonthValueExt['total_value'])) {
+                $CurrentMonthValueExt['total_value'] = 0;
+            }
+
+            if (!isset($CurrentYearValueExt['total_value'])) {
+                $CurrentYearValueExt['total_value'] = 0;
+            }
+
+            if (!isset($CurrentMonthValueInt['total_value'])) {
+                $CurrentMonthValueInt['total_value'] = 0;
+            }
+
+            if (!isset($CurrentYearValueInt['total_value'])) {
+                $CurrentYearValueInt['total_value'] = 0;
+            }
+
+            //Metas mensais e anuais
             $monthGoal =  $this->reportsService->GetGoalByMountAndYear(intval(Carbon::parse($dtFim)->subDay(1)->format('m')), intval(Carbon::parse($dtFim)->subDay(1)->format('Y')));
             $yearGoals =  $this->reportsService->GetGoalYear(intval(Carbon::parse($dtFim)->subDay(1)->format('Y')));
+
+            /*$allMes = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfMonth(), "date_end" => Carbon::parse($dtFim)]);
+            $allAno = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfYear(),  "date_end" => Carbon::parse($dtFim)]);
+
+            
 
             $CurrentMonthValue = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfMonth(), "date_end" => Carbon::parse($dtFim)]);
             $CurrentYearValue = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfYear(), "date_end" => Carbon::parse($dtFim)]);
@@ -225,40 +310,59 @@ class GoalController extends Controller
             //Caso CurrentYearStand tenha valor nenhum, mostra 0
             if ($CurrentYearStand->sum == null) {
                 $CurrentYearStand->sum = 0;
-            }
+            }*/
 
             try {
                 $goals = [
                     "date" => Carbon::parse($date_init)->addDay($i)->format('Y-m-d'),
                     "mes" => [
-                        "porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value),
+                        "atualInternoReais" => ($CurrentMonthValueInt['total_value'] - $CurrentMonthValueExt['total_value']),
+                        "porcentagemInternoReais" => ((($CurrentMonthValueInt['total_value'] - $CurrentMonthValueExt['total_value']) * 100) / $monthGoal->value),
+                        
+                        "atualExternoReais" =>  $CurrentMonthValueExt['total_value'],
+                        "porcentagemExternoReais" => ((($CurrentMonthValueExt['total_value']) * 100) / $monthGoal->value),
+                        
+                        "metaReais" =>  $monthGoal->value,
+
+                        /*"porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value),
                         //"porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value) > 100 ? 100 : (($CurrentMonthValue->sum * 100) / $monthGoal->value),
 
-                        "atualReais" => $CurrentMonthValue->sum + $CurrentMonthValueStand->sum,
-                        "metaReais" =>  $monthGoal->value,
-                        "porcentagemJobs" => (($allMes->count * 100) / $monthGoal->expected_value),
+                        //"atualReais" => $CurrentMonthValue->sum + $CurrentMonthValueStand->sum,
+                        "atualReais" => $CurrentMonthValue,
+                        "metaReais" =>  $monthGoal->value,*/
+                        //"porcentagemJobs" => (($allMes->count * 100) / $monthGoal->expected_value),
                         //"porcentagemJobs" => (($allMes->count * 100) / $monthGoal->expected_value) > 100 ? 100 : (($allMes->count * 100) / $monthGoal->expected_value),
 
-                        "atualJobs" => $allMes->count,
-                        "metaJobs" => $monthGoal->expected_value,
+                        //"atualJobs" => $allMes->count,
+                        //"metaJobs" => $monthGoal->expected_value,
 
-                        "semStand" => $CurrentMonthValue->sum,
-                        "standValor" => $CurrentMonthValueStand->sum
+                        //"semStand" => $CurrentMonthValue->sum,
+                        //"standValor" => $CurrentMonthValueStand->sum
                     ],
                     "anual" => [
-                        "porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value),
-                        //"porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value) > 100 ? 100 : (($CurrentYearValue->sum * 100) / $yearGoals->value),
-                        "atualReais" =>  $CurrentYearValue->sum + $CurrentYearStand->sum,
+
+                        "atualInternoReais" => ($CurrentYearValueInt['total_value'] - $CurrentMonthValueExt['total_value']),
+                        "porcentagemInternoReais" => ((($CurrentYearValueInt['total_value'] - $CurrentMonthValueExt['total_value']) * 100) / $yearGoals->value),
+                        
+                        "atualExternoReais" =>  $CurrentYearValueExt['total_value'],
+                        "porcentagemExternoReais" => ((($CurrentYearValueExt['total_value']) * 100) / $yearGoals->value),
+                        
                         "metaReais" =>  $yearGoals->value,
 
-                        "porcentagemJobs" => (($allAno->sum * 100) / $yearGoals->expected_value),
+                        /*"porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value),
+                        "atualReais" =>  $CurrentYearValue->sum + $CurrentYearStand->sum,
+                        "metaReais" =>  $yearGoals->value,*/
+
+                        //"porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value) > 100 ? 100 : (($CurrentYearValue->sum * 100) / $yearGoals->value),
+
+                        //"porcentagemJobs" => (($allAno->sum * 100) / $yearGoals->expected_value),
                         //"porcentagemJobs" => (($allAno->sum * 100) / $yearGoals->expected_value) > 100 ? 100 : (($allAno->sum * 100) / $yearGoals->expected_value),
 
-                        "atualJobs" => $allAno->count,
-                        "metaJobs" => $yearGoals->expected_value,
+                        //"atualJobs" => $allAno->count,
+                        //"metaJobs" => $yearGoals->expected_value,
 
-                        "semStand" => $CurrentYearValue->sum,
-                        "standValor" => $CurrentYearStand->sum
+                        //"semStand" => $CurrentYearValue->sum,
+                        //"standValor" => $CurrentYearStand->sum
 
                     ]
                 ];
