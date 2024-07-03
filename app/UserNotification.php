@@ -58,7 +58,7 @@ class UserNotification extends Model
     public static function recents()
     {
         self::checkStandByPendencies();
-        self::checkInativeClients();
+        //self::checkInativeClients();
 
         $usersNotification = UserNotification::select('user_notification.*')
             ->with(['notification', 'notification.type', 'notification.notifier'])
@@ -96,7 +96,7 @@ class UserNotification extends Model
 
     private static function checkStandByPendencies()
     {
-        $jobs = Job::where('attendance_id', User::logged()->employee->id)
+        $jobs = Job::where('attendance_id',"<>", User::logged()->employee->id)
             ->with('client')
             ->where('status_id', 1)
             ->whereYear('created_at', '>=', 2023)
