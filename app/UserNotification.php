@@ -279,7 +279,7 @@ class UserNotification extends Model
     //Função que vai trazer todos os dados para a tela de notificações que será exibida nas sextas-feiras
     public static function notificationsWindow()
     {
-        $jobs = Job::where('attendance_id', User::logged()->employee->id)
+        $jobs = Job::where('attendance_id',"<>", User::logged()->employee->id)
             ->where('status_id', 1)
             ->whereYear('created_at', '>=', 2023)
             ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
@@ -287,7 +287,8 @@ class UserNotification extends Model
             ->with('job_activity', 'job_type', 'client', 'main_expectation', 'levels', 'how_come', 'agency', 'attendance', 'competition', 'files', 'status', 'creation')
             ->get();
 
-        $count = Job::where('attendance_id', User::logged()->employee->id)
+
+        $count = Job::where('attendance_id',"<>", User::logged()->employee->id)
             ->where('status_id', 1)
             ->whereYear('created_at', '>=', 2023)
             ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
@@ -326,6 +327,7 @@ class UserNotification extends Model
                 "status" => $job['status']['description']
             ]);
         }
+
         return response()->json([
             "update_pendency" => [
                 "count" => $count,
