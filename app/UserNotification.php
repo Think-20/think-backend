@@ -96,7 +96,7 @@ class UserNotification extends Model
 
     private static function checkStandByPendencies()
     {
-        $jobs = Job::where('attendance_id',"<>", User::logged()->employee->id)
+        $jobs = Job::where('attendance_id', User::logged()->employee->id)
             ->with('client')
             ->where('status_id', 1)
             ->whereYear('created_at', '>=', 2023)
@@ -279,7 +279,7 @@ class UserNotification extends Model
     //Função que vai trazer todos os dados para a tela de notificações que será exibida nas sextas-feiras
     public static function notificationsWindow()
     {
-        $jobs = Job::where('attendance_id',"<>", User::logged()->employee->id)
+        $jobs = Job::where('attendance_id',User::logged()->employee->id)
             ->where('status_id', 1)
             ->whereYear('created_at', '>=', 2023)
             ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
@@ -288,7 +288,7 @@ class UserNotification extends Model
             ->get();
 
 
-        $count = Job::where('attendance_id',"<>", User::logged()->employee->id)
+        $count = Job::where('attendance_id',User::logged()->employee->id)
             ->where('status_id', 1)
             ->whereYear('created_at', '>=', 2023)
             ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
