@@ -165,7 +165,6 @@ class ReportsController extends Controller
     {
         
         $total_value = $this->reportsService->sumBudgetValue($data);
-       
 
         return response()->json([
             "total_value" => $total_value['sum'],

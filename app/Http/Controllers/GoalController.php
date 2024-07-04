@@ -320,9 +320,10 @@ class GoalController extends Controller
                         "porcentagemInternoReais" => ((($CurrentMonthValueInt['total_value'] - $CurrentMonthValueExt['total_value']) * 100) / $monthGoal->value),
                         
                         "atualExternoReais" =>  $CurrentMonthValueExt['total_value'],
-                        "porcentagemExternoReais" => ((($CurrentMonthValueExt['total_value']) * 100) / $monthGoal->value),
+                        "porcentagemExternoReais" => ((($CurrentMonthValueExt['total_value']) * 100) / $monthGoal->expected_value),
                         
-                        "metaReais" =>  $monthGoal->value,
+                        "metaReaisInterna" =>  $monthGoal->value,
+                        "metaReaisExterna" =>  $monthGoal->expected_value,
 
                         /*"porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value),
                         //"porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value) > 100 ? 100 : (($CurrentMonthValue->sum * 100) / $monthGoal->value),
@@ -345,9 +346,10 @@ class GoalController extends Controller
                         "porcentagemInternoReais" => ((($CurrentYearValueInt['total_value'] - $CurrentMonthValueExt['total_value']) * 100) / $yearGoals->value),
                         
                         "atualExternoReais" =>  $CurrentYearValueExt['total_value'],
-                        "porcentagemExternoReais" => ((($CurrentYearValueExt['total_value']) * 100) / $yearGoals->value),
+                        "porcentagemExternoReais" => ((($CurrentYearValueExt['total_value']) * 100) / $yearGoals->expected_value),
                         
-                        "metaReais" =>  $yearGoals->value,
+                        "metaReaisInterna" =>  $yearGoals->value,
+                        "metaReaisExterna" =>  $yearGoals->expected_value,
 
                         /*"porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value),
                         "atualReais" =>  $CurrentYearValue->sum + $CurrentYearStand->sum,
