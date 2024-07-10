@@ -109,7 +109,7 @@ class UpdateTaskColumNewView extends Migration
             $table->dropColumn('diversos_operacional_coeficiente');
             $table->dropColumn('frete_logistica_coeficiente');
             $table->dropColumn('m2_venda_stand_coeficiente');
-            $table->dropColumn('m2_venda_stand_logistica_equipamentos_coeficiente');            
+            $table->dropColumn('m2_venda_stand_logistica_equipamentos_coeficiente');
         });        
     }
 }

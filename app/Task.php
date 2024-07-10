@@ -1062,10 +1062,9 @@ class Task extends Model
         isset($data['execucao']) /*|| $data['final_value'] == ""*/ ? $task->execucao = $data['execucao'] : null;
         isset($data['servico_diversos_operacional']) /*|| $data['final_value'] == ""*/ ? $task->diversos_operacional = $data['servico_diversos_operacional'] : null;
         isset($data['coeficiente_margem']) /*|| $data['final_value'] == ""*/ ? $task->coeficiente_margem = $data['coeficiente_margem'] : null;
-
-
-        //Campos da terceira versão - ainda a serem adicionados no banco
         isset($data['frete_logistica']) /*|| $data['final_value'] == ""*/ ? $task->frete_logistica = $data['frete_logistica'] : null; //Possivel remoção 
+
+        //Campos da terceira versão
         isset($data['total_geral_estande_visibily']) /*|| $data['final_value'] == ""*/ ? $task->total_geral_estande_visibily = $data['total_geral_estande_visibily'] : null;
         isset($data['liquido_think_visibily']) /*|| $data['final_value'] == ""*/ ? $task->liquido_think_visibily = $data['liquido_think_visibily'] : null;
         isset($data['m2_venda_stand_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->m2_venda_stand_meta_porcentagem = $data['m2_venda_stand_meta_porcentagem'] : null;
@@ -1110,9 +1109,20 @@ class Task extends Model
         isset($data['m2_venda_stand_logistica_equipamentos_coeficiente']) /*|| $data['final_value'] == ""*/ ? $task->m2_venda_stand_logistica_equipamentos_coeficiente = $data['m2_venda_stand_logistica_equipamentos_coeficiente'] : null;
         isset($data['opcional_equipamento_audio_visual']) /*|| $data['final_value'] == ""*/ ? $task->opcional_equipamento_audio_visual = $data['opcional_equipamento_audio_visual'] : null;
 
+        //Campos da quarta versão
+        isset($data['custo_total_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->custo_total_meta_porcentagem = $data['custo_total_meta_porcentagem'] : null;
+        isset($data['imposto_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->imposto_meta_porcentagem = $data['imposto_meta_porcentagem'] : null;
+        isset($data['comissao_vendas_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->comissao_vendas_meta_porcentagem = $data['comissao_vendas_meta_porcentagem'] : null;
+        isset($data['bonificacao_projeto_interno_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->bonificacao_projeto_interno_meta_porcentagem = $data['bonificacao_projeto_interno_meta_porcentagem'] : null;
+        isset($data['bonificacao_orcamento_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->bonificacao_orcamento_meta_porcentagem = $data['bonificacao_orcamento_meta_porcentagem'] : null;
+        isset($data['bonificacao_gerente_producao_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->bonificacao_gerente_producao_meta_porcentagem = $data['bonificacao_gerente_producao_meta_porcentagem'] : null;
+        isset($data['bonificacao_producao_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->bonificacao_producao_meta_porcentagem = $data['bonificacao_producao_meta_porcentagem'] : null;
+        isset($data['bonificacao_detalhamento_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->bonificacao_detalhamento_meta_porcentagem = $data['bonificacao_detalhamento_meta_porcentagem'] : null;
+        isset($data['total_estande_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->total_estande_meta_porcentagem = $data['total_estande_meta_porcentagem'] : null;
         $task->updated_by = User::logged()->employee->name;
 
         $task->save();
+
 
         //Atualiza o final value do JOB PAI para o final value inputado
         $jobFinalValue = Job::where('id', $task->job_id)->first();
