@@ -348,8 +348,8 @@ class GoalController extends Controller
                         "atualExternoReais" =>  $CurrentYearValueExt['total_value'],
                         "porcentagemExternoReais" => ((($CurrentYearValueExt['total_value']) * 100) / ($yearGoals->expected_value  / 12 *  Carbon::parse($dtFim)->month)),
 
-                        "metaReaisInterna" => ($yearGoals->value / Carbon::parse($dtFim)->month),
-                        "metaReaisExterna" => ($yearGoals->expected_value  / Carbon::parse($dtFim)->month),
+                        "metaReaisInterna" => ($yearGoals->value / 12 *  Carbon::parse($dtFim)->month),
+                        "metaReaisExterna" => ($yearGoals->expected_value  / 12 * Carbon::parse($dtFim)->month),
 
                         /*"porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value),
                         "atualReais" =>  $CurrentYearValue->sum + $CurrentYearStand->sum,
