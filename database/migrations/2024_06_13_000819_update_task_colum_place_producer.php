@@ -14,19 +14,19 @@ class UpdateTaskColumPlaceProducer extends Migration
     public function up()
     {
         Schema::table('task', function (Blueprint $table) {
-            $table->double('frete_logistica')->nullable();
-            $table->double('diversos_operacional')->nullable();
+            //$table->double('frete_logistica')->nullable();
+            //$table->double('diversos_operacional')->nullable();
 
-            $table->double('mezanino')->nullable();
-            $table->date('dt_event')->nullable();
-            $table->date('dt_inicio_event')->nullable();
-            $table->date('dt_montagem')->nullable();
-            $table->date('dt_fim_event')->nullable();
-            $table->date('dt_desmontagem')->nullable();
+            //$table->double('mezanino')->nullable();
+            //$table->date('dt_event')->nullable();
+            //$table->date('dt_inicio_event')->nullable();
+            //$table->date('dt_montagem')->nullable();
+            //$table->date('dt_fim_event')->nullable();
+            //$table->date('dt_desmontagem')->nullable();
         });
 
         Schema::table('job', function (Blueprint $table) {
-            $table->string('producer')->nullable();
+            //$table->string('producer')->nullable();
         });
     }
 
