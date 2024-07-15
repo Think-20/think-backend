@@ -281,11 +281,6 @@ class GoalController extends Controller
             $monthGoal =  $this->reportsService->GetGoalByMountAndYear(intval(Carbon::parse($dtFim)->subDay(1)->format('m')), intval(Carbon::parse($dtFim)->subDay(1)->format('Y')));
             $yearGoals =  $this->reportsService->GetGoalYear(intval(Carbon::parse($dtFim)->subDay(1)->format('Y')));
 
-            dd([
-                $CurrentYearValueInt['total_value'],
-                $CurrentMonthValueExt['total_value']
-            ]);
-
             try {
                 $goals = [
                     "date" => Carbon::parse($date_init)->addDay($i)->format('Y-m-d'),
