@@ -116,6 +116,10 @@ class TaskItem extends Model
         $creationId = isset($params['creation']['id']) ? $params['creation']['id'] : null;
         $responsibleId = isset($params['responsible']['id']) ? $params['responsible']['id'] : null;
 
+        if (User::logged()->employee->id == 51) {
+            $responsibleId = [11, 51];
+        }
+
         $statusArrayId = isset($params['status_array']) && !empty($params['status_array']) ? array_map(function ($v) {
             return $v['id'];
         }, $params['status_array']) : null;
@@ -269,8 +273,8 @@ class TaskItem extends Model
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
         $attendances = [];
 
-        if(isset($params['attendance_array'])){
-            foreach($params['attendance_array'] as $attendance){
+        if (isset($params['attendance_array'])) {
+            foreach ($params['attendance_array'] as $attendance) {
                 array_push($attendances, $attendance['id']);
             }
         }
@@ -295,7 +299,7 @@ class TaskItem extends Model
                 $query->where('attendance_id', '=', $user->employee->id);
             });
         } else {
-            if($attendances){
+            if ($attendances) {
                 $tasks->whereHas('task.job', function ($query) use ($attendances) {
                     $query->whereIn('attendance_id', $attendances);
                 });
