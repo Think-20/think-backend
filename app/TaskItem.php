@@ -290,8 +290,6 @@ class TaskItem extends Model
             'task.task',
             'task.task.job_activity'
         );
-        
-        dd(User::logged()->employee->department->description);
 
         if ($user->employee->department->description == 'Atendimento') {
             $tasks->whereHas('task.job', function ($query) use ($user) {
@@ -303,9 +301,16 @@ class TaskItem extends Model
                     $query->whereIn('attendance_id', $attendances);
                 });
             }
-            $tasks->whereHas('task', function ($query) use ($user) {
-                $query->where('responsible_id', '=', $user->employee->id);
-            });
+            if (User::logged()->employee->id == 51) {
+                $tasks->whereHas('task', function ($query) use ($user) {
+                    $query->where('responsible_id', '=', 11);
+                    $query->where('responsible_id', '=', $user->employee->id);
+                });
+            } else {
+                $tasks->whereHas('task', function ($query) use ($user) {
+                    $query->where('responsible_id', '=', $user->employee->id);
+                });
+            }
         }
 
         if (!is_null($iniDate) && !is_null($finDate)) {
