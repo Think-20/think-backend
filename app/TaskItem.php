@@ -116,11 +116,6 @@ class TaskItem extends Model
         $creationId = isset($params['creation']['id']) ? $params['creation']['id'] : null;
         $responsibleId = isset($params['responsible']['id']) ? $params['responsible']['id'] : null;
 
-        if (User::logged()->employee->id == 51) {
-            $responsibleId = [11, 51];
-        }
-
-        dd(User::logged()->employee->id);
 
         $statusArrayId = isset($params['status_array']) && !empty($params['status_array']) ? array_map(function ($v) {
             return $v['id'];
@@ -295,6 +290,8 @@ class TaskItem extends Model
             'task.task',
             'task.task.job_activity'
         );
+        
+        dd(User::logged()->employee->department->description);
 
         if ($user->employee->department->description == 'Atendimento') {
             $tasks->whereHas('task.job', function ($query) use ($user) {
