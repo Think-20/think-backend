@@ -281,36 +281,10 @@ class GoalController extends Controller
             $monthGoal =  $this->reportsService->GetGoalByMountAndYear(intval(Carbon::parse($dtFim)->subDay(1)->format('m')), intval(Carbon::parse($dtFim)->subDay(1)->format('Y')));
             $yearGoals =  $this->reportsService->GetGoalYear(intval(Carbon::parse($dtFim)->subDay(1)->format('Y')));
 
-            /*$allMes = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfMonth(), "date_end" => Carbon::parse($dtFim)]);
-            $allAno = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfYear(),  "date_end" => Carbon::parse($dtFim)]);
-
-            
-
-            $CurrentMonthValue = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfMonth(), "date_end" => Carbon::parse($dtFim)]);
-            $CurrentYearValue = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfYear(), "date_end" => Carbon::parse($dtFim)]);
-
-            //Caso CurrentMonthValue tenha valor nenhum, mostra 0
-            if ($CurrentMonthValue->sum == null) {
-                $CurrentMonthValue->sum = 0;
-            }
-
-            //Caso CurrentYearValue tenha valor nenhum, mostra 0
-            if ($CurrentYearValue->sum == null) {
-                $CurrentYearValue->sum = 0;
-            }
-
-            $CurrentMonthValueStand = $this->reportsService->GetStandbys(["date_init" => Carbon::parse($dtFim)->startOfMonth(), "date_end" => Carbon::parse($dtFim)]);
-            $CurrentYearStand = $this->reportsService->GetStandbys(['date_init' => Carbon::parse($dtFim)->startOfYear(), 'date_end' => Carbon::parse($dtFim)->format('Y-m-d')]);
-
-            //Caso CurrentMonthValueStand tenha valor nenhum, mostra 0
-            if ($CurrentMonthValueStand->sum == null) {
-                $CurrentMonthValueStand->sum = 0;
-            }
-
-            //Caso CurrentYearStand tenha valor nenhum, mostra 0
-            if ($CurrentYearStand->sum == null) {
-                $CurrentYearStand->sum = 0;
-            }*/
+            dd([
+                $CurrentYearValueInt['total_value'],
+                $CurrentMonthValueExt['total_value']
+            ]);
 
             try {
                 $goals = [
@@ -323,49 +297,17 @@ class GoalController extends Controller
                         "porcentagemExternoReais" => ((($CurrentMonthValueExt['total_value']) * 100) / $monthGoal->expected_value),
 
                         "metaReaisInterna" =>  $monthGoal->value,
-                        "metaReaisExterna" =>  $monthGoal->expected_value,
-
-                        /*"porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value),
-                        //"porcentagemReais" => (($CurrentMonthValue->sum * 100) / $monthGoal->value) > 100 ? 100 : (($CurrentMonthValue->sum * 100) / $monthGoal->value),
-
-                        //"atualReais" => $CurrentMonthValue->sum + $CurrentMonthValueStand->sum,
-                        "atualReais" => $CurrentMonthValue,
-                        "metaReais" =>  $monthGoal->value,*/
-                        //"porcentagemJobs" => (($allMes->count * 100) / $monthGoal->expected_value),
-                        //"porcentagemJobs" => (($allMes->count * 100) / $monthGoal->expected_value) > 100 ? 100 : (($allMes->count * 100) / $monthGoal->expected_value),
-
-                        //"atualJobs" => $allMes->count,
-                        //"metaJobs" => $monthGoal->expected_value,
-
-                        //"semStand" => $CurrentMonthValue->sum,
-                        //"standValor" => $CurrentMonthValueStand->sum
+                        "metaReaisExterna" =>  $monthGoal->expected_value
                     ],
                     "anual" => [
-
-                        "atualInternoReais" => ($CurrentYearValueInt['total_value'] - $CurrentMonthValueExt['total_value']),
-                        "porcentagemInternoReais" => ((($CurrentYearValueInt['total_value'] - $CurrentMonthValueExt['total_value']) * 100) / ($yearGoals->value / 12 *  Carbon::parse($dtFim)->month)),
+                        "atualInternoReais" => ($CurrentYearValueInt['total_value'] - $CurrentYearValueExt['total_value']),
+                        "porcentagemInternoReais" => ((($CurrentYearValueInt['total_value'] - $CurrentYearValueExt['total_value']) * 100) / ($yearGoals->value / 12 *  Carbon::parse($dtFim)->month)),
 
                         "atualExternoReais" =>  $CurrentYearValueExt['total_value'],
                         "porcentagemExternoReais" => ((($CurrentYearValueExt['total_value']) * 100) / ($yearGoals->expected_value  / 12 *  Carbon::parse($dtFim)->month)),
 
                         "metaReaisInterna" => ($yearGoals->value / 12 *  Carbon::parse($dtFim)->month),
-                        "metaReaisExterna" => ($yearGoals->expected_value  / 12 * Carbon::parse($dtFim)->month),
-
-                        /*"porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value),
-                        "atualReais" =>  $CurrentYearValue->sum + $CurrentYearStand->sum,
-                        "metaReais" =>  $yearGoals->value,*/
-
-                        //"porcentagemReais" => (($CurrentYearValue->sum * 100) / $yearGoals->value) > 100 ? 100 : (($CurrentYearValue->sum * 100) / $yearGoals->value),
-
-                        //"porcentagemJobs" => (($allAno->sum * 100) / $yearGoals->expected_value),
-                        //"porcentagemJobs" => (($allAno->sum * 100) / $yearGoals->expected_value) > 100 ? 100 : (($allAno->sum * 100) / $yearGoals->expected_value),
-
-                        //"atualJobs" => $allAno->count,
-                        //"metaJobs" => $yearGoals->expected_value,
-
-                        //"semStand" => $CurrentYearValue->sum,
-                        //"standValor" => $CurrentYearStand->sum
-
+                        "metaReaisExterna" => ($yearGoals->expected_value  / 12 * Carbon::parse($dtFim)->month)
                     ]
                 ];
             } catch (Exception $e) {

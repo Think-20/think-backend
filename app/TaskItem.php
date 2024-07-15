@@ -116,7 +116,6 @@ class TaskItem extends Model
         $creationId = isset($params['creation']['id']) ? $params['creation']['id'] : null;
         $responsibleId = isset($params['responsible']['id']) ? $params['responsible']['id'] : null;
 
-
         $statusArrayId = isset($params['status_array']) && !empty($params['status_array']) ? array_map(function ($v) {
             return $v['id'];
         }, $params['status_array']) : null;
@@ -301,7 +300,8 @@ class TaskItem extends Model
                     $query->whereIn('attendance_id', $attendances);
                 });
             }
-            if (User::logged()->employee->id == 51) {
+            //Mescla por enquanto para que as task que sejam pro Bruno ou pra Pamela, sejam vistas por ambos
+            if (User::logged()->employee->id == 51 || User::logged()->employee->id == 11) {
                 $tasks->whereHas('task', function ($query) use ($user) {
                     $query->where('responsible_id', '=', 11)->orWhere('responsible_id', '=', 51);
                 });
