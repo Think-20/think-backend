@@ -120,6 +120,8 @@ class TaskItem extends Model
             $responsibleId = [11, 51];
         }
 
+        dd(User::logged()->employee->id);
+
         $statusArrayId = isset($params['status_array']) && !empty($params['status_array']) ? array_map(function ($v) {
             return $v['id'];
         }, $params['status_array']) : null;
