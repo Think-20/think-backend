@@ -303,8 +303,7 @@ class TaskItem extends Model
             }
             if (User::logged()->employee->id == 51) {
                 $tasks->whereHas('task', function ($query) use ($user) {
-                    $query->where('responsible_id', '=', 11);
-                    //$query->orwhere('responsible_id', '=', $user->employee->id);
+                    $query->where('responsible_id', '=', 11)->orWhere('responsible_id', '=', 51);
                 });
             } else {
                 $tasks->whereHas('task', function ($query) use ($user) {
