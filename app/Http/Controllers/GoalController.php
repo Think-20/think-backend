@@ -313,21 +313,24 @@ class GoalController extends Controller
                 $goals = [
                     "date" => Carbon::parse($date_init)->addDay($i)->format('Y-m-d'),
                     "mes" => [
+                        "atualCompleto" => $CurrentMonthValueInt['total_value'],
 
                         "atualInternoReais" => ($CurrentMonthValueInt['total_value'] - $CurrentMonthValueExt['total_value']),
-                        "porcentagemInternoReais" => ((($CurrentMonthValueInt['total_value'] - $CurrentMonthValueExt['total_value']) * 100) / $monthGoal->value),
-
                         "atualExternoReais" =>  $CurrentMonthValueExt['total_value'],
+
+                        "porcentagemInternoReais" => ((($CurrentMonthValueInt['total_value'] - $CurrentMonthValueExt['total_value']) * 100) / $monthGoal->value),
                         "porcentagemExternoReais" => ((($CurrentMonthValueExt['total_value']) * 100) / $monthGoal->expected_value),
 
                         "metaReaisInterna" =>  $monthGoal->value,
                         "metaReaisExterna" =>  $monthGoal->expected_value
                     ],
                     "anual" => [
-                        "atualInternoReais" => ($CurrentYearValueInt['total_value'] - $CurrentYearValueExt['total_value']),
-                        "porcentagemInternoReais" => ((($CurrentYearValueInt['total_value'] - $CurrentYearValueExt['total_value']) * 100) / ($yearGoals->value / 12 *  Carbon::parse($dtFim)->month)),
+                        "atualCompleto" => $CurrentYearValueInt['total_value'],
 
+                        "atualInternoReais" => ($CurrentYearValueInt['total_value'] - $CurrentYearValueExt['total_value']),
                         "atualExternoReais" =>  $CurrentYearValueExt['total_value'],
+
+                        "porcentagemInternoReais" => ((($CurrentYearValueInt['total_value'] - $CurrentYearValueExt['total_value']) * 100) / ($yearGoals->value / 12 *  Carbon::parse($dtFim)->month)),
                         "porcentagemExternoReais" => ((($CurrentYearValueExt['total_value']) * 100) / ($yearGoals->expected_value  / 12 *  Carbon::parse($dtFim)->month)),
 
                         "metaReaisInterna" => ($yearGoals->value / 12 *  Carbon::parse($dtFim)->month),
