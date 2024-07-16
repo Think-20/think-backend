@@ -260,6 +260,34 @@ class GoalController extends Controller
             $CurrentYearValueExt = json_decode($this->reportsController->readCallendar($dataExtAno)->getContent(), true);
             $CurrentYearValueInt = json_decode($this->reportsController->readCallendar($dataIntAno)->getContent(), true);
 
+            /*
+            $CurrentMonthValue = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfMonth(), "date_end" => Carbon::parse($dtFim)]);
+            $CurrentYearValue = $this->reportsService->GetAllBudgets(["date_init" => Carbon::parse($dtFim)->startOfYear(), "date_end" => Carbon::parse($dtFim)]);
+
+            //Caso CurrentMonthValue tenha valor nenhum, mostra 0
+            if ($CurrentMonthValue->sum == null) {
+                $CurrentMonthValue->sum = 0;
+            }
+
+            //Caso CurrentYearValue tenha valor nenhum, mostra 0
+            if ($CurrentYearValue->sum == null) {
+                $CurrentYearValue->sum = 0;
+            }
+
+            $CurrentMonthValueStand = $this->reportsService->GetStandbys(["date_init" => Carbon::parse($dtFim)->startOfMonth(), "date_end" => Carbon::parse($dtFim)]);
+            $CurrentYearStand = $this->reportsService->GetStandbys(['date_init' => Carbon::parse($dtFim)->startOfYear(), 'date_end' => Carbon::parse($dtFim)->format('Y-m-d')]);
+
+            //Caso CurrentMonthValueStand tenha valor nenhum, mostra 0
+            if ($CurrentMonthValueStand->sum == null) {
+                $CurrentMonthValueStand->sum = 0;
+            }
+
+            //Caso CurrentYearStand tenha valor nenhum, mostra 0
+            if ($CurrentYearStand->sum == null) {
+                $CurrentYearStand->sum = 0;
+            }
+            */
+
             //Verifica se os campos estão null e seta 0 para que n tenha problemas
             if (!isset($CurrentMonthValueExt['total_value'])) {
                 $CurrentMonthValueExt['total_value'] = 0;
@@ -285,6 +313,7 @@ class GoalController extends Controller
                 $goals = [
                     "date" => Carbon::parse($date_init)->addDay($i)->format('Y-m-d'),
                     "mes" => [
+
                         "atualInternoReais" => ($CurrentMonthValueInt['total_value'] - $CurrentMonthValueExt['total_value']),
                         "porcentagemInternoReais" => ((($CurrentMonthValueInt['total_value'] - $CurrentMonthValueExt['total_value']) * 100) / $monthGoal->value),
 

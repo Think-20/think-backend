@@ -163,8 +163,7 @@ class ReportsController extends Controller
 
     public function readCallendar($data)
     {
-        
-        $total_value = $this->reportsService->sumBudgetValue($data);
+        $total_value = $this->reportsService->sumBudgetValueCalendar($data);
 
         return response()->json([
             "total_value" => $total_value['sum'],

@@ -155,6 +155,38 @@ class ReportsService
         return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
     }
 
+    public static function sumBudgetValueCalendar($data)
+    {
+        if (isset($data['userFilter']) && $data['userFilter'] == false) {
+            $jobs = self::queryNoUserFilter($data);
+        } else {
+            $jobs = self::baseQuery($data);
+        }
+
+        if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
+            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(sum(ifnull(final_value, budget_value)), 0) as sum'))->first();
+        } else {
+            $result = $jobs->select(
+                DB::raw('COUNT(*) as count'),
+                DB::raw('SUM(
+                    CASE
+                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
+                            CASE
+                                WHEN 
+                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
+                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
+                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
+                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
+                                ELSE final_value
+                            END
+                        ELSE final_value
+                    END
+                ) as sum')
+            )->first();
+        }
+        return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
+    }
+
     public static function sumBudgetValueApproveds($data)
     {
         if (isset($data['userFilter']) && $data['userFilter'] == false) {
@@ -668,7 +700,7 @@ class ReportsService
     public function GetAllBudgets($data)
     {
         $jobs = Job::select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(sum(ifnull(final_value, budget_value)), 0) as sum'));
-        $jobs->where('status_id','!=',1);
+        $jobs->where('status_id', '!=', 1);
 
         if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
@@ -681,9 +713,9 @@ class ReportsService
         } else {
             $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
         }
-        
 
-        $result = $jobs->first();        
+
+        $result = $jobs->first();
         return $result;
     }
 
