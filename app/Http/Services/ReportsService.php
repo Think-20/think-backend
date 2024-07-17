@@ -159,7 +159,6 @@ class ReportsService
     {
         $creationId = isset($data['creation']) ? $data['creation'] : null;
 
-
         $jobs = Job::select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(sum(ifnull(final_value, budget_value)), 0) as sum'));
 
         if ($creationId && !in_array('external', $creationId)) {
