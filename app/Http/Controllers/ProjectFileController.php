@@ -14,7 +14,8 @@ use Illuminate\Database\QueryException;
 
 class ProjectFileController extends Controller
 {
-    public static function save(Request $request) {
+    public static function save(Request $request)
+    {
         $data = $request->all();
         $status = false;
         $project_file = null;
@@ -26,31 +27,32 @@ class ProjectFileController extends Controller
             $message = 'Arquivo inserido com sucesso!';
             DB::commit();
             $status = true;
-        } 
-        /* Catch com FileException tamanho máximo */
-        catch(Exception $e) {
+        }
+        /* Catch com FileException tamanho máximo */ catch (Exception $e) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
-             //. $e->getFile() . $e->getLine();
+            //. $e->getFile() . $e->getLine();
         }
 
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
             'files' => $project_file
-         ]), 200);
+        ]), 200);
     }
 
-    public static function saveMultiple(Request $request) {
+    public static function saveMultiple(Request $request)
+    {
         $data = $request->all();
         $status = false;
         $projectFiles = null;
-        
-        /*if(User::logged()->employee->department->description == "Atendimento"){
-            if(($request[0]['task']['job_activity']['description'] != "Projeto externo")){
+
+        //Devolver validação apos o ernesto testar
+        if (User::logged()->employee->department->description == "Atendimento") {
+            if (($request[0]['task']['job_activity']['description'] != "Projeto externo")) {
                 throw new Exception('Atendimento não tem permissão para fazer upload em projetos que não sejam Externos');
             }
-        }*/
+        }
 
         DB::beginTransaction();
 
@@ -59,22 +61,22 @@ class ProjectFileController extends Controller
             $message = 'Arquivos inseridos com sucesso!';
             DB::commit();
             $status = true;
-        } 
-        /* Catch com FileException tamanho máximo */
-        catch(Exception $e) {
+        }
+        /* Catch com FileException tamanho máximo */ catch (Exception $e) {
             DB::rollBack();
-            $message = 'Um erro ocorreu ('.$e->getFile() .' '. $e->getLine().') ao cadastrar: ' . $e->getMessage();
-             //. $e->getFile() . $e->getLine();
+            $message = 'Um erro ocorreu (' . $e->getFile() . ' ' . $e->getLine() . ') ao cadastrar: ' . $e->getMessage();
+            //. $e->getFile() . $e->getLine();
         }
 
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
             'files' => $projectFiles
-         ]), 200);
+        ]), 200);
     }
 
-    public static function edit(Request $request) {
+    public static function edit(Request $request)
+    {
         DB::beginTransaction();
         $status = false;
         $data = $request->all();
@@ -84,10 +86,10 @@ class ProjectFileController extends Controller
             $message = 'Arquivo alterado com sucesso!';
             $status = true;
             DB::commit();
-        } catch(QueryException $queryException) {
+        } catch (QueryException $queryException) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
             // . $e->getFile() . $e->getLine();
@@ -96,11 +98,12 @@ class ProjectFileController extends Controller
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-         ]), 200);
+        ]), 200);
     }
-    
-    
-    public static function remove(int $id) {
+
+
+    public static function remove(int $id)
+    {
         DB::beginTransaction();
         $status = false;
 
@@ -109,10 +112,10 @@ class ProjectFileController extends Controller
             $message = 'Arquivo removido com sucesso!';
             $status = true;
             DB::commit();
-        } catch(QueryException $queryException) {
+        } catch (QueryException $queryException) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao deletar no banco de dados. ' . $queryException->getMessage();
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             $message = 'Um erro desconhecido ocorreu ao deletar: ' . $e->getMessage();
         }
@@ -120,26 +123,28 @@ class ProjectFileController extends Controller
         return Response::make(json_encode([
             'message' => $message,
             'status' => $status,
-         ]), 200);
+        ]), 200);
     }
 
-    public static function downloadFile($id) {
+    public static function downloadFile($id)
+    {
         try {
             $fileFound = ProjectFile::downloadFile($id);
             $status = true;
             return Response::make(file_get_contents($fileFound), 200, ['Content-Type' => mime_content_type($fileFound)]);
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             $message = 'Um erro ocorreu ao abrir o arquivo: ' . $e->getMessage();
             return Response::make($message, 404);
         }
     }
 
-    public static function downloadAll($taskId) {
+    public static function downloadAll($taskId)
+    {
         try {
             $fileFound = ProjectFile::downloadAllFiles($taskId);
             $status = true;
             return Response::make(file_get_contents($fileFound), 200, ['Content-Type' => mime_content_type($fileFound)]);
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             $message = 'Um erro ocorreu ao abrir o arquivo: ' . $e->getMessage();
             return Response::make($message, 404);
         }
