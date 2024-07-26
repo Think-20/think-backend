@@ -245,7 +245,7 @@ class Client extends Model implements Contactable
 
         //Reativado apos pedido dia 23/07
         //Removido dia 15/05/2024 por não estar sendo usado, então foi criado o filtro pro atendimento baseado no usuario logado
-        if (!is_null($attendanceArrayId)) {
+        if (!is_null($attendanceArrayId )) {
             $query->whereIn('employee_id', $attendanceArrayId);
         }
 
