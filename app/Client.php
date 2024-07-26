@@ -201,14 +201,11 @@ class Client extends Model implements Contactable
     {
         $search = isset($data['search']) ? $data['search'] : null;
 
-        /* Removido dia 15/05/2024 por não estar sendo usado, então foi criado o filtro pro atendimento baseado no usuario logado
-        $attendanceArrayId = isset($data['attendance']) && !empty($data['attendance']) ? array_map(function ($v) {
-            //dd($v);
-            //return $v['id'];
-
-            return $v;
-        }, $data['attendance']) : null;
-        */
+        //Reativado apos pedido dia 23/07
+        // Removido dia 15/05/2024 por não estar sendo usado, então foi criado o filtro pro atendimento baseado no usuario logado
+        $attendanceArrayId = isset($data['attendance_array']) && !empty($data['attendance_array']) ? array_map(function ($v) {
+            return $v['id'];            
+        }, $data['attendance_array']) : null;
 
         $clientStatusId = isset($data['client_status']['id']) ? $data['client_status']['id'] : null;
         $clientTypeId = isset($data['client_type']['id']) ? $data['client_type']['id'] : null;
@@ -246,13 +243,14 @@ class Client extends Model implements Contactable
             });
         }
 
-        /* Removido dia 15/05/2024 por não estar sendo usado, então foi criado o filtro pro atendimento baseado no usuario logado
+        //Reativado apos pedido dia 23/07
+        //Removido dia 15/05/2024 por não estar sendo usado, então foi criado o filtro pro atendimento baseado no usuario logado
         if (!is_null($attendanceArrayId)) {
             $query->whereIn('employee_id', $attendanceArrayId);
-            dd("entrou aq");
-        }*/
+        }
 
 
+        //REATIVADA PARA TESTE de usuarios
         //Removida no dia 13/06 e feita no front para travar atendentes de alterar usuarios q n são deles
         //Função que verifica se o usuario logado é atendimendo, se for o caso, então só mostra os clientes dele na busca de clientes
         /*$user = User::logged();
