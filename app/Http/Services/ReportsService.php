@@ -190,7 +190,9 @@ class ReportsService
         return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
         */
 
+        $baseSubMonths = 8;
         $creationId = isset($data['creation']) ? $data['creation'] : null;
+        
         if (in_array('external', $creationId)) {
 
             $sql = "SELECT 
@@ -200,7 +202,7 @@ class ReportsService
                 "' AND ti.date <= '" . Carbon::parse($data['date_end'])->format('Y-m-d') . "'
                     ORDER BY ti.date LIMIT 1) as ddbase , j.*
                     FROM job as j
-                    where j.created_at >= '" . Carbon::parse($data['date_init'])->subMonths(6)->format('Y-m-d') . "' AND j.job_activity_id = 14  ORDER BY ddbase DESC;";
+                    where j.created_at >= '" . Carbon::parse($data['date_init'])->subMonths($baseSubMonths)->format('Y-m-d') . "' AND j.job_activity_id = 14  ORDER BY ddbase DESC;";
 
             $resultByFirstTaskDate = DB::select(DB::raw($sql));
         } else {
@@ -211,7 +213,7 @@ class ReportsService
                 "' AND ti.date <= '" . Carbon::parse($data['date_end'])->format('Y-m-d') . "'
                     ORDER BY ti.date LIMIT 1) as ddbase , j.*
                     FROM job as j
-                    where j.created_at >= '" . Carbon::parse($data['date_init'])->subMonths(6)->format('Y-m-d') . "'  ORDER BY ddbase DESC;";
+                    where j.created_at >= '" . Carbon::parse($data['date_init'])->subMonths($baseSubMonths)->format('Y-m-d') . "'  ORDER BY ddbase DESC;";
 
             $resultByFirstTaskDate = DB::select(DB::raw($sql));
         }
