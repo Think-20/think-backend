@@ -196,6 +196,7 @@ class GoalController extends Controller
 
             $dtFim = Carbon::parse($date_init)->addDay($i);
 
+
             //Alteração para receber dados do relatorio para q seja possivel diferenciar entre valores de internos e de externos
             $dataExtMes = [
                 "date_init" => Carbon::parse($dtFim)->startOfMonth(),
@@ -308,6 +309,7 @@ class GoalController extends Controller
             //Metas mensais e anuais
             $monthGoal =  $this->reportsService->GetGoalByMountAndYear(intval(Carbon::parse($dtFim)->subDay(1)->format('m')), intval(Carbon::parse($dtFim)->subDay(1)->format('Y')));
             $yearGoals =  $this->reportsService->GetGoalYear(intval(Carbon::parse($dtFim)->subDay(1)->format('Y')));
+
 
             try {
                 $goals = [

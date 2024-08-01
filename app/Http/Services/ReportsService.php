@@ -157,7 +157,9 @@ class ReportsService
 
     public static function sumBudgetValueCalendar($data)
     {
-        $creationId = isset($data['creation']) ? $data['creation'] : null;
+
+        //ANTIGA BUSCA DA AGENDA
+        /*$creationId = isset($data['creation']) ? $data['creation'] : null;
 
         $jobs = Job::select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(sum(ifnull(final_value, budget_value)), 0) as sum'));
 
@@ -169,7 +171,7 @@ class ReportsService
             $jobs->where('job_activity_id', 14);
         }
 
-        if (isset($data['date_init'])) {            
+        if (isset($data['date_init'])) {
             $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
         } else {
             $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
@@ -183,7 +185,54 @@ class ReportsService
 
         $result = $jobs->first();
 
+        $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+        
         return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
+        */
+
+        $creationId = isset($data['creation']) ? $data['creation'] : null;
+        if (in_array('external', $creationId)) {
+
+            $sql = "SELECT 
+                    (SELECT ti.date FROM task_item as ti
+                    JOIN task as t ON t.id = ti.task_id 
+                    WHERE t.job_id = j.id AND ti.date >= '" . Carbon::parse($data['date_init'])->format('Y-m-d') .
+                "' AND ti.date <= '" . Carbon::parse($data['date_end'])->format('Y-m-d') . "'
+                    ORDER BY ti.date LIMIT 1) as ddbase , j.*
+                    FROM job as j
+                    where j.created_at >= '" . Carbon::now()->startOfYear()->format('Y-m-d') . "' AND j.job_activity_id = 14  ORDER BY ddbase DESC;";
+
+            $resultByFirstTaskDate = DB::select(DB::raw($sql));
+        } else {
+            $sql = "SELECT 
+                    (SELECT ti.date FROM task_item as ti
+                    JOIN task as t ON t.id = ti.task_id 
+                    WHERE t.job_id = j.id AND ti.date >= '" . Carbon::parse($data['date_init'])->format('Y-m-d') .
+                "' AND ti.date <= '" . Carbon::parse($data['date_end'])->format('Y-m-d') . "'
+                    ORDER BY ti.date LIMIT 1) as ddbase , j.*
+                    FROM job as j
+                    where j.created_at >= '" . Carbon::now()->startOfYear()->format('Y-m-d') . "'  ORDER BY ddbase DESC;";
+
+            $resultByFirstTaskDate = DB::select(DB::raw($sql));
+        }
+
+
+        $count = 0;
+        $sum = 0;
+        foreach ($resultByFirstTaskDate as $a) {
+            if ($a->ddbase != null) {
+                $count++;
+                if ($a->final_value != null) {
+                    $sum += $a->final_value;
+                } else if ($a->budget_value != null) {
+                    $sum += $a->budget_value;
+                }
+            }
+        }
+
+
+        $resp = ["count" => $count, "sum" => $sum];
+        return ["sum" => $resp['sum'] != null ? $resp['sum'] : 0, "count" => $resp['count'] > 0 ? $resp['count'] : 0];
     }
 
     public static function sumBudgetValueApproveds($data)
