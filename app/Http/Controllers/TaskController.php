@@ -258,8 +258,8 @@ class TaskController extends Controller
         try {
             $task = Task::insert($data);
             $message = 'Cronograma cadastrado com sucesso!';
-            $status = true;
             DB::commit();
+            $status = true;
         } 
         /* Catch com FileException tamanho máximo */
         catch(Exception $e) {

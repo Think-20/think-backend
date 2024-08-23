@@ -24,6 +24,25 @@ class GoalController extends Controller
         $this->reportsController = $reportsController;
     }
 
+    public function selectGoal(Request $request, int $id = null)
+    {
+        if (!isset($id)) {
+            $goal = Goal::get();
+            if (!$goal) {
+                return response()->json(['error' => 'true', 'message' => 'Meta ' . $id . ' nao encontrada'], 400);
+            }
+
+            return $goal;
+        } else {
+            $goal = Goal::where('id', $id)->first();
+
+            if (!$goal) {
+                return response()->json(['error' => 'true', 'message' => 'Meta ' . $id . ' nao encontrada'], 400);
+            }
+            return $goal;
+        }
+    }
+
     public function createGoal(Request $request)
     {
         if ($request->month <=  0  || $request->month >= 13) {
@@ -53,74 +72,6 @@ class GoalController extends Controller
         $newGoal->value = $request->value;
         $newGoal->expected_value = $request->expected_value;
         $newGoal->save();
-
-        return response()->json(['error' => 'false', 'message' => 'Meta cadastrada com sucesso']);
-    }
-
-    public function testeGetS3(Request $request)
-    {
-        // Instantiate an Amazon S3 client.
-        $client = new S3Client([
-            'version' => 'latest',
-            'region' => 'us-east-2',
-            'credentials' => [
-                'key'    => 'AKIAU6GDZZYKK5IS5ZLO',
-                'secret' => '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'
-            ]
-        ]);
-
-        $bucketName = 'testedouglasprendendo';
-
-        //Recebe o codigo da foto na request
-        $key = $request->foto;
-        try {
-            $file = $client->getObject([
-                'Bucket' => $bucketName,
-                'Key' => $key,
-            ]);
-            $body = $file->get('Body');
-
-            return base64_encode($body);
-            //return $body;
-        } catch (Exception $exception) {
-            return "Failed to download $key from $bucketName with error: " . $exception->getMessage();
-        }
-    }
-
-    public function testePutS3(Request $request)
-    {
-        // Instantiate an Amazon S3 client.
-        $client = new S3Client([
-            'version' => 'latest',
-            'region' => 'us-east-2',
-            'credentials' => [
-                'key'    => env('S3_KEY', null),
-                'secret' => env('S3_SECRET', null)
-            ]
-        ]);
-
-        $bucketName = env('S3_BUCKET_NAME', null);
-
-        //Recebe a foto enviada no body
-        $foto = $request->file('foto');
-
-        $key = basename($foto);
-
-        // Upload a publicly accessible file. The file size and type are determined by the SDK.
-        try {
-            $result = $client->putObject([
-                'Bucket' => $bucketName,
-                'Key'    => $key,
-                'Body'   => fopen($foto->path(), 'r'),
-                'ACL'    => 'public-read',
-            ]);
-            return $result;
-        } catch (Exception $e) {
-            return ($e);
-
-            echo "There was an error uploading the file.n";
-            echo $e->getMessage();
-        }
 
         return response()->json(['error' => 'false', 'message' => 'Meta cadastrada com sucesso']);
     }
@@ -167,25 +118,6 @@ class GoalController extends Controller
         $goal->save();
 
         return response()->json(['error' => 'false', 'message' => 'Meta atualizada com sucesso']);
-    }
-
-    public function selectGoal(Request $request, int $id = null)
-    {
-        if (!isset($id)) {
-            $goal = Goal::get();
-            if (!$goal) {
-                return response()->json(['error' => 'true', 'message' => 'Meta ' . $id . ' nao encontrada'], 400);
-            }
-
-            return $goal;
-        } else {
-            $goal = Goal::where('id', $id)->first();
-
-            if (!$goal) {
-                return response()->json(['error' => 'true', 'message' => 'Meta ' . $id . ' nao encontrada'], 400);
-            }
-            return $goal;
-        }
     }
 
     public function calendarGoals(Request $request,  $date_init,  $date_end)
@@ -347,5 +279,73 @@ class GoalController extends Controller
         }
 
         return $response;
+    }
+
+    public function testeGetS3(Request $request)
+    {
+        // Instantiate an Amazon S3 client.
+        $client = new S3Client([
+            'version' => 'latest',
+            'region' => 'us-east-2',
+            'credentials' => [
+                'key'    => 'AKIAU6GDZZYKK5IS5ZLO',
+                'secret' => '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'
+            ]
+        ]);
+
+        $bucketName = 'testedouglasprendendo';
+
+        //Recebe o codigo da foto na request
+        $key = $request->foto;
+        try {
+            $file = $client->getObject([
+                'Bucket' => $bucketName,
+                'Key' => $key,
+            ]);
+            $body = $file->get('Body');
+
+            return base64_encode($body);
+            //return $body;
+        } catch (Exception $exception) {
+            return "Failed to download $key from $bucketName with error: " . $exception->getMessage();
+        }
+    }
+
+    public function testePutS3(Request $request)
+    {
+        // Instantiate an Amazon S3 client.
+        $client = new S3Client([
+            'version' => 'latest',
+            'region' => 'us-east-2',
+            'credentials' => [
+                'key'    => env('S3_KEY', null),
+                'secret' => env('S3_SECRET', null)
+            ]
+        ]);
+
+        $bucketName = env('S3_BUCKET_NAME', null);
+
+        //Recebe a foto enviada no body
+        $foto = $request->file('foto');
+
+        $key = basename($foto);
+
+        // Upload a publicly accessible file. The file size and type are determined by the SDK.
+        try {
+            $result = $client->putObject([
+                'Bucket' => $bucketName,
+                'Key'    => $key,
+                'Body'   => fopen($foto->path(), 'r'),
+                'ACL'    => 'public-read',
+            ]);
+            return $result;
+        } catch (Exception $e) {
+            return ($e);
+
+            echo "There was an error uploading the file.n";
+            echo $e->getMessage();
+        }
+
+        return response()->json(['error' => 'false', 'message' => 'Meta cadastrada com sucesso']);
     }
 }

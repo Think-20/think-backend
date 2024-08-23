@@ -167,20 +167,23 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/employees/all', 'EmployeeController@all');
     Route::post('/employees/filter', 'EmployeeController@filter');
 
-    /*Route::get('/goal', 'GoalController@selectGoal');
-    Route::get('/goal/{id}', 'GoalController@selectGoal');
-    Route::post('/goal', 'GoalController@createGoal');
-    Route::put('/goal', 'GoalController@updateGoal');*/
-
     Route::get('/goal', 'GoalController@selectGoal');
     Route::get('/goal/{id}', 'GoalController@selectGoal');
     Route::post('/goal', 'GoalController@createGoal');
     Route::put('/goal', 'GoalController@updateGoal');
 
+    Route::get('/organization', 'OrganizationChecking@selectOrganization');
+    Route::get('/organization/{id}', 'OrganizationChecking@selectOrganization');
+    Route::post('/organization', 'OrganizationCheckingController@createOrganization');
+    Route::put('/organization', 'OrganizationChecking@updateOrganization');
+
     Route::post('/testeGetS3', 'GoalController@testeGetS3');
     Route::post('/testePutS3', 'GoalController@testePutS3');
 
     Route::get('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
+    Route::post('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
+    Route::put('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
+
 });
 
 Route::group(['middleware' => ['auth.api', 'permission']], function () {
