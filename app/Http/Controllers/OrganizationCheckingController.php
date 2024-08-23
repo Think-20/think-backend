@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Client;
 use App\Organization;
 use Illuminate\Http\Request;
 
@@ -31,7 +32,8 @@ class OrganizationCheckingController extends Controller
     public function createOrganization(Request $request)
     {
         //validations
-        /*if ($request->month <=  0  || $request->month >= 13) {
+        /*
+        if ($request->month <=  0  || $request->month >= 13) {
             return response()->json(['error' => 'true', 'message' => 'Mes invalido'], 400);
         }
 
@@ -42,18 +44,19 @@ class OrganizationCheckingController extends Controller
         if ($request->value <=  0) {
             return response()->json(['error' => 'true', 'message' => 'Valor invalido'], 400);
         }
+        */
 
-        if ($request->expected_value <=  0) {
-            return response()->json(['error' => 'true', 'message' => 'Valor Geral invalido'], 400);
+        if ($request->address_number < 0) {
+            return response()->json(['error' => 'true', 'message' => 'Número invalido para o endereço'], 400);
         }
 
-        $goal = Goal::where('month', $request->month)->where('year', $request->year)->first();
-        if ($goal) {
-            return response()->json(['error' => 'true', 'message' => 'Meta ja cadastrada para este periodo'], 400);
-        }*/
+        $client = Client::where('id', $request->client_id)->first();
+        
+        if (!$client) {
+            return response()->json(['error' => 'true', 'message' => 'Cliente não cadastrado.'], 400);
+        }
 
         $organization = new Organization();
-        
         $organization->name = $request->name;
         $organization->city = $request->city;
         $organization->address = $request->address;
@@ -62,7 +65,7 @@ class OrganizationCheckingController extends Controller
         $organization->client_id = $request->client_id;
         $organization->save();
 
-        return response()->json(['error' => 'false', 'message' => 'Organização cadastrada com sucesso']);        
+        return response()->json(['error' => 'false', 'message' => 'Organização cadastrada com sucesso']);
     }
 
     public function updateOrganization(Request $request)
