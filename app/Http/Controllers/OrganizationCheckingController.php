@@ -13,19 +13,19 @@ class OrganizationCheckingController extends Controller
     public function selectOrganization(Request $request, int $id = null)
     {
         if (!isset($id)) {
-            $goal = Goal::get();
-            if (!$goal) {
-                return response()->json(['error' => 'true', 'message' => 'Meta ' . $id . ' nao encontrada'], 400);
+            $organization = Organization::get();
+            if (!$organization) {
+                return response()->json(['error' => 'true', 'message' => 'Organização ' . $id . ' nao encontrada'], 400);
             }
 
-            return $goal;
+            return $organization;
         } else {
-            $goal = Goal::where('id', $id)->first();
+            $organization = Organization::where('id', $id)->first();
 
-            if (!$goal) {
-                return response()->json(['error' => 'true', 'message' => 'Meta ' . $id . ' nao encontrada'], 400);
+            if (!$organization) {
+                return response()->json(['error' => 'true', 'message' => 'Organização ' . $id . ' nao encontrada'], 400);
             }
-            return $goal;
+            return $organization;
         }
     }
 
@@ -51,7 +51,7 @@ class OrganizationCheckingController extends Controller
         }
 
         $client = Client::where('id', $request->client_id)->first();
-        
+
         if (!$client) {
             return response()->json(['error' => 'true', 'message' => 'Cliente não cadastrado.'], 400);
         }
@@ -70,44 +70,49 @@ class OrganizationCheckingController extends Controller
 
     public function updateOrganization(Request $request)
     {
-        if (!isset($request->id)) {
-            return response()->json(['error' => 'true', 'message' => 'Id não informado'], 400);
+        $organization = Organization::where('id', $request->id)->first();
+
+        if (!$organization) {
+            return response()->json(['error' => 'true', 'message' => 'Organização ' . $request->id . ' não encontrada'], 400);
         }
 
-        if (!isset($request->value) && !isset($request->expected_value)) {
-            return response()->json(['error' => 'true', 'message' => 'Valor não informado'], 400);
-        }
-
-        if (isset($request->value) && $request->value <=  0) {
-            return response()->json(['error' => 'true', 'message' => 'Valor invalido'], 400);
-        }
-
-        if (isset($request->expected_value) && $request->expected_value <=  0) {
-            return response()->json(['error' => 'true', 'message' => 'Valor invalido'], 400);
-        }
-
-
-        $goal = Goal::where('id', $request->id)->first();
-
-        if (!$goal) {
-            return response()->json(['error' => 'true', 'message' => 'Meta ' . $request->id . ' não encontrada'], 400);
-        }
-
-        if (isset($request->value)) {
-
-            if ($request->value) {
-                $goal->value = $request->value;
+        if (isset($request->name)) {
+            if ($request->name) {
+                $organization->name = $request->name;
             }
         }
 
-        if (isset($request->expected_value)) {
-            if ($request->expected_value) {
-                $goal->expected_value = $request->expected_value;
+        if (isset($request->city)) {
+            if ($request->city) {
+                $organization->name = $request->city;
             }
         }
 
+        if (isset($request->address)) {
+            if ($request->address) {
+                $organization->address = $request->address;
+            }
+        }
 
-        $goal->save();
+        if (isset($request->address_number)) {
+            if ($request->address_number) {
+                $organization->address_number = $request->address_number;
+            }
+        }
+
+        if (isset($request->site)) {
+            if ($request->site) {
+                $organization->site = $request->site;
+            }
+        }
+
+        if (isset($request->client_id)) {
+            if ($request->client_id) {
+                $organization->client_id = $request->client_id;
+            }
+        }
+
+        $organization->save();
 
         return response()->json(['error' => 'false', 'message' => 'Meta atualizada com sucesso']);
     }

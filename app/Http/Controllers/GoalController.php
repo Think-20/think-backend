@@ -24,24 +24,7 @@ class GoalController extends Controller
         $this->reportsController = $reportsController;
     }
 
-    public function selectGoal(Request $request, int $id = null)
-    {
-        if (!isset($id)) {
-            $goal = Goal::get();
-            if (!$goal) {
-                return response()->json(['error' => 'true', 'message' => 'Meta ' . $id . ' nao encontrada'], 400);
-            }
-
-            return $goal;
-        } else {
-            $goal = Goal::where('id', $id)->first();
-
-            if (!$goal) {
-                return response()->json(['error' => 'true', 'message' => 'Meta ' . $id . ' nao encontrada'], 400);
-            }
-            return $goal;
-        }
-    }
+    
 
     public function createGoal(Request $request)
     {
@@ -119,6 +102,8 @@ class GoalController extends Controller
 
         return response()->json(['error' => 'false', 'message' => 'Meta atualizada com sucesso']);
     }
+
+    
 
     public function calendarGoals(Request $request,  $date_init,  $date_end)
     {

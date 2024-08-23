@@ -172,10 +172,10 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/goal', 'GoalController@createGoal');
     Route::put('/goal', 'GoalController@updateGoal');
 
-    Route::get('/organization', 'OrganizationChecking@selectOrganization');
-    Route::get('/organization/{id}', 'OrganizationChecking@selectOrganization');
+    Route::get('/organization', 'OrganizationCheckingController@selectOrganization');
+    Route::get('/organization/{id}', 'OrganizationCheckingController@selectOrganization');
     Route::post('/organization', 'OrganizationCheckingController@createOrganization');
-    Route::put('/organization', 'OrganizationChecking@updateOrganization');
+    Route::put('/organization', 'OrganizationCheckingController@updateOrganization');
 
     Route::post('/testeGetS3', 'GoalController@testeGetS3');
     Route::post('/testePutS3', 'GoalController@testePutS3');
