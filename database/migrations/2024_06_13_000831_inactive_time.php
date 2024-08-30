@@ -16,8 +16,8 @@ class InactiveTime extends Migration
         Schema::create('inactive_time', function (Blueprint $table) {
             $table->increments('id');
             $table->string('type');
-            //$table->integer('month');
-            //$table->integer('year');
+            $table->integer('month');
+            $table->integer('year');
             $table->double('notification_time');
             $table->double('inactive_time');
             $table->timestamps();

@@ -177,13 +177,17 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/organization', 'OrganizationCheckingController@createOrganization');
     Route::put('/organization', 'OrganizationCheckingController@updateOrganization');
 
+    Route::get('/checking', 'CheckinController@selectCheckin');
+    Route::get('/checking/{id}', 'CheckinController@selectCheckin');
+    Route::post('/checking', 'CheckinController@createCheckin');
+    Route::put('/checking', 'CheckinController@updateCheckin');
+
     Route::post('/testeGetS3', 'GoalController@testeGetS3');
     Route::post('/testePutS3', 'GoalController@testePutS3');
 
     Route::get('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
     Route::post('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
     Route::put('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
-
 });
 
 Route::group(['middleware' => ['auth.api', 'permission']], function () {

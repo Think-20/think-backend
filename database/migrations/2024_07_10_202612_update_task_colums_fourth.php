@@ -11,7 +11,7 @@ class UpdateTaskColumsFourth extends Migration
      *
      * @return void
      */
-    public function up()
+    /*public function up()
     {
         Schema::table('task', function (Blueprint $table) {
             $table->double('custo_total_meta_porcentagem');
@@ -24,7 +24,7 @@ class UpdateTaskColumsFourth extends Migration
             $table->double('bonificacao_detalhamento_meta_porcentagem');
             $table->double('total_estande_meta_porcentagem');            
         });
-    }
+    }*/
 
     /**
      * Reverse the migrations.
