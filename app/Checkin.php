@@ -15,7 +15,6 @@ class Checkin extends Model
     {
         $checkins = Checkin::get();
 
-
         foreach ($checkins as $checkin) {
             $checkin->job;
             $checkin->project_object;
@@ -55,29 +54,39 @@ class Checkin extends Model
 
     public static function getUnique(int $id = null)
     {
-        $job = Job::find($id);
-        $job->job_activity;
-        $job->job_type;
-        $job->client;
+        $checkin = Checkin::find($id);
+        $checkin->job;
+        $checkin->project_object;
+        $checkin->memorial_object;
+        $checkin->budget_object;
+        $checkin->approval_employee;
+        $checkin->accept_proposal_employee;
+        $checkin->accept_production_employee;
+        $checkin->board_approval_employee;
+        $checkin->event_object;
+        $checkin->client_object;
+        $checkin->agency_object;
+        $checkin->billing_client_object;
+        $checkin->costumer_service_employee_object;
+        $checkin->costumer_service_employee2_object;
+        $checkin->creation_employee_object;
+        $checkin->creation_employee2_object;
 
-        if ($job->client)
-            $job->client->contacts;
+        $checkin->production_manager_employee_object;
+        $checkin->production_manager_employee2_object;
+        $checkin->budget_employee_object;
+        $checkin->budget_employee2_object;
+        $checkin->detailing_employee_object;
+        $checkin->detailing_employee2_object;
+        $checkin->production_employee_object;
+        $checkin->production_employee2_object;
 
-        $job->main_expectation;
-        $job->levels;
-        $job->how_come;
-        $job->agency;
 
-        if ($job->agency)
-            $job->agency->contacts;
-
-        $job->attendance;
-        $job->competition;
-        $job->files;
-        $job->status;
-        $job->responsibles();
-        $job->history();
-        return $job;
+        $checkin->bv_customer_service_object;
+        $checkin->billing_amount_approved_by_object;
+        $checkin->extras_approved_by_object;
+        $checkin->organization__object;
+        return $checkin;
     }
 
     public function job()
@@ -159,7 +168,7 @@ class Checkin extends Model
     {
         return $this->hasOne(Employee::class, "id", "production_employee");
     }
-    
+
     public function production_manager_employee_object()
     {
         return $this->hasOne(Employee::class, "id", "production_manager_employee");

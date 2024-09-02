@@ -14,7 +14,7 @@ class CheckinController extends Controller
     public function selectCheckin(Request $request, int $id = null)
     {
 
-        
+
         if (!isset($id)) {
             $checkin = Checkin::list();
             if (!$checkin) {
@@ -23,7 +23,7 @@ class CheckinController extends Controller
 
             return $checkin;
         } else {
-            $checkin = Checkin::where('id', $id)->first();
+            $checkin = Checkin::getUnique($id);
 
             if (!$checkin) {
                 return response()->json(['error' => 'true', 'message' => 'Checkin ' . $id . ' nao encontrado'], 400);
