@@ -91,7 +91,7 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::get('/states/{stateName}', 'AddressController@states')->name('states');
     Route::get('/cities/{stateId}/{cityName}', 'AddressController@cities')->name('cities');
 
-    Route::get('/city/{stateId}', 'AddressController@city');
+    Route::get('/city/{cityId}', 'AddressController@city');    
 
     Route::get('/client-types/all', 'ClientTypeController@all');
     Route::get('/client-status/all', 'ClientStatusController@all');

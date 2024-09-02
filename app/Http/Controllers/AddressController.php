@@ -33,8 +33,8 @@ class AddressController extends Controller
             ->get();
     }
 
-    public static function city(string $stateId)
+    public static function city(string $cityId)
     {
-        return City::where('id', $stateId)->first();
+        return City::byId($cityId);
     }
 }
