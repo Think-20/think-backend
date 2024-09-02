@@ -13,8 +13,10 @@ class CheckinController extends Controller
 
     public function selectCheckin(Request $request, int $id = null)
     {
+
+        
         if (!isset($id)) {
-            $checkin = Checkin::get();
+            $checkin = Checkin::list();
             if (!$checkin) {
                 return response()->json(['error' => 'true', 'message' => 'Nenhum Checkin encontrado'], 400);
             }

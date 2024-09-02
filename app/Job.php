@@ -267,6 +267,7 @@ class Job extends Model
             $job->status;
         }
 
+        
         return [
             'pagination' => $jobs,
             'updatedInfo' => Job::updatedInfo()

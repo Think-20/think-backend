@@ -10,7 +10,7 @@ class CreateCheckinTable extends Migration
     public function up()
     {
         Schema::create('checkin', function (Blueprint $table) {
-            
+
             //COLUNAS
             $table->increments('id');
             $table->integer('job_id');
@@ -42,7 +42,7 @@ class CreateCheckinTable extends Migration
             $table->string('pavilion')->nullable();
 
             $table->unsignedInteger('organization_id')->nullable();
-            
+
             $table->string('promoter_name')->nullable();
             $table->string('promoter_login')->nullable();
             $table->string('promoter_password')->nullable();
@@ -68,6 +68,8 @@ class CreateCheckinTable extends Migration
             $table->integer('creation_comission')->nullable();
             $table->integer('creation_employee2')->nullable();
             $table->integer('creation_comission2')->nullable();
+
+            //Foi ate aq
 
             $table->integer('production_manager_employee')->nullable();
             $table->integer('production_manager_comission')->nullable();
@@ -95,6 +97,7 @@ class CreateCheckinTable extends Migration
             $table->integer('value_base_for_calculation')->nullable();
             $table->integer('bv')->nullable();
 
+            //Voltou aq
             $table->integer('bv_customer_service')->nullable();
 
             $table->integer('taxes')->nullable();
@@ -145,6 +148,15 @@ class CreateCheckinTable extends Migration
 
             $table->foreign('creation_employee')->references('id')->on('employee')->nullable();
             $table->foreign('creation_employee2')->references('id')->on('employee')->nullable();
+
+            $table->foreign('production_manager_employee')->references('id')->on('employee')->nullable();
+            $table->foreign('production_manager_employee2')->references('id')->on('employee')->nullable();
+            $table->foreign('budget_employee')->references('id')->on('employee')->nullable();
+            $table->foreign('budget_employee2')->references('id')->on('employee')->nullable();
+            $table->foreign('detailing_employee')->references('id')->on('employee')->nullable();
+            $table->foreign('detailing_employee2')->references('id')->on('employee')->nullable();
+            $table->foreign('production_employee')->references('id')->on('employee')->nullable();
+            $table->foreign('production_employee2')->references('id')->on('employee')->nullable();
 
             $table->foreign('bv_customer_service')->references('id')->on('employee')->nullable();
             $table->foreign('billing_amount_approved_by')->references('id')->on('employee')->nullable();
