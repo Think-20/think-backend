@@ -63,9 +63,9 @@ class OrganizationCheckingController extends Controller
         $organization->address_number = $request->address_number;
         $organization->site = $request->site;
         $organization->client_id = $request->client_id;
-        $organization->save();
+        $respOrg = $organization->save();
 
-        return response()->json(['error' => 'false', 'message' => 'Organização cadastrada com sucesso']);
+        return response()->json(['error' => 'false', 'message' => 'Organização cadastrada com sucesso', "object" => $organization]);
     }
 
     public function updateOrganization(Request $request)
@@ -114,6 +114,6 @@ class OrganizationCheckingController extends Controller
 
         $organization->save();
 
-        return response()->json(['error' => 'false', 'message' => 'Meta atualizada com sucesso']);
+        return response()->json(['error' => 'false', 'message' => 'Meta atualizada com sucesso', "object" => $organization]);
     }
 }

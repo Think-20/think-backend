@@ -50,9 +50,9 @@ class CheckinController extends Controller
         $organization->site = $request->site;
         $organization->client_id = $request->client_id;
         $organization->save();*/
-        
-        Checkin::create($request->all());
-        return response()->json(['error' => 'false', 'message' => 'Checkin cadastrada com sucesso']);
+
+        $checkin = Checkin::create($request->all());
+        return response()->json(['error' => 'false', 'message' => 'Checkin cadastrada com sucesso', 'object' => $checkin]);
     }
 
     public function updateCheckin(Request $request)
@@ -101,12 +101,10 @@ class CheckinController extends Controller
 
         $organization->save();*/
 
-        #dd($request->all()[0]);
-
         $checkin = Checkin::find($request->id);
         $checkin->update($request->all());
-        
 
-        return response()->json(['error' => 'false', 'message' => 'Checkin atualizada com sucesso']);
+
+        return response()->json(['error' => 'false', 'message' => 'Checkin atualizada com sucesso', 'object' => $checkin]);
     }
 }
