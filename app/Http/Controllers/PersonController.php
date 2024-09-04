@@ -22,9 +22,9 @@ class PersonController extends Controller
         } else {
             $payment = Person::getUnique($id);
             
-            /*if (!$payment) {
+            if (!$payment) {
                 return response()->json(['error' => 'true', 'message' => 'Pessoa de id' . $id . ' nao encontrada'], 400);
-            }*/
+            }
 
             return $payment;
         }

@@ -194,6 +194,11 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/person', 'PersonController@createPerson');
     Route::put('/person', 'PersonController@updatePerson');
 
+    Route::get('/extra', 'ExtraController@selectExtra');
+    Route::get('/extra/{id}', 'ExtraController@selectExtra');
+    Route::post('/extra', 'ExtraController@createExtra');
+    Route::put('/extra', 'ExtraController@updateExtra');
+
     Route::post('/testeGetS3', 'GoalController@testeGetS3');
     Route::post('/testePutS3', 'GoalController@testePutS3');
 
