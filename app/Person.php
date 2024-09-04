@@ -15,7 +15,6 @@ class Person extends Model
         $persons = Person::get();
 
         foreach ($persons as $person) {
-            $person->checkin_object;
             $person->bank_account_object;
         }
 
@@ -26,8 +25,6 @@ class Person extends Model
     public static function getUnique(int $id = null)
     {
         $person = Person::find($id);
-
-        $person->checkin_object;
         $person->bank_account_object;
 
         return $person;

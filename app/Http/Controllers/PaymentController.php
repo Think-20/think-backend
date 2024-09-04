@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Payment;
+use Dompdf\FrameDecorator\Page;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
