@@ -17,14 +17,38 @@ class Job extends Model
 
     protected $fillable = [
         'code',
-        'job_activity_id', 'client_id', 'event', 'deadline', 'job_type_id', 'agency_id', 'attendance_id',
-        'rate', 'competition_id', 'last_provider', 'not_client', 'how_come_id', 'approval_expectation_rate',
-        'main_expectation_id', 'budget_value', 'status_id', 'note', 'place', 'area', 'moments', 'created_at', 'time_to_aproval', 'attendance_comission_id', 'comission_percentage',
-        'created_at', 'updated_at', 'final_value'
+        'job_activity_id',
+        'client_id',
+        'event',
+        'deadline',
+        'job_type_id',
+        'agency_id',
+        'attendance_id',
+        'rate',
+        'competition_id',
+        'last_provider',
+        'not_client',
+        'how_come_id',
+        'approval_expectation_rate',
+        'main_expectation_id',
+        'budget_value',
+        'status_id',
+        'note',
+        'place',
+        'area',
+        'moments',
+        'created_at',
+        'time_to_aproval',
+        'attendance_comission_id',
+        'comission_percentage',
+        'created_at',
+        'updated_at',
+        'final_value'
     ];
 
     protected $dates = [
-        'created_at', 'updated_at'
+        'created_at',
+        'updated_at'
     ];
 
     public function getJobName()
@@ -267,7 +291,7 @@ class Job extends Model
             $job->status;
         }
 
-        
+
         return [
             'pagination' => $jobs,
             'updatedInfo' => Job::updatedInfo()
@@ -296,6 +320,9 @@ class Job extends Model
         $job->competition;
         $job->files;
         $job->status;
+
+        $job->checkin;
+
         $job->responsibles();
         $job->history();
         return $job;
@@ -1121,4 +1148,10 @@ class Job extends Model
     {
         $this->attributes['deadline'] = substr($value, 0, 10);
     }
+
+    public function checkin()
+    {
+        return $this->belongsTo('App\Checkin', 'id','job_id');
+    }
+
 }

@@ -149,7 +149,7 @@ class JobController extends Controller
 
     public static function get(int $id)
     {
-        return Job::get($id);
+return Job::get($id);
     }
 
     public static function all()
