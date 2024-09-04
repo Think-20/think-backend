@@ -91,7 +91,7 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::get('/states/{stateName}', 'AddressController@states')->name('states');
     Route::get('/cities/{stateId}/{cityName}', 'AddressController@cities')->name('cities');
 
-    Route::get('/city/{cityId}', 'AddressController@city');    
+    Route::get('/city/{cityId}', 'AddressController@city');
 
     Route::get('/client-types/all', 'ClientTypeController@all');
     Route::get('/client-status/all', 'ClientStatusController@all');
@@ -183,6 +183,16 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::get('/checking/{id}', 'CheckinController@selectCheckin');
     Route::post('/checking', 'CheckinController@createCheckin');
     Route::put('/checking', 'CheckinController@updateCheckin');
+
+    Route::get('/payment', 'PaymentController@selectPayment');
+    Route::get('/payment/{id}', 'PaymentController@selectPayment');
+    Route::post('/payment', 'PaymentController@createPayment');
+    Route::put('/payment', 'PaymentController@updatePayment');
+
+    Route::get('/person', 'PersonController@selectPerson');
+    Route::get('/person/{id}', 'PersonController@selectPerson');
+    Route::post('/person', 'PersonController@createPerson');
+    Route::put('/person', 'PersonController@updatePerson');
 
     Route::post('/testeGetS3', 'GoalController@testeGetS3');
     Route::post('/testePutS3', 'GoalController@testePutS3');
