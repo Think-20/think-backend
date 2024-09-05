@@ -59,9 +59,9 @@ class CreateCheckinTable extends Migration
 
             $table->integer('billing_client_id')->nullable();
 
-            $table->integer('costumer_service_person')->nullable();
+            $table->integer('costumer_service_employee')->nullable();
             $table->integer('costumer_service_comission')->nullable();
-            $table->integer('costumer_service_person2')->nullable();
+            $table->integer('costumer_service_employee2')->nullable();
             $table->integer('costumer_service_comission2')->nullable();
 
             $table->integer('creation_employee')->nullable();
@@ -122,7 +122,16 @@ class CreateCheckinTable extends Migration
             $table->integer('total_amount_extras_received')->nullable();
             $table->string('extras_obs')->nullable();
 
+            #campos novos
+            $table->integer('event_changed_by')->nullable();
+            $table->date('event_changed_in')->nullable();
+            $table->string('organization_login')->nullable();
+            $table->string('organization_password')->nullable();
 
+            $table->integer('organization_changed_by')->nullable();
+            $table->date('organization_changed_in')->nullable();
+
+            #começo das foreign
             $table->foreign('job_id')->references('id')->on('job')->nullable();
             $table->foreign('project')->references('id')->on('task')->nullable();
             $table->foreign('memorial')->references('id')->on('task')->nullable();
@@ -140,11 +149,14 @@ class CreateCheckinTable extends Migration
 
             $table->foreign('billing_client_id')->references('id')->on('client')->nullable();
 
-            #$table->foreign('costumer_service_person')->references('id')->on('person')->nullable();
-            #$table->foreign('costumer_service_person2')->references('id')->on('person')->nullable();
+            $table->foreign('costumer_service_employee')->references('id')->on('employee')->nullable();
+            $table->foreign('costumer_service_employee2')->references('id')->on('employee')->nullable();
 
             $table->foreign('creation_employee')->references('id')->on('employee')->nullable();
             $table->foreign('creation_employee2')->references('id')->on('employee')->nullable();
+            $table->foreign('event_changed_by')->references('id')->on('employee')->nullable();
+            $table->foreign('organization_changed_by')->references('id')->on('employee')->nullable();
+
 
             $table->foreign('production_manager_employee')->references('id')->on('employee')->nullable();
             $table->foreign('production_manager_employee2')->references('id')->on('employee')->nullable();

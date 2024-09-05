@@ -289,6 +289,7 @@ class Job extends Model
             $job->attendance;
             $job->client;
             $job->status;
+            $job->checkin;
         }
 
 
@@ -1151,7 +1152,6 @@ class Job extends Model
 
     public function checkin()
     {
-        return $this->belongsTo('App\Checkin', 'id','job_id');
+        return $this->belongsTo('App\Checkin', 'id', 'job_id');
     }
-
 }
