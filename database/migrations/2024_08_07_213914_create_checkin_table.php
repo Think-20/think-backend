@@ -124,12 +124,12 @@ class CreateCheckinTable extends Migration
 
             #campos novos
             $table->integer('event_changed_by')->nullable();
-            $table->date('event_changed_in')->nullable();
+            $table->datetime('event_changed_in')->nullable();
             $table->string('organization_login')->nullable();
             $table->string('organization_password')->nullable();
 
             $table->integer('organization_changed_by')->nullable();
-            $table->date('organization_changed_in')->nullable();
+            $table->datetime('organization_changed_in')->nullable();
 
             #começo das foreign
             $table->foreign('job_id')->references('id')->on('job')->nullable();
