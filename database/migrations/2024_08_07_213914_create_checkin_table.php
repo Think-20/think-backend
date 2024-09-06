@@ -22,19 +22,19 @@ class CreateCheckinTable extends Migration
 
             $table->boolean('approval')->nullable();
             $table->integer('approval_employee_id')->nullable();
-            $table->date('approval_date')->nullable();
+            $table->datetime('approval_date')->nullable();
 
             $table->boolean('accept_proposal')->nullable();
             $table->integer('accept_proposal_employee_id')->nullable();
-            $table->date('accept_proposal_date')->nullable();
+            $table->datetime('accept_proposal_date')->nullable();
 
             $table->boolean('accept_production')->nullable();
             $table->integer('accept_production_employee_id')->nullable();
-            $table->date('accept_production_date')->nullable();
+            $table->datetime('accept_production_date')->nullable();
 
             $table->boolean('board_approval')->nullable();
             $table->integer('board_approval_employee_id')->nullable();
-            $table->date('board_approval_date')->nullable();
+            $table->datetime('board_approval_date')->nullable();
 
             $table->integer('area')->nullable();
             $table->string('config')->nullable();
@@ -108,7 +108,7 @@ class CreateCheckinTable extends Migration
             $table->integer('final_contract_value')->nullable();
 
             $table->integer('billing_amount_approved_by')->nullable();
-            $table->date('billing_amount_approved_at')->nullable();
+            $table->datetime('billing_amount_approved_at')->nullable();
 
             $table->integer('billing_amount_discount_interest')->nullable();
             $table->integer('total_amount_received')->nullable();
@@ -117,7 +117,7 @@ class CreateCheckinTable extends Migration
             $table->integer('total_amount_extras')->nullable();
 
             $table->integer('extras_approved_by')->nullable();
-            $table->date('extras_approved_at')->nullable();
+            $table->datetime('extras_approved_at')->nullable();
             $table->integer('extras_discount_interest')->nullable();
             $table->integer('total_amount_extras_received')->nullable();
             $table->string('extras_obs')->nullable();
