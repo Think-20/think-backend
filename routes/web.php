@@ -186,7 +186,8 @@ Route::group(['middleware' => ['auth.api']], function () {
 
     Route::get('/payment', 'PaymentController@selectPayment');
     Route::get('/payment/{id}', 'PaymentController@selectPayment');
-    Route::get('/payment/checkin/{id}', 'PaymentController@selectPaymentByCheckin');
+    Route::get('/payment/checkin/{id}', 'PaymentController@
+    ');
     Route::post('/payment', 'PaymentController@createPayment');
     Route::put('/payment', 'PaymentController@updatePayment');
 

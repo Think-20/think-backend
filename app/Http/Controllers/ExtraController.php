@@ -22,7 +22,7 @@ class ExtraController extends Controller
             $extra = Extra::getUnique($id);
 
             if (!$extra) {
-                return response()->json(['error' => 'true', 'message' => 'Pessoa de id' . $id . ' nao encontrada'], 400);
+                return response()->json(['error' => 'true', 'message' => 'Extra de id' . $id . ' nao encontrada'], 400);
             }
 
             return $extra;
@@ -32,7 +32,7 @@ class ExtraController extends Controller
     public function createExtra(Request $request)
     {
         $payment = Extra::create($request->all());
-        return response()->json(['error' => 'false', 'message' => 'Pessoa cadastrada com sucesso', 'object' => $payment]);
+        return response()->json(['error' => 'false', 'message' => 'Extra cadastrada com sucesso', 'object' => $payment]);
     }
 
     public function updateExtra(Request $request)
@@ -40,6 +40,6 @@ class ExtraController extends Controller
         $payment = Extra::find($request->id);
         $payment->update($request->all());
 
-        return response()->json(['error' => 'false', 'message' => 'Pessoa atualizada com sucesso', 'object' => $payment]);
+        return response()->json(['error' => 'false', 'message' => 'Extra atualizada com sucesso', 'object' => $payment]);
     }
 }
