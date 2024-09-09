@@ -229,6 +229,11 @@ class Checkin extends Model
         return $this->hasOne(Organization::class, "id", "organization_id");
     }
 
+    public function payment()
+    {
+        return $this->belongsTo(Payment::class);
+    }
+
 
     /*
             $table->foreign('production_manager_employee')->references('id')->on('employee')->nullable();

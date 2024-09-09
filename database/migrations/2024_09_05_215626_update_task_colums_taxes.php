@@ -8,7 +8,7 @@ class UpdateTaskColumsTaxes extends Migration
 {
     public function up()
     {
-        Schema::table('organization', function (Blueprint $table) {
+        Schema::table('task', function (Blueprint $table) {
             $table->double('credenciais_taxas')->nullable();
             $table->double('credenciais_taxas_reaproveitamento')->nullable();
             $table->double('credenciais_taxas_porcentagem')->nullable();
@@ -28,17 +28,16 @@ class UpdateTaskColumsTaxes extends Migration
      */
     public function down()
     {
-        Schema::table('organization', function (Blueprint $table) {
-            $table->dropColumn('credenciais_taxas')->nullable();
-            $table->dropColumn('credenciais_taxas_reaproveitamento')->nullable();
-            $table->dropColumn('credenciais_taxas_porcentagem')->nullable();
-            $table->dropColumn('seguro')->nullable();
-            $table->dropColumn('seguro_reaproveitamento')->nullable();
-            $table->dropColumn('seguro_porcentagem')->nullable();
-            $table->dropColumn('desconto')->nullable();
-            $table->dropColumn('desconto_reaproveitamento')->nullable();
-            $table->dropColumn('desconto_porcentagem')->nullable();
-
+        Schema::table('task', function (Blueprint $table) {
+            $table->dropColumn('credenciais_taxas');
+            $table->dropColumn('credenciais_taxas_reaproveitamento');
+            $table->dropColumn('credenciais_taxas_porcentagem');
+            $table->dropColumn('seguro');
+            $table->dropColumn('seguro_reaproveitamento');
+            $table->dropColumn('seguro_porcentagem');
+            $table->dropColumn('desconto');
+            $table->dropColumn('desconto_reaproveitamento');
+            $table->dropColumn('desconto_porcentagem');
         });
     }
 }

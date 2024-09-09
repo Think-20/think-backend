@@ -32,6 +32,15 @@ class Payment extends Model
         return $payment;
     }
 
+    public static function getUniqueByCheckin(int $id = null)
+    {
+        $checkin = Checkin::find($id);
+
+        $checkin->payment;
+
+        return $checkin;
+    }
+
     public function checkin_object()
     {
         return $this->hasOne(Checkin::class, "id", "checkin_id");

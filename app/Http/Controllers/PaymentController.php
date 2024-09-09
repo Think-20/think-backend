@@ -29,6 +29,22 @@ class PaymentController extends Controller
         }
     }
 
+    public function selectPaymentByCheckin(Request $request, int $id = null )
+    {
+        if (!isset($id)) {
+                return response()->json(['error' => 'true', 'message' => 'Nenhum id recebido'], 400);
+        } else {
+            $payment = Payment::getUnique($id);
+            if (!$payment) {
+                return response()->json(['error' => 'true', 'message' => 'Pagamento de id' . $id . ' nao encontrada'], 400);
+            }
+
+            return $payment;
+        }
+    }
+
+
+
     public function createPayment(Request $request)
     {
         $payment = Payment::create($request->all());
