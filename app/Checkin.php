@@ -89,6 +89,15 @@ class Checkin extends Model
         return $checkin;
     }
 
+    public static function getPaymentByCheckin(int $id)
+    {
+        $checkin = Checkin::find($id);
+        $checkin->payment;
+
+        return $checkin;
+    }
+
+
     public function job()
     {
         return $this->belongsTo(/*'App\Job', 'job_id'*/Job::class);
@@ -230,8 +239,8 @@ class Checkin extends Model
     }
 
     public function payment()
-    {
-        return $this->belongsTo(Payment::class);
+    {        
+        return $this->belongsToMany(Payment::class,"payment","id");
     }
 
 

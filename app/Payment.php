@@ -28,17 +28,18 @@ class Payment extends Model
 
         $payment->checkin_object;
 
-
         return $payment;
     }
 
     public static function getUniqueByCheckin(int $id = null)
     {
-        $checkin = Checkin::find($id);
+        $payments = Payment::where('checkin_id', '=', $id)->get();
 
-        $checkin->payment;
+        foreach ($payments as $payment) {
+            $payment->checkin_object;
+        }
 
-        return $checkin;
+        return $payments;
     }
 
     public function checkin_object()

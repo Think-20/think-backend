@@ -34,7 +34,7 @@ class PaymentController extends Controller
         if (!isset($id)) {
                 return response()->json(['error' => 'true', 'message' => 'Nenhum id recebido'], 400);
         } else {
-            $payment = Payment::getUnique($id);
+            $payment = Payment::getUniqueByCheckin($id);
             if (!$payment) {
                 return response()->json(['error' => 'true', 'message' => 'Pagamento de id' . $id . ' nao encontrada'], 400);
             }
