@@ -17,7 +17,7 @@ class PaymentTable extends Migration
             $table->increments('id');
             $table->integer('checkin_id');
             $table->string('description');
-            $table->integer('percentage');
+            $table->double('percentage');
             $table->double('value');
             $table->date('order_date');
             $table->date('payment_date')->nullable();

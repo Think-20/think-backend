@@ -20,12 +20,22 @@ class Extra extends Migration
             $table->double('value');
             $table->integer('requester');
             $table->integer('budget');
+
+
+            $table->date('approval_date')->nullable();
+            $table->string('extra_commission')->nullable();
+            $table->integer('billing_employee_id')->nullable();
+            $table->date('date')->nullable();
+            $table->date('due_date')->nullable();
+            $table->date('settlement_date')->nullable();
+
+
             $table->timestamps();
 
             #$table->foreign('checkin_id')->references('id')->on('checkin')->nullable();
-            
-            #$table->foreign('requester')->references('id')->on('person')->nullable();
+
             $table->foreign('budget')->references('id')->on('employee')->nullable();
+            $table->foreign('billing_employee_id')->references('id')->on('employee')->nullable();
         });
     }
 
