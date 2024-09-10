@@ -28,7 +28,7 @@ class UpdateTaskColumsTaxes extends Migration
      */
     public function down()
     {
-        /*
+        
         Schema::table('task', function (Blueprint $table) {
             $table->dropColumn('credenciais_taxas');
             $table->dropColumn('credenciais_taxas_reaproveitamento');
@@ -40,6 +40,5 @@ class UpdateTaskColumsTaxes extends Migration
             $table->dropColumn('desconto_reaproveitamento');
             $table->dropColumn('desconto_porcentagem');
         });
-        */
     }
 }
