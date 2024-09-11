@@ -21,8 +21,9 @@ class PaymentController extends Controller
             return $payment;
         } else {
             $payment = Payment::getUnique($id);
+            
             if (!$payment) {
-                return response()->json(['error' => 'true', 'message' => 'Pagamento de id' . $id . ' nao encontrada'], 400);
+                return response()->json(['error' => 'true', 'message' => 'Pagamento de id ' . $id . ' nao encontrada'], 400);
             }
 
             return $payment;
@@ -36,7 +37,7 @@ class PaymentController extends Controller
         } else {
             $payment = Payment::getUniqueByCheckin($id);
             if (!$payment) {
-                return response()->json(['error' => 'true', 'message' => 'Pagamento de id' . $id . ' nao encontrada'], 400);
+                return response()->json(['error' => 'true', 'message' => 'Pagamento de id ' . $id . ' nao encontrada'], 400);
             }
 
             return $payment;
@@ -58,4 +59,22 @@ class PaymentController extends Controller
 
         return response()->json(['error' => 'false', 'message' => 'Pagamento atualizada com sucesso', 'object' => $payment]);
     }
+
+    public function deletePayment(Request $request, int $id = null)
+    {
+        if (!isset($id)) {
+            return response()->json(['error' => 'true', 'message' => 'Pagamento de Id ' . $id . ' nao encontrado'], 400);
+        } else {
+            $payment = Payment::find($request->id);
+
+            if (!$payment) {
+                return response()->json(['error' => 'true', 'message' => 'Pagamento de id ' . $id . ' nao encontrada'], 400);
+            }
+
+            $payment->delete();
+
+            return response()->json(['error' => 'false', 'message' => 'Pagamento de Id ' . $id . ' deletado com sucesso'], 400);
+        }
+    }
+
 }

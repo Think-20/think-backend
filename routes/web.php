@@ -189,6 +189,7 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::get('/payment/checkin/{id}', 'PaymentController@selectPaymentByCheckin');
     Route::post('/payment', 'PaymentController@createPayment');
     Route::put('/payment', 'PaymentController@updatePayment');
+    Route::delete('/payment/{id}', 'PaymentController@deletePayment');
 
     Route::get('/person', 'PersonController@selectPerson');
     Route::get('/person/{id}', 'PersonController@selectPerson');
@@ -199,6 +200,8 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::get('/extra/{id}', 'ExtraController@selectExtra');
     Route::post('/extra', 'ExtraController@createExtra');
     Route::put('/extra', 'ExtraController@updateExtra');
+    Route::delete('/extra/{id}', 'ExtraController@deleteExtra');
+
 
     Route::post('/testeGetS3', 'GoalController@testeGetS3');
     Route::post('/testePutS3', 'GoalController@testePutS3');

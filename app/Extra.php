@@ -31,6 +31,10 @@ class Extra extends Model
     {
         $extra = Extra::find($id);
 
+        if (!$extra) {
+            return null;
+        }
+
         $extra->checkin_object;
         $extra->requester_object;
         $extra->budget_object;

@@ -55,6 +55,11 @@ class Checkin extends Model
     public static function getUnique(int $id = null)
     {
         $checkin = Checkin::find($id);
+
+        if (!$checkin) {
+            return null;
+        }
+
         $checkin->job;
         $checkin->project_object;
         $checkin->memorial_object;

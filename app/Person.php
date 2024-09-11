@@ -25,6 +25,11 @@ class Person extends Model
     public static function getUnique(int $id = null)
     {
         $person = Person::find($id);
+
+        if (!$checkin) {
+            return null;
+        }
+
         $person->bank_account_object;
 
         return $person;

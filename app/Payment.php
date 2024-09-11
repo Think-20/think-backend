@@ -14,6 +14,7 @@ class Payment extends Model
     {
         $payments = Payment::get();
 
+
         foreach ($payments as $payment) {
             $payment->checkin_object;
         }
@@ -25,6 +26,10 @@ class Payment extends Model
     public static function getUnique(int $id = null)
     {
         $payment = Payment::find($id);
+
+        if (!$payment) {
+            return null;
+        }
 
         $payment->checkin_object;
 
