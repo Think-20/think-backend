@@ -19,6 +19,8 @@ class Extra extends Model
             $extra->checkin_object;
             $extra->requester_object;
             $extra->budget_object;
+            $extra->billing_employee_object;
+            
         }
 
         return $extras;
@@ -32,6 +34,7 @@ class Extra extends Model
         $extra->checkin_object;
         $extra->requester_object;
         $extra->budget_object;
+        $extra->billing_employee_object;
 
         return $extra;
     }
@@ -50,4 +53,10 @@ class Extra extends Model
     {
         return $this->hasOne(Employee::class, "id", "budget");
     }
+
+    public function billing_employee_object()
+    {
+        return $this->hasOne(Employee::class, "id", "billing_employee_id");
+    }
+
 }
