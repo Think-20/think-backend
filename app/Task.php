@@ -13,7 +13,7 @@ use Illuminate\Support\Collection;
 class Task extends Model
 {
     protected $table = 'task';
-    
+
     protected $fillable = [
         'job_id',
         'responsible_id',
@@ -47,7 +47,7 @@ class Task extends Model
         "comissao_vendas_coeficiente",
         "bonificacao_projeto_interno_coeficiente",
         "bonificacao_orcamento_coeficiente",
-        "bonificacao_gerente_producao_coeficiente",        
+        "bonificacao_gerente_producao_coeficiente",
         "bonificacao_producao_coeficiente",
         "bonificacao_detalhamento_coeficiente",
         "total_estande_coeficiente",
@@ -596,7 +596,9 @@ class Task extends Model
     public static function edit(array $data)
     {
         $id = $data['id'];
+        
         $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
+        
         $items = isset($data['items']) ? collect($data['items'])->map(function ($item) {
             return (object) $item;
         }) : collect([]);
@@ -611,6 +613,8 @@ class Task extends Model
 
         $task->deleteItems();
         $task->saveItems($items, !$admin);
+
+        #dd($data, $responsible_id);
 
         $task->update(
             array_merge($data, [
@@ -1145,6 +1149,20 @@ class Task extends Model
         isset($data['bonificacao_producao_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->bonificacao_producao_meta_porcentagem = $data['bonificacao_producao_meta_porcentagem'] : null;
         isset($data['bonificacao_detalhamento_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->bonificacao_detalhamento_meta_porcentagem = $data['bonificacao_detalhamento_meta_porcentagem'] : null;
         isset($data['total_estande_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->total_estande_meta_porcentagem = $data['total_estande_meta_porcentagem'] : null;
+        
+        isset($data['credenciais_taxas']) /*|| $data['final_value'] == ""*/ ? $task->credenciais_taxas = $data['credenciais_taxas'] : null;
+        isset($data['credenciais_taxas_reaproveitamento']) /*|| $data['final_value'] == ""*/ ? $task->credenciais_taxas_reaproveitamento = $data['credenciais_taxas_reaproveitamento'] : null;
+        isset($data['credenciais_taxas_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->credenciais_taxas_porcentagem = $data['credenciais_taxas_porcentagem'] : null;
+        isset($data['seguro']) /*|| $data['final_value'] == ""*/ ? $task->seguro = $data['seguro'] : null;
+        isset($data['seguro_reaproveitamento']) /*|| $data['final_value'] == ""*/ ? $task->seguro_reaproveitamento = $data['seguro_reaproveitamento'] : null;
+        isset($data['seguro_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->seguro_porcentagem = $data['seguro_porcentagem'] : null;
+        isset($data['desconto']) /*|| $data['final_value'] == ""*/ ? $task->desconto = $data['desconto'] : null;
+        isset($data['desconto_reaproveitamento']) /*|| $data['final_value'] == ""*/ ? $task->desconto_reaproveitamento = $data['desconto_reaproveitamento'] : null;
+        isset($data['desconto_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->desconto_porcentagem = $data['desconto_porcentagem'] : null;
+        
+        isset($data['bonificacao_venda_coeficiente']) /*|| $data['final_value'] == ""*/ ? $task->bonificacao_venda_coeficiente = $data['bonificacao_venda_coeficiente'] : null;
+        isset($data['bonificacao_venda_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->bonificacao_venda_meta_porcentagem = $data['bonificacao_venda_meta_porcentagem'] : null;
+
         $task->updated_by = User::logged()->employee->name;
 
         $task->save();
