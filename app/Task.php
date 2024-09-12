@@ -13,11 +13,17 @@ use Illuminate\Support\Collection;
 class Task extends Model
 {
     protected $table = 'task';
+    
     protected $fillable = [
-        'job_id', 'responsible_id', 'job_activity_id',
-        'reopened', 'task_id', 'done',
+        'job_id',
+        'responsible_id',
+        'job_activity_id',
+        'reopened',
+        'task_id',
+        'done',
         "orders_value",
-        "attendance_value", "creation_value",
+        "attendance_value",
+        "creation_value",
         "pre_production_value",
         "production_value",
         "details_value",
@@ -32,7 +38,27 @@ class Task extends Model
         "gross_profit_value",
         "profit_value",
         "final_value",
-        "updated_by"
+        "updated_by",
+        "frete_logistica_meta_porcentagem",
+        "bonificacao_venda_coeficiente",
+        "bonificacao_venda_meta_porcentagem",
+        "custo_total_coeficiente",
+        "imposto_coeficiente",
+        "comissao_vendas_coeficiente",
+        "bonificacao_projeto_interno_coeficiente",
+        "bonificacao_orcamento_coeficiente",
+        "bonificacao_gerente_producao_coeficiente",        
+        "bonificacao_producao_coeficiente",
+        "bonificacao_detalhamento_coeficiente",
+        "total_estande_coeficiente",
+        "diversos_operacional_coeficiente",
+        "frete_logistica_coeficiente",
+        "m2_venda_stand_coeficiente",
+        "m2_venda_stand_logistica_equipamentos_coeficiente",
+        "bonificacao_gerente_producao_meta_porcentagem",
+        "bonificacao_producao_meta_porcentagem",
+        "bonificacao_detalhamento_meta_porcentagem",
+        "total_estande_meta_porcentagem"
     ];
 
     public function getTaskName()
