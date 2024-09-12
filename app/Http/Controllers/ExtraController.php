@@ -56,7 +56,7 @@ class ExtraController extends Controller
 
             $extra->delete();
 
-            return response()->json(['error' => 'false', 'message' => 'Extra de Id ' . $id . ' deletado com sucesso'], 400);
+            return response()->json(['error' => 'false', 'message' => 'Extra de Id ' . $id . ' deletado com sucesso'], 200);
         }
     }
 

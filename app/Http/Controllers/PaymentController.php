@@ -73,7 +73,7 @@ class PaymentController extends Controller
 
             $payment->delete();
 
-            return response()->json(['error' => 'false', 'message' => 'Pagamento de Id ' . $id . ' deletado com sucesso'], 400);
+            return response()->json(['error' => 'false', 'message' => 'Pagamento de Id ' . $id . ' deletado com sucesso'], 200);
         }
     }
 

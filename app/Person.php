@@ -26,7 +26,7 @@ class Person extends Model
     {
         $person = Person::find($id);
 
-        if (!$checkin) {
+        if (!$person) {
             return null;
         }
 

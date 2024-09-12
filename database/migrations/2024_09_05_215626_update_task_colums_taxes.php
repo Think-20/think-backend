@@ -18,6 +18,9 @@ class UpdateTaskColumsTaxes extends Migration
             $table->double('desconto')->nullable();
             $table->double('desconto_reaproveitamento')->nullable();
             $table->double('desconto_porcentagem')->nullable();
+
+            $table->double('bonificacao_venda_coeficiente')->nullable();
+            $table->double('bonificacao_venda_meta_porcentagem')->nullable();
         });
     }
 
@@ -28,7 +31,6 @@ class UpdateTaskColumsTaxes extends Migration
      */
     public function down()
     {
-        
         Schema::table('task', function (Blueprint $table) {
             $table->dropColumn('credenciais_taxas');
             $table->dropColumn('credenciais_taxas_reaproveitamento');
@@ -39,6 +41,9 @@ class UpdateTaskColumsTaxes extends Migration
             $table->dropColumn('desconto');
             $table->dropColumn('desconto_reaproveitamento');
             $table->dropColumn('desconto_porcentagem');
+
+            $table->dropColumn('bonificacao_venda_coeficiente');
+            $table->dropColumn('bonificacao_venda_meta_porcentagem');
         });
     }
 }

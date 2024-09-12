@@ -46,7 +46,7 @@ class GoalController extends Controller
 
         $goal = Goal::where('month', $request->month)->where('year', $request->year)->first();
         if ($goal) {
-            return response()->json(['error' => 'true', 'message' => 'Meta ja cadastrada para este periodo'], 400);
+            return response()->json(['error' => 'true', 'message' => 'Meta ja cadastrada para este periodo'], 200);
         }
 
         $newGoal = new Goal();
