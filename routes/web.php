@@ -162,6 +162,8 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::get('/reminders', 'RemindersController@index');
     Route::put('/reminders/read/{id}', 'RemindersController@markAsRead');
     Route::get('/notifywindow', 'NotificationController@window');
+    
+    Route::get('/notifyCheckinWindow', 'NotificationController@windowCheckin');
 
     Route::get('jobevents/filter/{event?}', 'EventController@jobevents');
     Route::post('/tasks/change-values', 'TaskController@editValues');

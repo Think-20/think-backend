@@ -31,6 +31,19 @@ class UpdateTaskColumsTaxes extends Migration
      */
     public function down()
     {
-       
+        Schema::table('task', function (Blueprint $table) {
+            $table->dropColumn('credenciais_taxas');
+            $table->dropColumn('credenciais_taxas_reaproveitamento');
+            $table->dropColumn('credenciais_taxas_porcentagem');
+            $table->dropColumn('seguro');
+            $table->dropColumn('seguro_reaproveitamento');
+            $table->dropColumn('seguro_porcentagem');
+            $table->dropColumn('desconto');
+            $table->dropColumn('desconto_reaproveitamento');
+            $table->dropColumn('desconto_porcentagem');
+
+            $table->dropColumn('bonificacao_venda_coeficiente');
+            $table->dropColumn('bonificacao_venda_meta_porcentagem');
+        });
     }
 }

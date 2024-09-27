@@ -17,8 +17,14 @@ class UserNotification extends Model
     protected $table = 'user_notification';
 
     protected $fillable = [
-        'received_date', 'received', 'notification_id', 'user_id', 'read', 'read_date',
-        'special', 'special_message'
+        'received_date',
+        'received',
+        'notification_id',
+        'user_id',
+        'read',
+        'read_date',
+        'special',
+        'special_message'
     ];
 
 
@@ -279,7 +285,7 @@ class UserNotification extends Model
     //Função que vai trazer todos os dados para a tela de notificações que será exibida nas sextas-feiras
     public static function notificationsWindow()
     {
-        $jobs = Job::where('attendance_id',User::logged()->employee->id)
+        $jobs = Job::where('attendance_id', User::logged()->employee->id)
             ->where('status_id', 1)
             ->whereYear('created_at', '>=', 2023)
             ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
@@ -288,7 +294,7 @@ class UserNotification extends Model
             ->get();
 
 
-        $count = Job::where('attendance_id',User::logged()->employee->id)
+        $count = Job::where('attendance_id', User::logged()->employee->id)
             ->where('status_id', 1)
             ->whereYear('created_at', '>=', 2023)
             ->whereDate('created_at', '<=', Carbon::now()->subDays(15)->startOfDay())
@@ -334,5 +340,104 @@ class UserNotification extends Model
                 "data" => $jobsResult
             ]
         ]);
+    }
+
+    //Função que vai trazer todos os dados para a tela de notificações de checkin que será exibida para os responsaveis de cada área
+    public static function notificationsWindowCheckin()
+    {
+
+        $loggedId = User::logged()->employee->id;
+
+        //Função desbloqueada apenas para usuários especificos que terão acesso a alterar aceites de checkin sendo:
+        /*
+            Pamela de id 11 do accept_proposal
+            Ivanildo de id 20 do accept_production
+            Hugo de id 1 do board_approval ou Rodolfo de id 41
+        */
+
+
+        if ($loggedId == 11 || $loggedId == 20 || $loggedId == 1 || $loggedId == 41 || $loggedId == 43) {
+
+            //Variavel que ira auxiliar na contrução da busca separada por tipo de usuario verificando o tipo de aceite dele
+            $aux = "";
+
+            switch ($loggedId) {
+                case 11:
+                    $aux = ' AND board_approval IS NULL;';
+
+                    $checkins = Checkin::where('approval', true)->where('board_approval', null)->get();
+                    break;
+
+                case 20:
+                    $aux = ' AND board_approval = true AND accept_proposal IS NULL;';
+
+                    $checkins = Checkin::where('approval', true)->where('board_approval', true)->where('accept_proposal', null)->get();
+                    break;
+
+                case 11 || 41 || 43:
+                    $aux = ' AND board_approval = true AND accept_proposal = true AND accept_production IS NULL;';
+                    $checkins = Checkin::where('approval', true)->where('board_approval', true)->where('accept_proposal', true)->where('accept_production', null)->get();
+                    break;
+
+                default:
+                    return response()->json([
+                        "error" =>  true,
+                        "message" => "Usuário logado não tem permissão para adicionar aceites em checkin."
+                    ]);
+                    break;
+            }
+
+            $count = FacadesDB::select(FacadesDB::raw("SELECT COUNT(id) as count FROM checkin WHERE approval = true" . $aux))[0]->count;
+
+            $jobsResult = [];
+            foreach ($checkins as $checkin) {
+
+                $checkin->job;
+                $checkin->job->client;
+
+                $lastUpdateDate = Carbon::parse($checkin['updated_at']);
+                $atualDate = Carbon::now();
+                $diferencaDias = $atualDate->diffInDays($lastUpdateDate);
+
+
+                if ($checkin['job']['client'] != null) {
+                    $client = $checkin['job']['client']['fantasy_name'];
+                } else if ($checkin['job']['not_client'] != null) {
+                    $client = $checkin['job']["not_client"];
+                }
+
+                if (isset($checkin['job']['creation'][0]['responsible_id'])) {
+                    $responsible = $checkin['job']['creation'][0]['responsible']['name'];
+                }
+
+                array_push($jobsResult, [
+                    "id" => $checkin['job']['id'],
+                    "code" => $checkin['job']['code'],
+                    "days_without_update" => $diferencaDias,
+                    "job_activity" => $checkin['job']['job_activity']['description'],
+                    "job_type" => $checkin['job']['job_type']['description'],
+                    "client" => $client ?? null,
+                    "event" => $checkin['job']['event'],
+                    "deadline" => $checkin['job']['deadline'],
+                    "creation_responsible" => $responsible ?? null,
+                    "budget_value" => $checkin['job']['budget_value'],
+                    "attendance" => isset($checkin['job']['attendance']['name']) ? $checkin['job']['attendance']['name'] : null,
+                    "area" => isset($checkin['job']['area']) ? $checkin['job']['area'] : null,
+                    "status" => $checkin['job']['status']['description']
+                ]);
+            }
+
+            return response()->json([
+                "update_pendency" => [
+                    "count" => $count,
+                    "data" => $jobsResult
+                ]
+            ]);
+        } else {
+            return response()->json([
+                "error" =>  true,
+                "message" => "Usuário logado não tem permissão para adicionar aceites em checkin."
+            ]);
+        }
     }
 }

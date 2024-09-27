@@ -40,4 +40,10 @@ class NotificationController extends Controller
     public static function window() {
         return UserNotification::notificationsWindow();
     }
+
+    public static function windowCheckin() {
+        return UserNotification::notificationsWindowCheckin();
+    }
+
+    
 }
