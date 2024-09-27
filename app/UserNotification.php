@@ -350,14 +350,13 @@ class UserNotification extends Model
 
         //Função desbloqueada apenas para usuários especificos que terão acesso a alterar aceites de checkin sendo:
         /*
-            Pamela de id 11 do accept_proposal
-            Ivanildo de id 20 do accept_production
-            Hugo de id 1 do board_approval ou Rodolfo de id 41
+            Pamela de id 11 pro accept_proposal
+            Ivanildo de id 20 pro accept_production
+            Hugo de id 1  ou Rodolfo de id 41 pro board_approval
         */
 
 
         if ($loggedId == 11 || $loggedId == 20 || $loggedId == 1 || $loggedId == 41 || $loggedId == 43) {
-
             //Variavel que ira auxiliar na contrução da busca separada por tipo de usuario verificando o tipo de aceite dele
             $aux = "";
 

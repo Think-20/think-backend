@@ -38,6 +38,7 @@ class ExtraController extends Controller
     public function updateExtra(Request $request)
     {
         $extra = Extra::find($request->id);
+        
         $extra->update($request->all());
 
         return response()->json(['error' => 'false', 'message' => 'Extra atualizada com sucesso', 'object' => $extra]);

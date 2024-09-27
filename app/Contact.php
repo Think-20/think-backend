@@ -13,19 +13,24 @@ class Contact extends Model
     protected $table = 'contact';
 
     protected $fillable = [
-        'name', 'email', 'department', 'cellphone'
+        'name',
+        'email',
+        'department',
+        'cellphone',
+        'obs'
     ];
 
-    public static function manage(array $contactsDataArray, Contactable $contactable) {
+    public static function manage(array $contactsDataArray, Contactable $contactable)
+    {
         $oldContacts = $contactable->contacts;
         $contactIds = [];
 
-        foreach($contactsDataArray as $contact) {
+        foreach ($contactsDataArray as $contact) {
             //Exists, update
-            if(isset($contact['id'])) {
+            if (isset($contact['id'])) {
                 $contactIds[] = $contact['id'];
                 Contact::edit($contact, $contactable);
-            } 
+            }
             //Create because not found
             else {
                 $contact = Contact::insert($contact, $contactable);
@@ -40,9 +45,10 @@ class Contact extends Model
         Contact::deleteOldIds($oldContacts, $contactIds, $contactable);
     }
 
-    public static function deleteOldIds($oldContacts, array $contactIds, Contactable $contactable) {
-        foreach($oldContacts as $contact) {
-            if(!in_array($contact->id, $contactIds)) {
+    public static function deleteOldIds($oldContacts, array $contactIds, Contactable $contactable)
+    {
+        foreach ($oldContacts as $contact) {
+            if (!in_array($contact->id, $contactIds)) {
                 $contactable->contacts()->detach($contact);
                 $contactable->logContactChanges([
                     'client_id' => $contactable->id,
@@ -54,10 +60,11 @@ class Contact extends Model
         }
     }
 
-    public static function edit(array $data, Contactable $contactable) {
+    public static function edit(array $data, Contactable $contactable)
+    {
         $contact = Contact::find($data['id']);
 
-        if( count( array_diff($data, $contact->toArray()) ) == 0 ) {
+        if (count(array_diff($data, $contact->toArray())) == 0) {
             return;
         }
 
@@ -66,17 +73,20 @@ class Contact extends Model
             'description' => 'O contato ' . $contact->name . ' foi alterado',
             'type' => 'Alteração de contato'
         ]);
+
         $contact->update($data);
     }
 
-    public static function insert(array $data, Contactable $contactable) {
+    public static function insert(array $data, Contactable $contactable)
+    {
         $contact = new Contact($data);
         $contact->save();
         $contactable->contacts()->save($contact);
         return $contact;
     }
 
-    public static function extractFromArray($row) {
+    public static function extractFromArray($row)
+    {
         /*
             Importação de cliente
 
@@ -87,27 +97,31 @@ class Contact extends Model
             15 => "CEP"    16 => "Logradouro"    17 => "Numero"    18 => "Complemento"    19 => "Estado"    
             20 => "Cidade"    21 => "Bairro"
         */
+
+        dd($row);
         return [
-            'name' => $row[10], 
-            'email' => $row[11], 
-            'department' => $row[12], 
-            'cellphone' => $row[13]
+            'name' => $row[10],
+            'email' => $row[11],
+            'department' => $row[12],
+            'cellphone' => $row[13],
         ];
     }
 
-    public function getCellphoneAttribute($value) {
+    public function getCellphoneAttribute($value)
+    {
         $phone = null;
 
-        if(strlen($value) == 10) {
+        if (strlen($value) == 10) {
             $phone = mask($value, '(##) ####-####');
-        } else if(strlen($value) == 11) {
+        } else if (strlen($value) == 11) {
             $phone = mask($value, '(##) ####-#####');
         }
 
         return $phone;
     }
 
-    public function setCellphoneAttribute($value) {
+    public function setCellphoneAttribute($value)
+    {
         $this->attributes['cellphone'] = (int) preg_replace('/[^0-9]+/', '', $value);
     }
 }

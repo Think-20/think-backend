@@ -77,6 +77,7 @@ class Client extends Model implements Contactable
             $client->client_status_id = isset($data['client_status']['id']) ? $data['client_status']['id'] : null;
 
             $contacts = isset($data['contacts']) ? $data['contacts'] : [];
+            
             Contact::manage($contacts, $client);
 
             $client->update($data);
