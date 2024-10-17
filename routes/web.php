@@ -24,6 +24,9 @@ Route::get('/notify-past', function () {
     return (new App\CreateNotifyPastTasks())->test();
 });
 
+//Realizado fora do midware por ser algo clicado direto pelo cliente sem precisar logar
+Route::get('/testeEmail/{id}', 'CheckinController@confirmMailCheckin');
+
 /*  
     Construir authenticate request para imagens 
     http://blog.jsgoupil.com/request-image-files-with-angular-2-and-an-bearer-access-token/
@@ -162,7 +165,7 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::get('/reminders', 'RemindersController@index');
     Route::put('/reminders/read/{id}', 'RemindersController@markAsRead');
     Route::get('/notifywindow', 'NotificationController@window');
-    
+
     Route::get('/notifyCheckinWindow', 'NotificationController@windowCheckin');
 
     Route::get('jobevents/filter/{event?}', 'EventController@jobevents');
@@ -186,6 +189,11 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/checking', 'CheckinController@createCheckin');
     Route::put('/checking', 'CheckinController@updateCheckin');
 
+    Route::get('/planner', 'PlannerController@selectPlanner');
+    Route::get('/planner/{id}', 'PlannerController@selectPlanner');
+    Route::post('/planner', 'PlannerController@createPlanner');
+    Route::put('/planner', 'PlannerController@updatePlanner');
+
     Route::get('/payment', 'PaymentController@selectPayment');
     Route::get('/payment/{id}', 'PaymentController@selectPayment');
     Route::get('/payment/checkin/{id}', 'PaymentController@selectPaymentByCheckin');
@@ -204,9 +212,9 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::put('/extra', 'ExtraController@updateExtra');
     Route::delete('/extra/{id}', 'ExtraController@deleteExtra');
 
-
     Route::post('/testeGetS3', 'GoalController@testeGetS3');
     Route::post('/testePutS3', 'GoalController@testePutS3');
+    Route::get('/testeEmail', 'CheckinController@sendMailCheckin');
 
     Route::get('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
     Route::post('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');

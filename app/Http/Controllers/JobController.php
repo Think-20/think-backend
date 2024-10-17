@@ -15,6 +15,11 @@ use App\JobActivity;
 use Aws\S3\S3Client;
 use AwsS3S3Client;
 
+
+
+
+require __DIR__ . '/../../../vendor/autoload.php';
+
 class JobController extends Controller
 {
     public static function loadForm()
@@ -149,7 +154,7 @@ class JobController extends Controller
 
     public static function get(int $id)
     {
-return Job::get($id);
+        return Job::get($id);
     }
 
     public static function all()

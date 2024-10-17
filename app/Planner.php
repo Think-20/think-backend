@@ -1,0 +1,42 @@
+<?php
+
+namespace App;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Planner extends Model
+{
+    protected $table = 'planner';
+
+    protected $guarded = ['id'];
+
+    public static function list()
+    {
+        $planners = Planner::get();
+
+        foreach ($planners as $planner) {            
+            $planner->employee;
+        }
+
+        return $planners;
+    }
+
+    public static function getUnique(int $id = null)
+    {
+        $planner = Planner::find($id);
+
+        if (!$planner) {
+            return null;
+        }
+
+        $planner->employee;
+
+        return $planner;
+    }
+
+    public function employee()
+    {
+        return $this->hasOne(Employee::class, "id", "employee_id");
+    }
+
+}
