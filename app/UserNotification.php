@@ -10,6 +10,7 @@ use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB as FacadesDB;
 
+
 class UserNotification extends Model
 {
     public $timestamps = false;

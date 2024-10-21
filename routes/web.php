@@ -194,6 +194,8 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/planner', 'PlannerController@createPlanner');
     Route::put('/planner', 'PlannerController@updatePlanner');
 
+    Route::get('/planner/{ano}/{mes}/{employee}', 'PlannerController@selectPlannerFilter');
+
     Route::get('/payment', 'PaymentController@selectPayment');
     Route::get('/payment/{id}', 'PaymentController@selectPayment');
     Route::get('/payment/checkin/{id}', 'PaymentController@selectPaymentByCheckin');
