@@ -42,6 +42,7 @@ class PlannerController extends Controller
         if (!$planner) {
             return response()->json(['error' => 'true', 'message' => 'planejamento nao encontrado'], 400);
         }
+        
         return $planner;
     }
 

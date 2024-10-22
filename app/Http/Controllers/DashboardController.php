@@ -24,6 +24,7 @@ class DashboardController extends Controller
         $dtFim = isset($request->date_end) ? Carbon::parse($request->date_end) : Carbon::now()->endOfMonth();
         $request["userFilter"] = false;
 
+        
         $aprovados = $this->reportsService->GetApproveds(["date_init" => $dtInicio, "date_end" => $dtFim]);
         $avancados = $this->reportsService->GetAdvanceds(["date_init" => $dtInicio, "date_end" => $dtFim]);
         $standby = $this->reportsService->GetStandbys(["date_init" => $dtInicio, "date_end" => $dtFim]);
