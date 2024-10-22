@@ -122,17 +122,14 @@ class CheckinController extends Controller
         $checkin = Checkin::getUnique($id);
         $mail = new PHPMailer(true);
 
-        return ('Confirmação de checkin para o evento ' . $checkin->event_object->name . ' que vai ocorrer entre os dias '
-            . Carbon::parse($checkin->event_object->ini_date)->format("d/m/Y") . ' e '
-            . Carbon::parse($checkin->event_object->fin_date)->format("d/m/Y") . '.<br> <a href="http://54.163.167.198/testeEmailConfirm/'
-            . $id . '">Clicke aqui para confirmar check-in</a>');
+        #return ();
 
         //Tentativa com gmail
         try {
             // Configurações do servidor SMTP do Gmail
             $mail->isSMTP();
-            $mail->SMTPDebug = 2; // ou 3 para mais informações detalhadas
-            $mail->Debugoutput = 'html';
+            #$mail->SMTPDebug = 2; // ou 3 para mais informações detalhadas
+            #$mail->Debugoutput = 'html';
 
             $mail->Host = 'smtp.gmail.com';
             $mail->SMTPAuth = true;
@@ -147,15 +144,17 @@ class CheckinController extends Controller
 
             // Conteúdo do e-mail
             $mail->isHTML(true);
-            $mail->Subject = 'Confirmação de Checkin';
-            $mail->Body    = 'Confirmação de checkin para o evento ' . $checkin->event_object->name . ' que vai ocorrer entre os dias ' .
-                Carbon::parse($checkin->event_object->ini_date)->format("d/m/Y") . ' e ' . Carbon::parse($checkin->event_object->fin_date)->format("d/m/Y") . '.<br> <a href="http://54.163.167.198/testeEmailConfirm/' . $id . '">Clicke aqui para confirmar check-in</a>';
+            $mail->Subject = 'Confirmacao de Checkin';
+            $mail->Body    = 'Confirmacao de checkin para o evento ' . $checkin->event_object->name . ' que vai ocorrer entre os dias '
+            . Carbon::parse($checkin->event_object->ini_date)->format("d/m/Y") . ' e '
+            . Carbon::parse($checkin->event_object->fin_date)->format("d/m/Y") . '.<br> <a href="http://54.163.167.198/testeEmailConfirm/'
+            . $id . '">Clicke aqui para confirmar check-in</a>';
 
             // Enviar o e-mail
             $mail->send();
-            echo 'Mensagem enviada com sucesso!';
+            #echo 'Mensagem enviada com sucesso!';
         } catch (Exception $e) {
-            echo "Erro ao enviar mensagem: {$mail->ErrorInfo}";
+            #echo "Erro ao enviar mensagem: {$mail->ErrorInfo}";
         }
 
         return response()->json(['error' => 'false', 'message' => 'Email de confirmação enviado ao cliente.']);
