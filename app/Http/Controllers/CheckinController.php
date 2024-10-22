@@ -116,11 +116,16 @@ class CheckinController extends Controller
         return response()->json(['error' => 'false', 'message' => 'Checkin atualizada com sucesso', 'object' => $checkin]);
     }
 
-    public static function sendMailCheckin()
+    public static function sendMailCheckin(Request $request, int $id = null)
     {
 
+        $checkin = Checkin::getUnique($id);
         $mail = new PHPMailer(true);
 
+        return ('Confirmação de checkin para o evento ' . $checkin->event_object->name . ' que vai ocorrer entre os dias '
+            . Carbon::parse($checkin->event_object->ini_date)->format("d/m/Y") . ' e '
+            . Carbon::parse($checkin->event_object->fin_date)->format("d/m/Y") . '.<br> <a href="http://54.163.167.198/testeEmailConfirm/'
+            . $id . '">Clicke aqui para confirmar check-in</a>');
 
         //Tentativa com gmail
         try {
@@ -138,12 +143,13 @@ class CheckinController extends Controller
 
             // Remetente e destinatário
             $mail->setFrom('gui9788534514088@gmail.com', 'Douglas');
-            $mail->addAddress('guibarbosa28@outlook.com', 'Guilherme Barbosa'); // Adicione o destinatário
+            $mail->addAddress($checkin->organization_login, $checkin->client_object->name); // Adicione o destinatário
 
             // Conteúdo do e-mail
             $mail->isHTML(true);
-            $mail->Subject = 'Teste de Email';
-            $mail->Body    = 'Esse e um teste de envio de e-mail usando PHPMailer com Gmail.<br> <a href="http://localhost:8000/testeEmail/1">Clicke aqui para confirmar check-in</a>';
+            $mail->Subject = 'Confirmação de Checkin';
+            $mail->Body    = 'Confirmação de checkin para o evento ' . $checkin->event_object->name . ' que vai ocorrer entre os dias ' .
+                Carbon::parse($checkin->event_object->ini_date)->format("d/m/Y") . ' e ' . Carbon::parse($checkin->event_object->fin_date)->format("d/m/Y") . '.<br> <a href="http://54.163.167.198/testeEmailConfirm/' . $id . '">Clicke aqui para confirmar check-in</a>';
 
             // Enviar o e-mail
             $mail->send();
