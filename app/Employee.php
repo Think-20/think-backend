@@ -113,14 +113,21 @@ class Employee extends Model implements NotifierInterface
 
     public static function filter(array $data) {
         $search = isset($data['search']) ? $data['search'] : null;
+        $name = isset($data['name']) ? $data['name'] : null;
         $deleted = isset($data['deleted']) ? $data['deleted'] : null;
         $paginate = isset($data['paginate']) ? $data['paginate'] : true;
         $departmentId = isset($data['department']['id']) ? $data['department']['id'] : null;
         $positionId = isset($data['position']['id']) ? $data['position']['id'] : null;
         $query = Employee::with('user', 'position', 'department');
 
+        #dd($name);
+
         if( ! is_null($search) ) {
             $query->where('name', 'LIKE', '%' . $search . '%');
+        }
+
+        if( ! is_null($name) ) {
+            $query->where('name', 'LIKE', '%' . $name . '%');
         }
 
         if( ! is_null($departmentId) ) {

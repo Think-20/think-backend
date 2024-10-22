@@ -147,7 +147,7 @@ class CheckinController extends Controller
             $mail->Subject = 'Confirmacao de Checkin';
             $mail->Body    = 'Confirmacao de checkin para o evento ' . $checkin->event_object->name . ' que vai ocorrer entre os dias '
             . Carbon::parse($checkin->event_object->ini_date)->format("d/m/Y") . ' e '
-            . Carbon::parse($checkin->event_object->fin_date)->format("d/m/Y") . '.<br> <a href="http://54.163.167.198/testeEmailConfirm/'
+            . Carbon::parse($checkin->event_object->fin_date)->format("d/m/Y") . '.<br> <a href="http://54.163.167.198:8000/testeEmailConfirm/'
             . $id . '">Clicke aqui para confirmar check-in</a>';
 
             // Enviar o e-mail
