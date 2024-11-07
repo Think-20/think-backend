@@ -221,6 +221,22 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::get('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
     Route::post('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
     Route::put('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
+
+    Route::post('/places/all', 'PlaceController@all');
+    Route::post('/places/filter', 'PlaceController@filter');
+    Route::get('/places/get/{id}', 'PlaceController@get');
+    Route::post('/place/save', 'PlaceController@save');
+    Route::put('/place/edit', 'PlaceController@edit');
+    Route::delete('/place/remove/{id}', 'PlaceController@remove');
+
+    Route::post('/events/all', 'EventController@all');
+    Route::post('/events/filter', 'EventController@filter');
+    Route::get('/events/get/{id}', 'EventController@get');
+    Route::post('/event/save', 'EventController@save');
+    Route::put('/event/edit', 'EventController@edit');
+    Route::delete('/event/remove/{id}', 'EventController@remove');
+    Route::get('/event/download/{id}/{type}/{file}', 'EventController@downloadFile');
+
 });
 
 Route::group(['middleware' => ['auth.api', 'permission']], function () {
@@ -373,18 +389,5 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::get('/schedule-blocks/valid', 'ScheduleBlockController@valid');
     Route::get('/my-schedule-blocks/valid', 'ScheduleBlockController@myValid');
 
-    Route::post('/places/all', 'PlaceController@all');
-    Route::post('/places/filter', 'PlaceController@filter');
-    Route::get('/places/get/{id}', 'PlaceController@get');
-    Route::post('/place/save', 'PlaceController@save');
-    Route::put('/place/edit', 'PlaceController@edit');
-    Route::delete('/place/remove/{id}', 'PlaceController@remove');
-
-    Route::post('/events/all', 'EventController@all');
-    Route::post('/events/filter', 'EventController@filter');
-    Route::get('/events/get/{id}', 'EventController@get');
-    Route::post('/event/save', 'EventController@save');
-    Route::put('/event/edit', 'EventController@edit');
-    Route::delete('/event/remove/{id}', 'EventController@remove');
-    Route::get('/event/download/{id}/{type}/{file}', 'EventController@downloadFile');
+    
 });

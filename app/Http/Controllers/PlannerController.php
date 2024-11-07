@@ -49,8 +49,6 @@ class PlannerController extends Controller
 
     public function createPlanner(Request $request)
     {
-
-
         $request['employee_id'] = User::logged()->employee->id;
 
         $planner = Planner::create($request->all());

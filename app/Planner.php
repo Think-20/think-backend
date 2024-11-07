@@ -16,6 +16,7 @@ class Planner extends Model
 
         foreach ($planners as $planner) {            
             $planner->employee;
+            $planner->modality;
         }
 
         return $planners;
@@ -37,6 +38,11 @@ class Planner extends Model
     public function employee()
     {
         return $this->hasOne(Employee::class, "id", "employee_id");
+    }
+
+    public function modality()
+    {
+        return $this->hasOne(TimecardPlace::class, "id", "modality_id");
     }
 
 }
