@@ -17,7 +17,6 @@ class Planner extends Model
         foreach ($planners as $planner) {            
             $planner->employee;
             $planner->modality;
-            
         }
 
         return $planners;
@@ -32,6 +31,7 @@ class Planner extends Model
         }
 
         $planner->employee;
+        $planner->modality;
 
         return $planner;
     }
