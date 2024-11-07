@@ -22,4 +22,4 @@ class UpdatePlannersSubcategory extends Migration
             $table->dropColumn('modality_id');
         });
     }
-}
+} 
