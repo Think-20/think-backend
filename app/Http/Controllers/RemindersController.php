@@ -28,33 +28,64 @@ class RemindersController extends Controller
 
     public function OneYearJobCreation()
     {
-        $startDate = Carbon::now()->subYear()->startOfDay();
-        $endDate = Carbon::now()->subYear()->endOfDay();
-        $jobs = Job::selectRaw('job.*')
-            ->with(
-                'job_activity',
-                'job_type',
-                'client',
-                'main_expectation',
-                'levels',
-                'how_come',
-                'agency',
-                'attendance',
-                'competition',
-                'files',
-                'status',
-                'creation'
-            )
-            ->with(['creation.items' => function ($query) {
-                $query->limit(1);
-            }])
-            ->where('attendance_id', User::logged()->employee->id)
-            ->whereDate('created_at', '>=', $startDate)
-            ->whereDate('created_at', '<=', $endDate)
-            ->with('client')
-            ->get();
+        $startDateOneYear = Carbon::now()->subYear()->startOfDay();
+        $endDateOneYear = Carbon::now()->subYear()->endOfDay();
 
-        return ["jobs" => $jobs];
+        $startDateTwoYear = Carbon::now()->subYear()->startOfDay();
+        $endDateTwoYear = Carbon::now()->subYear()->endOfDay();
+        $user = User::logged();
+        if ($user && $user->employee->department_id == 1) {
+            #quando for diretoria vai ser capaz de ver todos os casos
+            
+
+            $jobs = Job::selectRaw('job.*')
+                ->with(
+                    'job_activity',
+                    'job_type',
+                    'client',
+                    'main_expectation',
+                    'levels',
+                    'how_come',
+                    'agency',
+                    'attendance',
+                    'competition',
+                    'files',
+                    'status',
+                    'creation'
+                )
+                ->with(['creation.items' => function ($query) {
+                    $query->limit(1);
+                }])
+                ->whereBetween('created_at', [$startDateOneYear , $endDateOneYear ])
+                ->orWhereBetween('created_at', [$startDateTwoYear , $endDateTwoYear ])
+                ->with('client')
+                ->get();
+
+            return ["jobs" => $jobs];
+        }else{
+            $jobs = Job::selectRaw('job.*')
+                ->with(
+                    'job_activity',
+                    'job_type',
+                    'client',
+                    'main_expectation',
+                    'levels',
+                    'how_come',
+                    'agency',
+                    'attendance',
+                    'competition',
+                    'files',
+                    'status',
+                    'creation'
+                )
+                ->with(['creation.items' => function ($query) {
+                    $query->limit(1);
+                }])
+                ->whereBetween('created_at', [$startDateOneYear , $endDateOneYear ])
+                ->orWhereBetween('created_at', [$startDateTwoYear , $endDateTwoYear ])
+                ->get();
+            return ["jobs" => $jobs];
+        }
     }
 
     public function markAsRead($id)
@@ -71,13 +102,26 @@ class RemindersController extends Controller
 
     public function OneYearClientRegister()
     {
-        $startDate = Carbon::now()->subYear()->startOfDay();
-        $endDate = Carbon::now()->subYear()->endOfDay();
-        $clients = Client::where('employee_id', User::logged()->employee->id)
+
+        $startDateOneYear = Carbon::now()->subYear()->startOfDay();
+        $endDateOneYear = Carbon::now()->subYear()->endOfDay();
+
+        $startDateTwoYear = Carbon::now()->subYear()->startOfDay();
+        $endDateTwoYear = Carbon::now()->subYear()->endOfDay();
+
+        $user = User::logged();
+        if ($user && $user->employee->department_id == 1) {
+        $clients = Client::whereBetween('created_at', [$startDateOneYear , $endDateOneYear ])
+            ->orWhereBetween('created_at', [$startDateTwoYear , $endDateTwoYear ])
             ->with('type', 'status')
-            ->whereDate('created_at', '>=', $startDate)
-            ->whereDate('created_at', '<=', $endDate)
             ->get();
+        }else {
+            $clients = Client::where('employee_id', User::logged()->employee->id)
+            ->with('type', 'status')
+            ->whereBetween('created_at', [$startDateOneYear , $endDateOneYear ])
+            ->orWhereBetween('created_at', [$startDateTwoYear , $endDateTwoYear ])
+            ->get();
+        }
         if (!$clients->isEmpty()) {
             foreach ($clients as $client) {
                 $lastJob = Job::where('client_id', $client->id)->orderBy('created_at', 'desc')->first(['code', 'event', 'created_at']);
@@ -95,9 +139,47 @@ class RemindersController extends Controller
 
     public function OneYearJobApproved()
     {
-        $startDate = Carbon::now()->subYear()->startOfDay();
-        $endDate = Carbon::now()->subYear()->endOfDay();
-        $jobs = Job::selectRaw('job.*')
+        $startDateOneYear = Carbon::now()->subYear()->startOfDay();
+        $endDateOneYear = Carbon::now()->subYear()->endOfDay();
+
+        $startDateTwoYear = Carbon::now()->subYear()->startOfDay();
+        $endDateTwoYear = Carbon::now()->subYear()->endOfDay();
+        
+        $user = User::logged();
+        if ($user && $user->employee->department_id == 1) {
+            $jobs = Job::selectRaw('job.*')
+        ->with(
+            'job_activity',
+            'job_type',
+            'client',
+            'main_expectation',
+            'levels',
+            'how_come',
+            'agency',
+            'attendance',
+            'competition',
+            'files',
+            'status',
+            'creation',
+            'tasks'
+        )
+        ->with(['creation.items' => function ($query) {
+            $query->limit(1);
+        }])
+        ->where(function ($query) {
+            $query->/*where('attendance_id', User::logged()->employee->id)
+                ->orW*/whereHas('tasks', function ($query) {
+                    $query->where('responsible_id', User::logged()->employee->id)
+                        ->where('job_activity_id', JobActivity::where('description', 'Projeto')->first()->id);
+                });
+        })
+        ->where('status_id', 3)
+        ->whereBetween('created_at', [$startDateOneYear , $endDateOneYear ])
+        ->orWhereBetween('created_at', [$startDateTwoYear , $endDateTwoYear ])
+        ->with('client')
+        ->get();
+        }else {
+            $jobs = Job::selectRaw('job.*')
         ->with(
             'job_activity',
             'job_type',
@@ -124,10 +206,13 @@ class RemindersController extends Controller
                 });
         })
         ->where('status_id', 3)
-        ->whereDate('status_updated_at', '>=', $startDate)
-        ->whereDate('status_updated_at', '<=', $endDate)
+        ->whereBetween('created_at', [$startDateOneYear , $endDateOneYear ])
+        ->orWhereBetween('created_at', [$startDateTwoYear , $endDateTwoYear ])
         ->with('client')
         ->get();
+        }
+    
+        
 
         return ["jobs_approveds" => $jobs];
     }

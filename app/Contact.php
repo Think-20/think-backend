@@ -98,7 +98,7 @@ class Contact extends Model
             20 => "Cidade"    21 => "Bairro"
         */
 
-        dd($row);
+        //dd($row);
         return [
             'name' => $row[10],
             'email' => $row[11],
