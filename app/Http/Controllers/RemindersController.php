@@ -118,8 +118,10 @@ class RemindersController extends Controller
         }else {
             $clients = Client::where('employee_id', User::logged()->employee->id)
             ->with('type', 'status')
-            ->whereBetween('created_at', [$startDateOneYear , $endDateOneYear ])
-            ->orWhereBetween('created_at', [$startDateTwoYear , $endDateTwoYear ])
+            ->where(function ($query) use ($startDateOneYear, $endDateOneYear, $startDateTwoYear, $endDateTwoYear) {
+                $query->whereBetween('created_at', [$startDateOneYear, $endDateOneYear])
+                    ->orWhereBetween('created_at', [$startDateTwoYear, $endDateTwoYear]);
+            })
             ->get();
         }
         if (!$clients->isEmpty()) {
@@ -174,8 +176,10 @@ class RemindersController extends Controller
                 });
         })
         ->where('status_id', 3)
-        ->whereBetween('created_at', [$startDateOneYear , $endDateOneYear ])
-        ->orWhereBetween('created_at', [$startDateTwoYear , $endDateTwoYear ])
+        ->where(function ($query) use ($startDateOneYear, $endDateOneYear, $startDateTwoYear, $endDateTwoYear) {
+            $query->whereBetween('created_at', [$startDateOneYear, $endDateOneYear])
+                ->orWhereBetween('created_at', [$startDateTwoYear, $endDateTwoYear]);
+        })
         ->with('client')
         ->get();
         }else {
@@ -206,8 +210,10 @@ class RemindersController extends Controller
                 });
         })
         ->where('status_id', 3)
-        ->whereBetween('created_at', [$startDateOneYear , $endDateOneYear ])
-        ->orWhereBetween('created_at', [$startDateTwoYear , $endDateTwoYear ])
+        ->where(function ($query) use ($startDateOneYear, $endDateOneYear, $startDateTwoYear, $endDateTwoYear) {
+            $query->whereBetween('created_at', [$startDateOneYear, $endDateOneYear])
+                ->orWhereBetween('created_at', [$startDateTwoYear, $endDateTwoYear]);
+        })
         ->with('client')
         ->get();
         }
