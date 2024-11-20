@@ -36,7 +36,6 @@ class RemindersController extends Controller
         $user = User::logged();
         if ($user && $user->employee->department_id == 1) {
             #quando for diretoria vai ser capaz de ver todos os casos
-            
 
             $jobs = Job::selectRaw('job.*')
                 ->with(
@@ -102,7 +101,6 @@ class RemindersController extends Controller
 
     public function OneYearClientRegister()
     {
-
         $startDateOneYear = Carbon::now()->subYear()->startOfDay();
         $endDateOneYear = Carbon::now()->subYear()->endOfDay();
 
@@ -124,6 +122,7 @@ class RemindersController extends Controller
             })
             ->get();
         }
+
         if (!$clients->isEmpty()) {
             foreach ($clients as $client) {
                 $lastJob = Job::where('client_id', $client->id)->orderBy('created_at', 'desc')->first(['code', 'event', 'created_at']);
@@ -134,7 +133,6 @@ class RemindersController extends Controller
                 }
             }
         }
-
 
         return ["clients" => $clients];
     }

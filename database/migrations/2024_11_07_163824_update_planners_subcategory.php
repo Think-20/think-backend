@@ -9,10 +9,10 @@ class UpdatePlannersSubcategory extends Migration
     public function up()
     {
         Schema::table('planner', function (Blueprint $table) {            
-            $table->string('subcategory')->nullable();
-            $table->integer('modality_id');
+            #$table->string('subcategory')->nullable();
+            #$table->integer('modality_id');
 
-            $table->foreign('modality_id')->references('id')->on('timecard_place')->nullable();
+            #$table->foreign('modality_id')->references('id')->on('timecard_place')->nullable();
         });
     }
     public function down()
