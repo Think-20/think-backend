@@ -116,15 +116,22 @@ class CheckinController extends Controller
         return response()->json(['error' => 'false', 'message' => 'Checkin atualizada com sucesso', 'object' => $checkin]);
     }
 
-    public static function sendMailCheckin(Request $request, int $id = null)
-    {
 
+    public static function sendMailCheckinOld(Request $request, int $id = null)
+    {
         $checkin = Checkin::getUnique($id);
         $mail = new PHPMailer(true);
 
-        #return ();
+        $data = random_bytes(16);
+        $data[6] = chr(ord($data[6]) & 0x0f | 0x40); // set version to 0100
+        $data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
+          
+        $hash =  vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
 
-        //Tentativa com gmail
+        $checkin->update([
+            'hash' => $hash
+        ]);
+
         try {
             // Configurações do servidor SMTP do Gmail
             $mail->isSMTP();
@@ -144,15 +151,20 @@ class CheckinController extends Controller
 
             // Conteúdo do e-mail
             $mail->isHTML(true);
-            $mail->Subject = 'Confirmacao de Checkin';
+            $mail->Subject = 'Obrigado pela parceria';
+            
+            /*
             $mail->Body    = 'Confirmacao de checkin para o evento ' . $checkin->event_object->name . ' que vai ocorrer entre os dias '
             . Carbon::parse($checkin->event_object->ini_date)->format("d/m/Y") . ' e '
             . Carbon::parse($checkin->event_object->fin_date)->format("d/m/Y") . '.<br> <a href="http://54.163.167.198:8000/testeEmailConfirm/'
             . $id . '">Clicke aqui para confirmar check-in</a>';
+            */
+
+            $mail->Body    = 'Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto.'.
+            'Para confirmar clique aqui.<br> <a href="http://54.163.167.198:8000/testeEmailConfirm/' . $id . '/'.$hash.'">Clicke aqui para confirmar check-in</a>';
 
             // Enviar o e-mail
             $mail->send();
-            #echo 'Mensagem enviada com sucesso!';
         } catch (Exception $e) {
             #echo "Erro ao enviar mensagem: {$mail->ErrorInfo}";
         }
@@ -160,81 +172,89 @@ class CheckinController extends Controller
         return response()->json(['error' => 'false', 'message' => 'Email de confirmação enviado ao cliente.']);
     }
 
-    public static function confirmMailCheckin(int $id)
+    public static function sendMailCheckin(Request $request)
+    {   
+        $checkinId = $request->checkin_id;
+
+        $checkin = Checkin::getUnique($checkinId);
+        $mail = new PHPMailer(true);
+
+        $data = random_bytes(16);
+        $data[6] = chr(ord($data[6]) & 0x0f | 0x40); // set version to 0100
+        $data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
+          
+        $hash =  vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+
+        $checkin->update([
+            'hash' => $hash
+        ]);
+
+        try {
+            // Configurações do servidor SMTP do Gmail
+            $mail->isSMTP();
+            #$mail->SMTPDebug = 2; // ou 3 para mais informações detalhadas
+            #$mail->Debugoutput = 'html';
+
+            $mail->Host = 'smtp.gmail.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'gui9788534514088@gmail.com'; // Seu endereço de e-mail
+            $mail->Password = 'amky uxiz mkxx huif';  // Senha de app gerada no Google
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = 587;
+
+            // Remetente e destinatário
+            $mail->setFrom('gui9788534514088@gmail.com', 'Douglas');
+            $mail->addAddress($checkin->organization_login, $checkin->client_object->name); // Adicione o destinatário
+
+            // Conteúdo do e-mail
+            $mail->isHTML(true);
+            $mail->Subject = 'Obrigado pela parceria';
+            
+            /*
+            $mail->Body    = 'Confirmacao de checkin para o evento ' . $checkin->event_object->name . ' que vai ocorrer entre os dias '
+            . Carbon::parse($checkin->event_object->ini_date)->format("d/m/Y") . ' e '
+            . Carbon::parse($checkin->event_object->fin_date)->format("d/m/Y") . '.<br> <a href="http://54.163.167.198:8000/testeEmailConfirm/'
+            . $id . '">Clicke aqui para confirmar check-in</a>';
+            */
+
+            $mail->Body    = 'Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto. <br> <a href="http://54.163.167.198:8000/external/extras/' . $checkinId . '/'.$hash.'"> Para confirmar clique aqui. </a>';
+
+            //Antigo envio
+            //'Para confirmar clique aqui.<br> <a href="http://54.163.167.198:8000/testeEmailConfirm/' . $id . '/'.$hash.'">Clicke aqui para confirmar check-in</a>';
+            //
+
+            // Enviar o e-mail
+            $mail->send();
+        } catch (Exception $e) {
+            #echo "Erro ao enviar mensagem: {$mail->ErrorInfo}";
+        }
+
+        return response()->json(['error' => 'false', 'message' => 'Email de confirmação enviado ao cliente.']);
+    }
+
+    public static function confirmMailCheckin(int $checkInId, string $hash)
     {
-        $checkin = Checkin::find($id);
+        $checkin = Checkin::where('id', '=', $checkInId)
+        ->where('hash', '=', $hash)
+        ->first();
+
+        if($checkin == null){
+            return response()->json(['error' => 'true', 'message' => 'Checkin Não encontrado.']);
+        }
 
         if ($checkin->accept_client == 0) {
             $checkin->update([
                 'accept_client' => 1,
                 'accept_client_date' => Carbon::now()
             ]);
-            return response()->json(['error' => 'false', 'message' => 'Checkin confirmado.']);
+            //Checkin confirmado com sucesso redirecionando para a tela do front
+            //return redirect('/reminders');
+            //return response()->json(['error' => 'false', 'message' => 'Checkin confirmado.']);
         } else {
-            return response()->json(['error' => 'false', 'message' => 'Checkin já confirmado na data ' . $checkin->accept_client_date . '.']);
+            //Checkin ja realizado
+            //return redirect('/reminders');
+            //return response()->json(['error' => 'false', 'message' => 'Checkin já confirmado na data ' . $checkin->accept_client_date . '.']);
         }
+        
     }
 }
-
-
-        //Tentando com outlook e
-        /*try {
-            // Configurações do servidor SMTP
-            $mail->isSMTP();
-            $mail->SMTPDebug = 2; // ou 3 para mais informações detalhadas
-            $mail->Debugoutput = 'html';
-
-            $mail->Host = 'smtp.office365.com'; // Servidor SMTP
-            $mail->Port = 587; // Porta TCP (normalmente 587 para tls ou 465 para ssl)
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // Criptografia (tls ou ssl)
-            $mail->SMTPAuth = true;
-
-
-            //$mail->Username = 'think_ideias@outlook.com'; // Usuário SMTP
-            //$mail->Password = 'hprtmpszaeqwvfys'; // Senha SMTP
-
-            // Provedor OAuth2
-            $provider = new GenericProvider([
-                'clientId'                => 'CLIENT_ID_AQUI',
-                'clientSecret'            => 'CLIENT_SECRET_AQUI',
-                'redirectUri'             => 'https://example.com/callback-url',
-                'urlAuthorize'            => 'https://login.microsoftonline.com/TENANT_ID_AQUI/oauth2/v2.0/authorize',
-                'urlAccessToken'          => 'https://login.microsoftonline.com/TENANT_ID_AQUI/oauth2/v2.0/token',
-                'urlResourceOwnerDetails' => '',
-                'scopes'                  => ['https://outlook.office365.com/.default'],
-            ]);
-
-            // Token de acesso
-            $accessToken = $provider->getAccessToken('password', [
-                'username' => 'think_ideias@outlook.com',
-                'password' => 'hprtmpszaeqwvfys',
-            ]);
-
-            // Configuração OAuth2 para PHPMailer
-            $mail->setOAuth(
-                new OAuth([
-                    'provider'       => $provider,
-                    'clientId'       => 'CLIENT_ID_AQUI',
-                    'clientSecret'   => 'CLIENT_SECRET_AQUI',
-                    'refreshToken'   => $accessToken->getToken(),
-                    'userName'       => 'think_ideias@outlook.com',
-                ])
-            );
-
-
-            // Remetente e destinatário
-            $mail->setFrom('think_ideias@outlook.com', 'Think');
-            $mail->addAddress('guibarbosa28@outlook.com', 'Douglas');
-
-            // Conteúdo do email
-            $mail->isHTML(true); // Definir o formato como HTML
-            $mail->Subject = 'Confirmação de Pedido';
-            $mail->Body    = 'Olá, por favor, confirme seu pedido clicando no link abaixo:<br><br>';
-            $mail->Body   .= '<a href="http://www.seusite.com/confirmar_pedido?codigo=12345">Confirmar Pedido</a>';
-            $mail->AltBody = 'Olá, por favor, confirme seu pedido clicando no link: http://www.seusite.com/confirmar_pedido?codigo=12345';
-
-            $mail->send();
-            echo 'Email enviado com sucesso';
-        } catch (Exception $e) {
-            echo "Erro ao enviar o email: {$mail->ErrorInfo}";
-        }*/

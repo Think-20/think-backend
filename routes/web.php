@@ -25,7 +25,7 @@ Route::get('/notify-past', function () {
 });
 
 //Realizado fora do midware por ser algo clicado direto pelo cliente sem precisar logar
-Route::get('/testeEmailConfirm/{id}', 'CheckinController@confirmMailCheckin');
+Route::get('/testeEmailConfirm/{id}/{hash}', 'CheckinController@confirmMailCheckin');
 
 /*  
     Construir authenticate request para imagens 
@@ -216,7 +216,15 @@ Route::group(['middleware' => ['auth.api']], function () {
 
     Route::post('/testeGetS3', 'GoalController@testeGetS3');
     Route::post('/testePutS3', 'GoalController@testePutS3');
-    Route::get('/testeEmail/{id}', 'CheckinController@sendMailCheckin');
+
+    //Antiga função de envio de email
+    Route::get('/testeEmail/{id}', 'CheckinController@sendMailCheckinOld');
+
+    //função que envia o email
+    Route::post('/extra/email', 'CheckinController@sendMailCheckin');
+
+    //função que ativa apos o usuario cliclar no botão do email
+    Route::post('/external/extras/{checkInId}/{hash}', 'CheckinController@sendMailCheckin');
 
     Route::get('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
     Route::post('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
