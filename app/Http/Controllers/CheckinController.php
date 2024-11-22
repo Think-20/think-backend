@@ -160,7 +160,7 @@ class CheckinController extends Controller
             . $id . '">Clicke aqui para confirmar check-in</a>';
             */
 
-            $mail->Body    = 'Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto.'.
+            $mail->Body    = 'DEV Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto.'.
             'Para confirmar clique aqui.<br> <a href="http://54.163.167.198:8000/testeEmailConfirm/' . $id . '/'.$hash.'">Clicke aqui para confirmar check-in</a>';
 
             // Enviar o e-mail
