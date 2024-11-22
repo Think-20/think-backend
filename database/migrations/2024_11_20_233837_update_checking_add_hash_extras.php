@@ -10,6 +10,8 @@ class UpdateCheckingAddHashExtras extends Migration
     {
         Schema::table('checkin', function (Blueprint $table) {
             $table->string('hash')->nullable();
+            $table->boolean('extras_accept_client')->nullable();
+            $table->string('extras_accept_client_date')->nullable();
         });
     }
 
@@ -17,6 +19,8 @@ class UpdateCheckingAddHashExtras extends Migration
     {
         Schema::table('checkin', function (Blueprint $table) {
             $table->dropColumn('hash');
+            $table->dropColumn('extras_accept_client');
+            $table->dropColumn('extras_accept_client_date');
         });
     }
 }

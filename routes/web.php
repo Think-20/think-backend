@@ -210,6 +210,9 @@ Route::group(['middleware' => ['auth.api']], function () {
 
     Route::get('/extra', 'ExtraController@selectExtra');
     Route::get('/extra/{id}', 'ExtraController@selectExtra');
+
+    Route::get('/extra/{checkInId}/{hash}', 'ExtraController@selectExtraHash');
+
     Route::post('/extra', 'ExtraController@createExtra');
     Route::put('/extra', 'ExtraController@updateExtra');
     Route::delete('/extra/{id}', 'ExtraController@deleteExtra');
@@ -223,8 +226,12 @@ Route::group(['middleware' => ['auth.api']], function () {
     //função que envia o email
     Route::post('/extra/email', 'CheckinController@sendMailCheckin');
 
+    //função que Confirma o email
+    Route::post('/extra/confirm', 'CheckinController@confirmMailCheckin');
+
+
     //função que ativa apos o usuario cliclar no botão do email
-    Route::post('/external/extras/{checkInId}/{hash}', 'CheckinController@sendMailCheckin');
+    Route::get('/external/extras/{checkInId}/{hash}', 'CheckinController@confirmMailCheckinOld');
 
     Route::get('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
     Route::post('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');

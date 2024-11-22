@@ -218,6 +218,7 @@ class CheckinController extends Controller
             . $id . '">Clicke aqui para confirmar check-in</a>';
             */
 
+            //$mail->Body    = 'Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto. <br> <a href="http://127.0.0.1:8000/external/extras/' . $checkinId . '/'.$hash.'"> Para confirmar clique aqui. </a>';
             $mail->Body    = 'Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto. <br> <a href="http://54.163.167.198:8000/external/extras/' . $checkinId . '/'.$hash.'"> Para confirmar clique aqui. </a>';
 
             //Antigo envio
@@ -233,11 +234,13 @@ class CheckinController extends Controller
         return response()->json(['error' => 'false', 'message' => 'Email de confirmação enviado ao cliente.']);
     }
 
-    public static function confirmMailCheckin(int $checkInId, string $hash)
+    public static function confirmMailCheckinOld(Request $request, int $checkInId, string $hash)
     {
         $checkin = Checkin::where('id', '=', $checkInId)
         ->where('hash', '=', $hash)
         ->first();
+
+        return ([$checkin]);
 
         if($checkin == null){
             return response()->json(['error' => 'true', 'message' => 'Checkin Não encontrado.']);
@@ -248,13 +251,41 @@ class CheckinController extends Controller
                 'accept_client' => 1,
                 'accept_client_date' => Carbon::now()
             ]);
+
             //Checkin confirmado com sucesso redirecionando para a tela do front
             //return redirect('/reminders');
-            //return response()->json(['error' => 'false', 'message' => 'Checkin confirmado.']);
+            return response()->json(['error' => 'false', 'message' => 'Checkin confirmado.']);
         } else {
+
             //Checkin ja realizado
             //return redirect('/reminders');
-            //return response()->json(['error' => 'false', 'message' => 'Checkin já confirmado na data ' . $checkin->accept_client_date . '.']);
+            return response()->json(['error' => 'false', 'message' => 'Checkin já confirmado na data ' . $checkin->accept_client_date . '.']);
+        }
+        
+    }
+
+    public static function confirmMailCheckin(Request $request)
+    {
+        $checkInId = $request->checkin_id;
+        $hash = $request->hash;
+
+        $checkin = Checkin::where('id', '=', $checkInId)
+        ->where('hash', '=', $hash)
+        ->first();
+
+        if($checkin == null){
+            return response()->json(['error' => 'true', 'message' => 'Checkin Não encontrado.']);
+        }
+
+        if ($checkin->extras_accept_client == 0 || $checkin->extras_accept_client == null) {
+            $checkin->update([
+                'extras_accept_client' => 1,
+                'extras_accept_client_date' => Carbon::now()
+            ]);
+
+            return response()->json(['error' => 'false', 'message' => 'Checkin confirmado.']);
+        } else {
+            return response()->json(['error' => 'true', 'message' => 'Checkin já confirmado no dia ' . Carbon::parse($checkin->accept_client_date)->format("d/m/Y"). '.']);
         }
         
     }
