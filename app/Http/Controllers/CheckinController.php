@@ -147,7 +147,8 @@ class CheckinController extends Controller
 
             // Remetente e destinatário
             $mail->setFrom('gui9788534514088@gmail.com', 'Douglas');
-            $mail->addAddress($checkin->organization_login, $checkin->client_object->name); // Adicione o destinatário
+            #$mail->addAddress($checkin->organization_login, $checkin->client_object->name); // Adicione o destinatário
+            $mail->addAddress("guibarbosa28@outlook.com", "Douglas"); // Adicione o destinatário
 
             // Conteúdo do e-mail
             $mail->isHTML(true);
@@ -166,7 +167,7 @@ class CheckinController extends Controller
             // Enviar o e-mail
             $mail->send();
         } catch (Exception $e) {
-            #echo "Erro ao enviar mensagem: {$mail->ErrorInfo}";
+            return response()->json(['error' => 'false', 'message' => 'Falha ao enviar email.'.$e]);
         }
 
         return response()->json(['error' => 'false', 'message' => 'Email de confirmação enviado ao cliente.']);
