@@ -30,23 +30,18 @@ class ExtraController extends Controller
     }
 
     public function selectExtraHash(Request $request, int $id = null, string $hash = null)
-    {
-        if (!isset($id)) {
-            $extra = Extra::list();
-            if (!$extra) {
-                return response()->json(['error' => 'true', 'message' => 'Nenhum extra encontrado'], 400);
-            }
+    {   
+        $extra = Extra::getUniqueHash($id, $hash);
 
-            return $extra;
-        } else {
-            $extra = Extra::getUnique($id);
-
-            if (!$extra) {
-                return response()->json(['error' => 'true', 'message' => 'Extra de id' . $id . ' nao encontrada'], 400);
-            }
-
-            return $extra;
+        if($extra == false){
+            return response()->json(['error' => 'true', 'message' => 'Id ou Hash invalido.'], 400);
         }
+
+         if (!$extra) {
+            return response()->json(['error' => 'true', 'message' => 'Extra de id' . $id . ' nao encontrada'], 400);
+        }
+        return $extra;
+        
     }
  
     public function createExtra(Request $request)
