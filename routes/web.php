@@ -24,8 +24,11 @@ Route::get('/notify-past', function () {
     return (new App\CreateNotifyPastTasks())->test();
 });
 
-//Realizado fora do midware por ser algo clicado direto pelo cliente sem precisar logar
-Route::get('/testeEmailConfirm/{id}/{hash}', 'CheckinController@confirmMailCheckin');
+    //Realizado fora do midware por ser algo clicado direto pelo cliente sem precisar logar
+    Route::get('/testeEmailConfirm/{id}/{hash}', 'CheckinController@confirmMailCheckin');
+
+    //função que Confirma o email
+    Route::post('/extra/confirm', 'CheckinController@confirmMailCheckin');
 
 /*  
     Construir authenticate request para imagens 
@@ -227,7 +230,7 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/extra/email', 'CheckinController@sendMailCheckin');
 
     //função que Confirma o email
-    Route::post('/extra/confirm', 'CheckinController@confirmMailCheckin');
+    //Route::post('/extra/confirm', 'CheckinController@confirmMailCheckin');
 
 
     //função que ativa apos o usuario cliclar no botão do email
