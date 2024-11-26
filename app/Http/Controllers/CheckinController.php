@@ -148,7 +148,7 @@ class CheckinController extends Controller
             // Remetente e destinatário
             $mail->setFrom('gui9788534514088@gmail.com', 'Douglas');
             #$mail->addAddress($checkin->organization_login, $checkin->client_object->name); // Adicione o destinatário
-            $mail->addAddress("guibarbosa28@outlook.com", "Douglas"); // Adicione o destinatário
+            $mail->addAddress($checkin->organization_login, $checkin->client_object->name); // Adicione o destinatário
 
             // Conteúdo do e-mail
             $mail->isHTML(true);
@@ -189,6 +189,7 @@ class CheckinController extends Controller
         $checkin->update([
             'hash' => $hash
         ]);
+
 
         try {
             // Configurações do servidor SMTP do Gmail
