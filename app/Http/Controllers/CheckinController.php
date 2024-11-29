@@ -125,12 +125,23 @@ class CheckinController extends Controller
         $data = random_bytes(16);
         $data[6] = chr(ord($data[6]) & 0x0f | 0x40); // set version to 0100
         $data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
-          
+
         $hash =  vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
 
         $checkin->update([
             'hash' => $hash
         ]);
+
+        $client = Client::get($checkin->client_id);
+        $email = "";
+        $nome = "";
+
+        if ($client && $client->contacts && $client->contacts[0]) {
+            $nome = $client->contacts[0]->name;
+            $email = $client->contacts[0]->email;
+        } else {
+            return response()->json(['error' => 'false', 'message' => 'Cliente sem email cadastrado.']);
+        }
 
         try {
             // Configurações do servidor SMTP do Gmail
@@ -148,12 +159,12 @@ class CheckinController extends Controller
             // Remetente e destinatário
             $mail->setFrom('gui9788534514088@gmail.com', 'Douglas');
             #$mail->addAddress($checkin->organization_login, $checkin->client_object->name); // Adicione o destinatário
-            $mail->addAddress($checkin->organization_login, $checkin->client_object->name); // Adicione o destinatário
+            $mail->addAddress($email, $nome); // Adicione o destinatário
 
             // Conteúdo do e-mail
             $mail->isHTML(true);
             $mail->Subject = 'Obrigado pela parceria';
-            
+
             /*
             $mail->Body    = 'Confirmacao de checkin para o evento ' . $checkin->event_object->name . ' que vai ocorrer entre os dias '
             . Carbon::parse($checkin->event_object->ini_date)->format("d/m/Y") . ' e '
@@ -161,20 +172,20 @@ class CheckinController extends Controller
             . $id . '">Clicke aqui para confirmar check-in</a>';
             */
 
-            $mail->Body    = 'DEV Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto.'.
-            'Para confirmar clique aqui.<br> <a href="http://54.163.167.198:8000/testeEmailConfirm/' . $id . '/'.$hash.'">Clicke aqui para confirmar check-in</a>';
+            $mail->Body    = 'DEV Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto.' .
+                'Para confirmar clique aqui.<br> <a href="http://54.163.167.198:8000/testeEmailConfirm/' . $id . '/' . $hash . '">Clicke aqui para confirmar check-in</a>';
 
             // Enviar o e-mail
             $mail->send();
         } catch (Exception $e) {
-            return response()->json(['error' => 'false', 'message' => 'Falha ao enviar email.'.$e]);
+            return response()->json(['error' => 'false', 'message' => 'Falha ao enviar email.' . $e]);
         }
 
         return response()->json(['error' => 'false', 'message' => 'Email de confirmação enviado ao cliente.']);
     }
 
     public static function sendMailCheckin(Request $request)
-    {   
+    {
         $checkinId = $request->checkin_id;
 
         $checkin = Checkin::getUnique($checkinId);
@@ -183,13 +194,23 @@ class CheckinController extends Controller
         $data = random_bytes(16);
         $data[6] = chr(ord($data[6]) & 0x0f | 0x40); // set version to 0100
         $data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
-          
+
         $hash =  vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
 
         $checkin->update([
             'hash' => $hash
         ]);
 
+        $client = Client::get($checkin->client_id);
+        $email = "";
+        $nome = "";
+
+        if ($client && $client->contacts && $client->contacts[0]) {
+            $nome = $client->contacts[0]->name;
+            $email = $client->contacts[0]->email;
+        } else {
+            return response()->json(['error' => 'false', 'message' => 'Cliente sem email cadastrado.']);
+        }
 
         try {
             // Configurações do servidor SMTP do Gmail
@@ -205,13 +226,18 @@ class CheckinController extends Controller
             $mail->Port = 587;
 
             // Remetente e destinatário
+            #$mail->setFrom('gui9788534514088@gmail.com', 'Douglas');
+            #$mail->addAddress($checkin->organization_login, $checkin->client_object->name); // Adicione o destinatário
+
+            // Remetente e destinatário
             $mail->setFrom('gui9788534514088@gmail.com', 'Douglas');
-            $mail->addAddress($checkin->organization_login, $checkin->client_object->name); // Adicione o destinatário
+            #$mail->addAddress($checkin->organization_login, $checkin->client_object->name); // Adicione o destinatário
+            $mail->addAddress($email, $nome); // Adicione o destinatário
 
             // Conteúdo do e-mail
             $mail->isHTML(true);
             $mail->Subject = 'Obrigado pela parceria';
-            
+
             /*
             $mail->Body    = 'Confirmacao de checkin para o evento ' . $checkin->event_object->name . ' que vai ocorrer entre os dias '
             . Carbon::parse($checkin->event_object->ini_date)->format("d/m/Y") . ' e '
@@ -220,7 +246,7 @@ class CheckinController extends Controller
             */
 
             //$mail->Body    = 'Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto. <br> <a href="http://127.0.0.1:8000/external/extras/' . $checkinId . '/'.$hash.'"> Para confirmar clique aqui. </a>';
-            $mail->Body    = 'Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto. <br> <a href="http://54.163.167.198:8000/external/extras/' . $checkinId . '/'.$hash.'"> Para confirmar clique aqui. </a>';
+            $mail->Body    = 'Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto. <br> <a href="http://54.163.167.198:8000/external/extras/' . $checkinId . '/' . $hash . '"> Para confirmar clique aqui. </a>';
 
             //Antigo envio
             //'Para confirmar clique aqui.<br> <a href="http://54.163.167.198:8000/testeEmailConfirm/' . $id . '/'.$hash.'">Clicke aqui para confirmar check-in</a>';
@@ -238,12 +264,12 @@ class CheckinController extends Controller
     public static function confirmMailCheckinOld(Request $request, int $checkInId, string $hash)
     {
         $checkin = Checkin::where('id', '=', $checkInId)
-        ->where('hash', '=', $hash)
-        ->first();
+            ->where('hash', '=', $hash)
+            ->first();
 
         return ([$checkin]);
 
-        if($checkin == null){
+        if ($checkin == null) {
             return response()->json(['error' => 'true', 'message' => 'Checkin Não encontrado.']);
         }
 
@@ -262,7 +288,6 @@ class CheckinController extends Controller
             //return redirect('/reminders');
             return response()->json(['error' => 'false', 'message' => 'Checkin já confirmado na data ' . $checkin->accept_client_date . '.']);
         }
-        
     }
 
     public static function confirmMailCheckin(Request $request)
@@ -271,10 +296,10 @@ class CheckinController extends Controller
         $hash = $request->hash;
 
         $checkin = Checkin::where('id', '=', $checkInId)
-        ->where('hash', '=', $hash)
-        ->first();
+            ->where('hash', '=', $hash)
+            ->first();
 
-        if($checkin == null){
+        if ($checkin == null) {
             return response()->json(['error' => 'true', 'message' => 'Checkin Não encontrado.']);
         }
 
@@ -286,8 +311,7 @@ class CheckinController extends Controller
 
             return response()->json(['error' => 'false', 'message' => 'Checkin confirmado.']);
         } else {
-            return response()->json(['error' => 'true', 'message' => 'Checkin já confirmado no dia ' . Carbon::parse($checkin->accept_client_date)->format("d/m/Y"). '.']);
+            return response()->json(['error' => 'true', 'message' => 'Checkin já confirmado no dia ' . Carbon::parse($checkin->accept_client_date)->format("d/m/Y") . '.']);
         }
-        
     }
 }
