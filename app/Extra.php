@@ -43,12 +43,12 @@ class Extra extends Model
         return $extra;
     }
 
-    public static function getUniqueHash(int $id = null, string $hash)
+    public static function getByHash(int $id = null, string $hash)
     {
         //Verifica se o id e hash recebido e valido e tem um checkin correspondente
         $checkin = Checkin::where('id', '=', $id)
         ->where('hash', '=', $hash)
-        ->first();
+        ->get();
 
         //caso esteja vazio, quer dizer que n foi encontrado, logo sai da funcao e retorna um erro
         if (!$checkin) {

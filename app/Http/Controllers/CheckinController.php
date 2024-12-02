@@ -173,7 +173,7 @@ class CheckinController extends Controller
             */
 
             $mail->Body    = 'DEV Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto.' .
-                'Para confirmar clique aqui.<br> <a href="http://54.163.167.198:8000/testeEmailConfirm/' . $id . '/' . $hash . '">Clicke aqui para confirmar check-in</a>';
+                'Para confirmar clique aqui.<br> <a href="http://localhost:4200/external/extras/' . $id . '/' . $hash . '">Clicke aqui para confirmar check-in</a>';
 
             // Enviar o e-mail
             $mail->send();
@@ -250,7 +250,7 @@ class CheckinController extends Controller
             */
 
             //$mail->Body    = 'Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto. <br> <a href="http://127.0.0.1:8000/external/extras/' . $checkinId . '/'.$hash.'"> Para confirmar clique aqui. </a>';
-            $mail->Body    = 'Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto. <br> <a href="http://54.163.167.198:8000/external/extras/' . $checkinId . '/' . $hash . '"> Para confirmar clique aqui. </a>';
+            $mail->Body    = 'Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto. <br> <a href="http://localhost:4200/external/extras/' . $checkinId . '/' . $hash . '"> Para confirmar clique aqui. </a>';
 
             //Antigo envio
             //'Para confirmar clique aqui.<br> <a href="http://54.163.167.198:8000/testeEmailConfirm/' . $id . '/'.$hash.'">Clicke aqui para confirmar check-in</a>';
@@ -269,7 +269,7 @@ class CheckinController extends Controller
     {
         $checkin = Checkin::where('id', '=', $checkInId)
             ->where('hash', '=', $hash)
-            ->get();
+            ->first();
 
         return ([$checkin]);
 

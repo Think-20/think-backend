@@ -31,7 +31,7 @@ class ExtraController extends Controller
 
     public function selectExtraHash(Request $request, int $id = null, string $hash = null)
     {   
-        $extra = Extra::getUniqueHash($id, $hash);
+        $extra = Extra::getByHash($id, $hash);
 
         if($extra == false){
             return response()->json(['error' => 'true', 'message' => 'Id ou Hash invalido.'], 400);
