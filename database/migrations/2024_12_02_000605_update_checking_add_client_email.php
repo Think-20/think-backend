@@ -19,8 +19,8 @@ class UpdateCheckingAddClientEmail extends Migration
     {
         Schema::table('checkin', function (Blueprint $table) {
             $table->dropColumn('client_email');
-            #$table->dropColumn('extras_accept_client');
-            #$table->dropColumn('extras_accept_client_date');    
+            $table->dropColumn('extras_accept_client');
+            $table->dropColumn('extras_accept_client_date');    
         });
     }
 }
