@@ -234,7 +234,7 @@ Route::group(['middleware' => ['auth.api']], function () {
 
 
     //função que ativa apos o usuario cliclar no botão do email
-    Route::get('/external/extras/{checkInId}/{hash}', 'CheckinController@confirmMailCheckinOld');
+    Route::get('/external/extras/{checkInId}/{hash}', 'CheckinController@confirmMailCheckin');
 
     Route::get('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
     Route::post('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');

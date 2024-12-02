@@ -205,6 +205,10 @@ class CheckinController extends Controller
         $email = $checkin->client_email;
         $nome = "";
 
+        if(!$email){
+            return response()->json(['error' => 'false', 'message' => 'Sem E-mail do destinatário.']);
+        }
+
         /*if ($client && $client->contacts && $client->contacts[0]) {
             $nome = $client->contacts[0]->name;
             $email = $client->contacts[0]->email;
@@ -265,7 +269,7 @@ class CheckinController extends Controller
     {
         $checkin = Checkin::where('id', '=', $checkInId)
             ->where('hash', '=', $hash)
-            ->first();
+            ->get();
 
         return ([$checkin]);
 
@@ -297,7 +301,7 @@ class CheckinController extends Controller
 
         $checkin = Checkin::where('id', '=', $checkInId)
             ->where('hash', '=', $hash)
-            ->first();
+            ->get();
 
         if ($checkin == null) {
             return response()->json(['error' => 'true', 'message' => 'Checkin Não encontrado.']);
