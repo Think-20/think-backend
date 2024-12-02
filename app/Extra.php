@@ -55,16 +55,18 @@ class Extra extends Model
             return false;
         }
 
-        $extra = Extra::where("checkin_id","=",$id)->get();
+        $extras = Extra::where("checkin_id","=",$id)->get();
 
-        if (!$extra) {
+        if (!$extras) {
             return null;
         }
 
-        $extra->checkin_object;
-        $extra->requester_object;
-        $extra->budget_object;
-        $extra->billing_employee_object;
+        foreach ($extras as $extra) {
+            $extra->checkin_object;
+            $extra->requester_object;
+            $extra->budget_object;
+            $extra->billing_employee_object;
+        }
 
         return $extra;
     }
