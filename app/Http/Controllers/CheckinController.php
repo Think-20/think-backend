@@ -301,7 +301,7 @@ class CheckinController extends Controller
 
         $checkin = Checkin::where('id', '=', $checkInId)
             ->where('hash', '=', $hash)
-            ->get();
+            ->first();
 
         if ($checkin == null) {
             return response()->json(['error' => 'true', 'message' => 'Checkin Não encontrado.']);
