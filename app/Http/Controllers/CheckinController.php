@@ -201,16 +201,16 @@ class CheckinController extends Controller
             'hash' => $hash
         ]);
 
-        $client = Client::get($checkin->client_id);
-        $email = "";
+        #$client = Client::get($checkin->client_email);
+        $email = $checkin->client_email;
         $nome = "";
 
-        if ($client && $client->contacts && $client->contacts[0]) {
+        /*if ($client && $client->contacts && $client->contacts[0]) {
             $nome = $client->contacts[0]->name;
             $email = $client->contacts[0]->email;
         } else {
             return response()->json(['error' => 'false', 'message' => 'Cliente sem email cadastrado.']);
-        }
+        }*/
 
         try {
             // Configurações do servidor SMTP do Gmail
@@ -230,7 +230,7 @@ class CheckinController extends Controller
             #$mail->addAddress($checkin->organization_login, $checkin->client_object->name); // Adicione o destinatário
 
             // Remetente e destinatário
-            $mail->setFrom('gui9788534514088@gmail.com', 'Douglas');
+            $mail->setFrom('gui9788534514088@gmail.com', 'Think');
             #$mail->addAddress($checkin->organization_login, $checkin->client_object->name); // Adicione o destinatário
             $mail->addAddress($email, $nome); // Adicione o destinatário
 
