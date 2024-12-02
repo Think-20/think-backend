@@ -40,6 +40,7 @@ class ExtraController extends Controller
          if (!$extra) {
             return response()->json(['error' => 'true', 'message' => 'Extra de id' . $id . ' nao encontrada'], 400);
         }
+        
         return $extra;
         
     }

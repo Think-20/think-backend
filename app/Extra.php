@@ -68,7 +68,7 @@ class Extra extends Model
             $extra->billing_employee_object;
         }
 
-        return $extra;
+        return $extras;
     }
 
     public function checkin_object()
