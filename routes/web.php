@@ -186,6 +186,7 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::get('/organization/{id}', 'OrganizationCheckingController@selectOrganization');
     Route::post('/organization', 'OrganizationCheckingController@createOrganization');
     Route::put('/organization', 'OrganizationCheckingController@updateOrganization');
+    Route::delete('/organization/{id}', 'OrganizationCheckingController@removeOrganization');
 
     Route::get('/checking', 'CheckinController@selectCheckin');
     Route::get('/checking/{id}', 'CheckinController@selectCheckin');

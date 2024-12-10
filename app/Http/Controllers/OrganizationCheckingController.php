@@ -116,4 +116,29 @@ class OrganizationCheckingController extends Controller
 
         return response()->json(['error' => 'false', 'message' => 'Meta atualizada com sucesso', "object" => $organization]);
     }
+
+    public static function removeOrganization(int $id)
+    {
+        
+        DB::beginTransaction();
+        $status = false;
+
+        try {
+            $organization = Organization::remove($id);
+            $message = 'Organização deletada com sucesso!';
+            $status = true;
+            DB::commit();
+        } catch (QueryException $queryException) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao deletar no banco de dados. ' . $queryException->getMessage();
+        } catch (Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro desconhecido ocorreu ao deletar: ' . $e->getMessage();
+        }
+
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+        ]), 200);
+    }
 }
