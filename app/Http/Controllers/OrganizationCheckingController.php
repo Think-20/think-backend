@@ -13,14 +13,15 @@ class OrganizationCheckingController extends Controller
     public function selectOrganization(Request $request, int $id = null)
     {
         if (!isset($id)) {
-            $organization = Organization::get();
+            $organization = Organization::list();
             if (!$organization) {
                 return response()->json(['error' => 'true', 'message' => 'Organização ' . $id . ' nao encontrada'], 400);
             }
 
             return $organization;
         } else {
-            $organization = Organization::where('id', $id)->first();
+            #$organization = Organization::where('id', $id)->first();
+            $organization = Organization::getUnique($id);
 
             if (!$organization) {
                 return response()->json(['error' => 'true', 'message' => 'Organização ' . $id . ' nao encontrada'], 400);
