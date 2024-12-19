@@ -29,6 +29,9 @@ Route::get('/notify-past', function () {
 
     //função que Confirma o email
     Route::post('/extra/confirm', 'CheckinController@confirmMailCheckin');
+    
+    //Função que confirma o aceite do cliente pelo email
+    Route::post('/checking/confirm', 'CheckinController@confirmMailCheckinAccept');
 
 /*  
     Construir authenticate request para imagens 
@@ -224,11 +227,11 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/testeGetS3', 'GoalController@testeGetS3');
     Route::post('/testePutS3', 'GoalController@testePutS3');
 
-    //Antiga função de envio de email
-    Route::get('/testeEmail/{id}', 'CheckinController@sendMailCheckinOld');
-
     //função que envia o email
     Route::post('/extra/email', 'CheckinController@sendMailCheckin');
+    Route::post('/checking/email', 'CheckinController@sendMailCheckinAccept');
+
+    
 
     //função que Confirma o email
     //Route::post('/extra/confirm', 'CheckinController@confirmMailCheckin');
