@@ -155,7 +155,7 @@ class CheckinController extends Controller
             $mail->CharSet = 'UTF-8';
 
             // Remetente e destinatário
-            $mail->setFrom('gui9788534514088@gmail.com', 'Think');
+            $mail->setFrom('no-reply@think.com', 'Think');
             $mail->addAddress($email, $nome); // Adicione o destinatário
 
             // Conteúdo do e-mail
@@ -207,16 +207,25 @@ class CheckinController extends Controller
 
             $mail->Host = 'smtp.gmail.com';
             $mail->SMTPAuth = true;
-            $mail->Username = 'gui9788534514088@gmail.com'; // Seu endereço de e-mail
-            $mail->Password = 'amky uxiz mkxx huif';  // Senha de app gerada no Google
+            
+            $mail->Username = 'think.ideias.1@gmail.com'; // Seu endereço de e-mail
+            $mail->Password = 'dhqg bibw laok mawt';  // Senha de app gerada no Google
+            
+            
+            //local
+            //$mail->Username = 'gui9788534514088@gmail.com'; // Seu endereço de e-mail
+            //$mail->Password = 'amky uxiz mkxx huif';  // Senha de app gerada no Google
+            
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port = 587;
 
             $mail->CharSet = 'UTF-8';
             //$mail = utf8_decode($_POST['mensagem']);
 
-            // Remetente e destinatário
-            $mail->setFrom('gui9788534514088@gmail.com', 'Think');
+            // Remetente
+            $mail->setFrom('no-reply@think.com', 'Think Support'); // Altere aqui para o e-mail e nome desejado
+
+
             #$mail->addAddress($checkin->organization_login, $checkin->client_object->name); // Adicione o destinatário
             $mail->addAddress($email, $nome); // Adicione o destinatário
 
@@ -280,7 +289,7 @@ class CheckinController extends Controller
             // Enviar o e-mail
             $mail->send();
         } catch (Exception $e) {
-            #echo "Erro ao enviar mensagem: {$mail->ErrorInfo}";
+            return response()->json(['error' => 'true', 'message' => "Erro ao enviar mensagem: {$mail->ErrorInfo}"]);
         }
 
         return response()->json(['error' => 'false', 'message' => 'Email de confirmação enviado ao cliente.']);
