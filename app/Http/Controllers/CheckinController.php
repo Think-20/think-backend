@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Checkin;
 use App\Client;
+use App\Extra;
+use App\ExtraItem;
+use App\Job;
 use Carbon\Carbon;
 use Carbon\CarbonInterval;
 use Exception;
@@ -121,6 +124,8 @@ class CheckinController extends Controller
         $checkinId = $request->checkin_id;
 
         $checkin = Checkin::getUnique($checkinId);
+        $extra = Extra::where('job_id', $checkin->job_id)->first();
+        
         $mail = new PHPMailer(true);
 
         $data = random_bytes(16);
@@ -129,7 +134,7 @@ class CheckinController extends Controller
 
         $hash =  vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
 
-        $checkin->update([
+        $extra->update([
             'hash' => $hash
         ]);
 
@@ -141,15 +146,14 @@ class CheckinController extends Controller
             return response()->json(['error' => 'false', 'message' => 'Sem E-mail do destinatário.']);
         }
 
-
         try {
             // Configurações do servidor SMTP do Gmail
             $mail->isSMTP();
 
             $mail->Host = 'smtp.gmail.com';
             $mail->SMTPAuth = true;
-            $mail->Username = 'gui9788534514088@gmail.com'; // Seu endereço de e-mail
-            $mail->Password = 'amky uxiz mkxx huif';  // Senha de app gerada no Google
+            $mail->Username = 'think.ideias.1@gmail.com'; // Seu endereço de e-mail
+            $mail->Password = 'dhqg bibw laok mawt';  // Senha de app gerada no Google
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port = 587;
             $mail->CharSet = 'UTF-8';
@@ -178,6 +182,8 @@ class CheckinController extends Controller
         $checkinId = $request->checkin_id;
 
         $checkin = Checkin::getUnique($checkinId);
+        $extra = Extra::where('job_id', $checkin->job_id)->first();
+        
         $mail = new PHPMailer(true);
 
         $data = random_bytes(16);
@@ -186,14 +192,11 @@ class CheckinController extends Controller
 
         $hash =  vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
 
-        if (!$checkin) {
-            return response()->json(['error' => 'false', 'message' => 'Checkin não encontrado.']);
-        }
-
-        $checkin->update([
-            'checkin_hash' => $hash
+        $extra->update([
+            'hash' => $hash
         ]);
 
+        #$client = Client::get($checkin->client_email);
         $email = $checkin->client_email;
         $nome = "";
 
@@ -295,60 +298,39 @@ class CheckinController extends Controller
         return response()->json(['error' => 'false', 'message' => 'Email de confirmação enviado ao cliente.']);
     }
 
-    public static function confirmMailCheckinOld(Request $request, int $checkInId, string $hash)
-    {
-        $checkin = Checkin::where('id', '=', $checkInId)
-            ->where('hash', '=', $hash)
-            ->first();
 
-        return ([$checkin]);
-
-        if ($checkin == null) {
-            return response()->json(['error' => 'true', 'message' => 'Checkin Não encontrado.']);
-        }
-
-        if ($checkin->accept_client == 0) {
-            $checkin->update([
-                'accept_client' => 1,
-                'accept_client_date' => Carbon::now()
-            ]);
-
-            //Checkin confirmado com sucesso redirecionando para a tela do front
-            //return redirect('/reminders');
-            return response()->json(['error' => 'false', 'message' => 'Checkin confirmado.']);
-        } else {
-
-            //Checkin ja realizado
-            //return redirect('/reminders');
-            return response()->json(['error' => 'false', 'message' => 'Checkin já confirmado na data ' . $checkin->accept_client_date . '.']);
-        }
-    }
-
+    //Confirma os extras
     public static function confirmMailCheckin(Request $request)
     {
         $checkInId = $request->checkin_id;
         $hash = $request->hash;
 
         $checkin = Checkin::where('id', '=', $checkInId)
-            ->where('hash', '=', $hash)
             ->first();
 
         if ($checkin == null) {
             return response()->json(['error' => 'true', 'message' => 'Checkin Não encontrado.']);
         }
 
-        if ($checkin->extras_accept_client == 0 || $checkin->extras_accept_client == null) {
-            $checkin->update([
-                'extras_accept_client' => 1,
-                'extras_accept_client_date' => Carbon::now()
+        $extra = Extra::where('job_id', $checkin->job_id)->where('hash', '=', $hash)->first();
+
+        if ($extra == null) {
+            return response()->json(['error' => 'true', 'message' => 'Extra Não encontrado.']);
+        }
+        
+        if ($extra->accept_client == 0 || $extra->accept_client == null) {
+            $extra->update([
+                'accept_client' => 1,
+                'accept_client_date' => Carbon::now()
             ]);
 
             return response()->json(['error' => 'false', 'message' => 'Checkin confirmado.']);
         } else {
-            return response()->json(['error' => 'true', 'message' => 'Checkin já confirmado no dia ' . Carbon::parse($checkin->accept_client_date)->format("d/m/Y") . '.']);
+            return response()->json(['error' => 'true', 'message' => 'Checkin já confirmado no dia ' . Carbon::parse($extra->accept_client_date)->format("d/m/Y") . '.']);
         }
     }
 
+    //Confirma o checkin
     public static function confirmMailCheckinAccept(Request $request)
     {
         $checkInId = $request->checkin_id;

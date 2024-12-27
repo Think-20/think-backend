@@ -247,16 +247,4 @@ class Checkin extends Model
     {        
         return $this->belongsToMany(Payment::class,"payment","id");
     }
-
-
-    /*
-            $table->foreign('production_manager_employee')->references('id')->on('employee')->nullable();
-            $table->foreign('production_manager_employee2')->references('id')->on('employee')->nullable();
-            $table->foreign('budget_employee')->references('id')->on('employee')->nullable();
-            $table->foreign('budget_employee2')->references('id')->on('employee')->nullable();
-            $table->foreign('detailing_employee')->references('id')->on('employee')->nullable();
-            $table->foreign('detailing_employee2')->references('id')->on('employee')->nullable();
-            $table->foreign('production_employee')->references('id')->on('employee')->nullable();
-            $table->foreign('production_employee2')->references('id')->on('employee')->nullable();
-    */
 }

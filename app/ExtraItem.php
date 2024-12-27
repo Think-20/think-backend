@@ -3,35 +3,19 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
-use PhpParser\Node\Expr;
 
-class Extra extends Model
+class ExtraItem extends Model
 {
-    protected $table = 'extra';
+    protected $table = 'extra_item';
 
     protected $guarded = ['id'];
 
     public static function list()
     {
-        $extras = Extra::get();
+        $extras = ExtraItem::get();
 
         foreach ($extras as $extra) {
-            $extra->job_object;
-            $extra->requester_object;
-            $extra->budget_object;
-            $extra->billing_employee_object;
-            
-        }
-
-        return $extras;
-    }
-
-    public static function listJob($job_id)
-    {
-        $extras = Extra::where('job_id', $job_id)->first();
-
-        foreach ($extras as $extra) {
-            $extra->job_object;
+            $extra->checkin_object;
             $extra->requester_object;
             $extra->budget_object;
             $extra->billing_employee_object;
@@ -44,13 +28,13 @@ class Extra extends Model
 
     public static function getUnique(int $id = null)
     {
-        $extra = Extra::find($id);
+        $extra = ExtraItem::find($id);
 
         if (!$extra) {
             return null;
         }
 
-        $extra->job_object;
+        $extra->checkin_object;
         $extra->requester_object;
         $extra->budget_object;
         $extra->billing_employee_object;
@@ -70,14 +54,14 @@ class Extra extends Model
             return false;
         }
 
-        $extras = Extra::where("checkin_id","=",$id)->get();
+        $extras = ExtraItem::where("checkin_id","=",$id)->get();
 
         if (!$extras) {
             return null;
         }
 
         foreach ($extras as $extra) {
-            $extra->job_object;
+            $extra->checkin_object;
             $extra->requester_object;
             $extra->budget_object;
             $extra->billing_employee_object;
@@ -86,9 +70,9 @@ class Extra extends Model
         return $extras;
     }
 
-    public function job_object()
+    public function checkin_object()
     {
-        return $this->hasOne(Job::class, "id", "job_id");
+        return $this->hasOne(Checkin::class, "id", "checkin_id");
     }
 
     public function requester_object()
@@ -104,6 +88,11 @@ class Extra extends Model
     public function billing_employee_object()
     {
         return $this->hasOne(Employee::class, "id", "billing_employee_id");
+    }
+
+    public function extra_object()
+    {
+        return $this->hasOne(Extra::class, "id", "extra_id");
     }
 
 }

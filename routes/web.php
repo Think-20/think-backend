@@ -24,9 +24,6 @@ Route::get('/notify-past', function () {
     return (new App\CreateNotifyPastTasks())->test();
 });
 
-    //Realizado fora do midware por ser algo clicado direto pelo cliente sem precisar logar
-    Route::get('/testeEmailConfirm/{id}/{hash}', 'CheckinController@confirmMailCheckin');
-
     //função que Confirma o email
     Route::post('/extra/confirm', 'CheckinController@confirmMailCheckin');
     
@@ -230,11 +227,6 @@ Route::group(['middleware' => ['auth.api']], function () {
     //função que envia o email
     Route::post('/extra/email', 'CheckinController@sendMailCheckin');
     Route::post('/checking/email', 'CheckinController@sendMailCheckinAccept');
-
-    
-
-    //função que Confirma o email
-    //Route::post('/extra/confirm', 'CheckinController@confirmMailCheckin');
 
 
     //função que ativa apos o usuario cliclar no botão do email
