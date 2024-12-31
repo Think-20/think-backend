@@ -217,7 +217,7 @@ class Employee extends Model implements NotifierInterface
             $employee = new Employee($data);
             $employee->department_id = isset($data['department']['id']) ? $data['department']['id'] : null;
             $employee->position_id = isset($data['position']['id']) ? $data['position']['id'] : null;
-            $employee->updated_by = User::logged()->id;
+            $employee->updated_by = User::logged()->employee->id;
             $employee->image = isset($data['image']) ? $data['image'] : 'sem-foto.jpg';
             $employee->save();
             $employee->moveFile();
