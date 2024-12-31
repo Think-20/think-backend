@@ -224,6 +224,7 @@ class Employee extends Model implements NotifierInterface
             DB::commit();
             
             self::createUser($data, $employee->id);
+            
             return $employee;
         } catch(\Exception $e) {
             DB::rollBack();
