@@ -301,9 +301,9 @@ class TaskItem extends Model
                 });
             }
             //Mescla por enquanto para que as task que sejam pro Bruno ou pra Pamela, sejam vistas por ambos
-            if (User::logged()->employee->id == 51 || User::logged()->employee->id == 11 || User::logged()->employee->id == 52) {
+            if ( User::logged()->employee->id == 76) {
                 $tasks->whereHas('task', function ($query) use ($user) {
-                    $query->where('responsible_id', '=', 11)->orWhere('responsible_id', '=', 51)->orWhere('responsible_id', '=', 52);
+                    $query->where('responsible_id', '=', 76);
                 });
             } else {
                 $tasks->whereHas('task', function ($query) use ($user) {

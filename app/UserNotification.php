@@ -350,30 +350,29 @@ class UserNotification extends Model
 
         //Função desbloqueada apenas para usuários especificos que terão acesso a alterar aceites de checkin sendo:
         /*
-            Pamela de id 11 pro accept_proposal
-            Ivanildo de id 20 pro accept_production
-            Hugo de id 1  ou Rodolfo de id 41 pro board_approval
+            Victor Goularte de id 43
+            Gleice Alves de id 76
         */
 
 
-        if ($loggedId == 11 || $loggedId == 20 || $loggedId == 1 || $loggedId == 41 || $loggedId == 43) {
+        if ($loggedId == 76 || $loggedId == 43) {
             //Variavel que ira auxiliar na contrução da busca separada por tipo de usuario verificando o tipo de aceite dele
             $aux = "";
 
             switch ($loggedId) {
-                case 11:
+                case 76:
                     $aux = ' AND board_approval IS NULL;';
-
                     $checkins = Checkin::where('approval', true)->where('board_approval', null)->get();
                     break;
 
+                //Era o Ivanildo na think
                 case 20:
                     $aux = ' AND board_approval = true AND accept_proposal IS NULL;';
 
                     $checkins = Checkin::where('approval', true)->where('board_approval', true)->where('accept_proposal', null)->get();
                     break;
 
-                case 11 || 41 || 43:
+                case 76  || 43:
                     $aux = ' AND board_approval = true AND accept_proposal = true AND accept_production IS NULL;';
                     $checkins = Checkin::where('approval', true)->where('board_approval', true)->where('accept_proposal', true)->where('accept_production', null)->get();
                     break;
