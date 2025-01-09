@@ -86,7 +86,7 @@ class TaskHelper
                 return $std;
             });
 
-        dd($jobActivity);
+        //dd($jobActivity);
 
         $responsibles = $jobActivity->responsibles;
 
