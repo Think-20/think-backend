@@ -47,6 +47,7 @@ class SpecificationFileController extends Controller
 
         DB::beginTransaction();
 
+
         try {
             $specificationFiles = SpecificationFile::insertAll($data);
             $message = 'Arquivos inseridos com sucesso!';

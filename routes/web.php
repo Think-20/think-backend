@@ -57,7 +57,6 @@ Route::get('/project-files/view/{id}', function ($id) {
     if (!File::exists($path)) {
         abort(404);
     }
-
     $file = File::get($path);
     $type = File::mimeType($path);
 
