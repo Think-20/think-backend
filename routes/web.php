@@ -54,19 +54,18 @@ Route::get('/project-files/view/{id}', function ($id) {
     $projectFile = App\ProjectFile::find($id);
     $path = env('FILES_FOLDER') . '/project-files/' . $projectFile->name;
 
-    //return Response::make(["teste",$path],200);
-
     if (!File::exists($path)) {
         abort(404);
     }
+
     $file = File::get($path);
     $type = File::mimeType($path);
 
-    return Response::download($path);
-
+    // Caso o tipo MIME esteja correto, você pode enviar o arquivo diretamente
     $response = Response::make($file, 200);
     $response->header("Content-Type", $type);
 
+    // Retorna a resposta com o arquivo e tipo MIME correto
     return $response;
 });
 
