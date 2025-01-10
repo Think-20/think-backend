@@ -54,12 +54,6 @@ class ProjectFileController extends Controller
             }
         }
 
-        return Response::make(json_encode([
-            $data,
-            'status' => $status,
-            'files' => $projectFiles
-        ]), 200);
-
         DB::beginTransaction();
 
         try {
