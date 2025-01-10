@@ -28,6 +28,8 @@ class ProjectFile extends Model
             }
         }
 
+        dd([sys_get_temp_dir(), $this->original_name]);
+
         if (is_file(sys_get_temp_dir() . '/' .  $this->original_name)) {
             $res = rename(sys_get_temp_dir() . '/' .  $this->original_name, $path . '/' . $this->name);
 
