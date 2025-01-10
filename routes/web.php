@@ -57,15 +57,14 @@ Route::get('/project-files/view/{id}', function ($id) {
     if (!File::exists($path)) {
         abort(404);
     }
-
     $file = File::get($path);
     $type = File::mimeType($path);
 
-    // Caso o tipo MIME esteja correto, você pode enviar o arquivo diretamente
+    dd($file);
+
     $response = Response::make($file, 200);
     $response->header("Content-Type", $type);
 
-    // Retorna a resposta com o arquivo e tipo MIME correto
     return $response;
 });
 
