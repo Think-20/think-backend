@@ -26,7 +26,7 @@ class SpecificationFile extends Model {
                 throw new Exception('Erro ao mover o arquivo para a pasta de projetos');
             }
         } else {
-            throw new Exception('Arquivo não encontrado para mover');
+            throw new Exception('Arquivo não encontrado para mover SpecificationFile');
         }
     }
 
