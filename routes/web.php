@@ -60,7 +60,7 @@ Route::get('/project-files/view/{id}', function ($id) {
     $file = File::get($path);
     $type = File::mimeType($path);
 
-    dd($file);
+    return [$file, $path];
 
     $response = Response::make($file, 200);
     $response->header("Content-Type", $type);
