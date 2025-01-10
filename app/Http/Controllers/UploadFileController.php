@@ -12,10 +12,7 @@ class UploadFileController extends Controller
         $names = [];
         $files = $request->all();
 
-        
-
         foreach($files as $file) {
-            dd([sys_get_temp_dir(),$file->getClientOriginalName()]);
             $file->move(sys_get_temp_dir(), $file->getClientOriginalName());
             $names[] = $file->getClientOriginalName();
         }
