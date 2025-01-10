@@ -54,6 +54,8 @@ Route::get('/project-files/view/{id}', function ($id) {
     $projectFile = App\ProjectFile::find($id);
     $path = env('FILES_FOLDER') . '/project-files/' . $projectFile->name;
 
+    dd($path);
+
     if (!File::exists($path)) {
         abort(404);
     }
