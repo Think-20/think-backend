@@ -37,6 +37,8 @@ Route::get('/notify-past', function () {
 Route::get('/assets/images/temp/{filename}', function ($filename) {
     $path = sys_get_temp_dir() . '/' . $filename;
 
+
+    return Response::make($path, 200);
     if (!File::exists($path)) {
         abort(404);
     }
