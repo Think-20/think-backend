@@ -306,7 +306,7 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::delete('/my-client/remove/{id}', 'ClientController@removeMyClient');
     //Route::get('/my-clients/all', 'ClientController@allMyClient');
     Route::get('/my-clients/get/{id}', 'ClientController@getMyClient');
-    //Route::get('/my-clients/filter/{query}', 'ClientController@filterMyClient');
+    Route::get('/my-clients/filter/{query}', 'ClientController@filterMyClient');
 
     Route::post('/provider/save', 'ProviderController@save');
     Route::put('/provider/edit', 'ProviderController@edit');

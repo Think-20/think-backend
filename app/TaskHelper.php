@@ -86,8 +86,6 @@ class TaskHelper
                 return $std;
             });
 
-        //dd($jobActivity);
-
         $responsibles = $jobActivity->responsibles;
 
         if ($responsibles->count() === 0) {
