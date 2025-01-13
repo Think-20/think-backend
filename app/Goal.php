@@ -11,4 +11,5 @@ class Goal extends Model
     protected $fillable = [
         'month', 'year', 'value', 'expected_value'
     ];
+    
 }

@@ -178,8 +178,8 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/employees/all', 'EmployeeController@all');
     Route::post('/employees/filter', 'EmployeeController@filter');
 
-    Route::get('/goal', 'GoalController@selectGoal');
-    Route::get('/goal/{id}', 'GoalController@selectGoal');
+    Route::get('/goal', 'GoalController@list');
+    Route::get('/goal/{id}', 'GoalController@getUnique');
     Route::post('/goal', 'GoalController@createGoal');
     Route::put('/goal', 'GoalController@updateGoal');
 

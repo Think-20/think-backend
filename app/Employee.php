@@ -91,6 +91,38 @@ class Employee extends Model implements NotifierInterface
         ];
     }
 
+    public static function get(int $id) {
+        $employee = Employee::with([
+            'user', 'user.functionalities', 'user.displays', 'position', 'department', 'updatedBy'
+        ])
+        ->where('employee.id', '=', $id)
+        ->withTrashed()
+        ->first();
+                
+        if(is_null($employee)) {
+            return null;
+        }
+
+        $employee->makeVisible('payment');
+        return $employee;
+    }
+
+    public static function myGet(int $id) {
+        $employee = Employee::with('user', 'position', 'department', 'updatedBy')
+        ->where('employee.id', '=', $id)
+        ->withTrashed()
+        ->first();
+
+        $employee->checkUser(); 
+                
+        if(is_null($employee)) {
+            return null;
+        }
+
+        $employee->makeVisible('payment');
+        return $employee;
+    }
+
     public static function canInsertClients(array $data = []) {
         $deleted = isset($data['deleted']) && $data['deleted'] === 'true' ? true : false;
         $insertClients = Functionality::where('description', '=', 'Cadastrar um cliente')->first();
@@ -300,37 +332,7 @@ class Employee extends Model implements NotifierInterface
     }
     */
 
-    public static function get(int $id) {
-        $employee = Employee::with([
-            'user', 'user.functionalities', 'user.displays', 'position', 'department', 'updatedBy'
-        ])
-        ->where('employee.id', '=', $id)
-        ->withTrashed()
-        ->first();
-                
-        if(is_null($employee)) {
-            return null;
-        }
-
-        $employee->makeVisible('payment');
-        return $employee;
-    }
-
-    public static function myGet(int $id) {
-        $employee = Employee::with('user', 'position', 'department', 'updatedBy')
-        ->where('employee.id', '=', $id)
-        ->withTrashed()
-        ->first();
-
-        $employee->checkUser(); 
-                
-        if(is_null($employee)) {
-            return null;
-        }
-
-        $employee->makeVisible('payment');
-        return $employee;
-    }
+    
 
     public function setNameAttribute($value) {
         $this->attributes['name'] = ucwords(mb_strtolower($value));

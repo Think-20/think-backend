@@ -23,9 +23,21 @@ class GoalController extends Controller
         $this->reportsService = $reportsService;
         $this->reportsController = $reportsController;
     }
+    public static function list()
+    {
+        $goal = Goal::get();
+
+        return $goal;
+    }
+
+    public static function getUnique(int $id = null)
+    {
+        $goal = Goal::find($id);
+       
+        return $goal;
+    }
 
     
-
     public function createGoal(Request $request)
     {
         if ($request->month <=  0  || $request->month >= 13) {
@@ -102,8 +114,6 @@ class GoalController extends Controller
 
         return response()->json(['error' => 'false', 'message' => 'Meta atualizada com sucesso']);
     }
-
-    
 
     public function calendarGoals(Request $request,  $date_init,  $date_end)
     {
