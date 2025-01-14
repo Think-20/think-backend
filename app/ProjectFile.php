@@ -71,7 +71,8 @@ class ProjectFile extends Model
         $zip->addFile($pathFile, $original_name);
 
         $zip->close();
-        return $pathFile;
+        return $path;
+        #return $pathFile;
     }
 
     public static function downloadAllFiles($taskId)
