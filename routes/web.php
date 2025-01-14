@@ -62,7 +62,7 @@ Route::get('/project-files/view/{id}', function ($id) {
 
     $response = Response::make(file_get_contents($path), 200);
     #$response = Response::make(file_get_contents($file), 200);
-    $response->header("Content-Type", /*$type*/ "image/*");
+    $response->header("Content-Type", $type);
 
     return $response;
 });
