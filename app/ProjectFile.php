@@ -87,14 +87,13 @@ class ProjectFile extends Model
         //$paths = [];
         foreach ($projectFiles as $projectFile) {
             $name = $projectFile->name;
-            $original_name = $projectFile->name . '.' . $projectFile->type;
+            $original_name =  $projectFile->original_name;
             $pathFile = env('FILES_FOLDER') . '/project-files/' . $name;
             $zip->addFile($pathFile, $original_name);
             //$paths[] = $pathFile;
         }
 
         $zip->close();
-        //dd($paths);
         return $path;
     }
 
