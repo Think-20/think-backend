@@ -63,7 +63,7 @@ Route::get('/project-files/view/{id}', function ($id) {
     $base64Image = base64_encode(file_get_contents($path));
 
     $response = Response::make($base64Image, 200);
-    $response->header('Content-Type', 'image/jpg');
+    $response->header('Content-Type', 'image/jpeg');
 
     return $response;
 
