@@ -57,20 +57,16 @@ Route::get('/project-files/view/{id}', function ($id) {
     if (!File::exists($path)) {
         abort(404);
     }
-    $file = File::get($path);
-    $type = File::mimeType($path);
+    /*$file = File::get($path);
+    $type = File::mimeType($path);*/
 
     $fileGet = file_get_contents($path);
-    $base64Image = base64_encode($fileGet);
+    //$base64Image = base64_encode($fileGet);
 
-    $response = Response::make(/*"data:image/png;base64,".*/$fileGet, 200);
-    $response->header('Content-Type',"image/*");
+    $response = Response::make($fileGet, 200);
+    $response->header('Content-Type',"*/*");
 
     return $response;
-
-    #$return = "data:image/png;base64,".ltrim(base64_encode(file_get_contents($path)));
-    #return $return;
-    
 
     #$response = Response::make($return, 200);
     #$response = Response::make(file_get_contents($file), 200);
