@@ -58,6 +58,10 @@ class ProjectFile extends Model
         return $path;*/
 
         $projectFile = ProjectFile::find($id);
+        if (is_null($projectFile)) {
+            throw new \Exception('O arquivo solicitado não existe.');
+        }
+
         $zip = new ZipArchive;
         $path = sys_get_temp_dir() . '/' . $id . '.zip';
 

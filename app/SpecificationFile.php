@@ -31,7 +31,7 @@ class SpecificationFile extends Model {
     }
 
     public static function downloadFile($id) {
-        $specificationFile = SpecificationFile::find($id);
+        /*$specificationFile = SpecificationFile::find($id);
 
         if(is_null($specificationFile)) {
             throw new \Exception('O arquivo solicitado não existe.');
@@ -40,6 +40,27 @@ class SpecificationFile extends Model {
         $path = env('FILES_FOLDER') . '/specification-files/' . $specificationFile->name;
 
         FileHelper::checkIfExists($path);
+        return $path;*/
+
+
+        $specificationFile = SpecificationFile::find($id);
+        if(is_null($specificationFile)) {
+            throw new \Exception('O arquivo solicitado não existe.');
+        }
+
+        $zip = new ZipArchive;
+        $path = sys_get_temp_dir() . '/' . $id . '.zip';
+
+        if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) === false) {
+            throw new \Exception('Erro ao criar o arquivo zip.');
+        }
+
+        $name = $specificationFile->name;
+        $original_name = $specificationFile->original_name;
+        $pathFile = env('FILES_FOLDER') . '/project-files/' . $name;
+        $zip->addFile($pathFile, $original_name);
+
+        $zip->close();
         return $path;
     }
 
