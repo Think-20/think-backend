@@ -64,11 +64,11 @@ Route::get('/project-files/view/{id}', function ($id) {
     return $return;
     
 
-    $response = Response::make($return, 200);
+    #$response = Response::make($return, 200);
     #$response = Response::make(file_get_contents($file), 200);
-    $response->header("Content-Type", $type);
+    #$response->header("Content-Type", $type);
 
-    return $response;
+    #return $response;
 });
 
 Route::get('/specification-files/view/{id}', function ($id) {
