@@ -60,7 +60,7 @@ Route::get('/project-files/view/{id}', function ($id) {
     $file = File::get($path);
     $type = File::mimeType($path);
 
-    $return = ltrim(base64_encode(file_get_contents($path)));
+    $return = "data:image/png;base64,".ltrim(base64_encode(file_get_contents($path)));
     return $return;
     
 
