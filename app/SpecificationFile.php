@@ -57,7 +57,7 @@ class SpecificationFile extends Model {
 
         $name = $specificationFile->name;
         $original_name = $specificationFile->original_name;
-        $pathFile = env('FILES_FOLDER') . '/project-files/' . $name;
+        $pathFile = env('FILES_FOLDER') . '/specification-files/' . $name;
         $zip->addFile($pathFile, $original_name);
 
         $zip->close();
