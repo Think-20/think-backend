@@ -60,7 +60,7 @@ Route::get('/project-files/view/{id}', function ($id) {
     $file = File::get($path);
     $type = File::mimeType($path);
 
-    $response = Response::make(base64_encode(file_get_contents($path)), 200);
+    $response = Response::make(ltrim(base64_encode(file_get_contents($path))), 200);
     #$response = Response::make(file_get_contents($file), 200);
     $response->header("Content-Type", $type);
 
