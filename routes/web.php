@@ -57,8 +57,6 @@ Route::get('/project-files/view/{id}', function ($id) {
     if (!File::exists($path)) {
         abort(404);
     }
-    /*$file = File::get($path);
-    $type = File::mimeType($path);*/
 
     $fileGet = file_get_contents($path);
     //$base64Image = base64_encode($fileGet);
@@ -83,11 +81,11 @@ Route::get('/specification-files/view/{id}', function ($id) {
         abort(404);
     }
 
-    $file = File::get($path);
-    $type = File::mimeType($path);
+    $fileGet = file_get_contents($path);
+    //$base64Image = base64_encode($fileGet);
 
-    $response = Response::make($file, 200);
-    $response->header("Content-Type", $type);
+    $response = Response::make($fileGet, 200);
+    $response->header('Content-Type',"*/*");
 
     return $response;
 });
