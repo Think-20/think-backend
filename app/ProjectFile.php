@@ -66,7 +66,8 @@ class ProjectFile extends Model
         }
 
         $name = $projectFile->name;
-        $original_name = $projectFile->name . '.' . $projectFile->type;
+        #$original_name = $projectFile->name . '.' . $projectFile->type;
+        $original_name = $projectFile->original_name;
         $pathFile = env('FILES_FOLDER') . '/project-files/' . $name;
         $zip->addFile($pathFile, $original_name);
 
