@@ -11,7 +11,11 @@ class ProjectFile extends Model
 
     protected $table = 'project_file';
     protected $fillable = [
-        'task_id', 'responsible_id', 'name', 'original_name', 'type'
+        'task_id',
+        'responsible_id',
+        'name',
+        'original_name',
+        'type'
     ];
 
     public function moveFile()
@@ -43,8 +47,7 @@ class ProjectFile extends Model
 
     public static function downloadFile($id)
     {
-        $projectFile = ProjectFile::find($id);
-
+        /*
         if (is_null($projectFile)) {
             throw new \Exception('O arquivo solicitado não existe.');
         }
@@ -52,6 +55,22 @@ class ProjectFile extends Model
         $path = env('FILES_FOLDER') . '/project-files/' . $projectFile->name;
 
         FileHelper::checkIfExists($path);
+        return $path;*/
+
+        $projectFile = ProjectFile::find($id);
+        $zip = new ZipArchive;
+        $path = sys_get_temp_dir() . '/' . $id . '.zip';
+
+        if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) === false) {
+            throw new \Exception('Erro ao criar o arquivo zip.');
+        }
+
+        $name = $projectFile->name;
+        $original_name = $projectFile->name . '.' . $projectFile->type;
+        $pathFile = env('FILES_FOLDER') . '/project-files/' . $name;
+        $zip->addFile($pathFile, $original_name);
+
+        $zip->close();
         return $path;
     }
 
