@@ -60,8 +60,15 @@ Route::get('/project-files/view/{id}', function ($id) {
     $file = File::get($path);
     $type = File::mimeType($path);
 
-    $return = "data:image/png;base64,".ltrim(base64_encode(file_get_contents($path)));
-    return $return;
+    $base64Image = base64_encode(file_get_contents($path));
+
+    $response = Response::make($base64Image, 200);
+    $response->header('Content-Type', 'image/png');
+
+    return $response;
+
+    #$return = "data:image/png;base64,".ltrim(base64_encode(file_get_contents($path)));
+    #return $return;
     
 
     #$response = Response::make($return, 200);
