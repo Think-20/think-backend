@@ -26,7 +26,7 @@ class Event extends Model
     {
         $paginate = isset($data['paginate']) ? $data['paginate'] : true;
         $search = isset($data['search']) ? $data['search'] : null;
-        $query = Event::with('place', 'employee');
+        $query = Event::with('place', 'employee', 'organization_object');
 
         if (!is_null($search)) {
             $query->where('name', 'LIKE', '%' . $search . '%');
@@ -59,7 +59,7 @@ class Event extends Model
     public static function list(array $data)
     {
         $paginate = isset($data['paginate']) ? $data['paginate'] : true;
-        $query = Event::with('place', 'employee')->orderBy('name', 'asc');
+        $query = Event::with('place', 'employee', 'organization_object')->orderBy('name', 'asc');
 
         if ($paginate) {
             $events = $query->paginate(20);
@@ -136,7 +136,7 @@ class Event extends Model
 
     public static function get(int $id)
     {
-        $event = Event::with('place', 'employee', 'jobs')
+        $event = Event::with('place', 'employee', 'jobs', 'organization_object')
             ->where('event.id', '=', $id)
             ->first();
 
@@ -327,4 +327,10 @@ class Event extends Model
     {
         return $this->belongsTo('App\Employee', 'employee_id');
     }
+
+    public function organization_object()
+    {
+        return $this->hasOne(Organization::class, "id", "organization_id");
+    }
+
 }

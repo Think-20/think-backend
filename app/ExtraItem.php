@@ -19,7 +19,6 @@ class ExtraItem extends Model
             $extra->requester_object;
             $extra->budget_object;
             $extra->billing_employee_object;
-            
         }
 
         return $extras;

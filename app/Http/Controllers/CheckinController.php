@@ -166,12 +166,56 @@ class CheckinController extends Controller
             $mail->isHTML(true);
             $mail->Subject = 'Obrigado pela parceria';
 
-            $mail->Body    = 'Obrigado pela parceria com a Think Ideias, a gente gostaria de confirmar o pedido dos extras do projeto. <br> <a href="http://localhost:4200/external/extras/' . $checkinId . '/' . $hash . '"> Para confirmar clique aqui. </a>';
+            $mail->Body    = '<!DOCTYPE html>
+                <html lang="pt-BR">
+                <head>
+                    <meta charset="UTF-8" />
+                    <title>Agradecimento e Solicitação</title>
+                </head>
+                <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+                    <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse; background-color: #ffffff;">
+                    <!-- Cabeçalho -->
+                    <tr>
+                        <td align="center" style="padding: 20px 0; background-color: #0056b3; color: #ffffff;">
+                        <h1 style="margin: 0; font-size: 24px; font-weight: bold;">Obrigado pela Parceria!</h1>
+                        </td>
+                    </tr>
+                    <!-- Corpo -->
+                    <tr>
+                        <td style="padding: 30px; color: #333333; text-align: center; font-size: 16px;">
+                        <p style="margin: 0;">
+                            Olá! 😊<br /><br />
+                            Gostaríamos de expressar nossa gratidão pela confiança e parceria. Para
+                            prosseguirmos com o próximo passo, solicitamos gentilmente que clique no botão abaixo para visualização dos itens extras.
+                        </p>
+                        <br />
+                        <!-- Botão -->
+                        <table align="center" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                            <td align="center" style="background-color: #286ea7; border-radius: 4px;">                               
+                            <a href="http://localhost:4200/external/extras/' . $checkinId . '/' . $hash . '" target="_blank" style="display: block; padding: 12px 20px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold; font-family: Arial, sans-serif;">
+                                Visualizar
+                                </a>
+                            </td>
+                            </tr>
+                        </table>
+                        </td>
+                    </tr>
+                    <!-- Rodapé -->
+                    <tr>
+                        <td align="center" style="padding: 20px; font-size: 12px; color: #777777; background-color: #f5f5f5;">
+                        Caso tenha alguma dúvida, não hesite em nos contatar.<br />
+                        <strong>Think</strong>
+                        </td>
+                    </tr>
+                    </table>
+                </body>
+                </html>';
 
             // Enviar o e-mail
             $mail->send();
         } catch (Exception $e) {
-            #echo "Erro ao enviar mensagem: {$mail->ErrorInfo}";
+            return response()->json(['error' => 'true', 'message' => "Erro ao enviar mensagem: {$mail->ErrorInfo}"]);
         }
 
         return response()->json(['error' => 'false', 'message' => 'Email de confirmação enviado ao cliente.']);

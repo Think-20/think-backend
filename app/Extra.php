@@ -16,6 +16,7 @@ class Extra extends Model
         $extras = Extra::get();
 
         foreach ($extras as $extra) {
+            $extra->items;
             $extra->job_object;
             $extra->requester_object;
             $extra->budget_object;
@@ -23,7 +24,7 @@ class Extra extends Model
             
         }
 
-        return $extras;
+        return $extras; 
     }
 
     public static function listJob($job_id)
@@ -31,6 +32,7 @@ class Extra extends Model
         $extras = Extra::where('job_id', $job_id)->first();
 
         foreach ($extras as $extra) {
+            $extra->items;
             $extra->job_object;
             $extra->requester_object;
             $extra->budget_object;
@@ -50,10 +52,13 @@ class Extra extends Model
             return null;
         }
 
+        $extra->items;
         $extra->job_object;
         $extra->requester_object;
         $extra->budget_object;
         $extra->billing_employee_object;
+        
+        
 
         return $extra;
     }
@@ -77,10 +82,12 @@ class Extra extends Model
         }
 
         foreach ($extras as $extra) {
+            $extra->items;
             $extra->job_object;
             $extra->requester_object;
             $extra->budget_object;
             $extra->billing_employee_object;
+            
         }
 
         return $extras;
@@ -91,19 +98,9 @@ class Extra extends Model
         return $this->hasOne(Job::class, "id", "job_id");
     }
 
-    public function requester_object()
+    public function items()
     {
-        return $this->hasOne(Person::class, "id", "requester");
-    }
-
-    public function budget_object()
-    {
-        return $this->hasOne(Employee::class, "id", "budget");
-    }
-
-    public function billing_employee_object()
-    {
-        return $this->hasOne(Employee::class, "id", "billing_employee_id");
+        return $this->hasMany('App\ExtraItem', 'extra_id')->with('requester_object','budget_object','billing_employee_object')->orderBy('created_at', 'desc');
     }
 
 }
