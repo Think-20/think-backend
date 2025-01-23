@@ -82,7 +82,9 @@ class Event extends Model
             $event = Event::find($id);
             $oldEvent = Event::find($id);
             $event->fill($data);
-            $event->editFiles($oldEvent);
+
+            //$event->editFiles($oldEvent);
+            
             $event->checkIfDuplicate();
             $event->place_id = isset($data['place']['id']) ? $data['place']['id'] : null;
             $event->update();
@@ -108,7 +110,7 @@ class Event extends Model
             $event->regulation = "douglas";
             $event->manual = "douglas";*/
 
-            $event->saveFiles();
+            //$event->saveFiles();
 
             $event->save();
             DB::commit();
@@ -328,7 +330,7 @@ class Event extends Model
         return $this->belongsTo('App\Employee', 'employee_id');
     }
 
-    public function organization()
+    public function organization_object()
     {
         return $this->hasOne(Organization::class, "id", "organization_id");
     }
