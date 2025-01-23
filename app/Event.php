@@ -84,7 +84,7 @@ class Event extends Model
             $oldEvent = Event::find($id);
             $event->fill($data);
 
-            //$event->editFiles($oldEvent);
+            $event->editFiles($oldEvent);
 
             $event->checkIfDuplicate();
             $event->place_id = isset($data['place']['id']) ? $data['place']['id'] : null;
@@ -111,7 +111,7 @@ class Event extends Model
             $event->regulation = "douglas";
             $event->manual = "douglas";*/
 
-            //$event->saveFiles();
+            $event->saveFiles();
 
             $event->save();
             DB::commit();
