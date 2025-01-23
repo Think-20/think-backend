@@ -136,7 +136,7 @@ class Event extends Model
 
     public static function get(int $id)
     {
-        $event = Event::with('place', 'employee', 'jobs', 'organization_object')
+        $event = Event::with('place', 'employee', 'jobs', 'organization')
             ->where('event.id', '=', $id)
             ->first();
 
@@ -328,7 +328,7 @@ class Event extends Model
         return $this->belongsTo('App\Employee', 'employee_id');
     }
 
-    public function organization_object()
+    public function organization()
     {
         return $this->hasOne(Organization::class, "id", "organization_id");
     }
