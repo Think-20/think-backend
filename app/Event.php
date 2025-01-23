@@ -59,6 +59,7 @@ class Event extends Model
     public static function list(array $data)
     {
         $paginate = isset($data['paginate']) ? $data['paginate'] : true;
+          
         $query = Event::with('place', 'employee', 'organization_object')->orderBy('name', 'asc');
 
         if ($paginate) {
@@ -84,7 +85,7 @@ class Event extends Model
             $event->fill($data);
 
             //$event->editFiles($oldEvent);
-            
+
             $event->checkIfDuplicate();
             $event->place_id = isset($data['place']['id']) ? $data['place']['id'] : null;
             $event->update();
@@ -138,7 +139,7 @@ class Event extends Model
 
     public static function get(int $id)
     {
-        $event = Event::with('place', 'employee', 'jobs', 'organization')
+        $event = Event::with('place', 'employee', 'jobs', 'organization_object')
             ->where('event.id', '=', $id)
             ->first();
 
