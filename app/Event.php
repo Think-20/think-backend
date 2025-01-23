@@ -19,7 +19,7 @@ class Event extends Model
         'name', 'place_id', 'edition', 'note', 'ini_date', 'fin_date', 'ini_hour', 'fin_hour',
         'employee_id', 'phone', 'organizer', 'email', 'site', 'plan', 'manual', 'regulation',
         'ini_date_mounting', 'fin_date_mounting', 'ini_hour_mounting', 'fin_hour_mounting',
-        'ini_date_unmounting', 'fin_date_unmounting', 'ini_hour_unmounting', 'fin_hour_unmounting',
+        'ini_date_unmounting', 'fin_date_unmounting', 'ini_hour_unmounting', 'fin_hour_unmounting','organization_id'
     ];
 
     public static function filter(array $data)
