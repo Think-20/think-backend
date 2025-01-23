@@ -14,14 +14,14 @@ class AlterTableCheckinAcceptionToNumber extends Migration
     public function up()
     {
         Schema::table('checkin', function (Blueprint $table) {
-            $table->integer('accept_client')->nullable()->change();
-            $table->integer('approval')->nullable()->change();
+            $table->integer('accept_client')->nullable();
+            $table->integer('approval')->nullable();
 
-            $table->integer('accept_proposal')->nullable()->change();
-            $table->integer('accept_production')->nullable()->change();
+            $table->integer('accept_proposal')->nullable();
+            $table->integer('accept_production')->nullable();
 
-            $table->integer('board_approval')->nullable()->change();
-            $table->integer('financial_acceptance')->nullable()->change();
+            $table->integer('board_approval')->nullable();
+            $table->integer('financial_acceptance')->nullable();
 
         });
     }
