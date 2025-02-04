@@ -233,7 +233,10 @@ Route::group(['middleware' => ['auth.api']], function () {
     //função que envia o email
     Route::post('/extra/email', 'CheckinController@sendMailCheckin');
     Route::post('/checking/email', 'CheckinController@sendMailCheckinAccept');
-
+    
+    //Busca dados pelo CNPJ
+    Route::get('/cnpjDatas/{cnpj}', 'JobController@consultarCnpj');
+    
 
     //função que ativa apos o usuario cliclar no botão do email
     Route::get('/external/extras/{checkInId}/{hash}', 'CheckinController@confirmMailCheckin');
@@ -257,6 +260,8 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::delete('/event/remove/{id}', 'EventController@remove');
     Route::get('/event/download/{id}/{type}/{file}', 'EventController@downloadFile');
 
+
+    
 });
 
 Route::group(['middleware' => ['auth.api', 'permission']], function () {
