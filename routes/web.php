@@ -243,6 +243,9 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/testeGetS3', 'GoalController@testeGetS3');
     Route::post('/testePutS3', 'GoalController@testePutS3');
 
+    //Busca dados pelo CNPJ
+    Route::get('/cnpjDatas/{cnpj}', 'JobController@consultarCnpj');
+
     //função que envia o email
     Route::post('/extra/email', 'CheckinController@sendMailCheckin');
     Route::post('/checking/email', 'CheckinController@sendMailCheckinAccept');
