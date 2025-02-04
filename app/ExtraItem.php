@@ -15,7 +15,7 @@ class ExtraItem extends Model
         $extras = ExtraItem::get();
 
         foreach ($extras as $extra) {
-            $extra->checkin_object;
+            //$extra->checkin_object;
             $extra->requester_object;
             $extra->budget_object;
             $extra->billing_employee_object;
@@ -33,7 +33,7 @@ class ExtraItem extends Model
             return null;
         }
 
-        $extra->checkin_object;
+        //$extra->checkin_object;
         $extra->requester_object;
         $extra->budget_object;
         $extra->billing_employee_object;
@@ -60,7 +60,7 @@ class ExtraItem extends Model
         }
 
         foreach ($extras as $extra) {
-            $extra->checkin_object;
+            //$extra->checkin_object;
             $extra->requester_object;
             $extra->budget_object;
             $extra->billing_employee_object;

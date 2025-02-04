@@ -13,15 +13,15 @@ class UpdateExtrasRebrain extends Migration
 
         Schema::create('extra', function (Blueprint $table) {
             $table->increments('id');
-            $table->string('description');
+            $table->string('description')->nullable();
             $table->integer('job_id');
 
-            $table->string('accept_client');
-            $table->string('accept_client_date');
-            $table->string('approval');
-            $table->string('approval_date');
-            $table->string('hash');
-            $table->string('obs');
+            $table->string('accept_client')->nullable();
+            $table->string('accept_client_date')->nullable();
+            $table->string('approval')->nullable();
+            $table->string('approval_date')->nullable();
+            $table->string('hash')->nullable();
+            $table->string('obs')->nullable();
             
             //$table->foreign('job_id')->references('id')->on('job')->nullable();
 

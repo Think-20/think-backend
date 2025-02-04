@@ -218,6 +218,7 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/person', 'PersonController@createPerson');
     Route::put('/person', 'PersonController@updatePerson');
 
+    //Requisições de extras
     Route::get('/extra', 'ExtraController@selectExtra');
     Route::get('/extra/{id}', 'ExtraController@selectExtra');
 
@@ -227,6 +228,18 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::put('/extra', 'ExtraController@updateExtra');
     Route::delete('/extra/{id}', 'ExtraController@deleteExtra');
 
+    
+    //Requisições de extras_items
+    Route::get('/extraItem', 'ExtraController@selectExtraItem');
+    Route::get('/extraItem/{id}', 'ExtraController@selectExtraItem');
+
+    #Route::get('/extraItem/{checkInId}/{hash}', 'ExtraController@selectExtraHash');
+
+    Route::post('/extraItem', 'ExtraController@createExtraItem');
+    Route::put('/extraItem', 'ExtraController@updateExtraItem');
+    Route::delete('/extraItem/{id}', 'ExtraController@deleteExtraItem');
+
+    //Testes S3 aws
     Route::post('/testeGetS3', 'GoalController@testeGetS3');
     Route::post('/testePutS3', 'GoalController@testePutS3');
 
