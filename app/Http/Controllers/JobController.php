@@ -163,7 +163,7 @@ class JobController extends Controller
             $dados = json_decode($response->getBody(), true);
             return response()->json($dados);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Erro ao buscar o CNPJ'], 400);
+            return response()->json(['error' => 'true', 'message' => 'Não foi possivel receber os dados desse CNPJ.'], 200);
         }
     }
 
