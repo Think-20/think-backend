@@ -151,6 +151,10 @@ class ExtraController extends Controller
 
         $extraItem->update($request->all());
 
+        $extra->requester_object;
+        $extraItem->budget_object;        
+        $extraItem->billing_employee_object;
+
         //devolve o status de extra aceito no checkin para false sempre que o cliente mudar algo nos extras
         $checkin = Checkin::where('job_id', '=',  $extra->job_id)->first();
         $checkin->update([
@@ -158,7 +162,7 @@ class ExtraController extends Controller
             'extras_accept_client_date' => Carbon::now()
         ]);
 
-        return response()->json(['error' => 'false', 'message' => 'Extra atualizada com sucesso', 'object' => $extra]);
+        return response()->json(['error' => 'false', 'message' => 'Extra atualizada com sucesso', 'object' => $extraItem]);
     }
 
     public function deleteExtra(Request $request, int $id = null)
