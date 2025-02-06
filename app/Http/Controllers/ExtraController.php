@@ -108,6 +108,10 @@ class ExtraController extends Controller
             'extras_accept_client_date' => Carbon::now()
         ]);
 
+        $extraItem->requester_object;
+        $extraItem->budget_object;        
+        $extraItem->billing_employee_object;
+
         return response()->json(['error' => 'false', 'message' => 'Extra cadastrada com sucesso', 'object' => $extraItem]);
     }
 
@@ -151,7 +155,7 @@ class ExtraController extends Controller
 
         $extraItem->update($request->all());
 
-        $extra->requester_object;
+        $extraItem->requester_object;
         $extraItem->budget_object;        
         $extraItem->billing_employee_object;
 
