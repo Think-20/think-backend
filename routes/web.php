@@ -409,10 +409,18 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::post('/budget/save', 'BudgetController@save');
     Route::put('/budget/edit', 'BudgetController@edit');
 
+    //Project file
     Route::post('/project-files/save-multiple', 'ProjectFileController@saveMultiple');
     Route::delete('/project-files/remove/{id}', 'ProjectFileController@remove');
     Route::get('/project-files/download/{id}', 'ProjectFileController@downloadFile');
     Route::get('/project-files/download-all/{taskId}', 'ProjectFileController@downloadAll');
+
+    //Briefing
+    Route::post('/briefing-files/save-multiple', 'BriefingFileController@saveMultiple');
+    Route::delete('/briefing-files/remove/{id}', 'BriefingFileController@remove');
+    Route::get('/briefing-files/download/{id}', 'BriefingFileController@downloadFile');
+    Route::get('/briefing-files/download-all/{taskId}', 'BriefingFileController@downloadAll');
+
 
     Route::post('/specification-files/save-multiple', 'SpecificationFileController@saveMultiple');
     Route::delete('/specification-files/remove/{id}', 'SpecificationFileController@remove');

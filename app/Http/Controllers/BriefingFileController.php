@@ -4,15 +4,15 @@ namespace App\Http\Controllers;
 
 use App\ProjectFile;
 use App\User;
-use Exception;
 use Response;
+use Exception;
 
 use DB;
 
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
 
-class ProjectFileController extends Controller
+class BriefingFileController extends Controller
 {
     public static function save(Request $request)
     {
@@ -23,12 +23,12 @@ class ProjectFileController extends Controller
         DB::beginTransaction();
 
         try {
-            $project_file = ProjectFile::insert($data);
+            $project_file = BriefingFile::insert($data);
             $message = 'Arquivo inserido com sucesso!';
             DB::commit();
             $status = true;
-        }/* Catch com FileException tamanho máximo */ 
-        catch (Exception $e) {
+        }
+        /* Catch com FileException tamanho máximo */ catch (Exception $e) {
             DB::rollBack();
             $message = 'Um erro ocorreu ao cadastrar: ' . $e->getMessage();
             //. $e->getFile() . $e->getLine();
@@ -57,7 +57,7 @@ class ProjectFileController extends Controller
         DB::beginTransaction();
 
         try {
-            $projectFiles = ProjectFile::insertAll($data);
+            $projectFiles = BriefingFile::insertAll($data);
             $message = 'Arquivos inseridos com sucesso!';
             DB::commit();
             $status = true;
@@ -82,7 +82,7 @@ class ProjectFileController extends Controller
         $data = $request->all();
 
         try {
-            $project_file = ProjectFile::edit($data);
+            $project_file = BriefingFile::edit($data);
             $message = 'Arquivo alterado com sucesso!';
             $status = true;
             DB::commit();
@@ -101,13 +101,14 @@ class ProjectFileController extends Controller
         ]), 200);
     }
 
+
     public static function remove(int $id)
     {
         DB::beginTransaction();
         $status = false;
 
         try {
-            $project_file = ProjectFile::remove($id);
+            $project_file = BriefingFile::remove($id);
             $message = 'Arquivo removido com sucesso!';
             $status = true;
             DB::commit();
@@ -128,7 +129,7 @@ class ProjectFileController extends Controller
     public static function downloadFile($id)
     {
         try {
-            $fileFound = ProjectFile::downloadFile($id);
+            $fileFound = BriefingFile::downloadFile($id);
             $status = true;
             return Response::make(file_get_contents($fileFound), 200, ['Content-Type' => mime_content_type($fileFound)]);
         } catch (Exception $e) {
@@ -140,7 +141,7 @@ class ProjectFileController extends Controller
     public static function downloadAll($taskId)
     {
         try {
-            $fileFound = ProjectFile::downloadAllFiles($taskId);
+            $fileFound = BriefingFile::downloadAllFiles($taskId);
             $status = true;
             return Response::make(file_get_contents($fileFound), 200, ['Content-Type' => mime_content_type($fileFound)]);
         } catch (Exception $e) {

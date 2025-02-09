@@ -101,7 +101,7 @@ class ExtraController extends Controller
         $extra = Extra::where("id",$extraItem->extra_id)->first();
 
         //devolve o status de extra aceito no checkin para false sempre que o cliente mudar algo nos extras
-        $checkin = Checkin::where('job_id', '=',  $extra->job_id)->first();
+        $checkin = Checkin::where('job_id', '=',  $extra->job_id)->latest('id')->first();
 
         $checkin->update([
             'extras_accept_client' => 0,
