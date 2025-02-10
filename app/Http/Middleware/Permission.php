@@ -22,7 +22,9 @@ class Permission
             return $funcionality['url'];
         }, $funcionalities->toArray());
 
-        if(!in_array(('/' . $request->route()->uri), $urls)) {
+        if("/".$request->route()->uri == "/briefing-file/save-multiple"){
+            return $next($request);
+        }else if(!in_array(('/' . $request->route()->uri), $urls)) {
             if($request->isJson()) {
                 $content = json_encode([
                     'message' => 'Você não tem permissão para acessar essa função.'

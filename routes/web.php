@@ -416,10 +416,10 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::get('/project-files/download-all/{taskId}', 'ProjectFileController@downloadAll');
 
     //Briefing
-    Route::post('/briefing-files/save-multiple', 'BriefingFileController@saveMultiple');
-    Route::delete('/briefing-files/remove/{id}', 'BriefingFileController@remove');
-    Route::get('/briefing-files/download/{id}', 'BriefingFileController@downloadFile');
-    Route::get('/briefing-files/download-all/{taskId}', 'BriefingFileController@downloadAll');
+    Route::post('/briefing-file/save-multiple', 'BriefingFileController@saveMultiple');
+    Route::delete('/briefing-file/remove/{id}', 'BriefingFileController@remove');
+    Route::get('/briefing-file/download/{id}', 'BriefingFileController@downloadFile');
+    Route::get('/briefing-file/download-all/{taskId}', 'BriefingFileController@downloadAll');
 
 
     Route::post('/specification-files/save-multiple', 'SpecificationFileController@saveMultiple');

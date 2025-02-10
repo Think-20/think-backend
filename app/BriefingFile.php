@@ -1,19 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
-
-use App\JobActivity;
-use App\User;
-use Illuminate\Http\Request;
+namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 use Exception;
 use ZipArchive;
 
-class BriefingFile extends Controller
+class BriefingFile extends Model
 {
 
-    protected $table = 'briefing_file';
+    protected $table = 'project_file';
     protected $fillable = [
         'task_id',
         'responsible_id',
@@ -25,7 +21,7 @@ class BriefingFile extends Controller
     public function moveFile()
     {
         $browserFiles = [];
-        $path = env('FILES_FOLDER') . '/briefing-files';
+        $path = env('FILES_FOLDER') . '/project-files';
 
         if (!is_dir($path)) {
             try {
@@ -108,7 +104,7 @@ class BriefingFile extends Controller
         $project_files = [];
 
         foreach ($data as $projectFile) {
-            $project_files[] = BriefingFile::insert($projectFile);
+            $project_files[] = ProjectFile::insert($projectFile);
         }
 
         if (count($project_files) ==  0) return [];
@@ -157,7 +153,7 @@ class BriefingFile extends Controller
         $name = sha1($tempPath . time());
         $type = (new \SplFileInfo($tempPath))->getExtension();
 
-        $briefing_file = new BriefingFile(array_merge($data, [
+        $project_file = new ProjectFile(array_merge($data, [
             'responsible_id' => $responsible->id,
             'task_id' => $task_id,
             'name' => $name,
@@ -165,10 +161,10 @@ class BriefingFile extends Controller
             
         ]));
 
-        $briefing_file->save();
-        $briefing_file->moveFile();
+        $project_file->save();
+        $project_file->moveFile();
 
-        $task = $briefing_file->task;
+        $task = $project_file->task;
         $newJobActivity = JobActivity::where('description', '=', 'Memorial descritivo')->first();
 
         $count = Task::where('task_id', $task->id)
