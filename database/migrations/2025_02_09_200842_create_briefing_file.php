@@ -10,10 +10,10 @@ class CreateBriefingFile extends Migration
     {
         Schema::create('briefing_file', function (Blueprint $table) {
             $table->increments('id');
-            $table->string('responsible_id')->nullable();
-            $table->string('task_id')->nullable();
+            $table->double('responsible_id')->nullable();
+            $table->double('task_id')->nullable();
             $table->string('name')->nullable();
-            $table->double('original_name')->nullable();
+            $table->string('original_name')->nullable();
             $table->string('type')->nullable();            
             $table->timestamps();
         });
