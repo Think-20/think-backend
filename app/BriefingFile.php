@@ -161,7 +161,7 @@ class BriefingFile extends Model
             
         ]));
 
-        dd($project_file);
+        
 
         $project_file->save();
         $project_file->moveFile();

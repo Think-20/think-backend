@@ -44,6 +44,8 @@ class BriefingFileController extends Controller
     public static function saveMultiple(Request $request)
     {
 
+        dd($project_file);
+
         $data = $request->all();
         $status = false;
         $projectFiles = null;
