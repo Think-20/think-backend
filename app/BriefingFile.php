@@ -23,7 +23,6 @@ class BriefingFile extends Model
         $browserFiles = [];
         $path = env('FILES_FOLDER') . '/briefing-files';
 
-        dd($path);
 
         if (!is_dir($path)) {
             try {
