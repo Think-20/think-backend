@@ -59,18 +59,12 @@ Route::get('/project-files/view/{id}', function ($id) {
     }
 
     $fileGet = file_get_contents($path);
-    //$base64Image = base64_encode($fileGet);
 
     $response = Response::make($fileGet, 200);
     $response->header('Content-Type',"*/*");
 
     return $response;
 
-    #$response = Response::make($return, 200);
-    #$response = Response::make(file_get_contents($file), 200);
-    #$response->header("Content-Type", $type);
-
-    #return $response;
 });
 
 Route::get('/specification-files/view/{id}', function ($id) {
@@ -82,7 +76,22 @@ Route::get('/specification-files/view/{id}', function ($id) {
     }
 
     $fileGet = file_get_contents($path);
-    //$base64Image = base64_encode($fileGet);
+
+    $response = Response::make($fileGet, 200);
+    $response->header('Content-Type',"*/*");
+
+    return $response;
+});
+
+Route::get('/specification-files/view/{id}', function ($id) {
+    $specificationFile = App\BriefingFile::find($id);
+    $path = env('FILES_FOLDER') . '/briefing-files/' . $specificationFile->name;
+
+    if (!File::exists($path)) {
+        abort(404);
+    }
+
+    $fileGet = file_get_contents($path);
 
     $response = Response::make($fileGet, 200);
     $response->header('Content-Type',"*/*");
@@ -432,6 +441,4 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::post('/schedule-blocks/all', 'ScheduleBlockController@all');
     Route::get('/schedule-blocks/valid', 'ScheduleBlockController@valid');
     Route::get('/my-schedule-blocks/valid', 'ScheduleBlockController@myValid');
-
-    
 });
