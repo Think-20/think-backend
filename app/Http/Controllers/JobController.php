@@ -14,8 +14,8 @@ use App\FileHelper;
 use App\JobActivity;
 use Aws\S3\S3Client;
 use AwsS3S3Client;
-use Illuminate\Support\Facades\Http;
 use GuzzleHttp\Client;
+
 
 
 
@@ -91,6 +91,20 @@ class JobController extends Controller
         ]), 200);
     }
 
+    public function consultarCnpj(Request $request, $cnpj)
+    {
+        $client = new Client();
+        $url = "https://www.receitaws.com.br/v1/cnpj/" . $cnpj;
+
+        try {
+            $response = $client->request('GET', $url);
+            $dados = json_decode($response->getBody(), true);
+            return response()->json($dados);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'true', 'message' => 'Não foi possivel receber os dados desse CNPJ.'], 200);
+        }
+    }
+
     public static function editAvailableDate(Request $request)
     {
         DB::beginTransaction();
@@ -151,20 +165,6 @@ class JobController extends Controller
             'message' => $message,
             'status' => $status,
         ]), 200);
-    }
-
-    public function consultarCnpj(Request $request, $cnpj)
-    {
-        $client = new Client();
-        $url = "https://www.receitaws.com.br/v1/cnpj/" . $cnpj;
-
-        try {
-            $response = $client->request('GET', $url);
-            $dados = json_decode($response->getBody(), true);
-            return response()->json($dados);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'true', 'message' => 'Não foi possivel receber os dados desse CNPJ.'], 200);
-        }
     }
 
     public static function get(int $id)

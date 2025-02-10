@@ -59,18 +59,12 @@ Route::get('/project-files/view/{id}', function ($id) {
     }
 
     $fileGet = file_get_contents($path);
-    //$base64Image = base64_encode($fileGet);
 
     $response = Response::make($fileGet, 200);
     $response->header('Content-Type',"*/*");
 
     return $response;
 
-    #$response = Response::make($return, 200);
-    #$response = Response::make(file_get_contents($file), 200);
-    #$response->header("Content-Type", $type);
-
-    #return $response;
 });
 
 Route::get('/specification-files/view/{id}', function ($id) {
@@ -82,7 +76,22 @@ Route::get('/specification-files/view/{id}', function ($id) {
     }
 
     $fileGet = file_get_contents($path);
-    //$base64Image = base64_encode($fileGet);
+
+    $response = Response::make($fileGet, 200);
+    $response->header('Content-Type',"*/*");
+
+    return $response;
+});
+
+Route::get('/briefing-files/view/{id}', function ($id) {
+    $specificationFile = App\BriefingFile::find($id);
+    $path = env('FILES_FOLDER') . '/briefing-files/' . $specificationFile->name;
+
+    if (!File::exists($path)) {
+        abort(404);
+    }
+
+    $fileGet = file_get_contents($path);
 
     $response = Response::make($fileGet, 200);
     $response->header('Content-Type',"*/*");
@@ -218,6 +227,7 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/person', 'PersonController@createPerson');
     Route::put('/person', 'PersonController@updatePerson');
 
+    //Requisições de extras
     Route::get('/extra', 'ExtraController@selectExtra');
     Route::get('/extra/{id}', 'ExtraController@selectExtra');
 
@@ -227,16 +237,28 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::put('/extra', 'ExtraController@updateExtra');
     Route::delete('/extra/{id}', 'ExtraController@deleteExtra');
 
+    
+    //Requisições de extras_items
+    Route::get('/extraItem', 'ExtraController@selectExtraItem');
+    Route::get('/extraItem/{id}', 'ExtraController@selectExtraItem');
+
+    #Route::get('/extraItem/{checkInId}/{hash}', 'ExtraController@selectExtraHash');
+
+    Route::post('/extraItem', 'ExtraController@createExtraItem');
+    Route::put('/extraItem', 'ExtraController@updateExtraItem');
+    Route::delete('/extraItem/{id}', 'ExtraController@deleteExtraItem');
+
+    //Testes S3 aws
     Route::post('/testeGetS3', 'GoalController@testeGetS3');
     Route::post('/testePutS3', 'GoalController@testePutS3');
+
+    //Busca dados pelo CNPJ
+    Route::get('/cnpjDatas/{cnpj}', 'JobController@consultarCnpj');
 
     //função que envia o email
     Route::post('/extra/email', 'CheckinController@sendMailCheckin');
     Route::post('/checking/email', 'CheckinController@sendMailCheckinAccept');
-    
-    //Busca dados pelo CNPJ
-    Route::get('/cnpjDatas/{cnpj}', 'JobController@consultarCnpj');
-    
+
 
     //função que ativa apos o usuario cliclar no botão do email
     Route::get('/external/extras/{checkInId}/{hash}', 'CheckinController@confirmMailCheckin');
@@ -260,8 +282,6 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::delete('/event/remove/{id}', 'EventController@remove');
     Route::get('/event/download/{id}/{type}/{file}', 'EventController@downloadFile');
 
-
-    
 });
 
 Route::group(['middleware' => ['auth.api', 'permission']], function () {
@@ -353,7 +373,6 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::post('/item/save-child-item/{id}', 'ItemController@saveChildItem');
     Route::delete('/item/{itemId}/remove-child-item/{childItemId}', 'ItemController@removeChildItem');
 
-
     Route::post('/job/save', 'JobController@save');
     Route::put('/job/edit', 'JobController@edit');
     Route::delete('/job/remove/{id}', 'JobController@remove');
@@ -398,10 +417,17 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::post('/budget/save', 'BudgetController@save');
     Route::put('/budget/edit', 'BudgetController@edit');
 
+    //Project file
     Route::post('/project-files/save-multiple', 'ProjectFileController@saveMultiple');
     Route::delete('/project-files/remove/{id}', 'ProjectFileController@remove');
     Route::get('/project-files/download/{id}', 'ProjectFileController@downloadFile');
     Route::get('/project-files/download-all/{taskId}', 'ProjectFileController@downloadAll');
+
+    //Briefing
+    Route::post('/briefing-files/save-multiple', 'BriefingFileController@saveMultiple');
+    Route::delete('/briefing-files/remove/{id}', 'BriefingFileController@remove');
+    Route::get('/briefing-files/download/{id}', 'BriefingFileController@downloadFile');
+    Route::get('/briefing-files/download-all/{taskId}', 'BriefingFileController@downloadAll');
 
     Route::post('/specification-files/save-multiple', 'SpecificationFileController@saveMultiple');
     Route::delete('/specification-files/remove/{id}', 'SpecificationFileController@remove');
@@ -413,6 +439,4 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::post('/schedule-blocks/all', 'ScheduleBlockController@all');
     Route::get('/schedule-blocks/valid', 'ScheduleBlockController@valid');
     Route::get('/my-schedule-blocks/valid', 'ScheduleBlockController@myValid');
-
-    
 });
