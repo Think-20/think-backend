@@ -46,15 +46,6 @@ class BriefingFile extends Model
 
     public static function downloadFile($id)
     {
-        /*
-        if (is_null($projectFile)) {
-            throw new \Exception('O arquivo solicitado não existe.');
-        }
-
-        $path = env('FILES_FOLDER') . '/briefing-files/' . $projectFile->name;
-
-        FileHelper::checkIfExists($path);
-        return $path;*/
 
         $projectFile = BriefingFile::find($id);
         if (is_null($projectFile)) {

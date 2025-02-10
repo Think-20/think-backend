@@ -373,7 +373,6 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::post('/item/save-child-item/{id}', 'ItemController@saveChildItem');
     Route::delete('/item/{itemId}/remove-child-item/{childItemId}', 'ItemController@removeChildItem');
 
-
     Route::post('/job/save', 'JobController@save');
     Route::put('/job/edit', 'JobController@edit');
     Route::delete('/job/remove/{id}', 'JobController@remove');
