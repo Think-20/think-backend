@@ -22,7 +22,7 @@ class Permission
             return $funcionality['url'];
         }, $funcionalities->toArray());
 
-        if("/".$request->route()->uri == "/briefing-file/save-multiple"){
+        if("/".$request->route()->uri == "/briefing-file/save-multiple" || "/".$request->route()->uri == "/briefing-file/download/{id}" || "/".$request->route()->uri == "/briefing-file/download-all/{taskId}"){
             return $next($request);
         }else if(!in_array(('/' . $request->route()->uri), $urls)) {
             if($request->isJson()) {
