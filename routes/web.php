@@ -83,7 +83,7 @@ Route::get('/specification-files/view/{id}', function ($id) {
     return $response;
 });
 
-Route::get('/specification-files/view/{id}', function ($id) {
+Route::get('/briefing-files/view/{id}', function ($id) {
     $specificationFile = App\BriefingFile::find($id);
     $path = env('FILES_FOLDER') . '/briefing-files/' . $specificationFile->name;
 
