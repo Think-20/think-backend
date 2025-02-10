@@ -23,6 +23,8 @@ class BriefingFile extends Model
         $browserFiles = [];
         $path = env('FILES_FOLDER') . '/briefing-files';
 
+        dd($path);
+
         if (!is_dir($path)) {
             try {
                 mkdir($path);
@@ -153,7 +155,6 @@ class BriefingFile extends Model
         $name = sha1($tempPath . time());
         $type = (new \SplFileInfo($tempPath))->getExtension();
 
-        dd($tempPath);
 
         $project_file = new BriefingFile(array_merge($data, [
             'responsible_id' => $responsible->id,
