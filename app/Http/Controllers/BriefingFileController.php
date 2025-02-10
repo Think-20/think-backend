@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\ProjectFile;
+use App\BriefingFile;
 use App\User;
 use Response;
 use Exception;
