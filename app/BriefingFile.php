@@ -103,8 +103,6 @@ class BriefingFile extends Model
     {
         $project_files = [];
 
-        dd($data);
-
         foreach ($data as $projectFile) {
             $project_files[] = BriefingFile::insert($projectFile);
         }
@@ -163,7 +161,7 @@ class BriefingFile extends Model
             
         ]));
 
-        
+        dd($data);
 
         $project_file->save();
         $project_file->moveFile();
