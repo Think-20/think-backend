@@ -886,6 +886,7 @@ class Job extends Model
     {
         return $this->hasMany('App\Task', 'job_id')->with(
             'project_files',
+            'briefing_files',
             'project_files.responsible',
             'specification_files',
             'specification_files.responsible',

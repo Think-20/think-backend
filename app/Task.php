@@ -1243,6 +1243,11 @@ class Task extends Model
         return $this->hasMany('App\ProjectFile', 'task_id');
     }
 
+    public function briefing_files()
+    {
+        return $this->hasMany('App\BriefingFile', 'task_id');
+    }
+
     public function specification_files()
     {
         return $this->hasMany('App\SpecificationFile', 'task_id');
