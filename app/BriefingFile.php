@@ -153,6 +153,8 @@ class BriefingFile extends Model
         $name = sha1($tempPath . time());
         $type = (new \SplFileInfo($tempPath))->getExtension();
 
+        dd($tempPath);
+
         $project_file = new BriefingFile(array_merge($data, [
             'responsible_id' => $responsible->id,
             'task_id' => $task_id,
@@ -161,7 +163,6 @@ class BriefingFile extends Model
             
         ]));
 
-        #dd($project_file);
 
         $project_file->save();
         
