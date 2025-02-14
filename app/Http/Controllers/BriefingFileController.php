@@ -49,11 +49,11 @@ class BriefingFileController extends Controller
         $projectFiles = null;
 
         // pegar a ultima (por ter invertido a lista de tank pra tela de orçamento)
-        if (User::logged()->employee->department->description == "Atendimento") {
+        /*if (User::logged()->employee->department->description == "Atendimento") {
             if (($request[0]['task']['job_activity']['description'] != "Projeto externo")) {
                 throw new Exception('Atendimento não tem permissão para fazer upload em projetos que não sejam Externos');
             }
-        }
+        }*/
 
         DB::beginTransaction();
 
