@@ -302,6 +302,8 @@ class Job extends Model
     public static function get(int $id)
     {
         $job = Job::find($id);
+
+
         $job->job_activity;
         $job->job_type;
         $job->client;
@@ -326,6 +328,37 @@ class Job extends Model
 
         $job->responsibles();
         $job->history();
+
+        //Sempre verde ja que se esta buscando o job, quer dizer q a tela de informação ja foi preenchida
+        $job->info_check = 2;
+
+        //Verifica se a aba de projeto esta preenchida
+        $job->project_check = $job->projectCheck($job);
+
+        //Verifica se a aba de memorial descritivo esta preenchida
+        if($job->project_check  == 2){
+            $job->descriptive_memorial_check = $job->descriptiveMemorialCheck($job);
+        }else {
+            $job->descriptive_memorial_check = null;
+        }
+        
+        //Verifica se a aba de orçamento esta preenchida
+        if($job->descriptive_memorial_check  == 2){
+            $job->budget_check = $job->budgetCheck($job);
+        }else {
+            $job->budget_check = null;
+        }
+
+
+        //Verifica se a aba de Checkin esta preenchida
+        //Quando status do jogo aprovado -> vermelho
+        //Algum campo preenchido ->amarelo
+        if($job->budget_check  == 2 && $job->status_id == 3 ){
+            $job->checkin_check = $job->checkinCheck($job);
+        }else {
+            $job->checkin_check = null;
+        }
+        
         return $job;
     }
 
@@ -1156,4 +1189,54 @@ class Job extends Model
     {
         return $this->belongsTo('App\Checkin', 'id', 'job_id');
     }
+
+    //Começo das funções da semaforização    
+
+    public function projectCheck($job)
+    {
+        //job_activity de projeto é o de id 1
+        $taskProject = Task::where('job_activity_id', 1)->where('job_id', $job->id )->first();
+
+        if ($taskProject) {
+            return 2;
+        } else {
+            return 1;
+        }
+    }
+
+    public function descriptiveMemorialCheck($job) {
+        //job_activity de Memorial descritivo é o de id 13
+        $taskProject = Task::where('job_activity_id', 13)->where('job_id', $job->id )->first();
+
+        if ($taskProject) {
+            return 2;
+        } else {
+            return 1;
+        }
+    }
+
+    public function budgetCheck($job) {
+        //job_activity de orçamento é 2, mas aparentemente não esta atrelado a ele, então esta sendoo procurado um task com final_value
+        $taskProject = Task::where('final_value', '>', 0)->where('job_id', $job->id)->first();
+
+        if ($taskProject) {
+            return 2;
+        } else {
+            return 1;
+        }
+    }
+
+    public function checkinCheck($job) {
+        
+        $jobStatusApprove = Job::where('status_id', '=', 3)->where('id', $job->id )->first();
+
+        if($jobStatusApprove == null) {
+            return 0;
+        }else if ($jobStatusApprove) {
+            return 1;
+        } else {
+            return 2;
+        }
+    }
+
 }
