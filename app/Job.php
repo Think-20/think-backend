@@ -353,14 +353,12 @@ class Job extends Model
         //Verifica se a aba de Checkin esta preenchida
         //Quando status do jogo aprovado -> vermelho
         //Algum campo preenchido ->amarelo
-        if($job->budget_check  == 2 && $job->status_id == 3){
+        if($job->budget_check  == 2 && $job->status_id == 3 ){
             $job->checkin_check = $job->checkinCheck($job);
         }else {
             $job->checkin_check = null;
         }
         
-        
-
         return $job;
     }
 
@@ -922,7 +920,7 @@ class Job extends Model
     public function projectCheck($job)
     {
         //job_activity de projeto é o de id 1
-        $taskProject = Task::where('job_activity_id', 1)->where('job_id', $job->id /*3500*/)->first();
+        $taskProject = Task::where('job_activity_id', 1)->where('job_id', $job->id )->first();
 
         if ($taskProject) {
             return 2;
@@ -933,7 +931,7 @@ class Job extends Model
 
     public function descriptiveMemorialCheck($job) {
         //job_activity de Memorial descritivo é o de id 13
-        $taskProject = Task::where('job_activity_id', 13)->where('job_id', $job->id /*3500*/)->first();
+        $taskProject = Task::where('job_activity_id', 13)->where('job_id', $job->id )->first();
 
         if ($taskProject) {
             return 2;
@@ -944,7 +942,7 @@ class Job extends Model
 
     public function budgetCheck($job) {
         //job_activity de orçamento é 2, mas aparentemente não esta atrelado a ele, então esta sendoo procurado um task com final_value
-        $taskProject = Task::where('final_value', '>', 0)->where('job_id', $job->id /*3500*/)->first();
+        $taskProject = Task::where('final_value', '>', 0)->where('job_id', $job->id)->first();
 
         if ($taskProject) {
             return 2;
@@ -954,13 +952,15 @@ class Job extends Model
     }
 
     public function checkinCheck($job) {
-        //job_activity de orçamento é 2, mas aparentemente não esta atrelado a ele, então esta sendoo procurado um task com final_value
-        $taskProject = Task::where('final_value', '>', 0)->where('job_id', $job->id /*3500*/)->first();
+        
+        $jobStatusApprove = Job::where('status_id', '=', 3)->where('id', $job->id )->first();
 
-        if ($taskProject) {
-            return 2;
-        } else {
+        if($jobStatusApprove == null) {
+            return 0;
+        }else if ($jobStatusApprove) {
             return 1;
+        } else {
+            return 2;
         }
     }
 
