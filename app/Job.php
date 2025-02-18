@@ -303,6 +303,9 @@ class Job extends Model
     {
         $job = Job::find($id);
 
+        if(!$job){
+            return response()->json(['success' => false, "message" => "Job não encontrado"]);
+        }
 
         $job->job_activity;
         $job->job_type;
@@ -1196,8 +1199,13 @@ class Job extends Model
     {
         //job_activity de projeto é o de id 1
         $taskProject = Task::where('job_activity_id', 1)->where('job_id', $job->id )->first();
+        if(!$taskProject){
+            return 1;
+        }
+        
+        $projectFile = ProjectFile::where('task_id', "=", $taskProject->id)->first();
 
-        if ($taskProject) {
+        if ($taskProject && $projectFile) {
             return 2;
         } else {
             return 1;
@@ -1207,8 +1215,9 @@ class Job extends Model
     public function descriptiveMemorialCheck($job) {
         //job_activity de Memorial descritivo é o de id 13
         $taskProject = Task::where('job_activity_id', 13)->where('job_id', $job->id )->first();
+        $descriptiveMemorial = SpecificationFile::where('task_id', "=", $taskProject->id)->first();
 
-        if ($taskProject) {
+        if ($taskProject && $descriptiveMemorial) {
             return 2;
         } else {
             return 1;
