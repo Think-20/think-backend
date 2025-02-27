@@ -52,6 +52,8 @@ class TaskController extends Controller
         ]), 200);
     }
 
+    
+
     public static function insertDerived(Request $request)
     {
         $data = $request->all();

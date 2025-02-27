@@ -258,11 +258,6 @@ class CheckinController extends Controller
             $mail->Username = 'think.ideias.1@gmail.com'; // Seu endereço de e-mail
             $mail->Password = 'dhqg bibw laok mawt';  // Senha de app gerada no Google
             
-            
-            //local
-            //$mail->Username = 'gui9788534514088@gmail.com'; // Seu endereço de e-mail
-            //$mail->Password = 'amky uxiz mkxx huif';  // Senha de app gerada no Google
-            
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port = 587;
 

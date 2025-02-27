@@ -10,6 +10,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 
+use Carbon\CarbonInterval;
+use Illuminate\Http\Request;
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\OAuth;
+use League\OAuth2\Client\Provider\GenericProvider;
+
 class Task extends Model
 {
     protected $table = 'task';
@@ -410,6 +416,8 @@ class Task extends Model
 
     public static function insert(array $data, NotifierInterface $notifier = null)
     {
+        Task::sendMailTask($data);
+
         $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
         $job_id = isset($data['job']['id']) ? $data['job']['id'] : null;
         $job_activity_id = isset($data['job_activity']['id']) ? $data['job_activity']['id'] : null;
@@ -451,6 +459,94 @@ class Task extends Model
         Task::modifyReopened($task);
         $task->items;
         return $task;
+    }
+
+    public static function sendMailTask($data)
+    {
+        #$email = 'guibarbosa28@outlook.com';
+        #$nome = "Guilherme";
+
+        $email = $data['responsible']['user']['email'];
+        $nome = $data['responsible']['name'];
+
+        $mail = new PHPMailer(true);
+
+        if (!$email) {
+            return response()->json(['error' => 'false', 'message' => 'Sem E-mail do destinatário.']);
+        }
+
+        try {
+            // Configurações do servidor SMTP do Gmail
+            $mail->isSMTP();
+
+            $mail->Host = env('PHP_MAIL_HOST');
+            $mail->Username = env('PHP_MAIL_USERNAME');
+            $mail->Password = env('PHP_MAIL_PASSWORD');
+            $mail->SMTPSecure = env('PHP_MAIL_SMTP_SECURY');
+            $mail->SMTPAuth = env('PHP_MAIL_SMTP_AUTH');
+            $mail->Port = env('PHP_MAIL_PORT');
+            $mail->CharSet = env('PHP_MAIL_CHARSET');
+
+            // Remetente e destinatário
+            $mail->setFrom('no-reply@duo.com', 'Duo');
+            $mail->addAddress($email, $nome); // Adicione o destinatário
+
+            // Conteúdo do e-mail
+            $mail->isHTML(true);
+            $mail->Subject = 'Nova Task na agenda.';
+
+            $mail->Body = '<!DOCTYPE html>
+                <html lang="pt-BR">
+                <head>
+                    <meta charset="UTF-8" />
+                    <title>Agradecimento e Solicitação</title>
+                </head>
+                <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+                    <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse; background-color: #ffffff;">
+                    <!-- Cabeçalho -->
+                    <tr>
+                        <td align="center" style="padding: 20px 0; background-color: #ff6622; color: #ffffff;">
+                        <h1 style="margin: 0; font-size: 24px; font-weight: bold;">Nova task na agenda</h1>
+                        </td>
+                    </tr>
+                    <!-- Corpo -->
+                    <tr>
+                        <td style="padding: 30px; color: #333333; text-align: center; font-size: 16px;">
+                        <p style="margin: 0;">
+                            Nova task registrada para você na agenda da Duo<br /><br />
+                            Click no botão abaixo para visualizar a agenda.
+                        </p>
+                        <br />
+                        <!-- Botão -->
+                        <table align="center" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                            <td align="center" style="background-color: #ff6622; border-radius: 4px;">                               
+                            <a href="' . env('APP_URL_PROD_DUO') . '/schedule" target="_blank" style="display: block; padding: 12px 20px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold; font-family: Arial, sans-serif;">
+                                Visualizar
+                                </a>
+                            </td>
+                            </tr>
+                        </table>
+                        </td>
+                    </tr>
+                    <!-- Rodapé -->
+                    <tr>
+                        <td align="center" style="padding: 20px; font-size: 12px; color: #777777; background-color: #f5f5f5;">
+                        Caso tenha alguma dúvida, não hesite em nos contatar.<br />
+                        <strong>Duo</strong>
+                        </td>
+                    </tr>
+                    </table>
+                </body>
+                </html>';
+
+            // Enviar o e-mail
+            $mail->send();
+        } catch (Exception $e) {
+            return response()->json(['error' => 'true', 'message' => "Erro ao enviar mensagem: {$mail->ErrorInfo}"]);
+        }
+
+        return response()->json(['error' => 'false', 'message' => 'Email de confirmação enviado ao cliente.']);
     }
 
     public function initialDate()
@@ -596,9 +692,9 @@ class Task extends Model
     public static function edit(array $data)
     {
         $id = $data['id'];
-        
+
         $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
-        
+
         $items = isset($data['items']) ? collect($data['items'])->map(function ($item) {
             return (object) $item;
         }) : collect([]);
@@ -613,8 +709,6 @@ class Task extends Model
 
         $task->deleteItems();
         $task->saveItems($items, !$admin);
-
-        #dd($data, $responsible_id);
 
         $task->update(
             array_merge($data, [
@@ -1149,7 +1243,7 @@ class Task extends Model
         isset($data['bonificacao_producao_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->bonificacao_producao_meta_porcentagem = $data['bonificacao_producao_meta_porcentagem'] : null;
         isset($data['bonificacao_detalhamento_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->bonificacao_detalhamento_meta_porcentagem = $data['bonificacao_detalhamento_meta_porcentagem'] : null;
         isset($data['total_estande_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->total_estande_meta_porcentagem = $data['total_estande_meta_porcentagem'] : null;
-        
+
         isset($data['credenciais_taxas']) /*|| $data['final_value'] == ""*/ ? $task->credenciais_taxas = $data['credenciais_taxas'] : null;
         isset($data['credenciais_taxas_reaproveitamento']) /*|| $data['final_value'] == ""*/ ? $task->credenciais_taxas_reaproveitamento = $data['credenciais_taxas_reaproveitamento'] : null;
         isset($data['credenciais_taxas_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->credenciais_taxas_porcentagem = $data['credenciais_taxas_porcentagem'] : null;
@@ -1159,7 +1253,7 @@ class Task extends Model
         isset($data['desconto']) /*|| $data['final_value'] == ""*/ ? $task->desconto = $data['desconto'] : null;
         isset($data['desconto_reaproveitamento']) /*|| $data['final_value'] == ""*/ ? $task->desconto_reaproveitamento = $data['desconto_reaproveitamento'] : null;
         isset($data['desconto_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->desconto_porcentagem = $data['desconto_porcentagem'] : null;
-        
+
         isset($data['bonificacao_venda_coeficiente']) /*|| $data['final_value'] == ""*/ ? $task->bonificacao_venda_coeficiente = $data['bonificacao_venda_coeficiente'] : null;
         isset($data['bonificacao_venda_meta_porcentagem']) /*|| $data['final_value'] == ""*/ ? $task->bonificacao_venda_meta_porcentagem = $data['bonificacao_venda_meta_porcentagem'] : null;
 
