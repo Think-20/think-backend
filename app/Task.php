@@ -521,7 +521,7 @@ class Task extends Model
                         <table align="center" cellpadding="0" cellspacing="0" border="0">
                             <tr>
                             <td align="center" style="background-color: #ff6622; border-radius: 4px;">                               
-                            <a href="' . env('APP_URL_PROD_DUO') . '/schedule" target="_blank" style="display: block; padding: 12px 20px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold; font-family: Arial, sans-serif;">
+                            <a href="' . env('APP_URL') . '/schedule" target="_blank" style="display: block; padding: 12px 20px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold; font-family: Arial, sans-serif;">
                                 Visualizar
                                 </a>
                             </td>
