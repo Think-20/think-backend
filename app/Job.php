@@ -334,14 +334,22 @@ class Job extends Model
 
         //Sempre verde ja que se esta buscando o job, quer dizer q a tela de informação ja foi preenchida
         $job->info_check = 2;
+        
+
+        //verifica se a aba de briefing esta preenchida
+        $job->briefing_check = $job->briefingCheck($job);
 
         //Verifica se a aba de projeto esta preenchida
-        $job->project_check = $job->projectCheck($job);
+        if ($job->briefing_check  == 2) {
+            $job->project_check = $job->projectCheck($job);
+        } else {
+            $job->project_check = null;
+        }
 
         //Verifica se a aba de memorial descritivo esta preenchida
-        if($job->project_check  == 2){
+        if ($job->project_check  == 2) {
             $job->descriptive_memorial_check = $job->descriptiveMemorialCheck($job);
-        }else {
+        } else {
             $job->descriptive_memorial_check = null;
         }
         
@@ -1194,15 +1202,31 @@ class Job extends Model
     }
 
     //Começo das funções da semaforização    
+    public function briefingCheck($job)
+    {
+        $taskProject = Task::where('job_activity_id', 13)->where('job_id', $job->id)->get();
 
+        foreach ($taskProject as $task) {
+            $briefing = BriefingFile::where('task_id', "=", $task['id'])->first();
+            if ($briefing) {
+                return 2;
+            } else {
+                continue;
+            }
+        }
+
+        return 1;
+    }
+
+    
     public function projectCheck($job)
     {
         //job_activity de projeto é o de id 1
-        $taskProject = Task::where('job_activity_id', 1)->where('job_id', $job->id )->first();
-        if(!$taskProject){
+        $taskProject = Task::where('job_activity_id', 1)->where('job_id', $job->id)->first();
+        if (!$taskProject) {
             return 1;
         }
-        
+
         $projectFile = ProjectFile::where('task_id', "=", $taskProject->id)->first();
 
         if ($taskProject && $projectFile) {
@@ -1212,9 +1236,10 @@ class Job extends Model
         }
     }
 
-    public function descriptiveMemorialCheck($job) {
+    public function descriptiveMemorialCheck($job)
+    {
         //job_activity de Memorial descritivo é o de id 13
-        $taskProject = Task::where('job_activity_id', 13)->where('job_id', $job->id )->first();
+        $taskProject = Task::where('job_activity_id', 13)->where('job_id', $job->id)->first();
         $descriptiveMemorial = SpecificationFile::where('task_id', "=", $taskProject->id)->first();
 
         if ($taskProject && $descriptiveMemorial) {
