@@ -332,20 +332,27 @@ class Job extends Model
         //Sempre verde ja que se esta buscando o job, quer dizer q a tela de informação ja foi preenchida
         $job->info_check = 2;
 
+        //verifica se a aba de briefing esta preenchida
+        $job->briefing_check = $job->briefingCheck($job);
+
         //Verifica se a aba de projeto esta preenchida
-        $job->project_check = $job->projectCheck($job);
+        if ($job->briefing_check  == 2) {
+            $job->project_check = $job->projectCheck($job);
+        } else {
+            $job->project_check = null;
+        }
 
         //Verifica se a aba de memorial descritivo esta preenchida
-        if($job->project_check  == 2){
+        if ($job->project_check  == 2) {
             $job->descriptive_memorial_check = $job->descriptiveMemorialCheck($job);
-        }else {
+        } else {
             $job->descriptive_memorial_check = null;
         }
-        
+
         //Verifica se a aba de orçamento esta preenchida
-        if($job->descriptive_memorial_check  == 2){
+        if ($job->descriptive_memorial_check  == 2) {
             $job->budget_check = $job->budgetCheck($job);
-        }else {
+        } else {
             $job->budget_check = null;
         }
 
@@ -353,12 +360,12 @@ class Job extends Model
         //Verifica se a aba de Checkin esta preenchida
         //Quando status do jogo aprovado -> vermelho
         //Algum campo preenchido ->amarelo
-        if($job->budget_check  == 2 && $job->status_id == 3 ){
+        if ($job->budget_check  == 2 && $job->status_id == 3) {
             $job->checkin_check = $job->checkinCheck($job);
-        }else {
+        } else {
             $job->checkin_check = null;
         }
-        
+
         return $job;
     }
 
@@ -915,15 +922,31 @@ class Job extends Model
         }
     }
 
+    public function briefingCheck($job)
+    {
+        $taskProject = Task::where('job_activity_id', 13)->where('job_id', $job->id)->get();
+
+        foreach ($taskProject as $task) {
+            $briefing = BriefingFile::where('task_id', "=", $task['id'])->first();
+            if ($briefing) {
+                return 2;
+            } else {
+                continue;
+            }
+        }
+        
+        return 1;
+    }
+
     //Começo das funções da semaforização
     public function projectCheck($job)
     {
         //job_activity de projeto é o de id 1
-        $taskProject = Task::where('job_activity_id', 1)->where('job_id', $job->id )->first();
-        if(!$taskProject){
+        $taskProject = Task::where('job_activity_id', 1)->where('job_id', $job->id)->first();
+        if (!$taskProject) {
             return 1;
         }
-        
+
         $projectFile = ProjectFile::where('task_id', "=", $taskProject->id)->first();
 
         if ($taskProject && $projectFile) {
@@ -933,9 +956,10 @@ class Job extends Model
         }
     }
 
-    public function descriptiveMemorialCheck($job) {
+    public function descriptiveMemorialCheck($job)
+    {
         //job_activity de Memorial descritivo é o de id 13
-        $taskProject = Task::where('job_activity_id', 13)->where('job_id', $job->id )->first();
+        $taskProject = Task::where('job_activity_id', 13)->where('job_id', $job->id)->first();
         $descriptiveMemorial = SpecificationFile::where('task_id', "=", $taskProject->id)->first();
 
         if ($taskProject && $descriptiveMemorial) {
@@ -945,7 +969,8 @@ class Job extends Model
         }
     }
 
-    public function budgetCheck($job) {
+    public function budgetCheck($job)
+    {
         //job_activity de orçamento é 2, mas aparentemente não esta atrelado a ele, então esta sendoo procurado um task com final_value
         $taskProject = Task::where('final_value', '>', 0)->where('job_id', $job->id)->first();
 
@@ -956,12 +981,13 @@ class Job extends Model
         }
     }
 
-    public function checkinCheck($job) {
-        $jobStatusApprove = Job::where('status_id', '=', 3)->where('id', $job->id )->first();
+    public function checkinCheck($job)
+    {
+        $jobStatusApprove = Job::where('status_id', '=', 3)->where('id', $job->id)->first();
 
-        if($jobStatusApprove == null) {
+        if ($jobStatusApprove == null) {
             return 0;
-        }else if ($jobStatusApprove) {
+        } else if ($jobStatusApprove) {
             return 1;
         } else {
             return 2;
