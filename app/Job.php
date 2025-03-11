@@ -930,8 +930,6 @@ class Job extends Model
             $briefing = BriefingFile::where('task_id', "=", $task['id'])->first();
             if ($briefing) {
                 return 2;
-            } else {
-                continue;
             }
         }
         
