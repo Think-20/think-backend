@@ -924,7 +924,7 @@ class Job extends Model
 
     public function briefingCheck($job)
     {
-        $taskProject = Task::where('job_activity_id', 13)->where('job_id', $job->id)->get();
+        $taskProject = Task::where('job_id', $job->id)->get();
 
         foreach ($taskProject as $task) {
             $briefing = BriefingFile::where('task_id', "=", $task['id'])->first();
