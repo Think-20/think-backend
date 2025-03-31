@@ -6,10 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 use Exception;
 use ZipArchive;
 
-class BriefingFile extends Model
+class ContractNfFile extends Model
 {
 
-    protected $table = 'briefing_file';
+    protected $table = 'contract_nf_files';
     protected $fillable = [
         'task_id',
         'responsible_id',
@@ -21,8 +21,7 @@ class BriefingFile extends Model
     public function moveFile()
     {
         $browserFiles = [];
-        $path = env('FILES_FOLDER') . '/briefing-files';
-
+        $path = env('FILES_FOLDER') . '/contract-nf-files';
 
         if (!is_dir($path)) {
             try {
@@ -47,7 +46,7 @@ class BriefingFile extends Model
     public static function downloadFile($id)
     {
 
-        $projectFile = BriefingFile::find($id);
+        $projectFile = ContractNfFile::find($id);
         if (is_null($projectFile)) {
             throw new \Exception('O arquivo solicitado não existe.');
         }
@@ -61,7 +60,7 @@ class BriefingFile extends Model
 
         $name = $projectFile->name;
         $original_name = $projectFile->original_name;
-        $pathFile = env('FILES_FOLDER') . '/briefing-files/' . $name;
+        $pathFile = env('FILES_FOLDER') . '/contract-nf-files/' . $name;
         $zip->addFile($pathFile, $original_name);
 
         $zip->close();
@@ -70,7 +69,7 @@ class BriefingFile extends Model
 
     public static function downloadAllFiles($taskId)
     {
-        $projectFiles = BriefingFile::where('task_id', '=', $taskId)->get();
+        $projectFiles = ContractNfFile::where('task_id', '=', $taskId)->get();
         $zip = new ZipArchive;
         $path = sys_get_temp_dir() . '/' . $taskId . '.zip';
 
@@ -82,7 +81,7 @@ class BriefingFile extends Model
         foreach ($projectFiles as $projectFile) {
             $name = $projectFile->name;
             $original_name =  $projectFile->original_name;
-            $pathFile = env('FILES_FOLDER') . '/briefing-files/' . $name;
+            $pathFile = env('FILES_FOLDER') . '/contract-nf-files/' . $name;
             $zip->addFile($pathFile, $original_name);
             //$paths[] = $pathFile;
         }
@@ -96,7 +95,7 @@ class BriefingFile extends Model
         $project_files = [];
 
         foreach ($data as $projectFile) {
-            $project_files[] = BriefingFile::insert($projectFile);
+            $project_files[] = ContractNfFile::insert($projectFile);
         }
 
         if (count($project_files) ==  0) return [];
@@ -146,7 +145,7 @@ class BriefingFile extends Model
         $type = (new \SplFileInfo($tempPath))->getExtension();
 
 
-        $project_file = new BriefingFile(array_merge($data, [
+        $project_file = new ContractNfFile(array_merge($data, [
             'responsible_id' => $responsible->id,
             'task_id' => $task_id,
             'name' => $name,
@@ -177,10 +176,10 @@ class BriefingFile extends Model
 
     public static function remove($id)
     {
-        $projectFile = BriefingFile::find($id);
+        $projectFile = ContractNfFile::find($id);
         $task = $projectFile->task;
         $projectFile->deleteFile();
-        $projectFile->delete();
+    $projectFile->delete();
         $projectFile->updateDone($task);
     }
 
@@ -188,7 +187,7 @@ class BriefingFile extends Model
     public function deleteFile()
     {
         $browserFiles = [];
-        $path = env('FILES_FOLDER') . '/briefing-files';
+        $path = env('FILES_FOLDER') . '/contract-nf-files';
         $file = $path . '/' . $this->name;
 
         if (is_file($file)) {

@@ -418,6 +418,12 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::get('/briefing-files/download/{id}', 'BriefingFileController@downloadFile');
     Route::get('/briefing-files/download-all/{taskId}', 'BriefingFileController@downloadAll');
 
+    //Contra e NF contract-nf-files
+    Route::post('/contract-nf-files/save-multiple', 'BriefingFileController@saveMultiple');
+    Route::delete('/contract-nf-files/remove/{id}', 'BriefingFileController@remove');
+    Route::get('/contract-nf-files/download/{id}', 'BriefingFileController@downloadFile');
+    Route::get('/contract-nf-files/download-all/{taskId}', 'BriefingFileController@downloadAll');
+
     Route::post('/specification-files/save-multiple', 'SpecificationFileController@saveMultiple');
     Route::delete('/specification-files/remove/{id}', 'SpecificationFileController@remove');
     Route::get('/specification-files/download/{id}', 'SpecificationFileController@downloadFile');
