@@ -366,6 +366,14 @@ class Job extends Model
             $job->checkin_check = null;
         }
 
+        //Verifica se a aba de Contrato e NF esta preenchida
+        if ($job->checkin_check  == 2) {
+            $job->contract_nf_check = $job->contractNfCheck($job);
+        } else {
+            $job->contract_nf_check = null;
+        }
+
+
         return $job;
     }
 
@@ -920,6 +928,20 @@ class Job extends Model
         if (!isset($data['competition']['id'])) {
             throw new \Exception('Concorrência do job não informada!');
         }
+    }
+
+    public function contractNfCheck($job)
+    {
+        $taskProject = Task::where('job_id', $job->id)->get();
+
+        foreach ($taskProject as $task) {
+            $contractNf = ContractNfFile::where('task_id', "=", $task['id'])->first();
+            if ($contractNf) {
+                return 2;
+            }
+        }
+        
+        return 1;
     }
 
     public function briefingCheck($job)
