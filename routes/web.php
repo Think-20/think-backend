@@ -88,6 +88,22 @@ Route::get('/briefing-files/view/{id}', function ($id) {
     return $response;
 });
 
+Route::get('/contract-nf-files/view/{id}', function ($id) {
+    $specificationFile = App\ContractNfFile::find($id);
+    $path = env('FILES_FOLDER') . '/contract-nf-files/' . $specificationFile->name;
+
+    if (!File::exists($path)) {
+        abort(404);
+    }
+
+    $fileGet = file_get_contents($path);
+
+    $response = Response::make($fileGet, 200);
+    $response->header('Content-Type',"*/*");
+
+    return $response;
+});
+
 Route::group(['middleware' => ['auth.api']], function () {
     Route::group(['middleware' => 'checkDepartment'], function () {
         Route::post('/dashboard', 'DashboardController@index');
@@ -418,11 +434,11 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::get('/briefing-files/download/{id}', 'BriefingFileController@downloadFile');
     Route::get('/briefing-files/download-all/{taskId}', 'BriefingFileController@downloadAll');
 
-    //Contra e NF contract-nf-files
-    Route::post('/contract-nf-files/save-multiple', 'BriefingFileController@saveMultiple');
-    Route::delete('/contract-nf-files/remove/{id}', 'BriefingFileController@remove');
-    Route::get('/contract-nf-files/download/{id}', 'BriefingFileController@downloadFile');
-    Route::get('/contract-nf-files/download-all/{taskId}', 'BriefingFileController@downloadAll');
+    //Contrato e NF contract-nf-files
+    Route::post('/contract-nf-files/save-multiple', 'ContractNfFileController@saveMultiple');
+    Route::delete('/contract-nf-files/remove/{id}', 'ContractNfFileController@remove');
+    Route::get('/contract-nf-files/download/{id}', 'ContractNfFileController@downloadFile');
+    Route::get('/contract-nf-files/download-all/{taskId}', 'ContractNfFileController@downloadAll');
 
     Route::post('/specification-files/save-multiple', 'SpecificationFileController@saveMultiple');
     Route::delete('/specification-files/remove/{id}', 'SpecificationFileController@remove');
