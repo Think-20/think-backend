@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\ContractNfFile;
-use Doctrine\DBAL\Query\QueryException;
+use App\BriefingFile;
+use App\User;
+use Response;
 use Exception;
+use DB;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
+use App\ContractNfFile;
 
 class ContractNfFileController extends Controller
 {
