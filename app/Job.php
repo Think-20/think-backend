@@ -999,6 +999,10 @@ class Job extends Model
             'project_files.responsible',
             'briefing_files',
             'briefing_files.responsible',
+            
+            'contract_nf_files',
+            'contract_nf_files.responsible',
+            
             'specification_files',
             'specification_files.responsible',
             'job_activity.modification',
