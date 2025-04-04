@@ -367,7 +367,7 @@ class Job extends Model
         }
 
         //Verifica se a aba de Contrato e NF esta preenchida
-        if (/*$job->checkin_check  == 2*/ 1==1) {
+        if ($job->checkin_check  == 2) {
             $job->contract_nf_check = $job->contractNfCheck($job);
         } else {
             $job->contract_nf_check = null;

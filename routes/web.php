@@ -440,6 +440,13 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::get('/contract-nf-files/download/{id}', 'ContractNfFileController@downloadFile');
     Route::get('/contract-nf-files/download-all/{taskId}', 'ContractNfFileController@downloadAll');
 
+    //Fotos do projeto project-photos
+    Route::post('/project-photos-files/save-multiple', 'ProjectPhotosFileController@saveMultiple');
+    Route::delete('/project-photos-files/remove/{id}', 'ProjectPhotosFileController@remove');
+    Route::get('/project-photos-files/download/{id}', 'ProjectPhotosFileController@downloadFile');
+    Route::get('/project-photos-files/download-all/{taskId}', 'ProjectPhotosFileController@downloadAll');
+
+    //
     Route::post('/specification-files/save-multiple', 'SpecificationFileController@saveMultiple');
     Route::delete('/specification-files/remove/{id}', 'SpecificationFileController@remove');
     Route::get('/specification-files/download/{id}', 'SpecificationFileController@downloadFile');
