@@ -386,6 +386,10 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::post('/jobs/filter', 'JobController@filter');
     Route::get('/job/download/{id}/{type}/{file}', 'JobController@downloadFile');
     Route::post('/jobs/performance-lite', 'JobController@performanceLite');
+    
+    //Feedback
+    Route::post('/feedback/email', 'JobController@feedbackEmail'); 
+    Route::post('/feedback', 'JobController@feedbackUpdate');
 
     Route::post('/my-job/save', 'JobController@saveMyJob');
     Route::put('/my-job/edit', 'JobController@editMyJob');
@@ -401,6 +405,7 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::put('/briefing/edit-available-date', 'BriefingController@editAvailableDate');
     Route::put('/my-briefing/edit-available-date', 'BriefingController@myEditAvailableDate');
     */
+
     Route::post('/task-items/filter', 'TaskController@filterItems');
     Route::post('/my-task-items/filter', 'TaskController@filterMyItems');
 

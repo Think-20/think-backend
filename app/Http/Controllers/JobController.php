@@ -184,6 +184,16 @@ class JobController extends Controller
         return Job::filter($request->all());
     }
 
+    public static function feedbackUpdate(Request $request)
+    {
+        return Job::feedbackUpdate($request->all());
+    }
+
+    public static function feedbackEmail(Request $request)
+    {
+        return Job::sendFeedbackEmail($request->all());
+    }
+
     public static function performanceLite(Request $request)
     {
         return Job::performanceLite($request->all());

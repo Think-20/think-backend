@@ -152,14 +152,14 @@ class CheckinController extends Controller
 
             $mail->Host = 'smtp.gmail.com';
             $mail->SMTPAuth = true;
-            $mail->Username = 'think.ideias.1@gmail.com'; // Seu endereço de e-mail
-            $mail->Password = 'dhqg bibw laok mawt';  // Senha de app gerada no Google
+            $mail->Username = 'projectmyjob@gmail.com'; // Seu endereço de e-mail
+            $mail->Password = 'kjvf kout qnvj jfgy';  // Senha de app gerada no Google
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port = 587;
             $mail->CharSet = 'UTF-8';
 
             // Remetente e destinatário
-            $mail->setFrom('no-reply@think.com', 'Think');
+            $mail->setFrom('myjob@gmail.com', 'My Job');
             $mail->addAddress($email, $nome); // Adicione o destinatário
 
             // Conteúdo do e-mail
