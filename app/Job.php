@@ -44,7 +44,11 @@ class Job extends Model
         'comission_percentage',
         'created_at',
         'updated_at',
-        'final_value'
+        'final_value',
+        'feedback_user_name',
+        'feedback_user_email',
+        'feedback_user_phone',
+        'feedback_hash'
     ];
 
     protected $dates = [
@@ -331,6 +335,8 @@ class Job extends Model
         $job->responsibles();
         $job->history();
 
+        //valores da semaforização
+
         //Sempre verde ja que se esta buscando o job, quer dizer q a tela de informação ja foi preenchida
         $job->info_check = 2;
 
@@ -375,6 +381,19 @@ class Job extends Model
             $job->contract_nf_check = null;
         }
 
+        //Verifica se a aba de fotos do projeto esta preenchida
+        if ($job->contract_nf_check  == 2) {
+            $job->project_photos_check = $job->projectPhotosCheck($job);
+        } else {
+            $job->project_photos_check = null;
+        }
+
+        //Verifica se a aba de Contrato e NF esta preenchida
+        if ($job->project_photos_check  == 2) {
+            $job->feedback_check = $job->feedbackCheck($job);
+        } else {
+            $job->feedback_check = null;
+        }
 
         return $job;
     }
@@ -946,6 +965,34 @@ class Job extends Model
         return 1;
     }
 
+    public function projectPhotosCheck($job)
+    {
+        $taskProject = Task::where('job_id', $job->id)->get();
+
+        foreach ($taskProject as $task) {
+            $contractNf = ProjectPhotos::where('task_id', "=", $task['id'])->first();
+            if ($contractNf) {
+                return 2;
+            }
+        }
+        
+        return 1;
+    }
+
+    public function feedbackCheck($job)
+    {
+        $taskProject = Task::where('job_id', $job->id)->get();
+
+        foreach ($taskProject as $task) {
+            $contractNf = ContractNfFile::where('task_id', "=", $task['id'])->first();
+            if ($contractNf) {
+                return 2;
+            }
+        }
+        
+        return 1;
+    }
+
     public function briefingCheck($job)
     {
         $taskProject = Task::where('job_id', $job->id)->get();
@@ -1220,15 +1267,22 @@ class Job extends Model
         $email = $data['feedback_user_email'];
         $nome = $data['feedback_user_name'];
         $job_id = $data['job_id'];
-
+        
         $mail = new PHPMailer(true);
+        $hash = sha1($data['feedback_user_email'].time());
 
-        $hash = sha1($data['feedback_user_email'] . time());
+        $job = Job::where('id', $job_id)->first();
+        
 
-        $job = Job::find($job_id);
+
         $job->update([
+            'feedback_user_name' => $data['feedback_user_name'],
+            'feedback_user_email' => $data['feedback_user_email'],
+            'feedback_user_phone' => $data['feedback_user_phone'],
             'feedback_hash' => $hash
         ]);
+
+        dd($job);
 
         if (!$email) {
             return response()->json(['error' => 'false', 'message' => 'Sem E-mail do destinatário.']);
