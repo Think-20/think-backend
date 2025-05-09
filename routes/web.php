@@ -56,6 +56,23 @@ Route::get('/project-files/view/{id}', function ($id) {
 
 });
 
+Route::get('/project-photos-files/view/{id}', function ($id) {
+    $projectPhotos = App\ProjectPhotos::find($id);
+    $path = env('FILES_FOLDER') . '/project-photos-files/' . $projectPhotos->name;
+
+    if (!File::exists($path)) {
+        abort(404);
+    }
+
+    $fileGet = file_get_contents($path);
+
+    $response = Response::make($fileGet, 200);
+    $response->header('Content-Type',"*/*");
+
+    return $response;
+
+});
+
 Route::get('/specification-files/view/{id}', function ($id) {
     $specificationFile = App\SpecificationFile::find($id);
     $path = env('FILES_FOLDER') . '/specification-files/' . $specificationFile->name;

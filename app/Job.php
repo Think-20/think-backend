@@ -309,7 +309,6 @@ class Job extends Model
     {
         $job = Job::find($id);
 
-
         $job->job_activity;
         $job->job_type;
         $job->client;
@@ -328,6 +327,8 @@ class Job extends Model
         $job->attendance;
         $job->competition;
         $job->files;
+        $job->projectPhotosFiles;
+
         $job->status;
 
         $job->checkin;
@@ -335,8 +336,8 @@ class Job extends Model
         $job->responsibles();
         $job->history();
 
-        //valores da semaforização
 
+        //valores da semaforização
         //Sempre verde ja que se esta buscando o job, quer dizer q a tela de informação ja foi preenchida
         $job->info_check = 2;
 
@@ -1452,6 +1453,11 @@ class Job extends Model
     public function files()
     {
         return $this->hasMany('App\JobFile', 'job_id');
+    }
+
+    public function projectPhotosFiles()
+    {
+        return $this->hasMany('App\ProjectPhotos', 'job_id');
     }
 
     public function setNotClientAttribute($value)
