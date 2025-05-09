@@ -393,18 +393,18 @@ class Job extends Model
         }
 
         //Verifica se a aba de fotos do projeto esta preenchida
-        if ($job->contract_nf_check  == 2) {
+        //if ($job->contract_nf_check  == 2) {
             $job->project_photos_check = $job->projectPhotosCheck($job);
-        } else {
+        /*} else {
             $job->project_photos_check = null;
-        }
+        }*/
 
         //Verifica se a aba de Contrato e NF esta preenchida
-        //if ($job->project_photos_check  == 2) {
+        if ($job->project_photos_check  == 2) {
             $job->feedback_check = $job->feedbackCheck($job);
-        //} else {
+        } else {
           //  $job->feedback_check = null;
-        //}
+        }
 
         return $job;
     }
@@ -997,7 +997,7 @@ class Job extends Model
         if ($job['recommendation_rating'] != null && $job['overall_project_rating'] != null && $job['sales_support_rating'] != null) {
             return 2;
         }
-        
+
         return 1;
     }
 
