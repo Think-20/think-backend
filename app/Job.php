@@ -1264,6 +1264,19 @@ class Job extends Model
 
     public static function sendFeedbackEmail($data)
     {
+        $host = 'smtp.gmail.com';
+        $port = 587;
+        $timeout = 10;
+
+        $connection = fsockopen($host, $port, $errno, $errstr, $timeout);
+
+        if (!$connection) {
+            dd("❌ Falha na conexão: ($errno) $errstr<br>");
+        } else {
+            dd("✅ Conexão bem-sucedida com $host na porta $port<br>");
+            
+        }
+
         $email = $data['feedback_user_email'];
         $nome = $data['feedback_user_name'];
         $job_id = $data['job_id'];
