@@ -1457,10 +1457,7 @@ class Job extends Model
         return $this->hasMany('App\JobFile', 'job_id');
     }
 
-    public function projectPhotosFiles()
-    {
-        return $this->hasMany('App\ProjectPhotos', 'job_id');
-    }
+    
 
     public function setNotClientAttribute($value)
     {

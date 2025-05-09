@@ -1347,6 +1347,12 @@ class Task extends Model
         return $this->hasMany('App\ContractNfFile', 'task_id');
     }
 
+    public function project_photos_file()
+    {
+        return $this->hasMany('App\ProjectPhotos', 'task_id');
+    }
+
+
     public function specification_files()
     {
         return $this->hasMany('App\SpecificationFile', 'task_id');
