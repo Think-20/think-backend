@@ -74,7 +74,7 @@ class Job extends Model
 
         $count = Job::whereBetween('created_at', [$startOfMonth, $endOfMonth])->count();
 
-        $overbook = $count < 19 ? 1 : 0;
+        $overbook = $count > 19 ? 1 : 0;
 
        
         return [
