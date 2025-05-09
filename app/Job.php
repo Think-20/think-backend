@@ -1076,7 +1076,7 @@ class Job extends Model
             'contract_nf_files.responsible',
 
             'project_photos_file',
-            'project_photos_file.responsible',
+            //'project_photos_file.responsible',
             
             'specification_files',
             'specification_files.responsible',
