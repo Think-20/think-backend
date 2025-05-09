@@ -1273,16 +1273,12 @@ class Job extends Model
 
         $job = Job::where('id', $job_id)->first();
         
-
-
         $job->update([
             'feedback_user_name' => $data['feedback_user_name'],
             'feedback_user_email' => $data['feedback_user_email'],
             'feedback_user_phone' => $data['feedback_user_phone'],
             'feedback_hash' => $hash
         ]);
-
-        dd($job);
 
         if (!$email) {
             return response()->json(['error' => 'false', 'message' => 'Sem E-mail do destinatário.']);
