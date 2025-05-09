@@ -1304,6 +1304,8 @@ class Job extends Model
             $mail->isHTML(true);
             $mail->Subject = 'Obrigado pela Parceria!';
 
+            dd($mail);
+
             $mail->Body = '<!DOCTYPE html>
                 <html lang="pt-BR">
                     <head>
