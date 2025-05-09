@@ -416,7 +416,7 @@ class Task extends Model
 
     public static function insert(array $data, NotifierInterface $notifier = null)
     {
-        Task::sendMailTask($data);
+        //Task::sendMailTask($data);
 
         $responsible_id = isset($data['responsible']['id']) ? $data['responsible']['id'] : null;
         $job_id = isset($data['job']['id']) ? $data['job']['id'] : null;
