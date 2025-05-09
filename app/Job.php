@@ -327,7 +327,7 @@ class Job extends Model
         $job->attendance;
         $job->competition;
         $job->files;
-        //$job->projectPhotosFiles;
+        $job->projectPhotosFiles;
 
         $job->status;
 
@@ -1075,6 +1075,9 @@ class Job extends Model
             
             'contract_nf_files',
             'contract_nf_files.responsible',
+
+            'project_photos_file',
+            'project_photos_file.responsible',
             
             'specification_files',
             'specification_files.responsible',
