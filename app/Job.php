@@ -76,7 +76,6 @@ class Job extends Model
 
         $overbook = $count > 19 ? 1 : 0;
 
-       
         return [
             'job_activities' => JobActivity::list(),
             'job_types' => JobType::all(),
@@ -401,11 +400,11 @@ class Job extends Model
         }
 
         //Verifica se a aba de Contrato e NF esta preenchida
-        if ($job->project_photos_check  == 2) {
+        //if ($job->project_photos_check  == 2) {
             $job->feedback_check = $job->feedbackCheck($job);
-        } else {
-            $job->feedback_check = null;
-        }
+        //} else {
+          //  $job->feedback_check = null;
+        //}
 
         return $job;
     }
@@ -993,15 +992,11 @@ class Job extends Model
 
     public function feedbackCheck($job)
     {
-        $taskProject = Task::where('job_id', $job->id)->get();
-
-        foreach ($taskProject as $task) {
-            $contractNf = ContractNfFile::where('task_id', "=", $task['id'])->first();
-            if ($contractNf) {
-                return 2;
-            }
+        $job = Job::where('id', $job->id)->first();
+        if($job['recommendation_rating'] != null && $job['overall_project_rating'] != null &&
+        $job['sales_support_rating'] != null){
+        return 2;
         }
-        
         return 1;
     }
 
