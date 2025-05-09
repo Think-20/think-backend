@@ -993,10 +993,11 @@ class Job extends Model
     public function feedbackCheck($job)
     {
         $job = Job::where('id', $job->id)->first();
-        if($job['recommendation_rating'] != null && $job['overall_project_rating'] != null &&
-        $job['sales_support_rating'] != null){
-        return 2;
+
+        if ($job['recommendation_rating'] != null && $job['overall_project_rating'] != null && $job['sales_support_rating'] != null) {
+            return 2;
         }
+        
         return 1;
     }
 
