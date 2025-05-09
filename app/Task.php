@@ -96,6 +96,8 @@ class Task extends Model
         $initialDate = isset($data['initialDate']) ? new DateTime($data['initialDate']) : null;
         $finalDate = isset($data['finalDate']) ? new DateTime($data['finalDate']) : DateHelper::sumUtil($initialDate, 29);
 
+        
+
         return [
             'items' => TaskHelper::getDates($initialDate, $finalDate, $jobActivity, $onlyEmployees),
             'responsibles' => $jobActivity->responsibles

@@ -2,6 +2,7 @@
 
 namespace App;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 use DB;
@@ -66,6 +67,16 @@ class Job extends Model
 
     public static function loadForm()
     {
+        //overbook
+
+        $startOfMonth = Carbon::now()->startOfMonth(); // Ex: 2025-04-01 00:00:00
+        $endOfMonth = Carbon::now()->endOfMonth();     // Ex: 2025-04-30 23:59:59
+
+        $count = Job::whereBetween('created_at', [$startOfMonth, $endOfMonth])->count();
+
+        $overbook = $count > 19 ? 1 : 0;
+
+       
         return [
             'job_activities' => JobActivity::list(),
             'job_types' => JobType::all(),
@@ -75,6 +86,7 @@ class Job extends Model
             'levels' => JobLevel::all(),
             'how_comes' => JobHowCome::all(),
             'status' => JobStatus::all(),
+            'overbook' => $overbook
         ];
     }
 
@@ -284,9 +296,9 @@ class Job extends Model
 
     public static function list()
     {
-        //$jobs = Job::orderBy('available_date', 'asc')->paginate(20);
+        $jobs = Job::orderBy('available_date', 'asc')->paginate(20);
 
-        $jobs = Job::with('tasks')->orderBy('available_date', 'asc')->paginate(20);
+        //$jobs = Job::with('tasks')->orderBy('available_date', 'asc')->paginate(20);
 
         foreach ($jobs as $job) {
             $job->agency;
