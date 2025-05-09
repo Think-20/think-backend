@@ -1294,13 +1294,11 @@ class Job extends Model
             $mail->SMTPAuth = true;
             $mail->Username = 'think.ideias.1@gmail.com'; // Seu endereço de e-mail
             $mail->Password = 'dhqg bibw laok mawt';  // Senha de app gerada no Google
-            $mail->Port = 587;
-            $mail->CharSet = 'UTF-8';
-
+           
             //$mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->SMTPSecure = 'tls';
             
-            $mail->Port = 587;
+            $mail->Port = 465;
             $mail->CharSet = 'UTF-8';
             
             $mail->SMTPOptions = array(
