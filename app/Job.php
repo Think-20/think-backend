@@ -1294,9 +1294,20 @@ class Job extends Model
             $mail->SMTPAuth = true;
             $mail->Username = 'think.ideias.1@gmail.com'; // Seu endereço de e-mail
             $mail->Password = 'dhqg bibw laok mawt';  // Senha de app gerada no Google
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            //$mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->SMTPSecure = 'tls';
+            
             $mail->Port = 587;
             $mail->CharSet = 'UTF-8';
+            
+            $mail->SMTPOptions = array(
+                'ssl' => array(
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                )
+            );
+
 
             // Remetente e destinatário
             $mail->setFrom('no-reply@think.com', 'Think');
