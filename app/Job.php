@@ -1264,7 +1264,6 @@ class Job extends Model
 
     public static function sendFeedbackEmail($data)
     {
-       
         $email = $data['feedback_user_email'];
         $nome = $data['feedback_user_name'];
         $job_id = $data['job_id'];
@@ -1291,18 +1290,16 @@ class Job extends Model
 
             $mail->Host = 'smtp.gmail.com';
             $mail->SMTPAuth = true;
-            /*$mail->Username = 'think.ideias.1@gmail.com'; // Seu endereço de e-mail
-            $mail->Password = 'dhqg bibw laok mawt';  // Senha de app gerada no Google*/
-
-            $mail->Username = 'gui9788534514088@gmail.com'; // Seu endereço de e-mail
-            $mail->Password = 'amky uxiz mkxx huif';  // Senha de app gerada no Google
+            
+            $mail->Username = 'think.ideias.1@gmail.com'; // Seu endereço de e-mail
+            $mail->Password = 'dhqg bibw laok mawt';  // Senha de app gerada no Google
             
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port = 587;
             $mail->CharSet = 'UTF-8';
 
             // Remetente e destinatário
-            $mail->setFrom('gui9788534514088@gmail.com', 'Think');
+            $mail->setFrom('think.ideias.1@gmail.com', 'Think');
             $mail->addAddress($email, $nome); // Adicione o destinatário
 
             // Conteúdo do e-mail
