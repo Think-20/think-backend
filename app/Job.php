@@ -327,7 +327,7 @@ class Job extends Model
         $job->attendance;
         $job->competition;
         $job->files;
-        $job->projectPhotosFiles;
+        //$job->projectPhotosFiles;
 
         $job->status;
 
