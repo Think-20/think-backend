@@ -1290,8 +1290,12 @@ class Job extends Model
 
             $mail->Host = 'smtp.gmail.com';
             $mail->SMTPAuth = true;
-            $mail->Username = 'think.ideias.1@gmail.com'; // Seu endereço de e-mail
-            $mail->Password = 'dhqg bibw laok mawt';  // Senha de app gerada no Google
+            /*$mail->Username = 'think.ideias.1@gmail.com'; // Seu endereço de e-mail
+            $mail->Password = 'dhqg bibw laok mawt';  // Senha de app gerada no Google*/
+
+            $mail->Username = 'gui9788534514088@gmail.com'; // Seu endereço de e-mail
+            $mail->Password = 'amky uxiz mkxx huif';  // Senha de app gerada no Google
+            
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port = 587;
             $mail->CharSet = 'UTF-8';
