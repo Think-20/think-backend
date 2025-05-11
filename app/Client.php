@@ -49,7 +49,7 @@ class Client extends Model implements Contactable
 
         foreach ($clients as $client) {
             $client->employee;
-            $client->type;
+            $client->type_select;
             $client->comission;
             $client->status;
         }
@@ -202,7 +202,7 @@ class Client extends Model implements Contactable
     {
         $search = isset($data['search']) ? $data['search'] : null;
 
-        //Reativado apos pedido dia 23/07
+        // Reativado apos pedido dia 23/07
         // Removido dia 15/05/2024 por não estar sendo usado, então foi criado o filtro pro atendimento baseado no usuario logado
         $attendanceArrayId = isset($data['attendance_array']) && !empty($data['attendance_array']) ? array_map(function ($v) {
             return $v['id'];
@@ -264,7 +264,7 @@ class Client extends Model implements Contactable
 
         foreach ($clients as $client) {
             $client->employee;
-            $client->type;
+            $client->type_select;
             $client->comission;
             $client->status;
         }
@@ -415,7 +415,7 @@ class Client extends Model implements Contactable
 
         foreach ($clients as $client) {
             $client->employee;
-            $client->type;
+            $client->type_select;
             $client->comission;
             $client->status;
         }
@@ -710,7 +710,7 @@ class Client extends Model implements Contactable
         return $this->belongsTo('App\Employee', 'employee_id')->withTrashed();
     }
 
-    public function type()
+    public function type_select()
     {
         return $this->belongsTo('App\ClientType', 'client_type_id');
     }
