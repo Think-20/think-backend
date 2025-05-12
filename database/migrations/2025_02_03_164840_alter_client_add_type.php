@@ -9,14 +9,14 @@ class AlterClientAddType extends Migration
     public function up()
     {
         Schema::table('client', function (Blueprint $table) {
-            $table->string('type')->nullable();
+            //$table->string('type')->nullable();
         });
     }
 
     public function down()
     {
         Schema::table('client', function (Blueprint $table) {
-            $table->dropColumn('type');
+            //$table->dropColumn('type');
         });
     }
 } 
