@@ -77,7 +77,6 @@ class Client extends Model implements Contactable
             $client->client_status_id = isset($data['client_status']['id']) ? $data['client_status']['id'] : null;
 
             $contacts = isset($data['contacts']) ? $data['contacts'] : [];
-            
             Contact::manage($contacts, $client);
 
             $client->update($data);
@@ -202,7 +201,7 @@ class Client extends Model implements Contactable
     {
         $search = isset($data['search']) ? $data['search'] : null;
 
-        // Reativado apos pedido dia 23/07
+        //Reativado apos pedido dia 23/07
         // Removido dia 15/05/2024 por não estar sendo usado, então foi criado o filtro pro atendimento baseado no usuario logado
         $attendanceArrayId = isset($data['attendance_array']) && !empty($data['attendance_array']) ? array_map(function ($v) {
             return $v['id'];

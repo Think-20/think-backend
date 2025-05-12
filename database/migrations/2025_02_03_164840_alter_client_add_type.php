@@ -16,7 +16,7 @@ class AlterClientAddType extends Migration
     public function down()
     {
         Schema::table('client', function (Blueprint $table) {
-            //$table->dropColumn('type');
+            $table->dropColumn('type');
         });
     }
 } 
