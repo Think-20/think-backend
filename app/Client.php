@@ -49,7 +49,7 @@ class Client extends Model implements Contactable
 
         foreach ($clients as $client) {
             $client->employee;
-            $client->type_select;
+            $client->type;
             $client->comission;
             $client->status;
         }
@@ -264,7 +264,7 @@ class Client extends Model implements Contactable
 
         foreach ($clients as $client) {
             $client->employee;
-            $client->type_select;
+            $client->type;
             $client->comission;
             $client->status;
         }
@@ -415,7 +415,7 @@ class Client extends Model implements Contactable
 
         foreach ($clients as $client) {
             $client->employee;
-            $client->type_select;
+            $client->type;
             $client->comission;
             $client->status;
         }
@@ -710,7 +710,7 @@ class Client extends Model implements Contactable
         return $this->belongsTo('App\Employee', 'employee_id')->withTrashed();
     }
 
-    public function type_select()
+    public function type()
     {
         return $this->belongsTo('App\ClientType', 'client_type_id');
     }
