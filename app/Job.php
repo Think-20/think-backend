@@ -9,10 +9,14 @@ use DB;
 use DateTime;
 use DateInterval;
 use Exception;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use PHPMailer\PHPMailer\PHPMailer;
 
 class Job extends Model
 {
+
+    use SoftDeletes;
+
     public $timestamps = true;
 
     protected $table = 'job';
@@ -54,7 +58,8 @@ class Job extends Model
 
     protected $dates = [
         'created_at',
-        'updated_at'
+        'updated_at',
+        'deleted_at'
     ];
 
     public function getJobName()
@@ -262,7 +267,10 @@ class Job extends Model
     public static function remove($id)
     {
         $job = Job::find($id);
-        $oldJob = clone $job;
+
+
+        //Comentando execuções por que o delete agora sera soft para job
+        /*$oldJob = clone $job;
         $job->levels()->detach();
         $createNotification = true;
 
@@ -285,11 +293,14 @@ class Job extends Model
                 'user_id' => $task->job->attendance->user->id,
                 'message' => $message
             ]), 'Deleção de job', $task->id);
-        }
+        }*/
 
-        $job->deleteFiles();
+        
+        //$job->deleteFiles();
+        
         //$job->briefing ? $job->briefing->delete() : null;
         //$job->budget ? $job->budget->delete() : null;
+        
         $job->delete();
     }
 
@@ -426,6 +437,7 @@ class Job extends Model
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
 
         $jobs = Job::selectRaw('job.*')
+            //->withTrashed() //Adicionado apenas caso seja necessário ver os inativados tambem
             ->with(
                 'job_activity',
                 'job_type',
@@ -620,6 +632,7 @@ class Job extends Model
     {
         $job = Job::find($id);
 
+        /*
         if ($job->attendance_id != User::logged()->employee->id) {
             throw new \Exception('Você não tem permissão para remover esse job.');
         }
@@ -650,9 +663,10 @@ class Job extends Model
             ]), 'Deleção de job', $task->id);
         }
 
-        $job->deleteFiles();
+        //$job->deleteFiles();
         //$job->briefing ? $job->briefing->delete() : null;
-        //$job->budget ? $job->budget->delete() : null;
+        //$job->budget ? $job->budget->delete() : null;*/
+        
         $job->delete();
     }
 
