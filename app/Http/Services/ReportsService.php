@@ -132,7 +132,8 @@ class ReportsService
         }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
-            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->first();
+            //$result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->first();
+            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(sum(ifnull(final_value, budget_value)), 0) as sum'))->first();
         } else {
             $result = $jobs->select(
                 DB::raw('COUNT(*) as count'),
