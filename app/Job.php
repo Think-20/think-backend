@@ -331,6 +331,10 @@ class Job extends Model
     {
         $job = Job::find($id);
 
+        if($job == null){
+            return null;
+        }
+
         $job->job_activity;
         $job->job_type;
         $job->client;
