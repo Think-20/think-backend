@@ -255,14 +255,6 @@ class TaskItem extends Model
             return isset($item->task->job) && !is_null($item->task->job);
         })->values();
 
-        /*foreach ($result as $key => $item) {
-            if (is_null($item['task']['job'])) {
-                unset($result[$key]);
-            }
-        }
-
-        return ($result);*/
-
         return [
             'pagination' => [
                 'data' => $result,
