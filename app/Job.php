@@ -98,6 +98,11 @@ class Job extends Model
     {
         $id = $data['id'];
         $job = Job::find($id);
+
+        if($job == null){
+            return null;
+        }
+
         $oldJob = clone $job;
 
         isset($data['agency']['id']) ? $job->agency_id = $data['agency']['id'] : $job->agency_id = $job->agency_id;
@@ -308,7 +313,9 @@ class Job extends Model
     {
         $jobs = Job::orderBy('available_date', 'asc')->paginate(20);
 
-        //$jobs = Job::with('tasks')->orderBy('available_date', 'asc')->paginate(20);
+        if($job == null){
+            return null;
+        }
 
         foreach ($jobs as $job) {
             $job->agency;
@@ -557,6 +564,11 @@ class Job extends Model
 
         $id = $data['id'];
         $job = Job::find($id);
+
+        if($job == null){
+            return null;
+        }
+
         $oldJob = clone $job;
         $agency_id = isset($data['agency']['id']) ? $data['agency']['id'] : null;
         $client_id = isset($data['client']['id']) ? $data['client']['id'] : null;
@@ -605,6 +617,11 @@ class Job extends Model
     public static function downloadFileMyJob($id, $type, $file)
     {
         $job = Job::find($id);
+
+        if($job == null){
+            return null;
+        }
+
         $user = User::logged();
 
         if ($job->attendance_id != User::logged()->employee->id) {
@@ -681,6 +698,10 @@ class Job extends Model
             ->orWhere('task.responsible_id', '=', User::logged()->employee->id)
             ->paginate(20);
 
+        if($jobs == null){
+            return null;
+        }
+
         foreach ($jobs as $job) {
             $job->agency;
             $job->responsibles();
@@ -700,6 +721,10 @@ class Job extends Model
     public static function getMyJob(int $id)
     {
         $job = Job::find($id);
+
+        if($job == null){
+            return null;
+        }
 
         if ($job->attendance_id != User::logged()->employee->id) {
             throw new \Exception('Você não tem permissão para visualizar esse job.');
@@ -1012,7 +1037,7 @@ class Job extends Model
     {
         $job = Job::where('id', $job->id)->first();
 
-        if ($job['recommendation_rating'] != null && $job['overall_project_rating'] != null && $job['sales_support_rating'] != null) {
+        if ($job != null && $job['recommendation_rating'] != null && $job['overall_project_rating'] != null && $job['sales_support_rating'] != null) {
             return 2;
         }
 
