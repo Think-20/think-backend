@@ -251,13 +251,17 @@ class TaskItem extends Model
             $page = 0;
         }
 
+        $result = $result->filter(function ($item) {
+            return isset($item->task->job) && !is_null($item->task->job);
+        })->values();
+
         /*foreach ($result as $key => $item) {
             if (is_null($item['task']['job'])) {
                 unset($result[$key]);
             }
         }
 
-        $result = array_values($result);*/
+        return ($result);*/
 
         return [
             'pagination' => [
