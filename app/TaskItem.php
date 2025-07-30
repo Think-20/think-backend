@@ -251,11 +251,11 @@ class TaskItem extends Model
             $page = 0;
         }
 
-        /*foreach ($result as $key => $item) {
-            if (is_null($item['job'])) {
+        foreach ($result as $key => $item) {
+            if (is_null($item['task']['job'])) {
                 unset($result[$key]);
             }
-        }*/
+        }
 
         return [
             'pagination' => [
