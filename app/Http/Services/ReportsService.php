@@ -61,6 +61,7 @@ class ReportsService
                     $query->whereHas('client', function ($subquery) use ($outsider) {
                         $subquery->where('fantasy_name', 'NOT LIKE', '%' . $outsider . '%');
                     });
+                    $query->orWhere('not_client', 'NOT LIKE', '%' . $outsider . '%');
                 }
             });
         }
