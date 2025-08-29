@@ -13,7 +13,11 @@ class ReportsService
 {
     public static function baseQuery($data)
     {
+
+
         $name = $data['name'] ?? null;
+        $condition = $data['condition'] ?? null;
+        $outsider = $data['outsider'] ?? null;
         $creationId = isset($data['creation']) ? $data['creation'] : null;
         $attendanceId = isset($data['attendance']) ? $data['attendance'] : null;
         $jobTypeId = isset($data['job_type']) ? $data['job_type'] : null;
@@ -43,6 +47,21 @@ class ReportsService
                     $subquery->orWhere('name', 'LIKE', '%' . $name . '%');
                 });
                 $query->orWhere('not_client', 'LIKE', '%' . $name . '%');
+            });
+        }
+
+        if($condition && $outsider){
+            $jobs->where(function ($query) use ($condition, $outsider) {
+                if($condition == 1){
+                    $query->whereHas('client', function ($subquery) use ($outsider) {
+                        $subquery->where('external', 1);
+                        $subquery->where('fantasy_name', 'LIKE', '%' . $outsider . '%');
+                    });                    
+                }else if($condition == 2){
+                    $query->whereHas('client', function ($subquery) use ($outsider) {
+                        $subquery->where('fantasy_name', 'NOT LIKE', '%' . $outsider . '%');
+                    });
+                }
             });
         }
 
@@ -101,6 +120,7 @@ class ReportsService
                 });
             }
         }
+
         return $jobs;
     }
 

@@ -403,6 +403,14 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::post('/jobs/filter', 'JobController@filter');
     Route::get('/job/download/{id}/{type}/{file}', 'JobController@downloadFile');
     Route::post('/jobs/performance-lite', 'JobController@performanceLite');
+
+    //Workflow
+    Route::post('/workflow-atendimento?page={page}', 'JobController@workflowAtendimento');
+    Route::post('/workflow-criativo?page={page}', 'JobController@workflowCriativo');
+    Route::put('/workflow-criativo', 'JobController@workflowAtendimentoUpdate');
+    Route::post('/workflow-producao?page={page}', 'JobController@workflowProcusao');
+    Route::put('/workflow-producao', 'JobController@workflowProducaoUpdate');
+    
     
     //Feedback
     Route::post('/feedback/email', 'JobController@feedbackEmail'); 

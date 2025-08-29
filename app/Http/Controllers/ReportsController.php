@@ -33,7 +33,9 @@ class ReportsController extends Controller
             'job_activity',
             'status',
             'jobs_amount',
-            'event'
+            'event',
+            'condition',
+            'outsider'
         ]);
 
         $loggedDepartament = Employee::where('id', User::logged()->employee_id)->first();

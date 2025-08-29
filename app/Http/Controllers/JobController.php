@@ -333,4 +333,24 @@ class JobController extends Controller
     {
         return Job::filterMyJob($request->all());
     }
+
+     /*public static function allMyJob()
+    {
+        $jobs = Job::listMyJob();
+        return $jobs;
+    }
+
+     public static function allMyJob()
+    {
+        $jobs = Job::listMyJob();
+        return $jobs;
+    }
+
+     public static function allMyJob()
+    {
+        $jobs = Job::listMyJob();
+        return $jobs;
+    }*/
+
+        
 }
