@@ -30,6 +30,8 @@ class Permission
             return $next($request);
         }else if("/".$request->route()->uri == "/project-photos-files/remove/{id}" || "/".$request->route()->uri == "/project-photos-files/save-multiple" || "/".$request->route()->uri == "/project-photos-files/download/{id}" || "/".$request->route()->uri == "/project-photos-files/download-all/{taskId}"){
             return $next($request);
+        else if("/".$request->route()->uri == "/my-clients/get/"){
+            return $next($request);
         }else if(!in_array(('/' . $request->route()->uri), $urls)) {
             if($request->isJson()) {
                 $content = json_encode([

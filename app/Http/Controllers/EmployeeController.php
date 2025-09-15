@@ -42,8 +42,8 @@ class EmployeeController extends Controller
 
         try {
             $employee = Employee::insert($request->all());
-
             if ($employee['department_id'] == 5 && $employee['position_id'] == 7) {
+                //Criação
                 DB::insert('INSERT INTO job_activity_employee(job_activity_id, employee_id) VALUES (?, ?),(?,?),(?, ?),(?,?),(?, ?),(?,?),(?, ?)', [
                     1, $employee['id'],
                     8, $employee['id'],
@@ -53,7 +53,18 @@ class EmployeeController extends Controller
                     18, $employee['id'],
                     20, $employee['id']
                 ]);
-            } else {
+            }else if ($employee['department_id'] == 7 && $employee['position_id'] == 6) { 
+                //Orçamento
+                DB::insert('INSERT INTO job_activity_employee(job_activity_id, employee_id) VALUES (?, ?),(?,?),(?, ?),(?,?),(?, ?),(?,?),(?, ?)', [
+                    2, $employee['id'],
+                    14, $employee['id'],
+                    15, $employee['id'],
+                    16, $employee['id'],
+                    21, $employee['id'],
+                    19, $employee['id'],
+                    13, $employee['id']
+                ]);
+            }else {
                 DB::insert('INSERT INTO job_activity_employee(job_activity_id, employee_id) VALUES (?, ?)', [
                     13, $employee['id']
                 ]);
