@@ -287,8 +287,7 @@ class UserNotification extends Model
         }
 
         foreach ($clients as $client) {
-            $message = "O cliente " . $client->clientName . " já esta a mais de 3 meses sem nenhuma nova oportunidade,
-                 caso nenhuma oportunidade seja criada com ele nos proximos 15 dias ele será inativado.";
+            $message = "O cliente " . $client->clientName . " já esta a mais de 3 meses sem nenhuma nova oportunidade, caso nenhuma oportunidade seja criada com ele nos proximos 15 dias ele será inativado.";
             
             $searchNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->employee->id)->first();
             if (!$searchNotification) {
