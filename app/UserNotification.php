@@ -63,8 +63,13 @@ class UserNotification extends Model
 
     public static function recents()
     {
-        self::checkStandByPendencies();
-        //self::checkInativeClients();
+        self::checkStandByPendencies(); //Cria as stand by pendentes
+        self::checkNotificaClientesInativos(); //Cria as notificações para os clientes a masi de 30 dias sem novas oportunidades
+        self::checkInativaClientesInformados(); //Inativa os clientes que foram informados do prazo de 15 dias e ainda sim n foram inativados
+        
+        //self::checkInativeClients(); //Tentativa antiga de inativar os clientes que não tem job
+
+        dd("Chegou aqui");
 
         $usersNotification = UserNotification::select('user_notification.*')
             ->with(['notification', 'notification.type', 'notification.notifier'])
@@ -100,6 +105,7 @@ class UserNotification extends Model
         return $usersNotification;
     }
 
+    
     private static function checkStandByPendencies()
     {
         $jobs = Job::where('attendance_id', User::logged()->employee->id)
@@ -112,6 +118,7 @@ class UserNotification extends Model
         if ($jobs->isEmpty()) {
             return;
         }
+
         foreach ($jobs as $job) {
             $message = 'Projeto ';
 
@@ -253,6 +260,132 @@ class UserNotification extends Model
                 $userNotification->read = 0;
                 $userNotification->read_date = null;
                 $userNotification->save();
+            }
+        }
+    }
+
+    private static function  checkNotificaClientesInativos()
+    {
+        $clients = FacadesDB::select(FacadesDB::raw("
+            SELECT 
+                c.id as clientId,    
+                c.name as clientName,     
+                j.updated_at
+            FROM client as c
+            JOIN employee as e ON e.id = c.employee_id
+            JOIN job as j ON j.client_id = c.id
+            WHERE e.id = " . User::logged()->id . "
+            AND j.updated_at = (
+                SELECT MAX(j2.updated_at) 
+                FROM job as j2 
+                WHERE j2.client_id = c.id
+            )
+            AND j.updated_at <= DATE_SUB(NOW(), INTERVAL 3 MONTH)
+            ORDER BY c.name ASC
+        "));
+        
+        #dd();
+        dd($clients);
+
+        if (empty($clients)) {
+            return;
+        }
+
+        foreach ($clients as $client) {
+            $message = "O cliente " . $client->clientName . " já esta a mais de 3 meses sem nenhuma nova oportunidade,
+                 caso nenhuma oportunidade seja criada com ele nos proximos 15 dias ele será inativado.";
+            
+            $searchNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->employee->id)->first();
+            if (!$searchNotification) {
+                $notification = new Notification();
+                $notification->type_id = 2;
+                $notification->notifier_id = User::logged()->employee->id;
+                $notification->notifier_type = "App\Employee";
+                $notification->info = $client->clientId;
+                $notification->date = Carbon::now()->toDateTimeString();
+                $notification->message = $message;
+                $notification->save();
+
+                $userNotification = new UserNotification();
+                $userNotification->notification_id = $notification->id;
+                $userNotification->user_id = User::logged()->id;
+                $userNotification->special = 1;
+                $userNotification->special_message = $message;
+                $userNotification->received = 0;
+                $userNotification->received_date = null;
+                $userNotification->read = 0;
+                $userNotification->read_date = null;
+                $userNotification->save();
+            }
+        }
+    }
+
+    private static function checkInativaClientesInformados()
+    {
+        // Busca notificações criadas há mais de 15 dias que foram geradas pela função checkNotificaClientesInativos
+        $notifications = Notification::where('type_id', 2)
+            ->where('notifier_id', User::logged()->employee->id)
+            ->where('notifier_type', 'App\Employee')
+            ->where('date', '<=', Carbon::now()->subDays(15)->toDateTimeString())
+            ->where('message', 'like', 'Cliente % já esta a mais de 3 meses sem nenhuma nova oportunidade%')
+            ->get();
+
+        if ($notifications->isEmpty()) {
+            return;
+        }
+
+        foreach ($notifications as $notification) {
+            $clientId = $notification->info;
+            
+            // Remove a notificação e a userNoficiation relacionada a ela
+            $notification->delete();
+            UserNotification::where('notification_id', $notification->id)->delete();
+            
+            FacadesDB::table('client')
+                ->where('id', $clientId)
+                ->update(['client_status_id' => 1]);
+            
+            // Busca o nome do cliente para a notificação
+            $client = FacadesDB::table('client')->where('id', $clientId)->first();
+            $clientName = $client ? $client->name : 'Cliente desconhecido';
+            
+            // Busca todos os employees para notificar
+            $employees = FacadesDB::table('employee')
+                ->join('user', 'user.employee_id', '=', 'employee.id')
+                ->where('user.active', 1)
+                ->get();
+            
+            // Cria notificação para todos os employees
+            $message = "O cliente '" . $clientName . "' está disponível para novos projetos";
+            
+            foreach ($employees as $employee) {
+                // Verifica se já existe uma notificação similar para este employee
+                $existingNotification = Notification::where('message', $message)
+                    ->where('notifier_id', $employee->id)
+                    ->where('notifier_type', 'App\Employee')
+                    ->first();
+                
+                if (!$existingNotification) {
+                    $newNotification = new Notification();
+                    $newNotification->type_id = 18;
+                    $newNotification->notifier_id = $employee->id;
+                    $newNotification->notifier_type = "App\Employee";
+                    $newNotification->info = $clientId;
+                    $newNotification->date = Carbon::now()->toDateTimeString();
+                    $newNotification->message = $message;
+                    $newNotification->save();
+
+                    $userNotification = new UserNotification();
+                    $userNotification->notification_id = $newNotification->id;
+                    $userNotification->user_id = $employee->user_id;
+                    $userNotification->special = 1;
+                    $userNotification->special_message = $message;
+                    $userNotification->received = 0;
+                    $userNotification->received_date = null;
+                    $userNotification->read = 0;
+                    $userNotification->read_date = null;
+                    $userNotification->save();
+                }
             }
         }
     }
