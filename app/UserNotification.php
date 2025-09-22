@@ -281,9 +281,6 @@ class UserNotification extends Model
             AND j.updated_at <= DATE_SUB(NOW(), INTERVAL 3 MONTH)
             ORDER BY c.name ASC
         "));
-        
-        #dd();
-        dd($clients);
 
         if (empty($clients)) {
             return;
