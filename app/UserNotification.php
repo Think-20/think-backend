@@ -69,8 +69,6 @@ class UserNotification extends Model
         
         //self::checkInativeClients(); //Tentativa antiga de inativar os clientes que não tem job
 
-        dd("Chegou aqui");
-
         $usersNotification = UserNotification::select('user_notification.*')
             ->with(['notification', 'notification.type', 'notification.notifier'])
             ->leftJoin('notification', 'notification.id', '=', 'user_notification.notification_id')
