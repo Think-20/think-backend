@@ -343,14 +343,18 @@ class UserNotification extends Model
             $client = FacadesDB::table('client')->where('id', $clientId)->first();
             $clientName = $client ? $client->name : 'Cliente desconhecido';
             
-            // Busca todos os employees para notificar
+            // Busca employees de atendimento (position_id = 5 OU department_id = 4) para notificar
             $employees = FacadesDB::table('employee')
                 ->join('user', 'user.employee_id', '=', 'employee.id')
                 ->where('user.active', 1)
+                ->where(function($query) {
+                    $query->where('employee.position_id', 5)
+                          ->orWhere('employee.department_id', 4);
+                })
                 ->get();
             
-            // Cria notificação para todos os employees
-            $message = "O cliente '" . $clientName . "' está disponível para novos projetos";
+            // Cria notificação para employees de atendimento
+            $message = "O cliente '" . $clientName . "' está disponível para novos projetos.";
             
             foreach ($employees as $employee) {
                 // Verifica se já existe uma notificação similar para este employee
@@ -361,7 +365,7 @@ class UserNotification extends Model
                 
                 if (!$existingNotification) {
                     $newNotification = new Notification();
-                    $newNotification->type_id = 18;
+                    $newNotification->type_id = 2;
                     $newNotification->notifier_id = $employee->id;
                     $newNotification->notifier_type = "App\Employee";
                     $newNotification->info = $clientId;
