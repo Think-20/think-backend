@@ -274,6 +274,77 @@ class Client extends Model implements Contactable
         ];
     }
 
+    public static function subject(array $data)
+    {
+        DB::beginTransaction();
+        
+        try {
+            $clientId = $data['id'];
+            $client = Client::find($clientId);
+            
+            if (!$client) {
+                return "Cliente não encontrado.";
+            }
+            
+            // Verifica se o cliente tem notificação de "disponível para novos projetos"
+            $notification = DB::table('notification')
+                ->where('info', $clientId)
+                ->where('type_id', 2)
+                ->where('message', 'like', '%está disponível para novos projetos%')
+                ->where('notifier_type', 'App\Employee')
+                ->first();
+            
+            if (!$notification) {
+                throw new \Exception('Este cliente não possui notificação de disponibilidade para novos projetos.');
+            }
+            
+            $client->client_status_id = 2;
+            $client->employee_id = User::logged()->employee->id;            
+            $client->save();
+
+            DB::table('user_notification')
+                ->where('notification_id', $notification->id)
+                ->delete();
+            DB::table('notification')->where('id', $notification->id)->delete();            
+            DB::commit();
+            
+            return $client;
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw new \Exception($e->getMessage());
+        }
+    }
+
+    public static function inactive()
+    {
+        $clients = DB::table('client')
+            ->join('notification', 'notification.info', '=', 'client.id')
+            ->join('employee as notification_employee', 'notification_employee.id', '=', 'notification.notifier_id')
+            ->join('employee as client_employee', 'client_employee.id', '=', 'client.employee_id')
+            ->join('user', 'user.employee_id', '=', 'notification_employee.id')
+            ->where('notification.type_id', 2)
+            ->where('notification.message', 'like', '%está disponível para novos projetos%')
+            ->where('notification.notifier_type', 'App\Employee')
+            ->where(function($query) {
+                $query->where('notification_employee.position_id', 5)
+                      ->orWhere('notification_employee.department_id', 4);
+            })
+            ->select(
+                'client.*', 
+                'notification.date as notification_date', 
+                'notification_employee.name as notification_employee_name',
+                'notification_employee.id as notification_employee_id',
+                'client_employee.name as client_employee_name',
+                'client_employee.id as client_employee_id',                
+                'user.id as user_id'
+            )
+            ->orderBy('notification.date', 'desc')
+            ->get();
+
+        return $clients;
+    }
+
     public static function updatedInfo()
     {
         $lastData = Client::orderBy('updated_at', 'desc')->limit(1)->first();

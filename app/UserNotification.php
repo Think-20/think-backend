@@ -316,14 +316,15 @@ class UserNotification extends Model
 
     private static function checkInativaClientesInformados()
     {
+
         // Busca notificações criadas há mais de 15 dias que foram geradas pela função checkNotificaClientesInativos
         $notifications = Notification::where('type_id', 2)
-            ->where('notifier_id', User::logged()->employee->id)
             ->where('notifier_type', 'App\Employee')
             ->where('date', '<=', Carbon::now()->subDays(15)->toDateTimeString())
-            ->where('message', 'like', 'Cliente % já esta a mais de 3 meses sem nenhuma nova oportunidade%')
+            ->where('message', 'like', '%já esta a mais de 3 meses sem nenhuma nova oportunidade, caso nenhuma oportunidade seja criada com ele nos proximos 15 dias ele será inativado.')
             ->get();
 
+        
         if ($notifications->isEmpty()) {
             return;
         }
@@ -332,8 +333,9 @@ class UserNotification extends Model
             $clientId = $notification->info;
             
             // Remove a notificação e a userNoficiation relacionada a ela
-            $notification->delete();
             UserNotification::where('notification_id', $notification->id)->delete();
+            $notification->delete();
+            
             
             FacadesDB::table('client')
                 ->where('id', $clientId)
@@ -344,9 +346,9 @@ class UserNotification extends Model
             $clientName = $client ? $client->name : 'Cliente desconhecido';
             
             // Busca employees de atendimento (position_id = 5 OU department_id = 4) para notificar
-            $employees = FacadesDB::table('employee')
+            $employees = FacadesDB::table('employee')                
                 ->join('user', 'user.employee_id', '=', 'employee.id')
-                ->where('user.active', 1)
+                #->where('user.active', 1)                
                 ->where(function($query) {
                     $query->where('employee.position_id', 5)
                           ->orWhere('employee.department_id', 4);
@@ -357,6 +359,13 @@ class UserNotification extends Model
             $message = "O cliente '" . $clientName . "' está disponível para novos projetos.";
             
             foreach ($employees as $employee) {
+
+                //Adicione uma busca de user where employee_id = $employee->id
+                $user = FacadesDB::table('user')->where('employee_id', $employee->id)->first();
+                if (!$user) {
+                    continue;
+                }
+                
                 // Verifica se já existe uma notificação similar para este employee
                 $existingNotification = Notification::where('message', $message)
                     ->where('notifier_id', $employee->id)
@@ -375,7 +384,7 @@ class UserNotification extends Model
 
                     $userNotification = new UserNotification();
                     $userNotification->notification_id = $newNotification->id;
-                    $userNotification->user_id = $employee->user_id;
+                    $userNotification->user_id = $user->id;
                     $userNotification->special = 1;
                     $userNotification->special_message = $message;
                     $userNotification->received = 0;
@@ -484,7 +493,6 @@ class UserNotification extends Model
             Victor Goularte de id 43
             Gleice Alves de id 76
         */
-
 
         if ($loggedId == 76 || $loggedId == 43) {
             //Variavel que ira auxiliar na contrução da busca separada por tipo de usuario verificando o tipo de aceite dele

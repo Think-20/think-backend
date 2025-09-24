@@ -95,6 +95,14 @@ class ClientController extends Controller
         return Client::filter($request->all());
     }
 
+    public static function subject(Request $request) {
+        return Client::subject($request->all());
+    }
+
+    public static function inactive(Request $request) {
+        return Client::inactive();
+    }
+
     public static function import(Request $request) {
         $status = false;
         $informations = [];

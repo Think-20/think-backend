@@ -26,6 +26,8 @@ class Permission
             return $next($request);
         }else if("/".$request->route()->uri == "/feedback/email" || "/".$request->route()->uri == "/feedback"){
             return $next($request);
+        }else if("/".$request->route()->uri == "/clients/inactive" || "/".$request->route()->uri == "/clients/subject"){
+            return $next($request);
         }else if("/".$request->route()->uri == "/contract-nf-files/remove/{id}" || "/".$request->route()->uri == "/contract-nf-files/save-multiple" || "/".$request->route()->uri == "/contract-nf-files/download/{id}" || "/".$request->route()->uri == "/contract-nf-files/download-all/{taskId}"){
             return $next($request);
         }else if("/".$request->route()->uri == "/project-photos-files/remove/{id}" || "/".$request->route()->uri == "/project-photos-files/save-multiple" || "/".$request->route()->uri == "/project-photos-files/download/{id}" || "/".$request->route()->uri == "/project-photos-files/download-all/{taskId}"){

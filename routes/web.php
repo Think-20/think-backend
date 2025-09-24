@@ -354,6 +354,9 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::post('/clients/all', 'ClientController@all');
     Route::get('/clients/get/{id}', 'ClientController@get');
     Route::post('/clients/filter', 'ClientController@filter');
+    
+    Route::put('/clients/subject', 'ClientController@subject');
+    Route::get('/clients/inactive', 'ClientController@inactive');
 
     Route::post('/my-client/save', 'ClientController@saveMyClient');
     Route::put('/my-client/edit', 'ClientController@editMyClient');
