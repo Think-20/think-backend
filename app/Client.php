@@ -336,7 +336,7 @@ class Client extends Model implements Contactable
                 'client_employee.id as client_employee_id'                
             )
             ->distinct()
-            ->orderBy('client.name', 'desc')
+            ->orderBy('client.id', 'ASC')
             ->get();
 
         return $clients;
