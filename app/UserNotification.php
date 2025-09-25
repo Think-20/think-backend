@@ -339,7 +339,7 @@ class UserNotification extends Model
         // Busca notificações criadas há mais de 15 dias que foram geradas pela função checkNotificaClientesInativos
         $notifications = Notification::where('type_id', 2)
             ->where('notifier_type', 'App\Employee')
-            ->where('date', '<=', Carbon::now()->subDays(15)->toDateTimeString())
+            ->where('date', '<=', Carbon::now()->subDays(0)->toDateTimeString())
             ->where('message', 'like', '%já esta a mais de 3 meses sem nenhuma nova oportunidade, caso nenhuma oportunidade seja criada com ele nos proximos 15 dias ele será inativado.')
             ->get();
 
