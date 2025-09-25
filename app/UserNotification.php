@@ -264,7 +264,8 @@ class UserNotification extends Model
 
     private static function  checkNotificaClientesInativos()
     {
-        $clients = FacadesDB::select(FacadesDB::raw("
+        //Caso fique demorado, devolver a validação de só enviar para os proprios clientes do usuario logado
+        /*$clients = FacadesDB::select(FacadesDB::raw("
             SELECT 
                 c.id as clientId,    
                 c.name as clientName,     
@@ -280,8 +281,26 @@ class UserNotification extends Model
             )
             AND j.updated_at <= DATE_SUB(NOW(), INTERVAL 3 MONTH)
             ORDER BY c.name ASC
+        "));*/
+
+        $clients = FacadesDB::select(FacadesDB::raw("
+            SELECT 
+                c.id as clientId,    
+                c.name as clientName,     
+                j.updated_at
+            FROM client as c
+            JOIN employee as e ON e.id = c.employee_id
+            JOIN job as j ON j.client_id = c.id
+            AND j.updated_at = (
+                SELECT MAX(j2.updated_at) 
+                FROM job as j2 
+                WHERE j2.client_id = c.id
+            )
+            AND j.updated_at <= DATE_SUB(NOW(), INTERVAL 3 MONTH)
+            ORDER BY c.name ASC
         "));
 
+        $clients = Client::where('employee_id', User::logged()->employee->id)->get();
         if (empty($clients)) {
             return;
         }
