@@ -334,7 +334,6 @@ class Client extends Model implements Contactable
                 'client.*', 
                 'notification.date as notification_date', 
                 'notification_employee.name as notification_employee_name',
-                'notification_employee.id as notification_employee_id',
                 'client_employee.name as client_employee_name',
                 'client_employee.id as client_employee_id'                
             )
