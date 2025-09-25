@@ -336,8 +336,7 @@ class Client extends Model implements Contactable
                 'notification_employee.name as notification_employee_name',
                 'notification_employee.id as notification_employee_id',
                 'client_employee.name as client_employee_name',
-                'client_employee.id as client_employee_id',                
-                'user.id as user_id'
+                'client_employee.id as client_employee_id'                
             )
             ->distinct()
             ->orderBy('notification.date', 'desc')
