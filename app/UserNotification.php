@@ -401,12 +401,11 @@ class UserNotification extends Model
 
     private static function checkInativaClientesInformados()
     {
-
-        // Busca notificações criadas há mais de 15 dias que foram geradas pela função checkNotificaClientesInativos
+        // Busca notificações criadas há mais de 30 dias que foram geradas pela função checkNotificaClientesInativos
         $notifications = Notification::where('type_id', 2)
             ->where('notifier_type', 'App\Employee')
             ->where('date', '<=', Carbon::now()->subDays(0)->toDateTimeString())
-            ->where('message', 'like', '%já esta a mais de 3 meses sem nenhuma nova oportunidade, caso nenhuma oportunidade seja criada com ele nos proximos 15 dias ele será inativado.')
+            ->where('message', 'like', '%já esta a mais de 3 meses sem nenhuma nova oportunidade, caso nenhuma oportunidade seja criada com ele nos proximos 30 dias ele será inativado.')
             ->get();
 
         
@@ -420,8 +419,7 @@ class UserNotification extends Model
             // Remove a notificação e a userNoficiation relacionada a ela
             UserNotification::where('notification_id', $notification->id)->delete();
             $notification->delete();
-            
-            
+             
             FacadesDB::table('client')
                 ->where('id', $clientId)
                 ->update(['client_status_id' => 1]);
@@ -436,9 +434,8 @@ class UserNotification extends Model
                 #->where('user.active', 1)                
                 ->where(function($query) {
                     $query->where('employee.position_id', 5)
-                          ->orWhere('employee.department_id', 4);
-                })
-                ->get();
+                        ->orWhere('employee.department_id', 4);
+                })->get();
             
             // Cria notificação para employees de atendimento
             $message = "O cliente '" . $clientName . "' está disponível para novos projetos.";
