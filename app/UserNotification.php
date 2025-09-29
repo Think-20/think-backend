@@ -64,7 +64,8 @@ class UserNotification extends Model
     public static function recents()
     {
         self::checkStandByPendencies(); //Cria as stand by pendentes
-        self::checkNotificaClientesInativos(); //Cria as notificações para os clientes a masi de 30 dias sem novas oportunidades
+        self::checkNotificaClienteAgenciaInativo(); //Cria as notificações para os clientes do tipo Agência(client_type_id = 1) a mais de 30 dias sem novas oportunidades
+        self::checkNotificaClienteExpositorInativo(); //Cria as notificações para os clientes do tipo Expositor(client_type_id = 2) a mais de 30 dias sem novas oportunidades
         self::checkInativaClientesInformados(); //Inativa os clientes que foram informados do prazo de 15 dias e ainda sim n foram inativados
         
         //self::checkInativeClients(); //Tentativa antiga de inativar os clientes que não tem job
@@ -262,8 +263,9 @@ class UserNotification extends Model
         }
     }
 
-    private static function  checkNotificaClientesInativos()
+    private static function  checkNotificaClienteAgenciaInativo()
     {
+        //Adicionando validação para Cliente do tipo Agencia
         //Caso fique demorado, devolver a validação de só enviar para os proprios clientes do usuario logado
         $clients = FacadesDB::select(FacadesDB::raw("
             SELECT 
@@ -280,6 +282,7 @@ class UserNotification extends Model
                 WHERE j2.client_id = c.id
             )
             AND j.updated_at <= DATE_SUB(NOW(), INTERVAL 3 MONTH)
+            AND c.client_type_id = 1
             ORDER BY c.name ASC
         "));
 
@@ -300,10 +303,73 @@ class UserNotification extends Model
             ORDER BY c.name ASC
         "));*/
 
-        $clients = Client::where('employee_id', User::logged()->employee->id)->get();
-        if (empty($clients)) {
-            return;
+        foreach ($clients as $client) {
+            $message = "O cliente " . $client->clientName . " já esta a mais de 3 meses sem nenhuma nova oportunidade, caso nenhuma oportunidade seja criada com ele nos proximos 15 dias ele será inativado.";
+            
+            $searchNotification = Notification::where('message', $message)->where('notifier_id', User::logged()->employee->id)->first();
+            if (!$searchNotification) {
+                $notification = new Notification();
+                $notification->type_id = 2;
+                $notification->notifier_id = User::logged()->employee->id;
+                $notification->notifier_type = "App\Employee";
+                $notification->info = $client->clientId;
+                $notification->date = Carbon::now()->toDateTimeString();
+                $notification->message = $message;
+                $notification->save();
+
+                $userNotification = new UserNotification();
+                $userNotification->notification_id = $notification->id;
+                $userNotification->user_id = User::logged()->id;
+                $userNotification->special = 1;
+                $userNotification->special_message = $message;
+                $userNotification->received = 0;
+                $userNotification->received_date = null;
+                $userNotification->read = 0;
+                $userNotification->read_date = null;
+                $userNotification->save();
+            }
         }
+    }
+
+    private static function  checkNotificaClienteExpositorInativo()
+    {
+        //Adicionando validação para Cliente do tipo Expositor
+        //Caso fique demorado, devolver a validação de só enviar para os proprios clientes do usuario logado
+        $clients = FacadesDB::select(FacadesDB::raw("
+            SELECT 
+                c.id as clientId,    
+                c.name as clientName,     
+                j.updated_at
+            FROM client as c
+            JOIN employee as e ON e.id = c.employee_id
+            JOIN job as j ON j.client_id = c.id
+            WHERE e.id = " . User::logged()->id . "
+            AND j.updated_at = (
+                SELECT MAX(j2.updated_at) 
+                FROM job as j2 
+                WHERE j2.client_id = c.id
+            )
+            AND j.updated_at <= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+            AND c.client_type_id = 2
+            ORDER BY c.name ASC
+        "));
+
+        /*$clients = FacadesDB::select(FacadesDB::raw("
+            SELECT 
+                c.id as clientId,    
+                c.name as clientName,     
+                j.updated_at
+            FROM client as c
+            JOIN employee as e ON e.id = c.employee_id
+            JOIN job as j ON j.client_id = c.id
+            AND j.updated_at = (
+                SELECT MAX(j2.updated_at) 
+                FROM job as j2 
+                WHERE j2.client_id = c.id
+            )
+            AND j.updated_at <= DATE_SUB(NOW(), INTERVAL 3 MONTH)
+            ORDER BY c.name ASC
+        "));*/
 
         foreach ($clients as $client) {
             $message = "O cliente " . $client->clientName . " já esta a mais de 3 meses sem nenhuma nova oportunidade, caso nenhuma oportunidade seja criada com ele nos proximos 15 dias ele será inativado.";
