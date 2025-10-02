@@ -238,6 +238,20 @@ class TaskItem extends Model
             });
         }
 
+        $params["late"] = true;
+
+        // Filtro para itens atrasados - aplicado na query
+        if (isset($params['late']) && $params['late'] === true) {
+            $taskItems->whereHas('task', function ($query) {
+                $query->whereNotNull('job_id')
+                      ->where('done', '!=', 1)
+                      ->whereHas('items', function ($subQuery) {
+                          $subQuery->whereRaw('date < CURDATE()')
+                                   ->whereRaw('date = (SELECT MAX(date) FROM task_item WHERE task_id = task.id)');
+                      });
+            });
+        }
+
         $taskItems->orderBy('task_item.date', 'ASC');
 
         if ($paginate) {
@@ -293,7 +307,8 @@ class TaskItem extends Model
             'task.task',
             'task.task.job_activity'
         );
-
+        
+        
         if ($user->employee->department->description == 'Atendimento') {
             $tasks->whereHas('task.job', function ($query) use ($user) {
                 $query->where('attendance_id', '=', $user->employee->id);
@@ -320,6 +335,20 @@ class TaskItem extends Model
         if (!is_null($iniDate) && !is_null($finDate)) {
             $tasks->where('task_item.date', '>=', $iniDate);
             $tasks->where('task_item.date', '<=', $finDate);
+        }
+
+        $params["late"] = true;
+
+        // Filtro para itens atrasados - aplicado na query
+        if (isset($params['late']) && $params['late'] === true) {
+            $tasks->whereHas('task', function ($query) {
+                $query->whereNotNull('job_id')
+                      ->where('done', '!=', 1)
+                      ->whereHas('items', function ($subQuery) {
+                          $subQuery->whereRaw('date < CURDATE()')
+                                   ->whereRaw('date = (SELECT MAX(date) FROM task_item WHERE task_id = task.id)');
+                      });
+            });
         }
 
         $tasks->orderBy('task_item.date', 'ASC');

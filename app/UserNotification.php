@@ -68,9 +68,8 @@ class UserNotification extends Model
         self::checkNotificaClienteExpositorInativo(); //Cria as notificações para os clientes do tipo Expositor(client_type_id = 2) a mais de 30 dias sem novas oportunidades
         self::checkInativaClientesInformados(); //Inativa os clientes que foram informados do prazo de 15 dias e ainda sim n foram inativados
         
-        //self::checkInativeClients(); //Tentativa antiga de inativar os clientes que não tem job
-
-        $usersNotification = UserNotification::select('user_notification.*')
+        if (User::logged()->employee->id == 51 || User::logged()->employee->id == 55 ||  User::logged()->employee->id == 11 || User::logged()->employee->id == 52 ||  User::logged()->employee->department->description == 'Orçamento') {
+            $usersNotification = UserNotification::select('user_notification.*')
             ->with(['notification', 'notification.type', 'notification.notifier'])
             ->leftJoin('notification', 'notification.id', '=', 'user_notification.notification_id')
             ->where('user_notification.user_id', '=', User::logged()->id)
@@ -78,6 +77,17 @@ class UserNotification extends Model
             ->orderBy('notification.date', 'desc')
             ->limit(60)
             ->get();
+        }else{
+            $usersNotification = UserNotification::select('user_notification.*')
+            ->with(['notification', 'notification.type', 'notification.notifier'])
+            ->leftJoin('notification', 'notification.id', '=', 'user_notification.notification_id')
+            ->where('user_notification.user_id', '=', User::logged()->id)
+            ->where('user_notification.received', '=', '1')
+            ->orderBy('notification.date', 'desc')
+            ->limit(60)
+            ->get();
+        }
+        
 
         return [
             'pagination' => [
