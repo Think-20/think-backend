@@ -238,8 +238,6 @@ class TaskItem extends Model
             });
         }
 
-        $params["late"] = true;
-
         // Filtro para itens atrasados - aplicado na query
         if (isset($params['late']) && $params['late'] === true) {
             $taskItems->whereHas('task', function ($query) {
@@ -336,8 +334,6 @@ class TaskItem extends Model
             $tasks->where('task_item.date', '>=', $iniDate);
             $tasks->where('task_item.date', '<=', $finDate);
         }
-
-        $params["late"] = true;
 
         // Filtro para itens atrasados - aplicado na query
         if (isset($params['late']) && $params['late'] === true) {
