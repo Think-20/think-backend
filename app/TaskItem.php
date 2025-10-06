@@ -238,8 +238,8 @@ class TaskItem extends Model
             });
         }
 
-        // Filtro para itens atrasados - aplicado na query
-        if (isset($params['late']) && $params['late'] === true) {
+        if (isset($params['late']) && $params['late'] == true) {
+            #Apenas reloginho vermelho
             $taskItems->whereHas('task', function ($query) {
                 $query->whereNotNull('job_id')
                       ->where('done', '!=', 1)
@@ -247,6 +247,13 @@ class TaskItem extends Model
                           $subQuery->whereRaw('date < CURDATE()')
                                    ->whereRaw('date = (SELECT MAX(date) FROM task_item WHERE task_id = task.id)');
                       });
+            });
+        }else if (isset($params['late']) && $params['late'] == false) {
+            #Tudo menos reloginho vermelho
+            $taskItems->whereHas('task', function ($query) {
+                $query->whereNotNull('job_id')
+                      ->where('done', '=', 1)
+                      ;
             });
         }
 
@@ -335,8 +342,8 @@ class TaskItem extends Model
             $tasks->where('task_item.date', '<=', $finDate);
         }
 
-        // Filtro para itens atrasados - aplicado na query
-        if (isset($params['late']) && $params['late'] === true) {
+        if (isset($params['late']) && $params['late'] == true) {
+            #Apenas reloginho vermelho
             $tasks->whereHas('task', function ($query) {
                 $query->whereNotNull('job_id')
                       ->where('done', '!=', 1)
@@ -344,6 +351,13 @@ class TaskItem extends Model
                           $subQuery->whereRaw('date < CURDATE()')
                                    ->whereRaw('date = (SELECT MAX(date) FROM task_item WHERE task_id = task.id)');
                       });
+            });
+        }else if (isset($params['late']) && $params['late'] == false) {
+            #Tudo menos reloginho vermelho
+            $tasks->whereHas('task', function ($query) {
+                $query->whereNotNull('job_id')
+                      ->where('done', '=', 1)
+                      ;
             });
         }
 
