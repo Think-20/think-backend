@@ -351,6 +351,7 @@ class TaskItem extends Model
                           $subQuery->whereRaw('date < CURDATE()')
                                    ->whereRaw('date = (SELECT MAX(date) FROM task_item WHERE task_id = task.id)');
                       })*/;
+                      
             });
         }else if (isset($params['late']) && $params['late'] == false) {
             #Tudo menos reloginho vermelho
