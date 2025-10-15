@@ -347,10 +347,10 @@ class TaskItem extends Model
             $tasks->whereHas('task', function ($query) {
                 $query->whereNotNull('job_id')
                       ->where('done', '!=', 1)
-                      ->whereHas('items', function ($subQuery) {
+                      /*->whereHas('items', function ($subQuery) {
                           $subQuery->whereRaw('date < CURDATE()')
                                    ->whereRaw('date = (SELECT MAX(date) FROM task_item WHERE task_id = task.id)');
-                      });
+                      }*/);
             });
         }else if (isset($params['late']) && $params['late'] == false) {
             #Tudo menos reloginho vermelho

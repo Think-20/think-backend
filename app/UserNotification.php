@@ -26,8 +26,6 @@ class UserNotification extends Model
         'special',
         'special_message'
     ];
-
-
     public static function read(array $data)
     {
         DB::beginTransaction();
