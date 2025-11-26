@@ -333,24 +333,390 @@ class JobController extends Controller
     {
         return Job::filterMyJob($request->all());
     }
-
-     /*public static function allMyJob()
+     
+    public static function workflowAtendimento(Request $request)
     {
-        $jobs = Job::listMyJob();
-        return $jobs;
+        $params = $request->all();
+        $page = $request->query('page', 1);
+        
+        // Extrair filtros
+        $initialDate = isset($params['initial_date']) ? substr($params['initial_date'], 0, 10) : null;
+        $finalDate = isset($params['final_date']) ? substr($params['final_date'], 0, 10) : null;
+        $status = isset($params['status']) ? $params['status'] : null;
+        $clientName = isset($params['clientName']) ? $params['clientName'] : null;
+        $attendanceId = isset($params['attendance']['id']) ? $params['attendance']['id'] : null;
+        $creationId = isset($params['creation']['id']) ? $params['creation']['id'] : null;
+        $jobTypeId = isset($params['job_type']['id']) ? $params['job_type']['id'] : null;
+        
+        $jobs = Job::selectRaw('job.*')
+            ->with(
+                'job_activity',
+                'job_type',
+                'client',
+                'main_expectation',
+                'levels',
+                'how_come',
+                'agency',
+                'attendance',
+                'competition',
+                'files',
+                'status',
+                'creation'
+            )
+            ->with(['creation.items' => function ($query) {
+                $query->limit(1);
+            }]);
+        
+        // Filtro por status do workflow
+        if ($status == 'AGUARDANDO_CRIATIVO') {
+            // Coluna "Aguardando criativo": creation_status = 2, 3 ou 4
+            $jobs->whereIn('creation_status', [2, 3, 4]);
+        } else {
+            // Coluna "STAND-BY/CRIAÇÃO": status "stand-by" (status_id = 1) E creation_status = "backlog"
+            // Assumindo que "backlog" é null ou um valor específico - vou usar null como padrão
+            $jobs->where('status_id', '=', 1)
+                 ->where(function($query) {
+                     $query->whereNull('creation_status')
+                           ->orWhere('creation_status', '=', 0);
+                 });
+        }
+        
+        // Filtros adicionais
+        if (!is_null($clientName)) {
+            $jobs->whereHas('client', function ($query) use ($clientName) {
+                $query->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
+                $query->orWhere('name', 'LIKE', '%' . $clientName . '%');
+            });
+            $jobs->orWhere('not_client', 'LIKE', '%' . $clientName . '%');
+        }
+        
+        if (!is_null($attendanceId)) {
+            $jobs->whereHas('attendance', function ($query) use ($attendanceId) {
+                $query->where('id', '=', $attendanceId);
+            });
+        }
+        
+        if (!is_null($creationId)) {
+            $jobs->whereHas('creation', function ($query) use ($creationId) {
+                $query->where('responsible_id', '=', $creationId);
+            });
+        }
+        
+        if (!is_null($jobTypeId)) {
+            $jobs->where('job_type_id', '=', $jobTypeId);
+        }
+        
+        if (!is_null($initialDate)) {
+            $jobs->whereHas('creation.items', function ($query) use ($initialDate) {
+                $query->where('date', '>=', $initialDate);
+            });
+        }
+        
+        if (!is_null($finalDate)) {
+            $jobs->whereHas('creation.items', function ($query) use ($finalDate) {
+                $query->where('date', '<=', $finalDate);
+            });
+        }
+        
+        $jobs->orderBy('job.created_at', 'DESC');
+        
+        $paginate = $jobs->paginate(50, ['*'], 'page', $page);
+        
+        foreach ($paginate as $job) {
+            $job->responsibles();
+        }
+        
+        return Response::make(json_encode([
+            'pagination' => [
+                'data' => $paginate->items(),
+                'total' => $paginate->total(),
+                'last_page' => $paginate->lastPage()
+            ]
+        ]), 200);
     }
 
-     public static function allMyJob()
+    public static function workflowCriativo(Request $request)
     {
-        $jobs = Job::listMyJob();
-        return $jobs;
+        $params = $request->all();
+        $page = $request->query('page', 1);
+        
+        // Extrair filtros
+        $initialDate = isset($params['initial_date']) ? substr($params['initial_date'], 0, 10) : null;
+        $finalDate = isset($params['final_date']) ? substr($params['final_date'], 0, 10) : null;
+        $creationStatus = isset($params['creation_status']) ? $params['creation_status'] : null;
+        $clientName = isset($params['clientName']) ? $params['clientName'] : null;
+        $attendanceId = isset($params['attendance']['id']) ? $params['attendance']['id'] : null;
+        $creationId = isset($params['creation']['id']) ? $params['creation']['id'] : null;
+        $jobTypeId = isset($params['job_type']['id']) ? $params['job_type']['id'] : null;
+        
+        $jobs = Job::selectRaw('job.*')
+            ->with(
+                'job_activity',
+                'job_type',
+                'client',
+                'main_expectation',
+                'levels',
+                'how_come',
+                'agency',
+                'attendance',
+                'competition',
+                'files',
+                'status',
+                'creation'
+            )
+            ->with(['creation.items' => function ($query) {
+                $query->limit(1);
+            }]);
+        
+        // Job deve estar com status "stand-by/criativo" (status_id = 1)
+        $jobs->where('status_id', '=', 1);
+        
+        // Filtro por creation_status se fornecido
+        if (!is_null($creationStatus)) {
+            $jobs->where('creation_status', '=', $creationStatus);
+        }
+        
+        // Filtros adicionais
+        if (!is_null($clientName)) {
+            $jobs->whereHas('client', function ($query) use ($clientName) {
+                $query->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
+                $query->orWhere('name', 'LIKE', '%' . $clientName . '%');
+            });
+            $jobs->orWhere('not_client', 'LIKE', '%' . $clientName . '%');
+        }
+        
+        if (!is_null($attendanceId)) {
+            $jobs->whereHas('attendance', function ($query) use ($attendanceId) {
+                $query->where('id', '=', $attendanceId);
+            });
+        }
+        
+        if (!is_null($creationId)) {
+            $jobs->whereHas('creation', function ($query) use ($creationId) {
+                $query->where('responsible_id', '=', $creationId);
+            });
+        }
+        
+        if (!is_null($jobTypeId)) {
+            $jobs->where('job_type_id', '=', $jobTypeId);
+        }
+        
+        if (!is_null($initialDate)) {
+            $jobs->whereHas('creation.items', function ($query) use ($initialDate) {
+                $query->where('date', '>=', $initialDate);
+            });
+        }
+        
+        if (!is_null($finalDate)) {
+            $jobs->whereHas('creation.items', function ($query) use ($finalDate) {
+                $query->where('date', '<=', $finalDate);
+            });
+        }
+        
+        $jobs->orderBy('job.created_at', 'DESC');
+        
+        $paginate = $jobs->paginate(50, ['*'], 'page', $page);
+        
+        foreach ($paginate as $job) {
+            $job->responsibles();
+        }
+        
+        return Response::make(json_encode([
+            'pagination' => [
+                'data' => $paginate->items(),
+                'total' => $paginate->total(),
+                'last_page' => $paginate->lastPage()
+            ]
+        ]), 200);
     }
 
-     public static function allMyJob()
+    public static function workflowProducao(Request $request)
     {
-        $jobs = Job::listMyJob();
-        return $jobs;
-    }*/
+        $params = $request->all();
+        $page = $request->query('page', 1);
+        
+        // Extrair filtros
+        $initialDate = isset($params['initial_date']) ? substr($params['initial_date'], 0, 10) : null;
+        $finalDate = isset($params['final_date']) ? substr($params['final_date'], 0, 10) : null;
+        $productionStatus = isset($params['production_status']) ? $params['production_status'] : null;
+        $clientName = isset($params['clientName']) ? $params['clientName'] : null;
+        $attendanceId = isset($params['attendance']['id']) ? $params['attendance']['id'] : null;
+        $creationId = isset($params['creation']['id']) ? $params['creation']['id'] : null;
+        $jobTypeId = isset($params['job_type']['id']) ? $params['job_type']['id'] : null;
+        
+        // Verificar se o aceite financeiro do checkin foi realizado usando join
+        $jobs = Job::selectRaw('job.*')
+            ->join('checkin', 'checkin.job_id', '=', 'job.id')
+            ->where('checkin.financial_acceptance', '=', true)
+            ->distinct()
+            ->with(
+                'job_activity',
+                'job_type',
+                'client',
+                'main_expectation',
+                'levels',
+                'how_come',
+                'agency',
+                'attendance',
+                'competition',
+                'files',
+                'status',
+                'creation'
+            )
+            ->with(['creation.items' => function ($query) {
+                $query->limit(1);
+            }]);
+        
+        // Job deve estar com status "Aprovado" (status_id = 3)
+        $jobs->where('job.status_id', '=', 3);
+        
+        // Filtros adicionais
+        if (!is_null($clientName)) {
+            $jobs->whereHas('client', function ($query) use ($clientName) {
+                $query->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
+                $query->orWhere('name', 'LIKE', '%' . $clientName . '%');
+            });
+            $jobs->orWhere('job.not_client', 'LIKE', '%' . $clientName . '%');
+        }
+        
+        if (!is_null($attendanceId)) {
+            $jobs->whereHas('attendance', function ($query) use ($attendanceId) {
+                $query->where('id', '=', $attendanceId);
+            });
+        }
+        
+        if (!is_null($creationId)) {
+            $jobs->whereHas('creation', function ($query) use ($creationId) {
+                $query->where('responsible_id', '=', $creationId);
+            });
+        }
+        
+        if (!is_null($jobTypeId)) {
+            $jobs->where('job.job_type_id', '=', $jobTypeId);
+        }
+        
+        if (!is_null($initialDate)) {
+            $jobs->whereHas('creation.items', function ($query) use ($initialDate) {
+                $query->where('date', '>=', $initialDate);
+            });
+        }
+        
+        if (!is_null($finalDate)) {
+            $jobs->whereHas('creation.items', function ($query) use ($finalDate) {
+                $query->where('date', '<=', $finalDate);
+            });
+        }
+        
+        // Filtro por production_status se fornecido
+        if (!is_null($productionStatus)) {
+            $jobs->where('job.production_status', '=', $productionStatus);
+        }
+        
+        $jobs->orderBy('job.created_at', 'DESC');
+        
+        $paginate = $jobs->paginate(50, ['*'], 'page', $page);
+        
+        foreach ($paginate as $job) {
+            $job->responsibles();
+        }
+        
+        return Response::make(json_encode([
+            'pagination' => [
+                'data' => $paginate->items(),
+                'total' => $paginate->total(),
+                'last_page' => $paginate->lastPage()
+            ]
+        ]), 200);
+    }
+
+    public static function workflowCriativoUpdate(Request $request)
+    {
+        DB::beginTransaction();
+        $status = false;
+        $data = $request->all();
+        
+        try {
+            $jobId = isset($data['job_id']) ? $data['job_id'] : null;
+            $creationStatus = isset($data['creation_status']) ? $data['creation_status'] : null;
+            
+            if (is_null($jobId) || is_null($creationStatus)) {
+                throw new Exception('job_id e creation_status são obrigatórios');
+            }
+            
+            $job = Job::find($jobId);
+            
+            if (!$job) {
+                throw new Exception('Job não encontrado');
+            }
+            
+            $job->creation_status = $creationStatus;
+            
+            // Quando o job for movido para "Finalizado" no workflow criativo,
+            // o status do job deve passar para "Negociação avançada" (status_id = 5)
+            // Assumindo que creation_status = 5 representa "Finalizado"
+            // Ajuste este valor conforme a regra de negócio específica
+            if ($creationStatus == 5) {
+                $job->status_id = 5; // Negociação avançada
+            }
+            
+            $job->save();
+            
+            $message = 'Job atualizado com sucesso!';
+            $status = true;
+            DB::commit();
+        } catch (QueryException $queryException) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
+        } catch (Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
+        }
+        
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+        ]), 200);
+    }
+
+    public static function workflowProducaoUpdate(Request $request)
+    {
+        DB::beginTransaction();
+        $status = false;
+        $data = $request->all();
+        
+        try {
+            $jobId = isset($data['job_id']) ? $data['job_id'] : null;
+            $productionStatus = isset($data['production_status']) ? $data['production_status'] : null;
+            
+            if (is_null($jobId) || is_null($productionStatus)) {
+                throw new Exception('job_id e production_status são obrigatórios');
+            }
+            
+            $job = Job::find($jobId);
+            
+            if (!$job) {
+                throw new Exception('Job não encontrado');
+            }
+            
+            $job->production_status = $productionStatus;
+            $job->save();
+            
+            $message = 'Job atualizado com sucesso!';
+            $status = true;
+            DB::commit();
+        } catch (QueryException $queryException) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar no banco de dados. ' . $queryException->getMessage();
+        } catch (Exception $e) {
+            DB::rollBack();
+            $message = 'Um erro ocorreu ao atualizar: ' . $e->getMessage();
+        }
+        
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+        ]), 200);
+    }
 
         
 }

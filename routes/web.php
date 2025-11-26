@@ -410,8 +410,8 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     //Workflow
     Route::post('/workflow-atendimento?page={page}', 'JobController@workflowAtendimento');
     Route::post('/workflow-criativo?page={page}', 'JobController@workflowCriativo');
-    Route::put('/workflow-criativo', 'JobController@workflowAtendimentoUpdate');
-    Route::post('/workflow-producao?page={page}', 'JobController@workflowProcusao');
+    Route::post('/workflow-producao?page={page}', 'JobController@workflowProducao');
+    Route::put('/workflow-criativo', 'JobController@workflowCriativoUpdate');    
     Route::put('/workflow-producao', 'JobController@workflowProducaoUpdate');
     
     

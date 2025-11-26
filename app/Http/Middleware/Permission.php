@@ -22,19 +22,26 @@ class Permission
             return $funcionality['url'];
         }, $funcionalities->toArray());
 
-        if("/".$request->route()->uri == "/briefing-files/remove/{id}" || "/".$request->route()->uri == "/briefing-files/save-multiple" || "/".$request->route()->uri == "/briefing-files/download/{id}" || "/".$request->route()->uri == "/briefing-files/download-all/{taskId}"){
+        $routeUri = "/" . $request->route()->uri;
+        
+        // Permite todas as rotas de workflow
+        if(strpos($routeUri, "/workflow-") === 0) {
             return $next($request);
-        }else if("/".$request->route()->uri == "/feedback/email" || "/".$request->route()->uri == "/feedback"){
+        }
+
+        if($routeUri == "/briefing-files/remove/{id}" || $routeUri == "/briefing-files/save-multiple" || $routeUri == "/briefing-files/download/{id}" || $routeUri == "/briefing-files/download-all/{taskId}"){
             return $next($request);
-        }else if("/".$request->route()->uri == "/clients/inactive" || "/".$request->route()->uri == "/clients/subject"){
+        }else if($routeUri == "/feedback/email" || $routeUri == "/feedback"){
             return $next($request);
-        }else if("/".$request->route()->uri == "/contract-nf-files/remove/{id}" || "/".$request->route()->uri == "/contract-nf-files/save-multiple" || "/".$request->route()->uri == "/contract-nf-files/download/{id}" || "/".$request->route()->uri == "/contract-nf-files/download-all/{taskId}"){
+        }else if($routeUri == "/clients/inactive" || $routeUri == "/clients/subject"){
             return $next($request);
-        }else if("/".$request->route()->uri == "/project-photos-files/remove/{id}" || "/".$request->route()->uri == "/project-photos-files/save-multiple" || "/".$request->route()->uri == "/project-photos-files/download/{id}" || "/".$request->route()->uri == "/project-photos-files/download-all/{taskId}"){
+        }else if($routeUri == "/contract-nf-files/remove/{id}" || $routeUri == "/contract-nf-files/save-multiple" || $routeUri == "/contract-nf-files/download/{id}" || $routeUri == "/contract-nf-files/download-all/{taskId}"){
             return $next($request);
-        }else if("/".$request->route()->uri == "/my-clients/get/"){
+        }else if($routeUri == "/project-photos-files/remove/{id}" || $routeUri == "/project-photos-files/save-multiple" || $routeUri == "/project-photos-files/download/{id}" || $routeUri == "/project-photos-files/download-all/{taskId}"){
             return $next($request);
-        }else if(!in_array(('/' . $request->route()->uri), $urls)) {
+        }else if($routeUri == "/my-clients/get/"){
+            return $next($request);
+        }else if(!in_array($routeUri, $urls)) {
             if($request->isJson()) {
                 $content = json_encode([
                     'message' => 'Você não tem permissão para acessar essa função.'
