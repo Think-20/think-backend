@@ -408,9 +408,9 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::post('/jobs/performance-lite', 'JobController@performanceLite');
 
     //Workflow
-    Route::post('/workflow-atendimento?page={page}', 'JobController@workflowAtendimento');
-    Route::post('/workflow-criativo?page={page}', 'JobController@workflowCriativo');
-    Route::post('/workflow-producao?page={page}', 'JobController@workflowProducao');
+    Route::post('/workflow-atendimento', 'JobController@workflowAtendimento');
+    Route::post('/workflow-criativo', 'JobController@workflowCriativo');
+    Route::post('/workflow-producao', 'JobController@workflowProducao');
     Route::put('/workflow-criativo', 'JobController@workflowCriativoUpdate');    
     Route::put('/workflow-producao', 'JobController@workflowProducaoUpdate');
     
