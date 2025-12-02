@@ -342,12 +342,17 @@ class JobController extends Controller
         // Extrair filtros
         $initialDate = isset($params['initial_date']) ? substr($params['initial_date'], 0, 10) : null;
         $finalDate = isset($params['final_date']) ? substr($params['final_date'], 0, 10) : null;
-        $status = isset($params['status']) ? $params['status'] : null;
         $clientName = isset($params['clientName']) ? $params['clientName'] : null;
         $attendanceId = isset($params['attendance']['id']) ? $params['attendance']['id'] : null;
         $creationId = isset($params['creation']['id']) ? $params['creation']['id'] : null;
         $jobTypeId = isset($params['job_type']['id']) ? $params['job_type']['id'] : null;
         
+        if(isset($params['status'])){
+            $status = isset($params['status']) ? $params['status'] : null;
+        }else{
+            $status = isset($params['creation_status']) ? $params['creation_status'] : null;
+        }
+
         $jobs = Job::selectRaw('job.*')
             ->with(
                 'job_activity',
@@ -371,12 +376,14 @@ class JobController extends Controller
         // Filtro por status do workflow
         if ($status == 'AGUARDANDO_CRIATIVO') {
             $jobs->whereIn('creation_status', [2, 3, 4]);
-        } else {
+        } else if ($status == 1) {
             $jobs->where('status_id', '=', 1)
                  ->where(function($query) {
                      $query->whereNull('creation_status')
                            ->orWhere('creation_status', '=', 1);
                  });
+        } else {
+            $jobs->where('status_id', '=', $status);
         }
         
         // Filtros adicionais
@@ -421,6 +428,8 @@ class JobController extends Controller
             $job->responsibles();
         }
         
+        //dd($paginate->items());
+
         return Response::make(json_encode([
             'pagination' => [
                 'data' => $paginate->items(),
@@ -515,7 +524,6 @@ class JobController extends Controller
         foreach ($paginate as $job) {
             $job->responsibles();
         }
-        
         return Response::make(json_encode([
             'pagination' => [
                 'data' => $paginate->items(),
