@@ -366,18 +366,16 @@ class JobController extends Controller
             ->with(['creation.items' => function ($query) {
                 $query->limit(1);
             }]);
+            
         
         // Filtro por status do workflow
         if ($status == 'AGUARDANDO_CRIATIVO') {
-            // Coluna "Aguardando criativo": creation_status = 2, 3 ou 4
             $jobs->whereIn('creation_status', [2, 3, 4]);
         } else {
-            // Coluna "STAND-BY/CRIAÇÃO": status "stand-by" (status_id = 1) E creation_status = "backlog"
-            // Assumindo que "backlog" é null ou um valor específico - vou usar null como padrão
             $jobs->where('status_id', '=', 1)
                  ->where(function($query) {
                      $query->whereNull('creation_status')
-                           ->orWhere('creation_status', '=', 0);
+                           ->orWhere('creation_status', '=', 1);
                  });
         }
         
@@ -395,7 +393,7 @@ class JobController extends Controller
                 $query->where('id', '=', $attendanceId);
             });
         }
-        
+
         if (!is_null($creationId)) {
             $jobs->whereHas('creation', function ($query) use ($creationId) {
                 $query->where('responsible_id', '=', $creationId);
@@ -405,19 +403,16 @@ class JobController extends Controller
         if (!is_null($jobTypeId)) {
             $jobs->where('job_type_id', '=', $jobTypeId);
         }
-        
+
         if (!is_null($initialDate)) {
-            $jobs->whereHas('creation.items', function ($query) use ($initialDate) {
-                $query->where('date', '>=', $initialDate);
-            });
+            
+            $jobs->whereDate('job.created_at', '>=', $initialDate);
         }
-        
+
         if (!is_null($finalDate)) {
-            $jobs->whereHas('creation.items', function ($query) use ($finalDate) {
-                $query->where('date', '<=', $finalDate);
-            });
+            $jobs->whereDate('job.created_at', '<=', $finalDate);
         }
-        
+
         $jobs->orderBy('job.created_at', 'DESC');
         
         $paginate = $jobs->paginate(50, ['*'], 'page', $page);
