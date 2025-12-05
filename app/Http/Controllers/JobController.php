@@ -372,7 +372,6 @@ class JobController extends Controller
                 $query->limit(1);
             }]);
             
-        
         // Filtro por status do workflow
         if ($status == 'AGUARDANDO_CRIATIVO') {
             $jobs->whereIn('creation_status', [2, 3, 4]);
@@ -388,11 +387,13 @@ class JobController extends Controller
         
         // Filtros adicionais
         if (!is_null($clientName)) {
-            $jobs->whereHas('client', function ($query) use ($clientName) {
-                $query->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
-                $query->orWhere('name', 'LIKE', '%' . $clientName . '%');
+            $jobs->where(function($query) use ($clientName) {
+                $query->whereHas('client', function ($q) use ($clientName) {
+                    $q->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
+                    $q->orWhere('name', 'LIKE', '%' . $clientName . '%');
+                });
+                $query->orWhere('not_client', 'LIKE', '%' . $clientName . '%');
             });
-            $jobs->orWhere('not_client', 'LIKE', '%' . $clientName . '%');
         }
         
         if (!is_null($attendanceId)) {
@@ -428,8 +429,6 @@ class JobController extends Controller
             $job->responsibles();
         }
         
-        //dd($paginate->items());
-
         return Response::make(json_encode([
             'pagination' => [
                 'data' => $paginate->items(),
@@ -482,11 +481,13 @@ class JobController extends Controller
         
         // Filtros adicionais
         if (!is_null($clientName)) {
-            $jobs->whereHas('client', function ($query) use ($clientName) {
-                $query->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
-                $query->orWhere('name', 'LIKE', '%' . $clientName . '%');
+            $jobs->where(function($query) use ($clientName) {
+                $query->whereHas('client', function ($q) use ($clientName) {
+                    $q->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
+                    $q->orWhere('name', 'LIKE', '%' . $clientName . '%');
+                });
+                $query->orWhere('not_client', 'LIKE', '%' . $clientName . '%');
             });
-            $jobs->orWhere('not_client', 'LIKE', '%' . $clientName . '%');
         }
         
         if (!is_null($attendanceId)) {
@@ -575,11 +576,13 @@ class JobController extends Controller
         
         // Filtros adicionais
         if (!is_null($clientName)) {
-            $jobs->whereHas('client', function ($query) use ($clientName) {
-                $query->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
-                $query->orWhere('name', 'LIKE', '%' . $clientName . '%');
+            $jobs->where(function($query) use ($clientName) {
+                $query->whereHas('client', function ($q) use ($clientName) {
+                    $q->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
+                    $q->orWhere('name', 'LIKE', '%' . $clientName . '%');
+                });
+                $query->orWhere('job.not_client', 'LIKE', '%' . $clientName . '%');
             });
-            $jobs->orWhere('job.not_client', 'LIKE', '%' . $clientName . '%');
         }
         
         if (!is_null($attendanceId)) {
