@@ -290,6 +290,27 @@ class TaskItem extends Model
         $iniDate = isset($params['iniDate']) ? $params['iniDate'] : null;
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
         $paginate = isset($params['paginate']) ? $params['paginate'] : true;
+        $clientName = isset($params['clientName']) && !empty($params['clientName']) ? $params['clientName'] : null;
+        
+        $statusArrayId = isset($params['status_array']) && !empty($params['status_array']) ? array_map(function ($v) {
+            return $v['id'];
+        }, $params['status_array']) : null;
+        $attendanceArrayId = isset($params['attendance_array']) && !empty($params['attendance_array']) ? array_map(function ($v) {
+            return $v['id'];
+        }, $params['attendance_array']) : null;
+        $jobTypeArrayId = isset($params['job_type_array']) && !empty($params['job_type_array']) ? array_map(function ($v) {
+            return $v['id'];
+        }, $params['job_type_array']) : null;
+        $jobActivityArrayId = isset($params['job_activity_array']) && !empty($params['job_activity_array']) ? array_map(function ($v) {
+            return $v['id'];
+        }, $params['job_activity_array']) : null;
+        $responsibleArrayId = isset($params['responsible_array']) && !empty($params['responsible_array']) ? array_map(function ($v) {
+            return $v['id'];
+        }, $params['responsible_array']) : null;
+        $departmentArrayId = isset($params['department_array']) && !empty($params['department_array']) ? array_map(function ($v) {
+            return $v['id'];
+        }, $params['department_array']) : null;
+        
         $attendances = [];
 
         if (isset($params['attendance_array'])) {
@@ -325,7 +346,7 @@ class TaskItem extends Model
                 });
             }
             
-            //Mescla por enquanto para que as task que sejam pro Bruno ou pra Pamela, sejam vistas por ambos
+            //Mescla por enquanto para que as task que sejam pra Camila ou pra Pamela, sejam vistas por ambas
             if (User::logged()->employee->id == 51 || User::logged()->employee->id == 55 ||  User::logged()->employee->id == 11 || User::logged()->employee->id == 52 ||  User::logged()->employee->department->description == 'Orçamento') {
                 $tasks->whereHas('task', function ($query) use ($user) {
                     $query->where('responsible_id', '=', 11)->orWhere('responsible_id', '=', 51)->orWhere('responsible_id', '=', 55)->orWhere('responsible_id', '=', 52);
@@ -342,16 +363,57 @@ class TaskItem extends Model
             $tasks->where('task_item.date', '<=', $finDate);
         }
 
+        if (!is_null($jobTypeArrayId)) {
+            $tasks->whereHas('task.job.job_type', function ($query) use ($jobTypeArrayId) {
+                $query->whereIn('id', $jobTypeArrayId);
+            });
+        }
+
+        if (!is_null($statusArrayId)) {
+            $tasks->whereHas('task.job', function ($query) use ($statusArrayId) {
+                $query->whereIn('status_id', $statusArrayId);
+            });
+        }
+
+        if (!is_null($jobActivityArrayId)) {
+            $tasks->whereHas('task', function ($query) use ($jobActivityArrayId) {
+                $query->whereIn('task.job_activity_id', $jobActivityArrayId);
+            });
+        }
+
+        if (!is_null($responsibleArrayId)) {
+            $tasks->whereHas('task', function ($query) use ($responsibleArrayId) {
+                $query->whereIn('task.responsible_id', $responsibleArrayId);
+            });
+        }
+
+        if (!is_null($departmentArrayId)) {
+            $tasks->whereHas('task.responsible', function ($query) use ($departmentArrayId) {
+                $query->whereIn('department_id', $departmentArrayId);
+            });
+        }
+
+        if (!is_null($clientName)) {
+            $tasks->where(function($query) use ($clientName) {
+                $query->whereHas('task.job.client', function ($q) use ($clientName) {
+                    $q->where('fantasy_name', 'LIKE', '%' . $clientName . '%');
+                    $q->orWhere('name', 'LIKE', '%' . $clientName . '%');
+                });
+                $query->orWhereHas('task.job', function ($q) use ($clientName) {
+                    $q->where('not_client', 'LIKE', '%' . $clientName . '%');
+                });
+            });
+        }
+
         if (isset($params['late']) && $params['late'] == true) {
             #Apenas reloginho vermelho
             $tasks->whereHas('task', function ($query) {
                 $query->whereNotNull('job_id')
                       ->where('done', '!=', 1)
-                      /*->whereHas('items', function ($subQuery) {
+                      ->whereHas('items', function ($subQuery) {
                           $subQuery->whereRaw('date < CURDATE()')
                                    ->whereRaw('date = (SELECT MAX(date) FROM task_item WHERE task_id = task.id)');
-                      })*/;
-                      
+                      });
             });
         }else if (isset($params['late']) && $params['late'] == false) {
             #Tudo menos reloginho vermelho
