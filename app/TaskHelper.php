@@ -91,29 +91,31 @@ class TaskHelper
         $responsibleToUse = null;
         
         if ($onlyResponsible !== null) {
-            $responsibleToUse = $onlyResponsible;
+            $responsibleId = $onlyResponsible->id == 11 ? 55 : $onlyResponsible->id;
+            $responsibleToUse = Employee::find($responsibleId);
         } else if ($job !== null) {
             try {
                 $initialTask = $job->initialTask();
                 if ($initialTask && $initialTask->responsible_id) {
-                    $responsibleToUse = Employee::find($initialTask->responsible_id);
+                    $responsibleId = $initialTask->responsible_id == 11 ? 55 : $initialTask->responsible_id;
+                    $responsibleToUse = Employee::find($responsibleId);
                 }
             } catch (\Exception $e) {
             }
         }
         
         if ($responsibleToUse !== null) {
-            if (!$responsibles->contains(function ($res) use ($responsibleToUse) {
+            if ($responsibleToUse && !$responsibles->contains(function ($res) use ($responsibleToUse) {
                 return $res->id == $responsibleToUse->id;
             })) {
                 $responsibles->push($responsibleToUse);
             }
         } else {
-            $pamela = Employee::find(11);
-            if ($pamela && !$responsibles->contains(function ($res) {
-                return $res->id == 11;
+            $camila = Employee::find(55);
+            if ($camila && !$responsibles->contains(function ($res) {
+                return $res->id == 55;
             })) {
-                $responsibles->push($pamela);
+                $responsibles->push($camila);
             }
         }
 
