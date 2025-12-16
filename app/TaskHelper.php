@@ -88,6 +88,35 @@ class TaskHelper
 
         $responsibles = $jobActivity->responsibles;
 
+        $responsibleToUse = null;
+        
+        if ($onlyResponsible !== null) {
+            $responsibleToUse = $onlyResponsible;
+        } else if ($job !== null) {
+            try {
+                $initialTask = $job->initialTask();
+                if ($initialTask && $initialTask->responsible_id) {
+                    $responsibleToUse = Employee::find($initialTask->responsible_id);
+                }
+            } catch (\Exception $e) {
+            }
+        }
+        
+        if ($responsibleToUse !== null) {
+            if (!$responsibles->contains(function ($res) use ($responsibleToUse) {
+                return $res->id == $responsibleToUse->id;
+            })) {
+                $responsibles->push($responsibleToUse);
+            }
+        } else {
+            $pamela = Employee::find(11);
+            if ($pamela && !$responsibles->contains(function ($res) {
+                return $res->id == 11;
+            })) {
+                $responsibles->push($pamela);
+            }
+        }
+
         if ($responsibles->count() === 0) {
             throw new Exception('Não há responsáveis para essa atividade.');
         }
