@@ -239,17 +239,11 @@ class TaskItem extends Model
         }
 
         if (isset($params['late']) && $params['late'] == true) {
-            #Apenas reloginho vermelho
             $taskItems->whereHas('task', function ($query) {
                 $query->whereNotNull('job_id')
-                      ->where('done', '!=', 1)
-                      ->whereHas('items', function ($subQuery) {
-                          $subQuery->whereRaw('date < CURDATE()')
-                                   ->whereRaw('date = (SELECT MAX(date) FROM task_item WHERE task_id = task.id)');
-                      });
+                      ->where('done', '!=', 1);
             });
         }else if (isset($params['late']) && $params['late'] == false) {
-            #Tudo menos reloginho vermelho
             $taskItems->whereHas('task', function ($query) {
                 $query->whereNotNull('job_id')
                       ->where('done', '=', 1)
@@ -406,17 +400,11 @@ class TaskItem extends Model
         }
 
         if (isset($params['late']) && $params['late'] == true) {
-            #Apenas reloginho vermelho
             $tasks->whereHas('task', function ($query) {
                 $query->whereNotNull('job_id')
-                      ->where('done', '!=', 1)
-                      ->whereHas('items', function ($subQuery) {
-                          $subQuery->whereRaw('date < CURDATE()')
-                                   ->whereRaw('date = (SELECT MAX(date) FROM task_item WHERE task_id = task.id)');
-                      });
+                      ->where('done', '!=', 1);
             });
         }else if (isset($params['late']) && $params['late'] == false) {
-            #Tudo menos reloginho vermelho
             $tasks->whereHas('task', function ($query) {
                 $query->whereNotNull('job_id')
                       ->where('done', '=', 1)
