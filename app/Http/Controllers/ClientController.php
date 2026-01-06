@@ -60,13 +60,7 @@ class ClientController extends Controller
                 }
             }
 
-            $job = Job::where('agency_id', $id)->get();
-            if(!$job->isEmpty()){
-                foreach($job as $log){
-                    DB::table('job_level_job')->where('job_id', $log->id)->delete();
-                    Job::remove($log->id);
-                }
-            }
+            self::deleteJobsByClientId($id);
 
             $client = Client::remove($id);
             $message = 'Cliente deletado com sucesso!';
@@ -162,6 +156,7 @@ class ClientController extends Controller
         $status = false;
 
         try {
+            self::deleteJobsByClientId($id);
             $client = Client::removeMyClient($id);
             $message = 'Cliente deletado com sucesso!';
             $status = true;
@@ -175,6 +170,19 @@ class ClientController extends Controller
             'message' => $message,
             'status' => $status,
          ]), 200);
+    }
+
+    private static function deleteJobsByClientId(int $clientId): void
+    {
+        $jobs = Job::where(function($query) use ($clientId) {
+            $query->where('client_id', $clientId)
+                  ->orWhere('agency_id', $clientId);
+        })->get();
+
+        foreach($jobs as $job){
+            DB::table('job_level_job')->where('job_id', $job->id)->delete();
+            Job::remove($job->id);
+        }
     }
 
     public static function getMyClient(int $id) {
