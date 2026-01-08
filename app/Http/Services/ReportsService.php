@@ -165,12 +165,12 @@ class ReportsService
                             CASE
                                 WHEN 
                                     (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
-                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
-                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
-                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
-                                ELSE final_value
+                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN COALESCE(final_value, budget_value)
+                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN COALESCE(final_value, budget_value) * ((100 - comission_percentage) / 100)
+                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN COALESCE(final_value, budget_value) * (comission_percentage / 100)
+                                ELSE COALESCE(final_value, budget_value)
                             END
-                        ELSE final_value
+                        ELSE COALESCE(final_value, budget_value)
                     END
                 ) as sum')
             )->first();
@@ -769,11 +769,8 @@ class ReportsService
         return $result;
     }
 
-    //Função responsavel por somar os valores de todos os jobs independente do status
     public function GetAllBudgets($data)
     {
-        // Soma todos os jobs (incluindo stand-by), priorizando valor aprovado
-        // e usando o valor previsto apenas se não houver aprovado.
         $jobs = Job::select(
             DB::raw('COUNT(*) as count'),
             DB::raw('COALESCE(sum(ifnull(final_value, budget_value)), 0) as sum')
