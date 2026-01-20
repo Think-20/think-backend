@@ -77,6 +77,7 @@ class Employee extends Model implements NotifierInterface
         $deleted = isset($data['deleted']) ? $data['deleted'] : null;
 
         $query = Employee::with('user', 'position', 'department')
+        ->where('employee.id', '!=', 11)
         ->orderBy('name', 'asc');
 
         if($deleted) {
@@ -133,6 +134,7 @@ class Employee extends Model implements NotifierInterface
         ->join('user_functionality', 'user_functionality.user_id', '=', 'user.id')
         ->where('user_functionality.functionality_id', '=', $insertClients->id)
         ->orWhere('user_functionality.functionality_id', '=', $insertMyClients->id)
+        ->where('employee.id', '!=', 11)
         ->orderBy('name', 'asc')
         ->distinct();
 
@@ -163,7 +165,8 @@ class Employee extends Model implements NotifierInterface
             $query->where('position_id', '=', $positionId);
         }
 
-        $query->orderBy('name', 'asc');
+        $query->where('employee.id', '!=', 11)
+              ->orderBy('name', 'asc');
 
         if($deleted) {
             $query->withTrashed();
