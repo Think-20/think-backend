@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class ReportsService
 {
-    public static function baseQuery($data)
+    public static function baseQuery($data, $useEventDate = false)
     {
 
 
@@ -97,17 +97,8 @@ class ReportsService
             });
         }
 
-        if (isset($data['date_init'])) {
-            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
-        }
-
-        if (isset($data['date_end'])) {
-            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
-        }
+        // Aplica filtro de data (evento ou criação)
+        $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
 
         if ((User::logged()->employee->department->description != "Diretoria" && User::logged()->employee->department->description != "Planejamento")) {
             $jobs->where(function ($query) {
@@ -126,31 +117,67 @@ class ReportsService
         return $jobs;
     }
 
-    public static function queryNoUserFilter($data)
+    public static function queryNoUserFilter($data, $useEventDate = false)
     {
         $jobs = Job::selectRaw('job.*');
 
-        if (isset($data['date_init'])) {
-            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
-        }
+        // Aplica filtro de data (evento ou criação)
+        $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
 
-        if (isset($data['date_end'])) {
-            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+        return $jobs;
+    }
+
+    // Função auxiliar para aplicar filtro de data
+    // Se $useEventDate = true, usa a data do evento (dt_event)
+    // Se $useEventDate = false, usa a data de criação (created_at)
+    private static function applyDateFilter($jobs, $data, $useEventDate = false)
+    {
+        if ($useEventDate) {
+            // Filtra pela data do evento (quando o projeto vai acontecer)
+            $jobs->leftJoin('task', function($join) {
+                $join->on('job.id', '=', 'task.job_id')
+                     ->whereRaw('task.id = (SELECT t.id FROM task t WHERE t.job_id = job.id ORDER BY t.created_at ASC LIMIT 1)');
+            });
+
+            if (isset($data['date_init'])) {
+                $dateInit = Carbon::parse($data['date_init'])->format('Y-m-d');
+                $jobs->whereRaw('COALESCE(task.dt_event, task.dt_inicio_event, job.created_at) >= ?', [$dateInit]);
+            } else {
+                $dateInit = Carbon::now()->startOfYear()->format('Y-m-d');
+                $jobs->whereRaw('COALESCE(task.dt_event, task.dt_inicio_event, job.created_at) >= ?', [$dateInit]);
+            }
+
+            if (isset($data['date_end'])) {
+                $dateEnd = Carbon::parse($data['date_end'])->format('Y-m-d');
+                $jobs->whereRaw('COALESCE(task.dt_event, task.dt_inicio_event, job.created_at) <= ?', [$dateEnd]);
+            } else {
+                $dateEnd = Carbon::now()->endOfMonth()->format('Y-m-d');
+                $jobs->whereRaw('COALESCE(task.dt_event, task.dt_inicio_event, job.created_at) <= ?', [$dateEnd]);
+            }
         } else {
-            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+            // Filtra pela data de criação (comportamento original)
+            if (isset($data['date_init'])) {
+                $jobs->where('job.created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
+            } else {
+                $jobs->where('job.created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
+            }
+
+            if (isset($data['date_end'])) {
+                $jobs->where('job.created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
+            } else {
+                $jobs->where('job.created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
+            }
         }
 
         return $jobs;
     }
 
-    public static function sumBudgetValue($data)
+    public static function sumBudgetValue($data, $useEventDate = false)
     {
         if (isset($data['userFilter']) && $data['userFilter'] == false) {
-            $jobs = self::queryNoUserFilter($data);
+            $jobs = self::queryNoUserFilter($data, $useEventDate);
         } else {
-            $jobs = self::baseQuery($data);
+            $jobs = self::baseQuery($data, $useEventDate);
         }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
@@ -165,12 +192,12 @@ class ReportsService
                             CASE
                                 WHEN 
                                     (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
-                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
-                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
-                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
-                                ELSE final_value
+                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN COALESCE(final_value, budget_value)
+                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN COALESCE(final_value, budget_value) * ((100 - comission_percentage) / 100)
+                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN COALESCE(final_value, budget_value) * (comission_percentage / 100)
+                                ELSE COALESCE(final_value, budget_value)
                             END
-                        ELSE final_value
+                        ELSE COALESCE(final_value, budget_value)
                     END
                 ) as sum')
             )->first();
@@ -260,12 +287,12 @@ class ReportsService
         return ["sum" => $resp['sum'] != null ? $resp['sum'] : 0, "count" => $resp['count'] > 0 ? $resp['count'] : 0];
     }
 
-    public static function sumBudgetValueApproveds($data)
+    public static function sumBudgetValueApproveds($data, $useEventDate = false)
     {
         if (isset($data['userFilter']) && $data['userFilter'] == false) {
-            $jobs = self::queryNoUserFilter($data);
+            $jobs = self::queryNoUserFilter($data, $useEventDate);
         } else {
-            $jobs = self::baseQuery($data);
+            $jobs = self::baseQuery($data, $useEventDate);
         }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
@@ -294,12 +321,12 @@ class ReportsService
         return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
     }
 
-    public static function sumTimeToAproval($data)
+    public static function sumTimeToAproval($data, $useEventDate = false)
     {
         if (isset($data['userFilter']) && $data['userFilter'] == false) {
-            $jobs = self::queryNoUserFilter($data);
+            $jobs = self::queryNoUserFilter($data, $useEventDate);
         } else {
-            $jobs = self::baseQuery($data);
+            $jobs = self::baseQuery($data, $useEventDate);
         }
 
         $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.time_to_aproval) as sum'))->first();
@@ -309,12 +336,12 @@ class ReportsService
         return $count > 0 ? round($sum / $count) : 0;
     }
 
-    public static function sumGeneralTimeToAproval($data)
+    public static function sumGeneralTimeToAproval($data, $useEventDate = false)
     {
         if (isset($data['userFilter']) && $data['userFilter'] == false) {
-            $jobs = self::queryNoUserFilter($data);
+            $jobs = self::queryNoUserFilter($data, $useEventDate);
         } else {
-            $jobs = self::baseQuery($data);
+            $jobs = self::baseQuery($data, $useEventDate);
         }
         $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.time_to_aproval) as sum'))->first();
         $count = $result->count > 0 ? $result->count : 0;
@@ -323,12 +350,12 @@ class ReportsService
         return round($sum / $count);
     }
 
-    public static function sumAprovals($data)
+    public static function sumAprovals($data, $useEventDate = false)
     {
         if (isset($data['userFilter']) && $data['userFilter'] == false) {
-            $jobs = self::queryNoUserFilter($data);
+            $jobs = self::queryNoUserFilter($data, $useEventDate);
         } else {
-            $jobs = self::baseQuery($data);
+            $jobs = self::baseQuery($data, $useEventDate);
         }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
@@ -366,16 +393,16 @@ class ReportsService
         return round($sum / $count);
     }
 
-    public static function sumStandby($data)
+    public static function sumStandby($data, $useEventDate = false)
     {
         if (isset($data['userFilter']) && $data['userFilter'] == false) {
-            $jobs = self::queryNoUserFilter($data);
+            $jobs = self::queryNoUserFilter($data, $useEventDate);
         } else {
-            $jobs = self::baseQuery($data);
+            $jobs = self::baseQuery($data, $useEventDate);
         }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
-            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 1)->first();
+            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(sum(ifnull(final_value, budget_value)), 0) as sum'))->where('status_id', 1)->first();
         } else {
             $result = $jobs->select(
                 DB::raw('COUNT(*) as count'),
@@ -385,12 +412,12 @@ class ReportsService
                             CASE
                                 WHEN 
                                     (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
-                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
-                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
-                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
-                                ELSE final_value
+                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN COALESCE(final_value, budget_value)
+                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN COALESCE(final_value, budget_value) * ((100 - comission_percentage) / 100)
+                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN COALESCE(final_value, budget_value) * (comission_percentage / 100)
+                                ELSE COALESCE(final_value, budget_value)
                             END
-                        ELSE final_value
+                        ELSE COALESCE(final_value, budget_value)
                     END
                 ) as sum')
             )->where('status_id', 1)->first();
@@ -402,12 +429,12 @@ class ReportsService
         return ["sum" => number_format($result->sum, 2, ',', '.'), "count" => $result->count];
     }
 
-    public static function getTypes($data)
+    public static function getTypes($data, $useEventDate = false)
     {
         if (isset($data['userFilter']) && $data['userFilter'] == false) {
-            $jobs = self::queryNoUserFilter($data);
+            $jobs = self::queryNoUserFilter($data, $useEventDate);
         } else {
-            $jobs = self::baseQuery($data);
+            $jobs = self::baseQuery($data, $useEventDate);
         }
 
         $countStand = clone $jobs;
@@ -445,15 +472,15 @@ class ReportsService
         return $counts;
     }
 
-    public static function averageApprovedJobsPerMonth($data)
+    public static function averageApprovedJobsPerMonth($data, $useEventDate = false)
     {
         // Calcula a diferença de meses
         $monthsPassed = self::monthDiff($data);
 
         if (isset($data['userFilter']) && $data['userFilter'] == false) {
-            $baseQuery = self::queryNoUserFilter($data);
+            $baseQuery = self::queryNoUserFilter($data, $useEventDate);
         } else {
-            $baseQuery = self::baseQuery($data);
+            $baseQuery = self::baseQuery($data, $useEventDate);
         }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
@@ -518,12 +545,12 @@ class ReportsService
         return $monthsPassed;
     }
 
-    public static function averageAdvancedJobsPerMonth($data)
+    public static function averageAdvancedJobsPerMonth($data, $useEventDate = false)
     {
         if (isset($data['userFilter']) && $data['userFilter'] == false) {
-            $jobs = self::queryNoUserFilter($data);
+            $jobs = self::queryNoUserFilter($data, $useEventDate);
         } else {
-            $jobs = self::baseQuery($data);
+            $jobs = self::baseQuery($data, $useEventDate);
         }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
@@ -554,9 +581,9 @@ class ReportsService
         return ["sum" => number_format($result->sum, 2, ',', '.'), "count" => $result->count];
     }
 
-    public static function averageTicket($data)
+    public static function averageTicket($data, $useEventDate = false)
     {
-        $total_value = self::sumBudgetValue($data);
+        $total_value = self::sumBudgetValue($data, $useEventDate);
 
         if ($total_value['count'] > 0) {
             return $total_value['sum'] / $total_value['count'];
@@ -748,88 +775,53 @@ class ReportsService
     }
 
     //Função responsavel por somar os valores de todos os jobs aprovados
-    public function GetApproveds($data)
+    public function GetApproveds($data, $useEventDate = false)
     {
         $jobs =  Job::where('status_id', 3);
-        $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(SUM(job.final_value), 0) as sum'));
+        $jobs->select(DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('COALESCE(SUM(job.final_value), 0) as sum'));
 
-        if (isset($data['date_init'])) {
-            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
-        }
+        // Aplica filtro de data
+        $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
 
-        if (isset($data['date_end'])) {
-            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
-        }
         $result = $jobs->first();
 
         return $result;
     }
 
-    //Função responsavel por somar os valores de todos os jobs independente do status
-    public function GetAllBudgets($data)
+    public function GetAllBudgets($data, $useEventDate = false)
     {
-        $jobs = Job::select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(sum(ifnull(final_value, budget_value)), 0) as sum'));
-        $jobs->where('status_id', '!=', 1);
+        $jobs = Job::select(
+            DB::raw('COUNT(DISTINCT job.id) as count'),
+            DB::raw('COALESCE(sum(ifnull(job.final_value, job.budget_value)), 0) as sum')
+        );
 
-        if (isset($data['date_init'])) {
-            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
-        }
-
-        if (isset($data['date_end'])) {
-            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
-        }
-
+        // Aplica filtro de data
+        $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
 
         $result = $jobs->first();
         return $result;
     }
 
-    public function GetLastApproveds($data)
+    public function GetLastApproveds($data, $useEventDate = false)
     {
         $jobs = Job::where('status_id', 3);
-        $jobs->select("*")->orderBy('created_at', 'desc');;
+        $jobs->select("job.*")->orderBy('job.created_at', 'desc');
 
-        if (isset($data['date_init'])) {
-            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
-        }
+        // Aplica filtro de data
+        $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
 
-        if (isset($data['date_end'])) {
-            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
-        }
         $result = $jobs->get();
         return $result;
     }
 
-    public function GetByCategories($data)
+    public function GetByCategories($data, $useEventDate = false)
     {
-        $jobs = $this->baseQuery([]);
         $jobs = Job::where('status_id', "<>", 2)
-            ->select('job_type_id', DB::raw('COUNT(*) as count'), DB::raw('SUM(final_value) as sum'))
-            ->groupBy('job_type_id');
+            ->select('job.job_type_id', DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('SUM(job.final_value) as sum'))
+            ->groupBy('job.job_type_id');
 
-        if (isset($data['date_init'])) {
-            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
-        }
-
-        if (isset($data['date_end'])) {
-            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
-        }
+        // Aplica filtro de data
+        $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
 
         $results = $jobs->get();
 
@@ -852,76 +844,52 @@ class ReportsService
         return $formattedResults;
     }
 
-    public function GetAdvanceds($data)
+    public function GetAdvanceds($data, $useEventDate = false)
     {
         $jobs =  Job::where('status_id', 5);
 
-        $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('sum(ifnull(final_value, budget_value))  as sum'));
+        $jobs->select(DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('sum(ifnull(job.final_value, job.budget_value))  as sum'));
 
-        if (isset($data['date_init'])) {
-            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
-        }
+        // Aplica filtro de data
+        $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
 
-        if (isset($data['date_end'])) {
-            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
-        }
         $result = $jobs->first();
 
         return $result;
     }
 
-    public function GetStandbys($data)
+    public function GetStandbys($data, $useEventDate = false)
     {
         $jobs =  Job::where('status_id', 1);
 
-        $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(ifnull(job.final_value, job.budget_value)) as sum'));
+        $jobs->select(DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('SUM(ifnull(job.final_value, job.budget_value)) as sum'));
 
-        if (isset($data['date_init'])) {
-            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
-        }
+        // Aplica filtro de data
+        $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
 
-        if (isset($data['date_end'])) {
-            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
-        }
         $result = $jobs->first();
 
         return $result;
     }
 
-    public function GetReproveds($data)
+    public function GetReproveds($data, $useEventDate = false)
     {
         $jobs =  Job::where('status_id', 4);
 
-        $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'));
+        $jobs->select(DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('SUM(job.final_value) as sum'));
 
-        if (isset($data['date_init'])) {
-            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
-        }
+        // Aplica filtro de data
+        $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
 
-        if (isset($data['date_end'])) {
-            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
-        }
         $result = $jobs->first();
 
         return $result;
     }
 
-    public function GetAdjusts($data)
+    public function GetAdjusts($data, $useEventDate = false)
     {
         $jobs = Job::where('status_id', 1);
-        $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))
+        $jobs->select(DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('SUM(job.final_value) as sum'))
             ->whereHas('tasks', function ($query) {
                 $query->whereHas('job_activity', function ($innerQuery) {
                     $innerQuery->where('description', 'like', '%Modificação%');
@@ -929,17 +897,9 @@ class ReportsService
             })
             ->with('tasks.job_activity', 'tasks.responsible');
 
-        if (isset($data['date_init'])) {
-            $jobs->where('created_at', '>=', Carbon::parse($data['date_init'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '>=', Carbon::now()->startOfYear()->format('Y-m-d'));
-        }
+        // Aplica filtro de data
+        $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
 
-        if (isset($data['date_end'])) {
-            $jobs->where('created_at', '<=', Carbon::parse($data['date_end'])->format('Y-m-d'));
-        } else {
-            $jobs->where('created_at', '<=', Carbon::now()->endOfMonth()->format('Y-m-d'));
-        }
         $result = $jobs->first();
 
         return $result;

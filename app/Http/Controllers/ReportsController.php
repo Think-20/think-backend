@@ -61,11 +61,11 @@ class ReportsController extends Controller
 
         if ($loggedDepartament->department_id == 1) {
             //Caso o usuario seja dos departamentos acima, quer dizer que pode ver todos os dados de relatório
-            $jobs = $this->reportsService->baseQuery($data)->orderBy('created_at', 'asc')
+            $jobs = $this->reportsService->baseQuery($data, true)->orderBy('created_at', 'asc')
                 ->paginate($jobsPerPage);
         } else {
             //Caso o usuário não seja dos departamentos do IF, quer dizer que ele só pode ver dos jobs em que faz parte.
-            $jobs = $this->reportsService->baseQuery($data)->where('attendance_id', $loggedDepartament->id)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
+            $jobs = $this->reportsService->baseQuery($data, true)->where('attendance_id', $loggedDepartament->id)->orderBy('created_at', 'asc')->paginate($jobsPerPage);
         }
 
 
@@ -124,14 +124,14 @@ class ReportsController extends Controller
             return $job;
         });
 
-        $total_value = $this->reportsService->sumBudgetValue($data);
-        $standby = $this->reportsService->sumStandby($data);
-        $types = $this->reportsService->getTypes($data);
-        $averageTimeToAproval = $this->reportsService->sumTimeToAproval($data);
-        $aprovalsAmount = $this->reportsService->sumAprovals($data);
-        $approvedJobs = $this->reportsService->averageApprovedJobsPerMonth($data);
-        $advancedJobs = $this->reportsService->averageAdvancedJobsPerMonth($data);
-        $average_ticket = $this->reportsService->averageTicket($data);
+        $total_value = $this->reportsService->sumBudgetValue($data, true);
+        $standby = $this->reportsService->sumStandby($data, true);
+        $types = $this->reportsService->getTypes($data, true);
+        $averageTimeToAproval = $this->reportsService->sumTimeToAproval($data, true);
+        $aprovalsAmount = $this->reportsService->sumAprovals($data, true);
+        $approvedJobs = $this->reportsService->averageApprovedJobsPerMonth($data, true);
+        $advancedJobs = $this->reportsService->averageAdvancedJobsPerMonth($data, true);
+        $average_ticket = $this->reportsService->averageTicket($data, true);
 
         if ($total_value['sum'] > 0) {
             $conversionRate = round(($aprovalsAmount['sum'] / $total_value['sum']) * 100) . "%";
