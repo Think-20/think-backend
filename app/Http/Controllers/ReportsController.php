@@ -74,6 +74,15 @@ class ReportsController extends Controller
         }
 
         foreach ($jobs as &$job) {
+            // Adiciona as datas de evento da primeira task (se houver)
+            $firstTask = $job->tasks->sortBy('created_at')->first();
+            if ($firstTask) {
+                $job->setAttribute('event_date', $firstTask->dt_event);
+                $job->setAttribute('event_start_date', $firstTask->dt_inicio_event);
+                // Data efetiva usada no filtro (mesma lógica do COALESCE)
+                $job->setAttribute('effective_filter_date', $firstTask->dt_event ?? $firstTask->dt_inicio_event ?? $job->created_at);
+            }
+            
             foreach ($job->tasks as $task) {
                 if (isset($data['creation']) && in_array('external', $data['creation'])) {
                     unset($task->responsible);
