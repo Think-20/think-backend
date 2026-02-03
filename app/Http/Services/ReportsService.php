@@ -182,22 +182,22 @@ class ReportsService
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
             //$result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->first();
-            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(sum(ifnull(final_value, budget_value)), 0) as sum'))->first();
+            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(sum(ifnull(job.final_value, job.budget_value)), 0) as sum'))->first();
         } else {
             $result = $jobs->select(
                 DB::raw('COUNT(*) as count'),
                 DB::raw('SUM(
                     CASE
-                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
+                        WHEN (job.comission_percentage IS NOT NULL AND job.comission_percentage > 0) THEN
                             CASE
                                 WHEN 
-                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
-                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN COALESCE(final_value, budget_value)
-                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN COALESCE(final_value, budget_value) * ((100 - comission_percentage) / 100)
-                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN COALESCE(final_value, budget_value) * (comission_percentage / 100)
-                                ELSE COALESCE(final_value, budget_value)
+                                    (job.attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
+                                     job.attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN COALESCE(job.final_value, job.budget_value)
+                                WHEN job.attendance_id IN (' . implode(',', $data['attendance']) . ') AND job.attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN COALESCE(job.final_value, job.budget_value) * ((100 - job.comission_percentage) / 100)
+                                WHEN job.attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and job.attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN COALESCE(job.final_value, job.budget_value) * (job.comission_percentage / 100)
+                                ELSE COALESCE(job.final_value, job.budget_value)
                             END
-                        ELSE COALESCE(final_value, budget_value)
+                        ELSE COALESCE(job.final_value, job.budget_value)
                     END
                 ) as sum')
             )->first();
@@ -304,16 +304,16 @@ class ReportsService
                 DB::raw('COUNT(*) as count'),
                 DB::raw('SUM(
                     CASE
-                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
+                        WHEN (job.comission_percentage IS NOT NULL AND job.comission_percentage > 0) THEN
                             CASE
                                 WHEN 
-                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
-                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
-                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
-                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
-                                ELSE final_value
+                                    (job.attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
+                                     job.attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN job.final_value
+                                WHEN job.attendance_id IN (' . implode(',', $data['attendance']) . ') AND job.attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN job.final_value * ((100 - job.comission_percentage) / 100)
+                                WHEN job.attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and job.attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN job.final_value * (job.comission_percentage / 100)
+                                ELSE job.final_value
                             END
-                        ELSE final_value
+                        ELSE job.final_value
                     END
                 ) as sum')
             )->first();
@@ -365,16 +365,16 @@ class ReportsService
                 DB::raw('COUNT(*) as count'),
                 DB::raw('SUM(
                     CASE
-                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
+                        WHEN (job.comission_percentage IS NOT NULL AND job.comission_percentage > 0) THEN
                             CASE
                                 WHEN 
-                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
-                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
-                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
-                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
-                                ELSE final_value
+                                    (job.attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
+                                     job.attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN job.final_value
+                                WHEN job.attendance_id IN (' . implode(',', $data['attendance']) . ') AND job.attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN job.final_value * ((100 - job.comission_percentage) / 100)
+                                WHEN job.attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and job.attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN job.final_value * (job.comission_percentage / 100)
+                                ELSE job.final_value
                             END
-                        ELSE final_value
+                        ELSE job.final_value
                     END
                 ) as sum')
             )->where('status_id', 3)->first();
@@ -402,22 +402,22 @@ class ReportsService
         }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
-            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(sum(ifnull(final_value, budget_value)), 0) as sum'))->where('status_id', 1)->first();
+            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(sum(ifnull(job.final_value, job.budget_value)), 0) as sum'))->where('status_id', 1)->first();
         } else {
             $result = $jobs->select(
                 DB::raw('COUNT(*) as count'),
                 DB::raw('SUM(
                     CASE
-                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
+                        WHEN (job.comission_percentage IS NOT NULL AND job.comission_percentage > 0) THEN
                             CASE
                                 WHEN 
-                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
-                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN COALESCE(final_value, budget_value)
-                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN COALESCE(final_value, budget_value) * ((100 - comission_percentage) / 100)
-                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN COALESCE(final_value, budget_value) * (comission_percentage / 100)
-                                ELSE COALESCE(final_value, budget_value)
+                                    (job.attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
+                                     job.attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN COALESCE(job.final_value, job.budget_value)
+                                WHEN job.attendance_id IN (' . implode(',', $data['attendance']) . ') AND job.attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN COALESCE(job.final_value, job.budget_value) * ((100 - job.comission_percentage) / 100)
+                                WHEN job.attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and job.attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN COALESCE(job.final_value, job.budget_value) * (job.comission_percentage / 100)
+                                ELSE COALESCE(job.final_value, job.budget_value)
                             END
-                        ELSE COALESCE(final_value, budget_value)
+                        ELSE COALESCE(job.final_value, job.budget_value)
                     END
                 ) as sum')
             )->where('status_id', 1)->first();
@@ -490,16 +490,16 @@ class ReportsService
                 DB::raw('COUNT(*) as count'),
                 DB::raw('SUM(
                     CASE
-                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
+                        WHEN (job.comission_percentage IS NOT NULL AND job.comission_percentage > 0) THEN
                             CASE
                                 WHEN 
-                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
-                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
-                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
-                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
-                                ELSE final_value
+                                    (job.attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
+                                     job.attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN job.final_value
+                                WHEN job.attendance_id IN (' . implode(',', $data['attendance']) . ') AND job.attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN job.final_value * ((100 - job.comission_percentage) / 100)
+                                WHEN job.attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and job.attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN job.final_value * (job.comission_percentage / 100)
+                                ELSE job.final_value
                             END
-                        ELSE final_value
+                        ELSE job.final_value
                     END
                 ) as sum')
             )->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
@@ -560,16 +560,16 @@ class ReportsService
                 DB::raw('COUNT(*) as count'),
                 DB::raw('SUM(
                     CASE
-                        WHEN (comission_percentage IS NOT NULL AND comission_percentage > 0) THEN
+                        WHEN (job.comission_percentage IS NOT NULL AND job.comission_percentage > 0) THEN
                             CASE
                                 WHEN 
-                                    (attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
-                                     attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN final_value
-                                WHEN attendance_id IN (' . implode(',', $data['attendance']) . ') AND attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * ((100 - comission_percentage) / 100)
-                                WHEN attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN final_value * (comission_percentage / 100)
-                                ELSE final_value
+                                    (job.attendance_comission_id IN (' . implode(',', $data['attendance']) . ') AND 
+                                     job.attendance_id IN (' . implode(',', $data['attendance']) . ')) THEN job.final_value
+                                WHEN job.attendance_id IN (' . implode(',', $data['attendance']) . ') AND job.attendance_comission_id NOT IN (' . implode(',', $data['attendance']) . ') THEN job.final_value * ((100 - job.comission_percentage) / 100)
+                                WHEN job.attendance_comission_id IN (' . implode(',', $data['attendance']) . ') and job.attendance_id NOT IN (' . implode(',', $data['attendance']) . ') THEN job.final_value * (job.comission_percentage / 100)
+                                ELSE job.final_value
                             END
-                        ELSE final_value
+                        ELSE job.final_value
                     END
                 ) as sum')
             )->where('status_id', 5)->first();
