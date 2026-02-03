@@ -102,8 +102,8 @@ class ReportsService
 
         if ((User::logged()->employee->department->description != "Diretoria" && User::logged()->employee->department->description != "Planejamento")) {
             $jobs->where(function ($query) {
-                $query->where('attendance_id', User::logged()->employee->id)
-                    ->orWhere('attendance_comission_id', User::logged()->employee->id);
+                $query->where('job.attendance_id', User::logged()->employee->id)
+                    ->orWhere('job.attendance_comission_id', User::logged()->employee->id);
             });
         } else {
             if ($attendanceId) {
@@ -296,10 +296,10 @@ class ReportsService
         }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
-            $jobs = $jobs->where('status_id', 3);
+            $jobs = $jobs->where('job.status_id', 3);
             $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->first();
         } else {
-            $jobs = $jobs->where('status_id', 3);
+            $jobs = $jobs->where('job.status_id', 3);
             $result = $jobs->select(
                 DB::raw('COUNT(*) as count'),
                 DB::raw('SUM(
@@ -359,7 +359,7 @@ class ReportsService
         }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
-            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 3)->first();
+            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('job.status_id', 3)->first();
         } else {
             $result = $jobs->select(
                 DB::raw('COUNT(*) as count'),
@@ -377,7 +377,7 @@ class ReportsService
                         ELSE job.final_value
                     END
                 ) as sum')
-            )->where('status_id', 3)->first();
+            )->where('job.status_id', 3)->first();
         }
 
         return ["sum" => $result->sum != null ? $result->sum : 0, "count" => $result->count > 0 ? $result->count : 0];
@@ -402,7 +402,7 @@ class ReportsService
         }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
-            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(sum(ifnull(job.final_value, job.budget_value)), 0) as sum'))->where('status_id', 1)->first();
+            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('COALESCE(sum(ifnull(job.final_value, job.budget_value)), 0) as sum'))->where('job.status_id', 1)->first();
         } else {
             $result = $jobs->select(
                 DB::raw('COUNT(*) as count'),
@@ -420,7 +420,7 @@ class ReportsService
                         ELSE COALESCE(job.final_value, job.budget_value)
                     END
                 ) as sum')
-            )->where('status_id', 1)->first();
+            )->where('job.status_id', 1)->first();
         }
 
         if (!$result) {
@@ -484,7 +484,7 @@ class ReportsService
         }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
-            $result = $baseQuery->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
+            $result = $baseQuery->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('job.status_id', 3)->groupBy(DB::raw('MONTH(job.created_at)'))->get();
         } else {
             $result = $baseQuery->select(
                 DB::raw('COUNT(*) as count'),
@@ -502,7 +502,7 @@ class ReportsService
                         ELSE job.final_value
                     END
                 ) as sum')
-            )->where('status_id', 3)->groupBy(DB::raw('MONTH(created_at)'))->get();
+            )->where('job.status_id', 3)->groupBy(DB::raw('MONTH(job.created_at)'))->get();
         }
 
         if ($result->isEmpty()) {
@@ -554,7 +554,7 @@ class ReportsService
         }
 
         if (!isset($data['attendance']) || count($data['attendance']) <= 0) {
-            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('status_id', 5)->first();
+            $result = $jobs->select(DB::raw('COUNT(*) as count'), DB::raw('SUM(job.final_value) as sum'))->where('job.status_id', 5)->first();
         } else {
             $result = $jobs->select(
                 DB::raw('COUNT(*) as count'),
@@ -572,7 +572,7 @@ class ReportsService
                         ELSE job.final_value
                     END
                 ) as sum')
-            )->where('status_id', 5)->first();
+            )->where('job.status_id', 5)->first();
         }
 
         if (!$result) {
@@ -777,11 +777,13 @@ class ReportsService
     //Função responsavel por somar os valores de todos os jobs aprovados
     public function GetApproveds($data, $useEventDate = false)
     {
-        $jobs =  Job::where('status_id', 3);
-        $jobs->select(DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('COALESCE(SUM(job.final_value), 0) as sum'));
-
+        $jobs =  Job::query();
+        
         // Aplica filtro de data
         $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
+        
+        $jobs->where('job.status_id', 3);
+        $jobs->select(DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('COALESCE(SUM(job.final_value), 0) as sum'));
 
         $result = $jobs->first();
 
@@ -816,12 +818,14 @@ class ReportsService
 
     public function GetByCategories($data, $useEventDate = false)
     {
-        $jobs = Job::where('status_id', "<>", 2)
-            ->select('job.job_type_id', DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('SUM(job.final_value) as sum'))
-            ->groupBy('job.job_type_id');
-
+        $jobs = Job::query();
+        
         // Aplica filtro de data
         $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
+        
+        $jobs->where('job.status_id', "<>", 2)
+            ->select('job.job_type_id', DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('SUM(job.final_value) as sum'))
+            ->groupBy('job.job_type_id');
 
         $results = $jobs->get();
 
@@ -846,12 +850,13 @@ class ReportsService
 
     public function GetAdvanceds($data, $useEventDate = false)
     {
-        $jobs =  Job::where('status_id', 5);
-
-        $jobs->select(DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('sum(ifnull(job.final_value, job.budget_value))  as sum'));
-
+        $jobs =  Job::query();
+        
         // Aplica filtro de data
         $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
+        
+        $jobs->where('job.status_id', 5);
+        $jobs->select(DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('sum(ifnull(job.final_value, job.budget_value))  as sum'));
 
         $result = $jobs->first();
 
@@ -860,12 +865,13 @@ class ReportsService
 
     public function GetStandbys($data, $useEventDate = false)
     {
-        $jobs =  Job::where('status_id', 1);
-
-        $jobs->select(DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('SUM(ifnull(job.final_value, job.budget_value)) as sum'));
-
+        $jobs =  Job::query();
+        
         // Aplica filtro de data
         $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
+        
+        $jobs->where('job.status_id', 1);
+        $jobs->select(DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('SUM(ifnull(job.final_value, job.budget_value)) as sum'));
 
         $result = $jobs->first();
 
@@ -874,12 +880,13 @@ class ReportsService
 
     public function GetReproveds($data, $useEventDate = false)
     {
-        $jobs =  Job::where('status_id', 4);
-
-        $jobs->select(DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('SUM(job.final_value) as sum'));
-
+        $jobs =  Job::query();
+        
         // Aplica filtro de data
         $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
+        
+        $jobs->where('job.status_id', 4);
+        $jobs->select(DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('SUM(job.final_value) as sum'));
 
         $result = $jobs->first();
 
@@ -888,7 +895,12 @@ class ReportsService
 
     public function GetAdjusts($data, $useEventDate = false)
     {
-        $jobs = Job::where('status_id', 1);
+        $jobs = Job::query();
+        
+        // Aplica filtro de data
+        $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
+        
+        $jobs->where('job.status_id', 1);
         $jobs->select(DB::raw('COUNT(DISTINCT job.id) as count'), DB::raw('SUM(job.final_value) as sum'))
             ->whereHas('tasks', function ($query) {
                 $query->whereHas('job_activity', function ($innerQuery) {
@@ -896,9 +908,6 @@ class ReportsService
                 });
             })
             ->with('tasks.job_activity', 'tasks.responsible');
-
-        // Aplica filtro de data
-        $jobs = self::applyDateFilter($jobs, $data, $useEventDate);
 
         $result = $jobs->first();
 
