@@ -128,31 +128,38 @@ class ReportsService
     }
 
     // Função auxiliar para aplicar filtro de data
-    // Se $useEventDate = true, usa a data do evento (dt_event)
+    // Se $useEventDate = true, usa a data do primeiro item de agenda (task_item.date)
     // Se $useEventDate = false, usa a data de criação (created_at)
     private static function applyDateFilter($jobs, $data, $useEventDate = false)
     {
         if ($useEventDate) {
-            // Filtra pela data do evento (quando o projeto vai acontecer)
+            // Filtra pela data do primeiro item de agenda (quando o trabalho interno começa)
             $jobs->leftJoin('task', function($join) {
                 $join->on('job.id', '=', 'task.job_id')
                      ->whereRaw('task.id = (SELECT t.id FROM task t WHERE t.job_id = job.id ORDER BY t.created_at ASC LIMIT 1)');
             });
+            
+            // JOIN com task_item para pegar a data do primeiro item de agenda
+            $jobs->leftJoin('task_item', function($join) {
+                $join->on('task.id', '=', 'task_item.task_id')
+                     ->whereRaw('task_item.id = (SELECT ti.id FROM task_item ti WHERE ti.task_id = task.id ORDER BY ti.date ASC LIMIT 1)');
+            });
 
+            // Usa task_item.date (primeiro item de agenda), com fallback para job.created_at
             if (isset($data['date_init'])) {
                 $dateInit = Carbon::parse($data['date_init'])->format('Y-m-d');
-                $jobs->whereRaw('COALESCE(task.dt_event, task.dt_inicio_event, job.created_at) >= ?', [$dateInit]);
+                $jobs->whereRaw('COALESCE(task_item.date, job.created_at) >= ?', [$dateInit]);
             } else {
                 $dateInit = Carbon::now()->startOfYear()->format('Y-m-d');
-                $jobs->whereRaw('COALESCE(task.dt_event, task.dt_inicio_event, job.created_at) >= ?', [$dateInit]);
+                $jobs->whereRaw('COALESCE(task_item.date, job.created_at) >= ?', [$dateInit]);
             }
 
             if (isset($data['date_end'])) {
                 $dateEnd = Carbon::parse($data['date_end'])->format('Y-m-d');
-                $jobs->whereRaw('COALESCE(task.dt_event, task.dt_inicio_event, job.created_at) <= ?', [$dateEnd]);
+                $jobs->whereRaw('COALESCE(task_item.date, job.created_at) <= ?', [$dateEnd]);
             } else {
                 $dateEnd = Carbon::now()->endOfMonth()->format('Y-m-d');
-                $jobs->whereRaw('COALESCE(task.dt_event, task.dt_inicio_event, job.created_at) <= ?', [$dateEnd]);
+                $jobs->whereRaw('COALESCE(task_item.date, job.created_at) <= ?', [$dateEnd]);
             }
         } else {
             // Filtra pela data de criação (comportamento original)

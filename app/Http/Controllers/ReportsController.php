@@ -74,13 +74,24 @@ class ReportsController extends Controller
         }
 
         foreach ($jobs as &$job) {
-            // Adiciona as datas de evento da primeira task (se houver)
+            // Adiciona a data do primeiro item de agenda da primeira task (quando o trabalho interno começa)
             $firstTask = $job->tasks->sortBy('created_at')->first();
+            $firstAgendaDate = null;
+            
             if ($firstTask) {
-                $job->setAttribute('event_date', $firstTask->dt_event);
-                $job->setAttribute('event_start_date', $firstTask->dt_inicio_event);
+                // Busca a data do primeiro item de agenda desta task
+                $firstItem = \DB::table('task_item')
+                    ->where('task_id', $firstTask->id)
+                    ->orderBy('date', 'ASC')
+                    ->first();
+                
+                if ($firstItem) {
+                    $firstAgendaDate = $firstItem->date;
+                }
+                
+                $job->setAttribute('first_agenda_date', $firstAgendaDate);
                 // Data efetiva usada no filtro (mesma lógica do COALESCE)
-                $job->setAttribute('effective_filter_date', $firstTask->dt_event ?? $firstTask->dt_inicio_event ?? $job->created_at);
+                $job->setAttribute('effective_filter_date', $firstAgendaDate ?? $job->created_at);
             }
             
             foreach ($job->tasks as $task) {
