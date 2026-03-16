@@ -96,11 +96,16 @@ class Task extends Model
         $initialDate = isset($data['initialDate']) ? new DateTime($data['initialDate']) : null;
         $finalDate = isset($data['finalDate']) ? new DateTime($data['finalDate']) : DateHelper::sumUtil($initialDate, 29);
 
-        
+        $responsibles = $jobActivity ? $jobActivity->responsibles : collect([]);
+
+        // Remove Camila da lista de responsáveis (employee_id = 55)
+        $responsibles = $responsibles->reject(function ($employee) {
+            return (int) ($employee->id ?? 0) === 55;
+        })->values();
 
         return [
             'items' => TaskHelper::getDates($initialDate, $finalDate, $jobActivity, $onlyEmployees),
-            'responsibles' => $jobActivity->responsibles
+            'responsibles' => $responsibles
         ];
     }
 
