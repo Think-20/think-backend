@@ -98,9 +98,9 @@ class Task extends Model
 
         $responsibles = $jobActivity ? $jobActivity->responsibles : collect([]);
 
-        // Remove Camila da lista de responsáveis (employee_id = 55)
+        
         $responsibles = $responsibles->reject(function ($employee) {
-            return (int) ($employee->id ?? 0) === 55;
+            return (int) ($employee->id ?? 0) === 11;
         })->values();
 
         return [
