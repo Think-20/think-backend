@@ -214,10 +214,21 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::post('/employees/all', 'EmployeeController@all');
     Route::post('/employees/filter', 'EmployeeController@filter');
 
+    //Metas mensais de valor
     Route::get('/goal', 'GoalController@list');
     Route::get('/goal/{id}', 'GoalController@getUnique');
     Route::post('/goal', 'GoalController@createGoal');
     Route::put('/goal', 'GoalController@updateGoal');
+
+    // Metas gamificadas do usuário por período (datas dinâmicas, metas escaladas pelos meses)
+    Route::get('/user-goal/progress', 'GoalController@userGoalProgress');
+    Route::post('/user-goal/progress', 'GoalController@userGoalProgress');
+
+    //Metas mensais por usuário
+    Route::get('/user-goal', 'GoalController@listUserGoal');
+    Route::get('/user-goal/{id}', 'GoalController@getUniqueUserGoal');
+    Route::post('/user-goal', 'GoalController@createUserGoal');
+    Route::put('/user-goal', 'GoalController@updateUserGoal');
 
     Route::get('/organization', 'OrganizationCheckingController@selectOrganization');
     Route::get('/organization/{id}', 'OrganizationCheckingController@selectOrganization');
@@ -284,6 +295,13 @@ Route::group(['middleware' => ['auth.api']], function () {
 
     //função que ativa apos o usuario cliclar no botão do email
     Route::get('/external/extras/{checkInId}/{hash}', 'CheckinController@confirmMailCheckin');
+
+    Route::get('/financeiro/transacao/{jobId}/{bankAccountId}', 'TransactionController@getByJobAndBankAccount');
+    Route::get('/financeiro/transacao/total/{jobId}/{tipoTransacao}', 'TransactionController@totalByJobAndType');
+    Route::post('/financeiro/transacao', 'TransactionController@create');
+    Route::put('/financeiro/transacao', 'TransactionController@edit');
+    Route::put('/financeiro/transacao/status', 'TransactionController@updateStatus');
+    Route::delete('/financeiro/tag/transacao/{id}', 'TransactionController@remove');
 
     Route::get('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
     Route::post('/calendar-goals/{date_init}/{date_end}', 'GoalController@calendarGoals');
@@ -378,6 +396,27 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::post('/cost-categories/all', 'CostCategoryController@all');
     Route::get('/cost-categories/get/{id}', 'CostCategoryController@get');
     Route::post('/cost-categories/filter', 'CostCategoryController@filter');
+
+    Route::post('/category/save', 'CategoryController@save');
+    Route::put('/category/edit', 'CategoryController@edit');
+    Route::delete('/category/remove/{id}', 'CategoryController@remove');
+    Route::post('/categories/all', 'CategoryController@all');
+    Route::get('/categories/get/{id}', 'CategoryController@get');
+    Route::post('/categories/filter', 'CategoryController@filter');
+
+    Route::post('/bank-account/save', 'BankAccountController@save');
+    Route::put('/bank-account/edit', 'BankAccountController@edit');
+    Route::delete('/bank-account/remove/{id}', 'BankAccountController@remove');
+    Route::post('/bank-accounts/all', 'BankAccountController@all');
+    Route::get('/bank-accounts/get/{id}', 'BankAccountController@get');
+    Route::post('/bank-accounts/filter', 'BankAccountController@filter');
+
+    Route::post('/tag/save', 'TagController@save');
+    Route::put('/tag/edit', 'TagController@edit');
+    Route::delete('/tag/remove/{id}', 'TagController@remove');
+    Route::post('/tags/all', 'TagController@all');
+    Route::get('/tags/get/{id}', 'TagController@get');
+    Route::post('/tags/filter', 'TagController@filter');
 
     Route::post('/item-category/save', 'ItemCategoryController@save');
     Route::put('/item-category/edit', 'ItemCategoryController@edit');
@@ -478,6 +517,9 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::delete('/project-photos-files/remove/{id}', 'ProjectPhotosFileController@remove');
     Route::get('/project-photos-files/download/{id}', 'ProjectPhotosFileController@downloadFile');
     Route::get('/project-photos-files/download-all/{taskId}', 'ProjectPhotosFileController@downloadAll');
+
+    //Goal
+    
 
     //
     Route::post('/specification-files/save-multiple', 'SpecificationFileController@saveMultiple');

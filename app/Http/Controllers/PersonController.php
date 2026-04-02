@@ -34,7 +34,7 @@ class PersonController extends Controller
     public function createPerson(Request $request)
     {
         $bankAccount = new BankAccount();
-        $bankAccount->favored = $request->name;
+        $bankAccount->name = $request->name;
         $bankAccount->agency = $request->agency;
         $bankAccount->account_number = $request->account_number;
         $bankAccount->bank_account_type_id = 1;
@@ -57,7 +57,7 @@ class PersonController extends Controller
         $person = Person::find($request->id);
 
         $bankAccount = BankAccount::find($person->bank_account_id);
-        $bankAccount->favored = $request->name;
+        $bankAccount->name = $request->name;
         $bankAccount->agency = $request->agency;
         $bankAccount->account_number = $request->account_number;
         $bankAccount->bank_account_type_id = 1;

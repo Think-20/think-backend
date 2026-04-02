@@ -8,7 +8,7 @@ class CreateBriefingFile extends Migration
 {
     public function up()
     {
-        /*Schema::create('briefing_file', function (Blueprint $table) {
+        Schema::create('briefing_file', function (Blueprint $table) {
             $table->increments('id');
             $table->double('responsible_id')->nullable();
             $table->double('task_id')->nullable();
@@ -16,11 +16,11 @@ class CreateBriefingFile extends Migration
             $table->string('original_name')->nullable();
             $table->string('type')->nullable();            
             $table->timestamps();
-        });*/
+        });
     }
 
     public function down()
     {
-        //Schema::dropIfExists('briefing_file');
+        Schema::dropIfExists('briefing_file');
     }
 }

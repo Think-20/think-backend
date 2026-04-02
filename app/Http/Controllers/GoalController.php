@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Goal;
+use App\Http\Services\GamifiedGoalsService;
 use App\Http\Services\ReportsService;
 use ArrayObject;
 use Aws\S3\S3Client;
@@ -69,6 +70,47 @@ class GoalController extends Controller
         $newGoal->save();
 
         return response()->json(['error' => 'false', 'message' => 'Meta cadastrada com sucesso']);
+    }
+
+    /**
+     * Metas gamificadas do usuário por período (dinâmico).
+     * Busca todos os jobs do usuário no intervalo, escala as metas pela quantidade de meses
+     * e retorna um único objeto com todas as métricas e % de cumprimento.
+     *
+     * Query params (ou body em POST):
+     *   - attendance_id (obrigatório): ID do usuário/atendente
+     *   - date_init (obrigatório): início do período (Y-m-d, ex: 2025-10-01)
+     *   - date_end (obrigatório): fim do período (Y-m-d, ex: 2025-12-31)
+     *
+     * Exemplo: GET /user-goal/progress?attendance_id=15&date_init=2025-10-01&date_end=2025-12-31
+     */
+    public function userGoalProgress(Request $request)
+    {
+        $attendanceId = $request->input('attendance_id') ?? $request->query('attendance_id');
+        $dateInit = $request->input('date_init') ?? $request->query('date_init');
+        $dateEnd = $request->input('date_end') ?? $request->query('date_end');
+
+        if (empty($attendanceId)) {
+            return response()->json(['error' => true, 'message' => 'attendance_id é obrigatório.'], 400);
+        }
+        if (empty($dateInit) || empty($dateEnd)) {
+            return response()->json(['error' => true, 'message' => 'date_init e date_end são obrigatórios (formato Y-m-d).'], 400);
+        }
+
+        $attendanceId = (int) $attendanceId;
+        $dateInit = \Carbon\Carbon::parse($dateInit)->format('Y-m-d');
+        $dateEnd = \Carbon\Carbon::parse($dateEnd)->format('Y-m-d');
+
+        if ($dateInit > $dateEnd) {
+            return response()->json(['error' => true, 'message' => 'date_init não pode ser maior que date_end.'], 400);
+        }
+
+        $data = GamifiedGoalsService::evaluateForPeriod($dateInit, $dateEnd, $attendanceId);
+
+        return response()->json([
+            'error' => false,
+            'data' => $data,
+        ]);
     }
 
     public function updateGoal(Request $request)
