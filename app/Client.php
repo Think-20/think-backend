@@ -68,6 +68,9 @@ class Client extends Model implements Contactable
         try {
             $id = $data['id'];
             $client = Client::find($id);
+            $oldEmployeeId = $client->employee_id;
+            $oldEmployeeName = $client->employee ? $client->employee->name : 'Sem atendente';
+
             $client->logIfAttendanceChanges($data);
             $client->checkCnpj();
             $client->city_id = isset($data['city']['id']) ? $data['city']['id'] : null;
@@ -80,11 +83,28 @@ class Client extends Model implements Contactable
             Contact::manage($contacts, $client);
 
             $client->update($data);
+            $client->refresh();
 
-            $message = 'Cadastro do cliente: ' . $client->fantasy_name . '. Atendimento alterado para ' . $data['employee']['name'];
+            $loggedEmployee = User::logged()->employee;
+            $loggedName = $loggedEmployee ? $loggedEmployee->name : 'Usuario desconhecido';
+            $fantasyName = $client->fantasy_name;
+            $currentAttendanceName = $client->employee ? $client->employee->name : 'Sem atendente';
+
+            $oldId = $oldEmployeeId !== null ? (int) $oldEmployeeId : 0;
+            $newId = $client->employee_id !== null ? (int) $client->employee_id : 0;
+            $attendanceChanged = $oldId !== $newId;
+
+            if ($attendanceChanged) {
+                $message = 'Cadastro do Cliente ' . $fantasyName . ' alterado por ' . $loggedName
+                    . ' e transferido de ' . $oldEmployeeName . ' para ' . $currentAttendanceName;
+            } else {
+                $message = 'Cadastro do Cliente ' . $fantasyName . ' atendido por ' . $currentAttendanceName
+                    . ' alterado por ' . $loggedName;
+            }
+
             Notification::createAndNotify(User::logged()->employee, [
                 'message' => $message
-            ], [], 'Alteração de cliente', $client->id);
+            ], [], 'Alteração de Cliente', $client->id);
 
             DB::commit();
         } catch (\Exception $e) {
@@ -103,8 +123,11 @@ class Client extends Model implements Contactable
         $employee_id = isset($data['employee']['id']) ? $data['employee']['id'] : '';
 
         if ($employee_id != '' && $employee_id != $this->employee_id) {
-            $description = 'O atendimento foi alterado de ' . $this->employee->name;
-            $description .= ' para ' . Employee::find($employee_id)->name;
+            $oldName = $this->employee ? $this->employee->name : 'Sem atendente';
+            $newEmployee = Employee::find($employee_id);
+            $newName = $newEmployee ? $newEmployee->name : 'Sem atendente';
+            $description = 'O atendimento foi alterado de ' . $oldName;
+            $description .= ' para ' . $newName;
 
             LogClient::insert([
                 'client_id' => $this->id,
