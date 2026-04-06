@@ -65,15 +65,6 @@ class GamifiedGoalsService
         return (float) $v;
     }
 
-    /**
-     * Avalia todas as metas para um usuário em um período.
-     * Metas mensais são multiplicadas pela quantidade de meses; trimestrais pela de trimestres.
-     *
-     * @param string $dateInit Y-m-d (ex: 2025-10-01)
-     * @param string $dateEnd  Y-m-d (ex: 2025-12-31)
-     * @param int    $attendanceId ID do usuário (atendente)
-     * @return array { period, months, quarters, goals }
-     */
     public static function evaluateForPeriod(string $dateInit, string $dateEnd, int $attendanceId): array
     {
         $dateInit = Carbon::parse($dateInit)->format('Y-m-d');

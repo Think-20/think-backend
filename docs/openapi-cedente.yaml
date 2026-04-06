@@ -1,0 +1,816 @@
+openapi: 3.0.3
+info:
+  title: Think Backend — API de Cedente
+  description: |
+    Cadastro de cedente com endereço, partes relacionadas, avalistas, contas de desembolso e pessoas vinculadas (`cedente_pessoa_vinculada`).
+
+    **Autenticação:** token Bearer (mesmo fluxo de login das demais rotas autenticadas do projeto).
+
+    **Regras de negócio:**
+    - `POST /cedente/save` e `PUT /cedente/edit` recebem **um único JSON** com `partes_relacionadas`, `avalistas` e `contas_desembolso`.
+    - Itens com o **mesmo CPF** em `partes_relacionadas` e `avalistas` são **unificados** em um registro com ambas as flags.
+    - No **PUT**, as listas enviadas **substituem** as existentes (snapshot completo recomendado).
+    - `GET /cedentes/get/{id}` e o objeto `data` de save/edit retornam `partes_relacionadas` e `avalistas` **separados** (espelhando o front).
+    - `POST /cedentes/all` retorna paginação Laravel; cada item usa o modelo Eloquent (`pessoas_vinculadas`, não as listas separadas).
+    - **Arquivos:** no cadastro (`POST /cedente/save`) é obrigatório o array `arquivos` com **exatamente 13** itens, um por `document_type` (1–13), cada um com `original_name` e `content_base64` (ou `base64`). Os arquivos são gravados em disco (`FILES_FOLDER/cedente-files`), no mesmo espírito de `project_file` (campo `name` = nome armazenado, `type` = extensão).
+    - **PUT /cedente/edit:** se a chave `arquivos` for enviada, deve trazer de novo os **13** documentos (substitui os anteriores no disco e no banco). Se `arquivos` for omitido, os arquivos já cadastrados são mantidos.
+
+    **Arquivos na mesma requisição vs segunda chamada:** enviar tudo em JSON com base64 é simples para o cliente da API, porém aumenta o corpo (~33% maior que o binário), uso de memória e tempo de request. Para redes lentas ou PDFs grandes, **multipart em rota dedicada** ou upload em etapas costuma escalar melhor; este backend hoje unifica **cadastro + 13 arquivos em uma chamada** conforme solicitado.
+  version: 1.0.0
+  contact:
+    name: Think Backend
+
+servers:
+  - url: "{baseUrl}"
+    description: URL base da API (sem barra final)
+    variables:
+      baseUrl:
+        default: https://api.exemplo.com
+        description: Ex. origem do front ou Postman
+
+tags:
+  - name: Cedente
+    description: CRUD de cedente e recursos aninhados
+
+security:
+  - bearerAuth: []
+
+paths:
+  /cedente/save:
+    post:
+      tags: [Cedente]
+      operationId: createCedente
+      summary: Criar cedente (payload completo)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CedenteCreateRequest"
+            examples:
+              completo:
+                $ref: "#/components/examples/CedenteCreateBody"
+      responses:
+        "200":
+          description: Cadastro realizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CedenteSaveOrEditSuccessResponse"
+        "400":
+          description: Validação ou erro de persistência
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /cedente/edit:
+    put:
+      tags: [Cedente]
+      operationId: updateCedente
+      summary: Atualizar cedente (id obrigatório; listas substituídas)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CedenteUpdateRequest"
+      responses:
+        "200":
+          description: Atualização realizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CedenteSaveOrEditSuccessResponse"
+        "400":
+          description: Validação ou erro de persistência
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /cedentes/get/{id}:
+    get:
+      tags: [Cedente]
+      operationId: getCedenteById
+      summary: Obter cedente por id (formato com partes e avalistas separados)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CedenteGetSuccessResponse"
+        "404":
+          description: Cedente não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /cedentes/all:
+    post:
+      tags: [Cedente]
+      operationId: listCedentes
+      summary: Listar cedentes (paginação Laravel)
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                per_page:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+                  default: 20
+                  description: Itens por página
+      responses:
+        "200":
+          description: Página de resultados
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CedentePaginatedListResponse"
+
+  /cedente/remove/{id}:
+    delete:
+      tags: [Cedente]
+      operationId: deleteCedente
+      summary: Excluir cedente e dependências
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Excluído
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccessMessageOnly"
+        "404":
+          description: Não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "400":
+          description: Erro ao excluir
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token retornado pelo login da aplicação (header Authorization).
+
+  schemas:
+    ApiErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          enum: ["true"]
+          description: Convenção legada do projeto (string).
+        message:
+          type: string
+
+    ApiSuccessMessageOnly:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          enum: ["false"]
+        message:
+          type: string
+
+    Address:
+      type: object
+      description: Endereço (tabela `address`). No create/update, todos os campos são opcionais; objeto vazio remove endereço do cedente no PUT.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        cep:
+          type: string
+          nullable: true
+        logradouro:
+          type: string
+          nullable: true
+        numero:
+          type: string
+          nullable: true
+        complemento:
+          type: string
+          nullable: true
+        bairro:
+          type: string
+          nullable: true
+        estado:
+          type: string
+          nullable: true
+          description: UF (2 caracteres)
+          maxLength: 2
+        cidade:
+          type: string
+          nullable: true
+        pais:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+
+    TipoParteRelacionada:
+      type: integer
+      nullable: true
+      minimum: 1
+      maximum: 4
+      description: |
+        Obrigatório para parte relacionada no sentido de negócio; null se for só avalista.
+        1 = sócio, 2 = administrador, 3 = procurador, 4 = representante legal.
+
+    TipoConta:
+      type: string
+      description: Valores exatos aceitos pelo banco (ENUM MySQL).
+      enum:
+        - conta_corrente
+        - conta_poupanca
+        - conta_salario
+
+    PessoaVinculadaInput:
+      type: object
+      required: [nome]
+      description: Item de `partes_relacionadas` ou `avalistas` no body de create/update.
+      properties:
+        nome:
+          type: string
+        tipo_parte_relacionada:
+          $ref: "#/components/schemas/TipoParteRelacionada"
+        nacionalidade:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        cpf:
+          type: string
+          nullable: true
+        telefone:
+          type: string
+          nullable: true
+        beneficiario_final:
+          type: boolean
+          default: false
+        assinante_operacao:
+          type: boolean
+          default: false
+        assinante_obrigatorio:
+          type: boolean
+          default: false
+        estado_civil:
+          type: string
+          nullable: true
+        regime_casamento:
+          type: string
+          nullable: true
+        profissao:
+          type: string
+          nullable: true
+        endereco:
+          $ref: "#/components/schemas/Address"
+
+    ContaDesembolsoInput:
+      type: object
+      required: [tipo_conta, codigo_banco, agencia, numero_conta]
+      description: Conta de desembolso no body (sem id; `cedente_id` é definido pelo servidor).
+      properties:
+        tipo_conta:
+          $ref: "#/components/schemas/TipoConta"
+        codigo_banco:
+          type: string
+          maxLength: 8
+        agencia:
+          type: string
+          maxLength: 16
+        numero_conta:
+          type: string
+          maxLength: 32
+        digito_conta:
+          type: string
+          nullable: true
+          maxLength: 4
+        descricao:
+          type: string
+          nullable: true
+
+    DocumentTypeCedente:
+      type: integer
+      minimum: 1
+      maximum: 13
+      description: |
+        1 Contrato/Estatuto Social · 2 Certidão Simplificada Junta Comercial · 3 Ata Eleição Diretoria ·
+        4 Cartão CNPJ · 5 Parecer Compliance/Reputacional · 6 Demonstração Financeira ·
+        7 Ata/Parecer Crédito · 8 Consulta Órgãos Proteção Crédito · 9 Relatório Visita ·
+        10 Parecer/Ficha Gestor · 11 Comprovante Residência · 12 Declaração Faturamento ·
+        13 Declaração Relacionamento Bancário.
+
+    CedenteArquivoInput:
+      type: object
+      required: [document_type, original_name]
+      description: |
+        Um dos 13 documentos. Informe `content_base64` ou `base64` com o arquivo.
+        Base64 puro ou data URL (`data:application/pdf;base64,...`). Limite ~20MB por arquivo após decodificar.
+      properties:
+        document_type:
+          $ref: "#/components/schemas/DocumentTypeCedente"
+        original_name:
+          type: string
+          description: Nome exibido/enviado pelo cliente (ex. contrato.pdf).
+        content_base64:
+          type: string
+        base64:
+          type: string
+          description: Alias opcional de content_base64.
+        type:
+          type: string
+          description: Opcional; extensão sugerida (ex. pdf), alinhado ao uso de `type` em project_file.
+
+    CedenteArquivoResource:
+      type: object
+      description: Metadado do arquivo salvo (sem o binário).
+      properties:
+        id:
+          type: integer
+        document_type:
+          $ref: "#/components/schemas/DocumentTypeCedente"
+        document_type_label:
+          type: string
+          nullable: true
+        original_name:
+          type: string
+        name:
+          type: string
+          description: Nome do arquivo no servidor (pasta cedente-files).
+        type:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CedenteCreateRequest:
+      type: object
+      required: [nome, documento]
+      description: |
+        No **POST /cedente/save**, `arquivos` é obrigatório na prática (13 itens, tipos 1–13 sem repetir).
+        No **PUT /cedente/edit**, `arquivos` é opcional; se enviado, deve trazer os 13 de novo.
+      properties:
+        nome:
+          type: string
+        documento:
+          type: string
+        email:
+          type: string
+          nullable: true
+        faturamento_anual:
+          type: number
+          format: double
+          nullable: true
+        minimo_assinantes:
+          type: integer
+          minimum: 0
+          nullable: true
+        sistema_financeiro_nacional:
+          type: boolean
+          default: false
+        telefone:
+          type: string
+          nullable: true
+        endereco:
+          $ref: "#/components/schemas/Address"
+        partes_relacionadas:
+          type: array
+          items:
+            $ref: "#/components/schemas/PessoaVinculadaInput"
+          default: []
+        avalistas:
+          type: array
+          items:
+            $ref: "#/components/schemas/PessoaVinculadaInput"
+          default: []
+        contas_desembolso:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContaDesembolsoInput"
+          default: []
+        arquivos:
+          type: array
+          minItems: 13
+          maxItems: 13
+          items:
+            $ref: "#/components/schemas/CedenteArquivoInput"
+          description: |
+            Treze documentos no cadastro. Cada `document_type` de 1 a 13 exatamente uma vez.
+
+    CedenteUpdateRequest:
+      allOf:
+        - $ref: "#/components/schemas/CedenteCreateRequest"
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+              minimum: 1
+
+    PessoaVinculadaDetail:
+      type: object
+      description: Pessoa persistida; no GET/save/edit aparece dentro de `partes_relacionadas` e/ou `avalistas` conforme flags.
+      properties:
+        id:
+          type: integer
+        cedente_id:
+          type: integer
+        e_parte_relacionada:
+          type: boolean
+        e_avalista:
+          type: boolean
+        nome:
+          type: string
+        tipo_parte_relacionada:
+          $ref: "#/components/schemas/TipoParteRelacionada"
+        nacionalidade:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        cpf:
+          type: string
+          nullable: true
+        telefone:
+          type: string
+          nullable: true
+        beneficiario_final:
+          type: boolean
+        assinante_operacao:
+          type: boolean
+        assinante_obrigatorio:
+          type: boolean
+        estado_civil:
+          type: string
+          nullable: true
+        regime_casamento:
+          type: string
+          nullable: true
+        profissao:
+          type: string
+          nullable: true
+        address_id:
+          type: integer
+          nullable: true
+        endereco:
+          $ref: "#/components/schemas/Address"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ContaDesembolsoResource:
+      type: object
+      properties:
+        id:
+          type: integer
+        cedente_id:
+          type: integer
+        tipo_conta:
+          $ref: "#/components/schemas/TipoConta"
+        codigo_banco:
+          type: string
+        agencia:
+          type: string
+        numero_conta:
+          type: string
+        digito_conta:
+          type: string
+          nullable: true
+        descricao:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CedenteDetail:
+      type: object
+      description: Formato retornado em `data` no GET e nos POST/PUT de sucesso.
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        documento:
+          type: string
+        email:
+          type: string
+          nullable: true
+        faturamento_anual:
+          type: string
+          nullable: true
+          description: Decimal pode vir como string no JSON do Laravel.
+        minimo_assinantes:
+          type: integer
+          nullable: true
+        sistema_financeiro_nacional:
+          type: boolean
+        telefone:
+          type: string
+          nullable: true
+        endereco:
+          $ref: "#/components/schemas/Address"
+          nullable: true
+        partes_relacionadas:
+          type: array
+          items:
+            $ref: "#/components/schemas/PessoaVinculadaDetail"
+        avalistas:
+          type: array
+          items:
+            $ref: "#/components/schemas/PessoaVinculadaDetail"
+        contas_desembolso:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContaDesembolsoResource"
+        arquivos:
+          type: array
+          items:
+            $ref: "#/components/schemas/CedenteArquivoResource"
+
+    CedenteGetSuccessResponse:
+      type: object
+      required: [error, data]
+      properties:
+        error:
+          type: string
+          enum: ["false"]
+        data:
+          $ref: "#/components/schemas/CedenteDetail"
+
+    CedenteSaveOrEditSuccessResponse:
+      type: object
+      required: [error, message, data]
+      properties:
+        error:
+          type: string
+          enum: ["false"]
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/CedenteDetail"
+
+    CedenteListItem:
+      type: object
+      description: |
+        Item retornado em `data` na listagem paginada. Estrutura do Eloquent (snake_case);
+        `pessoas_vinculadas` contém registros com `e_parte_relacionada` / `e_avalista` — não há arrays separados partes/avalistas nesta rota.
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        documento:
+          type: string
+        email:
+          type: string
+          nullable: true
+        faturamento_anual:
+          type: string
+          nullable: true
+        minimo_assinantes:
+          type: integer
+          nullable: true
+        address_id:
+          type: integer
+          nullable: true
+        sistema_financeiro_nacional:
+          type: boolean
+        telefone:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        address:
+          $ref: "#/components/schemas/Address"
+          nullable: true
+        pessoas_vinculadas:
+          type: array
+          items:
+            $ref: "#/components/schemas/PessoaVinculadaRowList"
+        contas_desembolso:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContaDesembolsoResource"
+
+    PessoaVinculadaRowList:
+      type: object
+      description: Linha de `cedente_pessoa_vinculada` na listagem (relação `pessoas_vinculadas` sem eager load de `address`).
+      properties:
+        id:
+          type: integer
+        cedente_id:
+          type: integer
+        e_parte_relacionada:
+          type: boolean
+        e_avalista:
+          type: boolean
+        nome:
+          type: string
+        tipo_parte_relacionada:
+          $ref: "#/components/schemas/TipoParteRelacionada"
+        nacionalidade:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        cpf:
+          type: string
+          nullable: true
+        telefone:
+          type: string
+          nullable: true
+        beneficiario_final:
+          type: boolean
+        assinante_operacao:
+          type: boolean
+        assinante_obrigatorio:
+          type: boolean
+        estado_civil:
+          type: string
+          nullable: true
+        regime_casamento:
+          type: string
+          nullable: true
+        profissao:
+          type: string
+          nullable: true
+        address_id:
+          type: integer
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CedentePaginatedListResponse:
+      type: object
+      description: Resposta padrão de `paginate()` do Laravel.
+      properties:
+        current_page:
+          type: integer
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CedenteListItem"
+        first_page_url:
+          type: string
+        from:
+          type: integer
+          nullable: true
+        last_page:
+          type: integer
+        last_page_url:
+          type: string
+        next_page_url:
+          type: string
+          nullable: true
+        path:
+          type: string
+        per_page:
+          type: integer
+        prev_page_url:
+          type: string
+          nullable: true
+        to:
+          type: integer
+          nullable: true
+        total:
+          type: integer
+
+  examples:
+    CedenteCreateBody:
+      summary: Exemplo completo para Postman / testes
+      value:
+        nome: Empresa Exemplo LTDA
+        documento: "12345678000199"
+        email: financeiro@exemplo.com.br
+        faturamento_anual: 1500000.5
+        minimo_assinantes: 2
+        sistema_financeiro_nacional: true
+        telefone: "1133334444"
+        endereco:
+          cep: "01310100"
+          logradouro: Av. Paulista
+          numero: "1000"
+          complemento: Sala 10
+          bairro: Bela Vista
+          estado: SP
+          cidade: São Paulo
+          pais: Brasil
+        partes_relacionadas:
+          - nome: Maria Souza
+            tipo_parte_relacionada: 1
+            nacionalidade: Brasileira
+            email: maria@exemplo.com
+            cpf: "12345678901"
+            telefone: "11988887777"
+            beneficiario_final: true
+            assinante_operacao: true
+            assinante_obrigatorio: false
+            estado_civil: Casada
+            regime_casamento: Comunhao parcial
+            profissao: Administradora
+            endereco:
+              cep: "04038001"
+              logradouro: Rua dos Pinheiros
+              numero: "500"
+              bairro: Pinheiros
+              estado: SP
+              cidade: São Paulo
+              pais: Brasil
+        avalistas:
+          - nome: João Silva
+            nacionalidade: Brasileiro
+            email: joao@exemplo.com
+            cpf: "98765432100"
+            telefone: "11977776666"
+            beneficiario_final: false
+            assinante_operacao: false
+            assinante_obrigatorio: true
+            endereco:
+              cep: "20040020"
+              logradouro: Av. Rio Branco
+              numero: "1"
+              bairro: Centro
+              estado: RJ
+              cidade: Rio de Janeiro
+              pais: Brasil
+          - nome: Maria Souza
+            tipo_parte_relacionada: 1
+            nacionalidade: Brasileira
+            email: maria@exemplo.com
+            cpf: "12345678901"
+            telefone: "11988887777"
+            beneficiario_final: true
+            assinante_operacao: true
+            assinante_obrigatorio: false
+        contas_desembolso:
+          - tipo_conta: conta_corrente
+            codigo_banco: "001"
+            agencia: "1234"
+            numero_conta: "56789"
+            digito_conta: "0"
+            descricao: Conta principal de recebimento
+          - tipo_conta: conta_poupanca
+            codigo_banco: "341"
+            agencia: "4321"
+            numero_conta: "998877"
+            digito_conta: "6"

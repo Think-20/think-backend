@@ -411,6 +411,12 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::get('/bank-accounts/get/{id}', 'BankAccountController@get');
     Route::post('/bank-accounts/filter', 'BankAccountController@filter');
 
+    Route::post('/cedente/save', 'CedenteController@save');
+    Route::put('/cedente/edit', 'CedenteController@edit');
+    Route::delete('/cedente/remove/{id}', 'CedenteController@remove');
+    Route::post('/cedentes/all', 'CedenteController@all');
+    Route::get('/cedentes/get/{id}', 'CedenteController@get');
+
     Route::post('/tag/save', 'TagController@save');
     Route::put('/tag/edit', 'TagController@edit');
     Route::delete('/tag/remove/{id}', 'TagController@remove');
