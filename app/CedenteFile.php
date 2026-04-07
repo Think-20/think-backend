@@ -60,19 +60,25 @@ class CedenteFile extends Model
         return $this->belongsTo(Cedente::class);
     }
 
+    /**
+     * Raiz dos uploads: FILES_FOLDER no .env (caminho absoluto, sem barra final),
+     * ou fallback storage/app/files (mesmo padrão sugerido para demais arquivos do sistema).
+     */
     public static function storageDir()
     {
         $base = env('FILES_FOLDER');
-        if (empty($base)) {
-            throw new Exception('FILES_FOLDER nao configurado no .env');
+        if ($base === null || trim((string) $base) === '') {
+            $base = storage_path('app' . DIRECTORY_SEPARATOR . 'files');
+        } else {
+            $base = rtrim((string) $base, '/\\');
         }
 
-        return rtrim($base, '/') . '/cedente-files';
+        return $base . DIRECTORY_SEPARATOR . 'cedente-files';
     }
 
     public function absolutePath()
     {
-        return self::storageDir() . '/' . $this->name;
+        return self::storageDir() . DIRECTORY_SEPARATOR . $this->name;
     }
 
     public function deletePhysicalFile()
@@ -114,7 +120,7 @@ class CedenteFile extends Model
 
         $storedName = sha1($cedenteId . $documentType . microtime(true) . mt_rand()) . '.' . $ext;
 
-        $fullPath = $dir . '/' . $storedName;
+        $fullPath = $dir . DIRECTORY_SEPARATOR . $storedName;
         if (file_put_contents($fullPath, $binary) === false) {
             throw new Exception('Falha ao gravar arquivo no disco');
         }

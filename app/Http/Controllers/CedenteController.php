@@ -79,7 +79,10 @@ class CedenteController extends Controller
         } catch (Exception $e) {
             Log::error('Cedente save: ' . $e->getMessage(), ['exception' => $e]);
 
-            return response()->json(['error' => 'true', 'message' => 'Erro ao cadastrar cedente'], 400);
+            return response()->json([
+                'error' => 'true',
+                'message' => 'Erro ao cadastrar cedente: ' . $e->getMessage(),
+            ], 400);
         }
 
         return response()->json([
@@ -107,7 +110,10 @@ class CedenteController extends Controller
         } catch (Exception $e) {
             Log::error('Cedente edit: ' . $e->getMessage(), ['exception' => $e]);
 
-            return response()->json(['error' => 'true', 'message' => 'Erro ao atualizar cedente'], 400);
+            return response()->json([
+                'error' => 'true',
+                'message' => 'Erro ao atualizar cedente: ' . $e->getMessage(),
+            ], 400);
         }
 
         return response()->json([
@@ -135,7 +141,10 @@ class CedenteController extends Controller
         } catch (Exception $e) {
             Log::error('Cedente remove: ' . $e->getMessage(), ['exception' => $e]);
 
-            return response()->json(['error' => 'true', 'message' => 'Erro ao excluir cedente'], 400);
+            return response()->json([
+                'error' => 'true',
+                'message' => 'Erro ao excluir cedente: ' . $e->getMessage(),
+            ], 400);
         }
 
         return response()->json(['error' => 'false', 'message' => 'Cedente excluido com sucesso']);
