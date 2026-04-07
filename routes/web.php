@@ -9,6 +9,9 @@ Route::post('/login', 'UserController@login')->name('login');
 Route::get('/check-token', 'UserController@checkToken')->name('checkToken');
 Route::post('/logout', 'UserController@logout')->name('logout');
 
+Route::get('/docs/cedente/openapi.yaml', 'DocsController@openapiCedenteYaml');
+Route::get('/docs/cedente', 'DocsController@swaggerCedenteUi')->name('docs.cedente.swagger');
+
 Route::get('/notify-past', function () {
     return (new App\CreateNotifyPastTasks())->test();
 });

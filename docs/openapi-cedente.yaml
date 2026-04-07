@@ -4,7 +4,13 @@ info:
   description: |
     Cadastro de cedente com endereço, partes relacionadas, avalistas, contas de desembolso e pessoas vinculadas (`cedente_pessoa_vinculada`).
 
-    **Autenticação:** token Bearer (mesmo fluxo de login das demais rotas autenticadas do projeto).
+    **Swagger UI (navegador):** após deploy, acesse `{baseUrl}/docs/cedente` — a página carrega esta especificação automaticamente.
+
+    **Autenticação (fluxo real do backend):**
+    1. Chame `POST /login` com `email` e `password` (JSON ou form-urlencoded).
+    2. Guarde `token` (string) e `user.id` da resposta.
+    3. Nas rotas protegidas (`auth.api`), envie os headers **`User`** = id do usuário (número) e **`Authorization`** = valor **exato** do `token` retornado.
+    4. **Importante:** não use o prefixo `Bearer ` no header `Authorization` — o middleware compara o header inteiro com o token salvo no banco.
 
     **Regras de negócio:**
     - `POST /cedente/save` e `PUT /cedente/edit` recebem **um único JSON** com `partes_relacionadas`, `avalistas` e `contas_desembolso`.
@@ -29,13 +35,105 @@ servers:
         description: Ex. origem do front ou Postman
 
 tags:
+  - name: Autenticação
+    description: Login e validação de sessão (rotas web do Laravel)
   - name: Cedente
     description: CRUD de cedente e recursos aninhados
 
 security:
-  - bearerAuth: []
+  - userIdHeader: []
+    authTokenHeader: []
 
 paths:
+  /login:
+    post:
+      tags: [Autenticação]
+      operationId: login
+      summary: Login (email e senha)
+      description: |
+        Implementado em `UserController@login` (`routes/web.php`). Mesma origem/base URL que `/cedente/*` (ex.: porta 8000 do Apache/PHP ou proxy reverso).
+
+        Corpo: JSON com `email` e `password`, ou `application/x-www-form-urlencoded` com os mesmos campos.
+
+        Credenciais inválidas retornam HTTP 200 com `user` e `token` nulos (não há código 401 explícito no controller).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            examples:
+              json:
+                summary: JSON
+                value:
+                  email: usuario@exemplo.com
+                  password: "sua_senha"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Sucesso (token preenchido) ou falha (user e token nulos)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+              examples:
+                sucesso:
+                  summary: Login ok
+                  value:
+                    token: "YmFzZTY0X3Rva2VuX2V4ZW1wbG8="
+                    user:
+                      id: 1
+                      email: usuario@exemplo.com
+                falha:
+                  summary: Credenciais inválidas
+                  value:
+                    token: null
+                    user: null
+
+  /check-token:
+    get:
+      tags: [Autenticação]
+      operationId: checkToken
+      summary: Verificar se token ainda é válido
+      description: |
+        Headers obrigatórios: `User` (id) e `Authorization` (token cru, igual ao login).
+        Resposta: `{ "status": true | false }`.
+      responses:
+        "200":
+          description: Resultado da comparação do token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckTokenResponse"
+        "403":
+          description: Headers ausentes ou token inválido (mensagem em JSON ou texto)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+            text/plain:
+              schema:
+                type: string
+
+  /logout:
+    post:
+      tags: [Autenticação]
+      operationId: logout
+      summary: Encerrar sessão (invalida o token no servidor)
+      description: |
+        Requer headers `User` e `Authorization` (mesmo formato das demais rotas autenticadas).
+      responses:
+        "200":
+          description: Processado (corpo pode ser vazio)
+        "403":
+          description: Não autenticado
+
   /cedente/save:
     post:
       tags: [Cedente]
@@ -175,13 +273,56 @@ paths:
 
 components:
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: Token retornado pelo login da aplicação (header Authorization).
+    userIdHeader:
+      type: apiKey
+      in: header
+      name: User
+      description: |
+        ID numérico do usuário (`user.id` retornado por `POST /login`).
+        O middleware `auth.api` também aceita `user_id` no corpo em alguns casos; o padrão para APIs é este header.
+    authTokenHeader:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: |
+        Token retornado no campo `token` de `POST /login`, **sem** prefixo `Bearer `.
+        O valor enviado aqui deve ser **idêntico** ao string `token` da resposta.
 
   schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      description: Resposta do `UserController@login`.
+      properties:
+        token:
+          type: string
+          nullable: true
+          description: Token de API; null se login falhou.
+        user:
+          nullable: true
+          description: |
+            Modelo `User` serializado (senha oculta), com relações carregadas pelo login (`functionalities`, `employee`, `displays`, etc.), ou null se falhou.
+          type: object
+          additionalProperties: true
+
+    CheckTokenResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: boolean
+          description: true se o token confere com o armazenado para o usuário informado.
+
     ApiErrorResponse:
       type: object
       required: [error, message]
@@ -737,7 +878,10 @@ components:
 
   examples:
     CedenteCreateBody:
-      summary: Exemplo completo para Postman / testes
+      summary: Exemplo completo para Postman / testes (inclui 13 arquivos obrigatórios)
+      description: |
+        Cada item usa `content_base64` com um payload mínimo válido (`aGVsbG8=` = texto "hello") só para passar na validação.
+        Em ambiente real, substitua pelo base64 de cada PDF (ou data URL `data:application/pdf;base64,...`).
       value:
         nome: Empresa Exemplo LTDA
         documento: "12345678000199"
@@ -814,3 +958,56 @@ components:
             agencia: "4321"
             numero_conta: "998877"
             digito_conta: "6"
+        arquivos:
+          - document_type: 1
+            original_name: contrato-estatuto-social.pdf
+            type: pdf
+            content_base64: aGVsbG8=
+          - document_type: 2
+            original_name: certidao-junta-comercial.pdf
+            type: pdf
+            content_base64: aGVsbG8=
+          - document_type: 3
+            original_name: ata-eleicao-diretoria.pdf
+            type: pdf
+            content_base64: aGVsbG8=
+          - document_type: 4
+            original_name: cartao-cnpj.pdf
+            type: pdf
+            content_base64: aGVsbG8=
+          - document_type: 5
+            original_name: parecer-compliance-reputacional.pdf
+            type: pdf
+            content_base64: aGVsbG8=
+          - document_type: 6
+            original_name: demonstracao-financeira.pdf
+            type: pdf
+            content_base64: aGVsbG8=
+          - document_type: 7
+            original_name: ata-parecer-credito.pdf
+            type: pdf
+            content_base64: aGVsbG8=
+          - document_type: 8
+            original_name: consulta-orgaos-protecao-credito.pdf
+            type: pdf
+            content_base64: aGVsbG8=
+          - document_type: 9
+            original_name: relatorio-visita.pdf
+            type: pdf
+            content_base64: aGVsbG8=
+          - document_type: 10
+            original_name: parecer-ficha-gestor.pdf
+            type: pdf
+            content_base64: aGVsbG8=
+          - document_type: 11
+            original_name: comprovante-residencia.pdf
+            type: pdf
+            content_base64: aGVsbG8=
+          - document_type: 12
+            original_name: declaracao-faturamento.pdf
+            type: pdf
+            content_base64: aGVsbG8=
+          - document_type: 13
+            original_name: declaracao-relacionamento-bancario.pdf
+            type: pdf
+            content_base64: aGVsbG8=
