@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 class GamifiedGoalsService
 {
     const STATUS_APPROVED = 3;
-    const INTERNAL_VALUE_PER_MONTH = 2_000_000; // 2M em projetos internos / mês
+    const INTERNAL_VALUE_PER_MONTH = 2000000; // 2M em projetos internos / mês
 
     /**
      * Retorna quantidade de meses no intervalo (inclusive).
@@ -100,7 +100,7 @@ class GamifiedGoalsService
             'key' => 'internal_value_per_month',
             'label' => '2 milhões em projetos internos / mês',
             'target' => $targetValue,
-            'target_label' => number_format($targetValue / 1_000_000, 1, ',', '.') . 'M (' . $months . ' ' . ($months === 1 ? 'mês' : 'meses') . ')',
+            'target_label' => number_format($targetValue / 1000000, 1, ',', '.') . 'M (' . $months . ' ' . ($months === 1 ? 'mês' : 'meses') . ')',
             'current' => $currentValue,
             'current_label' => number_format($currentValue, 0, ',', '.'),
             'percentage' => $pct,
@@ -109,7 +109,7 @@ class GamifiedGoalsService
 
         // 1 - 2 projetos internos acima de 150k / mês
         $targetCount = 2 * $months;
-        $currentCount = $internalApproved->filter(fn (Job $j) => self::jobValue($j) >= 150_000)->count();
+        $currentCount = $internalApproved->filter(fn (Job $j) => self::jobValue($j) >= 150000)->count();
         $pct = $targetCount > 0 ? min(100, round(($currentCount / $targetCount) * 100, 1)) : 0;
         $goals[] = [
             'key' => 'internal_projects_above_150k',
@@ -123,7 +123,7 @@ class GamifiedGoalsService
 
         // 2 - 1 projeto interno acima de 300k / mês
         $targetCount = 1 * $months;
-        $currentCount = $internalApproved->filter(fn (Job $j) => self::jobValue($j) >= 300_000)->count();
+        $currentCount = $internalApproved->filter(fn (Job $j) => self::jobValue($j) >= 300000)->count();
         $pct = $targetCount > 0 ? min(100, round(($currentCount / $targetCount) * 100, 1)) : 0;
         $goals[] = [
             'key' => 'internal_projects_above_300k',
@@ -137,7 +137,7 @@ class GamifiedGoalsService
 
         // 3 - 1 projeto interno acima de 600k / mês
         $targetCount = 1 * $months;
-        $currentCount = $internalApproved->filter(fn (Job $j) => self::jobValue($j) >= 600_000)->count();
+        $currentCount = $internalApproved->filter(fn (Job $j) => self::jobValue($j) >= 600000)->count();
         $pct = $targetCount > 0 ? min(100, round(($currentCount / $targetCount) * 100, 1)) : 0;
         $goals[] = [
             'key' => 'internal_projects_above_600k',
@@ -151,7 +151,7 @@ class GamifiedGoalsService
 
         // 4 - 1 projeto interno acima de 1500k / mês
         $targetCount = 1 * $months;
-        $currentCount = $internalApproved->filter(fn (Job $j) => self::jobValue($j) >= 1_500_000)->count();
+        $currentCount = $internalApproved->filter(fn (Job $j) => self::jobValue($j) >= 1500000)->count();
         $pct = $targetCount > 0 ? min(100, round(($currentCount / $targetCount) * 100, 1)) : 0;
         $goals[] = [
             'key' => 'internal_projects_above_1500k',
