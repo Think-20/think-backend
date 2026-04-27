@@ -32,6 +32,9 @@ class BankAccount extends Model
         return $t === '' ? null : $t;
     }
 
+    /**
+     * @return BankAccount|false
+     */
     public static function edit(array $data)
     {
         if (!isset($data['id'])) {
@@ -77,10 +80,12 @@ class BankAccount extends Model
             $updates['registration_date'] = $data['registration_date'] ?: null;
         }
         if (empty($updates)) {
-            return true;
+            return $bankAccount;
         }
 
-        return $bankAccount->update($updates);
+        $bankAccount->update($updates);
+
+        return $bankAccount;
     }
 
     public static function insert(array $data)

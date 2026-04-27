@@ -7,6 +7,7 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
 use InvalidArgumentException;
+use Response;
 
 class BankAccountController extends Controller
 {
@@ -27,45 +28,71 @@ class BankAccountController extends Controller
 
     public static function save(Request $request)
     {
+        $status = false;
+        $bankAccount = null;
+        $message = '';
+
         try {
-            BankAccount::insert($request->all());
+            $model = BankAccount::insert($request->all());
+            $bankAccount = BankAccount::with('bank', 'bankAccountType')
+                ->withCount('transactions')
+                ->find($model->id);
+            $message = 'Conta bancaria cadastrada com sucesso!';
+            $status = true;
         } catch (InvalidArgumentException $e) {
-            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
+            $message = $e->getMessage();
         } catch (QueryException $queryException) {
             if ($queryException->getCode() == 23000) {
-                return response()->json(['error' => 'true', 'message' => 'Conta bancaria ja cadastrada'], 200);
+                $message = 'Conta bancaria ja cadastrada';
+            } else {
+                $message = 'Erro ao cadastrar no banco de dados';
             }
-
-            return response()->json(['error' => 'true', 'message' => 'Erro ao cadastrar no banco de dados'], 400);
         } catch (Exception $e) {
-            return response()->json(['error' => 'true', 'message' => 'Erro desconhecido ao cadastrar'], 400);
+            $message = 'Erro desconhecido ao cadastrar: ' . $e->getMessage();
         }
 
-        return response()->json(['error' => 'false', 'message' => 'Conta bancaria cadastrada com sucesso']);
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+            'bankAccount' => $bankAccount,
+        ]), 200);
     }
 
     public static function edit(Request $request)
     {
-        try {
-            $ok = BankAccount::edit($request->all());
-            if ($ok === false) {
-                $id = isset($request->id) ? $request->id : '';
+        $status = false;
+        $bankAccount = null;
+        $message = '';
 
-                return response()->json(['error' => 'true', 'message' => 'Conta bancaria ' . $id . ' nao encontrada'], 400);
+        try {
+            $model = BankAccount::edit($request->all());
+            if ($model === false) {
+                $id = isset($request->id) ? $request->id : '';
+                $message = 'Conta bancaria ' . $id . ' nao encontrada';
+            } else {
+                $bankAccount = BankAccount::with('bank', 'bankAccountType')
+                    ->withCount('transactions')
+                    ->find($model->id);
+                $message = 'Conta bancaria alterada com sucesso!';
+                $status = true;
             }
         } catch (InvalidArgumentException $e) {
-            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
+            $message = $e->getMessage();
         } catch (QueryException $queryException) {
             if ($queryException->getCode() == 23000) {
-                return response()->json(['error' => 'true', 'message' => 'Conta bancaria ja cadastrada'], 200);
+                $message = 'Conta bancaria ja cadastrada';
+            } else {
+                $message = 'Erro ao atualizar no banco de dados';
             }
-
-            return response()->json(['error' => 'true', 'message' => 'Erro ao atualizar no banco de dados'], 400);
         } catch (Exception $e) {
-            return response()->json(['error' => 'true', 'message' => 'Erro desconhecido ao atualizar'], 400);
+            $message = 'Erro desconhecido ao atualizar: ' . $e->getMessage();
         }
 
-        return response()->json(['error' => 'false', 'message' => 'Conta bancaria atualizada com sucesso']);
+        return Response::make(json_encode([
+            'message' => $message,
+            'status' => $status,
+            'bankAccount' => $bankAccount,
+        ]), 200);
     }
 
     public static function remove(int $id)

@@ -520,8 +520,6 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
 
     //Goal
     
-
-    //
     Route::post('/specification-files/save-multiple', 'SpecificationFileController@saveMultiple');
     Route::delete('/specification-files/remove/{id}', 'SpecificationFileController@remove');
     Route::get('/specification-files/download/{id}', 'SpecificationFileController@downloadFile');
