@@ -101,7 +101,6 @@ class GamifiedGoalsService
 
         $goals = [];
 
-        // 0 - 2 milhões em projetos internos / mês
         $targetValue = self::INTERNAL_VALUE_PER_MONTH * $months;
         $currentValue = $internalApproved->sum(function (Job $j) {
             return self::jobValue($j);

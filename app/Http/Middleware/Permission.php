@@ -29,6 +29,16 @@ class Permission
             return $next($request);
         }
 
+        // Liberação temporária: permitir todas as rotas de faturamento e bank-account para todos os usuários
+        // (mantendo o restante das regras de permissionamento como está)
+        if (
+            strpos($routeUri, "/financeiro/") === 0 ||
+            strpos($routeUri, "/bank-account") === 0 ||
+            strpos($routeUri, "/bank-accounts") === 0
+        ) {
+            return $next($request);
+        }
+
         if($routeUri == "/briefing-files/remove/{id}" || $routeUri == "/briefing-files/save-multiple" || $routeUri == "/briefing-files/download/{id}" || $routeUri == "/briefing-files/download-all/{taskId}"){
             return $next($request);
         }else if($routeUri == "/feedback/email" || $routeUri == "/feedback"){
