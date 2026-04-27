@@ -9,6 +9,7 @@ class Bank extends Model
     protected $table = 'bank';
 
     protected $fillable = [
-        'name'
+        'code',
+        'name',
     ];
 }
