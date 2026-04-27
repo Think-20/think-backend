@@ -4,6 +4,7 @@ namespace App;
 
 use DateTime;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
 class BankAccount extends Model
@@ -30,6 +31,85 @@ class BankAccount extends Model
         $t = trim((string) $value);
 
         return $t === '' ? null : $t;
+    }
+
+    /**
+     * Lê `id` de objeto/array vindo do JSON (array, stdClass ou Collection).
+     *
+     * @param mixed $value
+     * @return int|null
+     */
+    private static function readIdFromNestedContainer($value)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_array($value)) {
+            if (!array_key_exists('id', $value)) {
+                return null;
+            }
+            $id = $value['id'];
+        } elseif ($value instanceof Collection) {
+            if (!$value->has('id')) {
+                return null;
+            }
+            $id = $value->get('id');
+        } elseif (is_object($value)) {
+            if (!isset($value->id)) {
+                return null;
+            }
+            $id = $value->id;
+        } else {
+            return null;
+        }
+
+        if ($id === null || $id === '') {
+            return null;
+        }
+
+        return (int) $id;
+    }
+
+    /**
+     * Prioriza `bank_id` explícito (edição no Postman / APIs); senão `bank.id` quando vier objeto aninhado.
+     *
+     * @param array $data
+     * @return int|null null = não enviado
+     */
+    private static function resolveBankIdFromPayload(array $data)
+    {
+        if (array_key_exists('bank_id', $data) && $data['bank_id'] !== null && $data['bank_id'] !== '') {
+            return (int) $data['bank_id'];
+        }
+        if (array_key_exists('bank', $data) && $data['bank'] !== null && $data['bank'] !== '') {
+            $fromNested = static::readIdFromNestedContainer($data['bank']);
+            if ($fromNested !== null && $fromNested > 0) {
+                return $fromNested;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Prioriza `bank_account_type_id` explícito; senão `bank_account_type.id` quando vier objeto aninhado.
+     *
+     * @param array $data
+     * @return int|null null = não enviado
+     */
+    private static function resolveBankAccountTypeIdFromPayload(array $data)
+    {
+        if (array_key_exists('bank_account_type_id', $data) && $data['bank_account_type_id'] !== null && $data['bank_account_type_id'] !== '') {
+            return (int) $data['bank_account_type_id'];
+        }
+        if (array_key_exists('bank_account_type', $data) && $data['bank_account_type'] !== null && $data['bank_account_type'] !== '') {
+            $fromNested = static::readIdFromNestedContainer($data['bank_account_type']);
+            if ($fromNested !== null && $fromNested > 0) {
+                return $fromNested;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -66,15 +146,16 @@ class BankAccount extends Model
             }
             $updates['account_number'] = $an;
         }
-        if (array_key_exists('bank_id', $data)) {
-            $bid = (int) $data['bank_id'];
-            if ($bid <= 0) {
+        $bankId = static::resolveBankIdFromPayload($data);
+        if ($bankId !== null) {
+            if ($bankId <= 0) {
                 throw new InvalidArgumentException('Banco invalido');
             }
-            $updates['bank_id'] = $bid;
+            $updates['bank_id'] = $bankId;
         }
-        if (array_key_exists('bank_account_type_id', $data)) {
-            $updates['bank_account_type_id'] = (int) $data['bank_account_type_id'] ?: 1;
+        $typeId = static::resolveBankAccountTypeIdFromPayload($data);
+        if ($typeId !== null) {
+            $updates['bank_account_type_id'] = $typeId ?: 1;
         }
         if (array_key_exists('registration_date', $data)) {
             $updates['registration_date'] = $data['registration_date'] ?: null;
@@ -102,13 +183,15 @@ class BankAccount extends Model
         if ($accountNumber === null) {
             throw new InvalidArgumentException('Conta invalida');
         }
-        $bankId = isset($data['bank_id']) ? (int) $data['bank_id'] : 0;
-        if ($bankId <= 0) {
+        $bankId = static::resolveBankIdFromPayload($data);
+        if ($bankId === null || $bankId <= 0) {
             throw new InvalidArgumentException('Banco invalido');
         }
-        $typeId = isset($data['bank_account_type_id']) && $data['bank_account_type_id'] !== ''
-            ? (int) $data['bank_account_type_id']
-            : 1;
+        $typeId = static::resolveBankAccountTypeIdFromPayload($data);
+        if ($typeId === null) {
+            $typeId = 1;
+        }
+        $typeId = $typeId ?: 1;
 
         $attrs = [
             'name' => $name,

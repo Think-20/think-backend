@@ -11,6 +11,42 @@ use Response;
 
 class BankAccountController extends Controller
 {
+    /**
+     * MySQL 1062 = entrada duplicada em índice UNIQUE.
+     * Não confundir com 1452 (FK) ou outros 23000 — antes o código tratava todo 23000 como "duplicata".
+     *
+     * @param QueryException $e
+     * @return bool
+     */
+    private static function isDuplicateKeyException(QueryException $e)
+    {
+        $driverCode = isset($e->errorInfo[1]) ? (int) $e->errorInfo[1] : 0;
+
+        return $driverCode === 1062;
+    }
+
+    /**
+     * MySQL 1452 = FK inválida (ex.: bank_id ou bank_account_type_id inexistente).
+     *
+     * @param QueryException $e
+     * @return bool
+     */
+    private static function isInvalidForeignKeyException(QueryException $e)
+    {
+        $driverCode = isset($e->errorInfo[1]) ? (int) $e->errorInfo[1] : 0;
+
+        return $driverCode === 1452;
+    }
+
+    /**
+     * @return string
+     */
+    private static function duplicateBankAccountMessage()
+    {
+        return 'Já existe outra conta bancária com a mesma agência e número de conta. '
+            . 'Ajuste esses campos ou confira se o payload não está repetindo dados de outro cadastro.';
+    }
+
     public static function all(Request $request)
     {
         return BankAccount::list($request->all());
@@ -42,10 +78,12 @@ class BankAccountController extends Controller
         } catch (InvalidArgumentException $e) {
             $message = $e->getMessage();
         } catch (QueryException $queryException) {
-            if ($queryException->getCode() == 23000) {
-                $message = 'Conta bancaria ja cadastrada';
+            if (self::isDuplicateKeyException($queryException)) {
+                $message = self::duplicateBankAccountMessage();
+            } elseif (self::isInvalidForeignKeyException($queryException)) {
+                $message = 'Referência inválida: confira se o banco (bank_id) e o tipo de conta (bank_account_type_id) existem na base.';
             } else {
-                $message = 'Erro ao cadastrar no banco de dados';
+                $message = 'Não foi possível cadastrar no banco de dados. Verifique os dados e tente novamente.';
             }
         } catch (Exception $e) {
             $message = 'Erro desconhecido ao cadastrar: ' . $e->getMessage();
@@ -79,10 +117,23 @@ class BankAccountController extends Controller
         } catch (InvalidArgumentException $e) {
             $message = $e->getMessage();
         } catch (QueryException $queryException) {
-            if ($queryException->getCode() == 23000) {
-                $message = 'Conta bancaria ja cadastrada';
+            if (self::isDuplicateKeyException($queryException)) {
+                $message = self::duplicateBankAccountMessage();
+                if ($request->has('id')) {
+                    $bankAccount = BankAccount::with('bank', 'bankAccountType')
+                        ->withCount('transactions')
+                        ->find($request->input('id'));
+                }
+            } elseif (self::isInvalidForeignKeyException($queryException)) {
+                $message = 'Referência inválida: bank_id ou bank_account_type_id não existe na base. '
+                    . 'Após confirmar os ids, rode `php artisan migrate` se a FK legada de bank_id ainda apontar para a tabela errada.';
+                if ($request->has('id')) {
+                    $bankAccount = BankAccount::with('bank', 'bankAccountType')
+                        ->withCount('transactions')
+                        ->find($request->input('id'));
+                }
             } else {
-                $message = 'Erro ao atualizar no banco de dados';
+                $message = 'Não foi possível atualizar no banco de dados. Verifique os dados e tente novamente.';
             }
         } catch (Exception $e) {
             $message = 'Erro desconhecido ao atualizar: ' . $e->getMessage();
