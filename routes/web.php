@@ -296,8 +296,9 @@ Route::group(['middleware' => ['auth.api']], function () {
     //função que ativa apos o usuario cliclar no botão do email
     Route::get('/external/extras/{checkInId}/{hash}', 'CheckinController@confirmMailCheckin');
 
-    Route::get('/financeiro/transacao/{jobId}/{bankAccountId}', 'TransactionController@getByJobAndBankAccount');
+    //Route::get('/financeiro/transacao/{jobId}/{bankAccountId}', 'TransactionController@getByJobAndBankAccount');
     Route::get('/financeiro/transacao/total/{jobId}/{tipoTransacao}', 'TransactionController@totalByJobAndType');
+    Route::get('/financeiro/transacao/{jobId}/{tipoTransacao}', 'TransactionController@getByJobAndTransactionType');
     Route::post('/financeiro/transacao', 'TransactionController@create');
     Route::put('/financeiro/transacao', 'TransactionController@edit');
     Route::put('/financeiro/transacao/status', 'TransactionController@updateStatus');

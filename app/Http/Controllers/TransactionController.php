@@ -7,14 +7,27 @@ use App\Tag;
 use App\Transaction;
 use Exception;
 use Illuminate\Database\QueryException;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class TransactionController extends Controller
 {
-    public function getByJobAndBankAccount(int $jobId, int $bankAccountId)
+    public function getByJobAndTransactionType(int $jobId, int $tipoTransacao, Request $request)
     {
+        if (!in_array($tipoTransacao, [1, 2], true)) {
+            return response()->json(['error' => 'true', 'message' => 'tipoTransacao invalido'], 400);
+        }
+
+        $dateParsed = $this->parseOptionalDateQueryParam($request->query('date'));
+        if ($dateParsed === false) {
+            return response()->json(['error' => 'true', 'message' => 'date invalida'], 400);
+        }
+
+        $contaBancariaId = $this->parseOptionalContaBancariaIdQueryParam($request->query('contaBancariaId'));
+
         $transactions = Transaction::with([
             'category',
             'bankAccount.bank',
@@ -23,9 +36,11 @@ class TransactionController extends Controller
             'tags'
         ])
             ->where('job_id', $jobId)
-            ->where('bank_account_id', $bankAccountId)
-            ->orderBy('creation_date', 'desc')
-            ->get();
+            ->where('transaction_type', $tipoTransacao);
+
+        $this->applyOptionalDateAndBankAccountFilters($transactions, $tipoTransacao, $dateParsed, $contaBancariaId);
+
+        $transactions = $transactions->orderBy('creation_date', 'desc')->get();
 
         $totalRealizado = $transactions->filter(function ($t) {
             return $t->realized_date !== null;
@@ -46,15 +61,94 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function totalByJobAndType(int $jobId, int $transactionType)
+    public function totalByJobAndType(int $jobId, int $tipoTransacao, Request $request)
     {
-        $total = Transaction::where('job_id', $jobId)
-            ->where('transaction_type', $transactionType)
-            ->sum('total_value');
+        if (!in_array($tipoTransacao, [1, 2], true)) {
+            return response()->json(['error' => 'true', 'message' => 'tipoTransacao invalido'], 400);
+        }
+
+        $dateParsed = $this->parseOptionalDateQueryParam($request->query('date'));
+        if ($dateParsed === false) {
+            return response()->json(['error' => 'true', 'message' => 'date invalida'], 400);
+        }
+
+        $contaBancariaId = $this->parseOptionalContaBancariaIdQueryParam($request->query('contaBancariaId'));
+
+        $query = Transaction::where('job_id', $jobId)
+            ->where('transaction_type', $tipoTransacao);
+
+        $this->applyOptionalDateAndBankAccountFilters($query, $tipoTransacao, $dateParsed, $contaBancariaId);
+
+        $total = $query->sum('total_value');
 
         return response()->json([
             'total' => (float) $total,
         ]);
+    }
+
+    /** @param string|null $dateParsed Y-m-d ou null (invalida e rejeitada antes de chamar este metodo) */
+    private function applyOptionalDateAndBankAccountFilters(Builder $query, int $tipoTransacao, ?string $dateParsed, ?int $contaBancariaId): void
+    {
+        if ($contaBancariaId !== null) {
+            $query->where('bank_account_id', $contaBancariaId);
+        }
+
+        if ($dateParsed !== null) {
+            if ($tipoTransacao === 1) {
+                $query->whereDate('receipt_date', '<=', $dateParsed);
+            } else {
+                $query->whereDate('due_date', '<=', $dateParsed);
+            }
+        }
+    }
+
+    /**
+     * @return string|null|false null se omitido; string Y-m-d se valido; false se invalido
+     */
+    private function parseOptionalDateQueryParam($raw)
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        try {
+            return Carbon::parse((string) $raw)->format('Y-m-d');
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    private function parseOptionalContaBancariaIdQueryParam($raw): ?int
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        $id = (int) $raw;
+
+        return $id > 0 ? $id : null;
+    }
+
+    /**
+     * Evita "Unexpected data found" do Carbon ao passar string vazia ou ISO com T para o cast datetime.
+     *
+     * @return string|null
+     */
+    private function normalizeDateTimeFromPayload(array $payload, string $key)
+    {
+        if (!array_key_exists($key, $payload)) {
+            return null;
+        }
+        $value = $payload[$key];
+        if ($value === null) {
+            return null;
+        }
+        if (is_string($value) && trim($value) === '') {
+            return null;
+        }
+        try {
+            return Carbon::parse($value)->format('Y-m-d H:i:s');
+        } catch (\Throwable $e) {
+            throw new InvalidArgumentException('Data invalida');
+        }
     }
 
     public function create(Request $request)
@@ -241,11 +335,11 @@ class TransactionController extends Controller
             'description' => isset($payload['descricao']) ? $payload['descricao'] : null,
             'observation' => isset($payload['observacao']) ? $payload['observacao'] : null,
             'status' => $status,
-            'creation_date' => isset($payload['datacriacao']) ? $payload['datacriacao'] : null,
-            'receipt_date' => isset($payload['datarecebimento']) ? $payload['datarecebimento'] : null,
-            'due_date' => isset($payload['datavencimento']) ? $payload['datavencimento'] : null,
-            'realized_date' => isset($payload['datarealizado']) ? $payload['datarealizado'] : null,
-            'billing_date' => isset($payload['datacobranca']) ? $payload['datacobranca'] : null,
+            'creation_date' => $this->normalizeDateTimeFromPayload($payload, 'datacriacao'),
+            'receipt_date' => $this->normalizeDateTimeFromPayload($payload, 'datarecebimento'),
+            'due_date' => $this->normalizeDateTimeFromPayload($payload, 'datavencimento'),
+            'realized_date' => $this->normalizeDateTimeFromPayload($payload, 'datarealizado'),
+            'billing_date' => $this->normalizeDateTimeFromPayload($payload, 'datacobranca'),
             'category_id' => $categoryId,
             'bank_account_id' => $bankAccountId,
             'payment_method' => $paymentMethod,
