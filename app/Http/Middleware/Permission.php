@@ -29,8 +29,10 @@ class Permission
             return $next($request);
         }
 
-        // API de cedente (cadastro integrado). Para restringir por perfil, remova este bloco e cadastre
-        // cada URL em `functionality`, vinculando em `user_functionality`.
+        if (strpos($routeUri, '/fund') === 0) {
+            return $next($request);
+        }
+
         if (strpos($routeUri, '/cedente/') === 0 || strpos($routeUri, '/cedentes/') === 0) {
             return $next($request);
         }

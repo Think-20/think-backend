@@ -301,6 +301,7 @@ Route::group(['middleware' => ['auth.api']], function () {
 
     Route::get('/financeiro/transacao/{jobId}/{bankAccountId}', 'TransactionController@getByJobAndBankAccount');
     Route::get('/financeiro/transacao/total/{jobId}/{tipoTransacao}', 'TransactionController@totalByJobAndType');
+    Route::get('/financeiro/transacao/{jobId}/{tipoTransacao}', 'TransactionController@getByJobAndTransactionType');
     Route::post('/financeiro/transacao', 'TransactionController@create');
     Route::put('/financeiro/transacao', 'TransactionController@edit');
     Route::put('/financeiro/transacao/status', 'TransactionController@updateStatus');
@@ -406,6 +407,13 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::post('/categories/all', 'CategoryController@all');
     Route::get('/categories/get/{id}', 'CategoryController@get');
     Route::post('/categories/filter', 'CategoryController@filter');
+
+    Route::post('/fund/save', 'FundController@save');
+    Route::put('/fund/edit', 'FundController@edit');
+    Route::delete('/fund/remove/{id}', 'FundController@remove');
+    Route::post('/funds/all', 'FundController@all');
+    Route::get('/funds/get/{id}', 'FundController@get');
+    Route::post('/funds/filter', 'FundController@filter');
 
     Route::post('/bank-account/save', 'BankAccountController@save');
     Route::put('/bank-account/edit', 'BankAccountController@edit');
