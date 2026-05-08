@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Cedente;
+use App\CedenteAudit;
 use App\Http\Services\CedenteService;
 use Exception;
 use Illuminate\Database\QueryException;
@@ -43,9 +44,26 @@ class CedenteController extends Controller
             $perPage = 20;
         }
 
-        return Cedente::with(['address', 'pessoasVinculadas', 'contasDesembolso', 'cedenteFiles'])
+        // `cadastro_status_resumo` vem no JSON raiz junto com current_page, data, etc. (paginate()->additional).
+        // Mesmo payload que `Cedente::cadastroStatusResumo()` / `POST /cedentes/status-resumo` em `data`.
+        $paginator = Cedente::with(['address', 'pessoasVinculadas', 'contasDesembolso', 'cedenteFiles'])
             ->orderBy('id', 'desc')
             ->paginate($perPage);
+
+        return $paginator->additional([
+            'cadastro_status_resumo' => Cedente::cadastroStatusResumo(),
+        ]);
+    }
+
+    /**
+     * Contagem de cadastros de cedente por status atual (sem listar registros).
+     */
+    public static function statusResumo()
+    {
+        return response()->json([
+            'error' => 'false',
+            'data' => Cedente::cadastroStatusResumo(),
+        ]);
     }
 
     public static function get($id)
@@ -58,6 +76,43 @@ class CedenteController extends Controller
         return response()->json([
             'error' => 'false',
             'data' => CedenteService::toApiArray($cedente),
+        ]);
+    }
+
+    /**
+     * Histórico de mudanças de status do cadastro (`cedente_audit`).
+     * Quem alterou: `user_id` / `usuario_email` (usuário logado via header User em save/edit).
+     * Quando: `created_at`.
+     */
+    public static function historico($id)
+    {
+        $id = (int) $id;
+        if ($id < 1 || Cedente::find($id) === null) {
+            return response()->json(['error' => 'true', 'message' => 'Cedente nao encontrado'], 404);
+        }
+
+        $linhas = CedenteAudit::where('cedente_id', $id)
+            ->orderBy('id', 'desc')
+            ->with(['user'])
+            ->get();
+
+        $data = $linhas->map(function ($a) {
+            $u = $a->user;
+
+            return [
+                'id' => $a->id,
+                'event' => $a->event,
+                'old_status' => $a->old_status,
+                'new_status' => $a->new_status,
+                'user_id' => $a->user_id,
+                'usuario_email' => $u ? $u->email : null,
+                'created_at' => $a->created_at ? $a->created_at->toDateTimeString() : null,
+            ];
+        });
+
+        return response()->json([
+            'error' => 'false',
+            'data' => $data->values()->all(),
         ]);
     }
 

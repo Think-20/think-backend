@@ -4,9 +4,11 @@ namespace App\Http\Services;
 
 use App\Address;
 use App\Cedente;
+use App\CedenteAudit;
 use App\CedentePessoaVinculada;
 use App\CedenteFile;
 use App\ContaDesembolso;
+use App\User;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -72,12 +74,20 @@ class CedenteService
                 'address_id' => $addressId,
                 'sistema_financeiro_nacional' => !empty($data['sistema_financeiro_nacional']),
                 'telefone' => isset($data['telefone']) ? $data['telefone'] : null,
+                'status' => self::resolveStatusForCreate(isset($data['status']) ? $data['status'] : null),
             ]);
             $cedente->save();
 
             self::syncPessoas($cedente, $data);
             self::syncContas($cedente, $data);
             self::syncArquivos($cedente, $data['arquivos']);
+
+            self::recordStatusAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_CADASTRO_CRIADO,
+                $cedente->status ?: Cedente::STATUS_PENDENTE,
+                null
+            );
 
             return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles']);
         });
@@ -102,6 +112,8 @@ class CedenteService
                 throw new InvalidArgumentException('Cedente nao encontrado');
             }
 
+            $statusAntes = $cedente->status ?: Cedente::STATUS_PENDENTE;
+
             if (! isset($data['nome'], $data['documento']) || $data['nome'] === '' || $data['documento'] === '') {
                 throw new InvalidArgumentException('Nome e documento do cedente sao obrigatorios');
             }
@@ -125,7 +137,7 @@ class CedenteService
                 self::validateArquivosObrigatorios($data['arquivos']);
             }
 
-            $cedente->fill([
+            $fill = [
                 'nome' => $data['nome'],
                 'documento' => $data['documento'],
                 'email' => isset($data['email']) ? $data['email'] : null,
@@ -133,7 +145,11 @@ class CedenteService
                 'minimo_assinantes' => self::normalizeOptionalUInt(isset($data['minimo_assinantes']) ? $data['minimo_assinantes'] : null),
                 'sistema_financeiro_nacional' => !empty($data['sistema_financeiro_nacional']),
                 'telefone' => isset($data['telefone']) ? $data['telefone'] : null,
-            ]);
+            ];
+            if (array_key_exists('status', $data)) {
+                $fill['status'] = self::resolveStatusForUpdate($data['status']);
+            }
+            $cedente->fill($fill);
             $cedente->save();
 
             self::syncPessoas($cedente, $data);
@@ -141,6 +157,18 @@ class CedenteService
 
             if (array_key_exists('arquivos', $data)) {
                 self::syncArquivos($cedente, $data['arquivos']);
+            }
+
+            if (array_key_exists('status', $data)) {
+                $statusDepois = $cedente->status ?: Cedente::STATUS_PENDENTE;
+                if ($statusAntes !== $statusDepois) {
+                    self::recordStatusAudit(
+                        $cedente->id,
+                        CedenteAudit::EVENT_STATUS_ALTERADO,
+                        $statusDepois,
+                        $statusAntes
+                    );
+                }
             }
 
             return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles']);
@@ -189,6 +217,7 @@ class CedenteService
             'id' => $cedente->id,
             'nome' => $cedente->nome,
             'documento' => $cedente->documento,
+            'status' => $cedente->status ?: Cedente::STATUS_PENDENTE,
             'email' => $cedente->email,
             'faturamento_anual' => $cedente->faturamento_anual,
             'minimo_assinantes' => $cedente->minimo_assinantes,
@@ -451,6 +480,64 @@ class CedenteService
         }
 
         return null;
+    }
+
+    /**
+     * @param mixed $raw
+     * @return string
+     */
+    private static function resolveStatusForCreate($raw)
+    {
+        if ($raw === null || $raw === '') {
+            return Cedente::STATUS_PENDENTE;
+        }
+
+        $s = is_string($raw) ? trim($raw) : trim((string) $raw);
+        if (! Cedente::isCadastroStatus($s)) {
+            throw new InvalidArgumentException('Status do cadastro invalido');
+        }
+
+        return $s;
+    }
+
+    /**
+     * @param mixed $raw
+     * @return string
+     */
+    private static function resolveStatusForUpdate($raw)
+    {
+        if ($raw === null || $raw === '') {
+            throw new InvalidArgumentException('Status do cadastro invalido');
+        }
+
+        $s = is_string($raw) ? trim($raw) : trim((string) $raw);
+        if (! Cedente::isCadastroStatus($s)) {
+            throw new InvalidArgumentException('Status do cadastro invalido');
+        }
+
+        return $s;
+    }
+
+    /**
+     * Histórico de status no cadastro (`cedente_audit`). Usuário: header User / user_id (User::logged()).
+     *
+     * @param int $cedenteId
+     * @param string $event
+     * @param string $newStatus
+     * @param string|null $oldStatus
+     */
+    private static function recordStatusAudit($cedenteId, $event, $newStatus, $oldStatus = null)
+    {
+        $user = User::logged();
+
+        CedenteAudit::create([
+            'cedente_id' => (int) $cedenteId,
+            'user_id' => $user ? (int) $user->id : null,
+            'event' => $event,
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'changes' => null,
+        ]);
     }
 
     private static function validateArquivosObrigatorios($arquivos)

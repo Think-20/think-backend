@@ -426,7 +426,9 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::put('/cedente/edit', 'CedenteController@edit');
     Route::delete('/cedente/remove/{id}', 'CedenteController@remove');
     Route::post('/cedentes/all', 'CedenteController@all');
+    Route::post('/cedentes/status-resumo', 'CedenteController@statusResumo');
     Route::get('/cedentes/get/{id}', 'CedenteController@get');
+    Route::get('/cedentes/historico/{id}', 'CedenteController@historico');
 
     Route::post('/tag/save', 'TagController@save');
     Route::put('/tag/edit', 'TagController@edit');

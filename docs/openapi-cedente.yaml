@@ -17,7 +17,9 @@ info:
     - Itens com o **mesmo CPF** em `partes_relacionadas` e `avalistas` são **unificados** em um registro com ambas as flags.
     - No **PUT**, as listas enviadas **substituem** as existentes (snapshot completo recomendado).
     - `GET /cedentes/get/{id}` e o objeto `data` de save/edit retornam `partes_relacionadas` e `avalistas` **separados** (espelhando o front).
-    - `POST /cedentes/all` retorna paginação Laravel; cada item usa o modelo Eloquent (`pessoas_vinculadas`, não as listas separadas).
+    - `POST /cedentes/all` retorna paginação Laravel; cada item usa o modelo Eloquent (`pessoas_vinculadas`, não as listas separadas). No **mesmo JSON** (raiz da resposta) vem `cadastro_status_resumo` — contagens globais por status + `total` de cedentes; é o mesmo objeto retornado em `data` por `POST /cedentes/status-resumo`.
+    - `POST /cedentes/status-resumo` retorna apenas contagens por `status` do cadastro (pendente, em avaliação, etc.) e o total de cedentes.
+    - `GET /cedentes/historico/{id}` lista o histórico de status (`cedente_audit`): evento, status anterior/novo, `user_id`, e-mail do usuário (`usuario_email`) e `created_at`.
     - **Arquivos:** no cadastro (`POST /cedente/save`) é obrigatório o array `arquivos` com **exatamente 13** itens, um por `document_type` (1–13), cada um com `original_name` e `content_base64` (ou `base64`). Os arquivos são gravados em disco (`FILES_FOLDER/cedente-files`), no mesmo espírito de `project_file` (campo `name` = nome armazenado, `type` = extensão).
     - **PUT /cedente/edit:** se a chave `arquivos` for enviada, deve trazer de novo os **13** documentos (substitui os anteriores no disco e no banco). Se `arquivos` for omitido, os arquivos já cadastrados são mantidos.
 
@@ -213,11 +215,47 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
 
+  /cedentes/historico/{id}:
+    get:
+      tags: [Cedente]
+      operationId: listCedenteHistoricoStatus
+      summary: Histórico de alterações de status do cadastro
+      description: |
+        Gravações em `cedente_audit`: ao criar (`cadastro_criado`, `old_status` nulo) e a cada mudança de status no `PUT /cedente/edit` (`status_alterado`).
+        O usuário é o da requisição autenticada (header `User`); campos `user_id` e `usuario_email` na resposta.
+        A data/hora do evento é `created_at`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Lista ordenada do mais recente ao mais antigo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CedenteHistoricoStatusResponse"
+        "404":
+          description: Cedente não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
   /cedentes/all:
     post:
       tags: [Cedente]
       operationId: listCedentes
       summary: Listar cedentes (paginação Laravel)
+      description: |
+        Além dos campos padrão do `paginate()`, a raiz do JSON inclui **`cadastro_status_resumo`**
+        (`Cedente::cadastroStatusResumo()` no backend): contagem em **todos** os cadastros por cada status
+        e o campo `total` de cedentes na base. O campo **`total`** da paginação Laravel é o total de registros
+        da query da listagem (em geral coincide com o `total` dentro de `cadastro_status_resumo`).
+        Leia as contagens em `response.cadastro_status_resumo`, não dentro de `data[]`.
       requestBody:
         required: false
         content:
@@ -238,6 +276,22 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CedentePaginatedListResponse"
+
+  /cedentes/status-resumo:
+    post:
+      tags: [Cedente]
+      operationId: cedentesCadastroStatusResumo
+      summary: Resumo de cadastros por status
+      description: |
+        Retorna quantos cedentes existem em cada status de cadastro (`pendente`, `em_avaliacao`, `inconsistente`, `aprovado`, `vencido`, `cancelado`)
+        e o total de linhas na tabela. Não lista os registros.
+      responses:
+        "200":
+          description: Contagens atuais
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CedenteStatusResumoResponse"
 
   /cedente/remove/{id}:
     delete:
@@ -555,6 +609,9 @@ components:
         telefone:
           type: string
           nullable: true
+        status:
+          $ref: "#/components/schemas/CedenteCadastroStatus"
+          description: Opcional no POST; padrão `pendente`. No PUT, só altera se a chave for enviada.
         endereco:
           $ref: "#/components/schemas/Address"
         partes_relacionadas:
@@ -646,6 +703,105 @@ components:
           type: string
           format: date-time
 
+    CedenteCadastroStatus:
+      type: string
+      description: Status do cadastro do cedente (persistido em `cedente.status`).
+      enum:
+        - pendente
+        - em_avaliacao
+        - inconsistente
+        - aprovado
+        - vencido
+        - cancelado
+
+    CedenteStatusResumoData:
+      type: object
+      required:
+        - pendente
+        - em_avaliacao
+        - inconsistente
+        - aprovado
+        - vencido
+        - cancelado
+        - total
+      properties:
+        pendente:
+          type: integer
+          minimum: 0
+        em_avaliacao:
+          type: integer
+          minimum: 0
+        inconsistente:
+          type: integer
+          minimum: 0
+        aprovado:
+          type: integer
+          minimum: 0
+        vencido:
+          type: integer
+          minimum: 0
+        cancelado:
+          type: integer
+          minimum: 0
+        total:
+          type: integer
+          minimum: 0
+          description: Total de registros na tabela `cedente` (independente do valor de `status`).
+
+    CedenteStatusResumoResponse:
+      type: object
+      required: [error, data]
+      properties:
+        error:
+          type: string
+          enum: ["false"]
+        data:
+          $ref: "#/components/schemas/CedenteStatusResumoData"
+
+    CedenteHistoricoStatusItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        event:
+          type: string
+          description: |
+            `cadastro_criado` — primeiro status ao salvar; `status_alterado` — mudança via `PUT /cedente/edit`.
+          enum:
+            - cadastro_criado
+            - status_alterado
+        old_status:
+          type: string
+          nullable: true
+          description: Status anterior; nulo na criação do cadastro.
+        new_status:
+          type: string
+          description: Status após o evento.
+        user_id:
+          type: integer
+          nullable: true
+          description: ID do usuário autenticado na requisição (header `User`).
+        usuario_email:
+          type: string
+          nullable: true
+          format: email
+        created_at:
+          type: string
+          format: date-time
+          description: Data/hora do registro (quando ocorreu o evento).
+
+    CedenteHistoricoStatusResponse:
+      type: object
+      required: [error, data]
+      properties:
+        error:
+          type: string
+          enum: ["false"]
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CedenteHistoricoStatusItem"
+
     ContaDesembolsoResource:
       type: object
       properties:
@@ -699,6 +855,8 @@ components:
         telefone:
           type: string
           nullable: true
+        status:
+          $ref: "#/components/schemas/CedenteCadastroStatus"
         endereco:
           $ref: "#/components/schemas/Address"
           nullable: true
@@ -770,6 +928,8 @@ components:
         telefone:
           type: string
           nullable: true
+        status:
+          $ref: "#/components/schemas/CedenteCadastroStatus"
         created_at:
           type: string
           format: date-time
@@ -843,8 +1003,14 @@ components:
 
     CedentePaginatedListResponse:
       type: object
-      description: Resposta padrão de `paginate()` do Laravel.
+      description: |
+        Resposta de `paginate()` do Laravel com campo extra `cadastro_status_resumo` (via `additional()` no controller).
+        No cliente: `body.cadastro_status_resumo.pendente`, `body.cadastro_status_resumo.total`, etc.
       properties:
+        cadastro_status_resumo:
+          $ref: "#/components/schemas/CedenteStatusResumoData"
+          description: |
+            Contagens globais de cadastros por status (não restritas à página atual). Implementação: `Cedente::cadastroStatusResumo()`.
         current_page:
           type: integer
         data:

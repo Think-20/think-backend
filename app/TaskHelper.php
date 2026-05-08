@@ -153,6 +153,7 @@ class TaskHelper
         TaskHelper::checkDuration($item, $jobActivity);
         TaskHelper::checkBudgetValue($item, $jobActivity);
         TaskHelper::checkBlocked($item);
+        TaskHelper::checkHoliday($item);
         TaskHelper::checkOnlyNextDay($item, $jobActivity);
         TaskHelper::checkPeriod($item, $jobActivity);
         TaskHelper::checkOldDate($item, $jobActivity);
@@ -216,6 +217,19 @@ class TaskHelper
 
         throw new Exception('A data ' . (new DateTime($item->date))->format('d/m/Y') .
             ' está bloqueada para o responsável');
+    }
+
+    public static function checkHoliday($item): void
+    {
+        if (!BrazilHoliday::isHoliday($item->date)) {
+            return;
+        }
+
+        $name = BrazilHoliday::holidayName($item->date);
+        $suffix = $name ? ' (' . $name . ')' : '';
+
+        throw new Exception('A data ' . (new DateTime($item->date))->format('d/m/Y') .
+            ' é feriado e não pode ser selecionada' . $suffix);
     }
 
     public static function checkKeepResponsible($item, JobActivity $jobActivity, Job $job = null)

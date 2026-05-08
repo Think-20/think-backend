@@ -434,6 +434,16 @@ class Task extends Model
         }) : collect([]);
         $admin = isset($data['admin']) ? $data['admin'] : false;
 
+        // Bloqueia gravação em feriados (garantia no backend).
+        $items->each(function ($item) {
+            $date = isset($item->date) ? $item->date : null;
+            if ($date && BrazilHoliday::isHoliday($date)) {
+                $name = BrazilHoliday::holidayName($date);
+                $suffix = $name ? ' (' . $name . ')' : '';
+                throw new Exception('Não é permitido agendar em feriado: ' . (new DateTime($date))->format('d/m/Y') . $suffix);
+            }
+        });
+
         $task = new Task(array_merge($data, [
             'responsible_id' => $responsible_id,
             'job_id' => $job_id,
@@ -706,6 +716,16 @@ class Task extends Model
             return (object) $item;
         }) : collect([]);
         $admin = isset($data['admin']) ? $data['admin'] : false;
+
+        // Bloqueia edição para feriados (garantia no backend).
+        $items->each(function ($item) {
+            $date = isset($item->date) ? $item->date : null;
+            if ($date && BrazilHoliday::isHoliday($date)) {
+                $name = BrazilHoliday::holidayName($date);
+                $suffix = $name ? ' (' . $name . ')' : '';
+                throw new Exception('Não é permitido agendar em feriado: ' . (new DateTime($date))->format('d/m/Y') . $suffix);
+            }
+        });
 
         $task = Task::find($id);
 

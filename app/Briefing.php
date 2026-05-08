@@ -29,6 +29,11 @@ class Briefing extends Model {
 
         $arr = ActivityHelper::calculateNextDate($now->format('Y-m-d'), $responsibles, 1, $activityList);
 
+        // Garante que o dia sugerido não caia em feriado.
+        while (BrazilHoliday::isHoliday($arr['date'])) {
+            $arr['date'] = DateHelper::sumUtil($arr['date'], 1);
+        }
+
         return [
             'responsibles' => $responsibles,
             'available_date' => ($arr['date'])->format('Y-m-d'),
@@ -58,6 +63,11 @@ class Briefing extends Model {
 
         $arr = ActivityHelper::calculateNextDate($date->format('Y-m-d'), $responsibles, $estimatedTime, $activityList, $swap);
 
+        // Garante que o dia sugerido não caia em feriado.
+        while (BrazilHoliday::isHoliday($arr['date'])) {
+            $arr['date'] = DateHelper::sumUtil($arr['date'], 1);
+        }
+
         return [
             'available_date' => ($arr['date'])->format('Y-m-d'),
             'responsible' =>  $arr['responsible']
@@ -68,6 +78,13 @@ class Briefing extends Model {
         $id = $data['id'];
         $briefing = Briefing::find($id);
         $available_date = isset($data['available_date']) ? $data['available_date'] : null;
+
+        if ($available_date && BrazilHoliday::isHoliday($available_date)) {
+            $name = BrazilHoliday::holidayName($available_date);
+            $suffix = $name ? ' (' . $name . ')' : '';
+            throw new \Exception('Não é permitido agendar em feriado: ' . (new DateTime($available_date))->format('d/m/Y') . $suffix);
+        }
+
         $briefing->update(['available_date' => $available_date]);
         return $briefing;
     }
@@ -76,6 +93,12 @@ class Briefing extends Model {
         $id = $data['id'];
         $briefing = Briefing::find($id);
         $available_date = isset($data['available_date']) ? $data['available_date'] : null;
+
+        if ($available_date && BrazilHoliday::isHoliday($available_date)) {
+            $name = BrazilHoliday::holidayName($available_date);
+            $suffix = $name ? ' (' . $name . ')' : '';
+            throw new \Exception('Não é permitido agendar em feriado: ' . (new DateTime($available_date))->format('d/m/Y') . $suffix);
+        }
 
         if($briefing->job->attendance_id != User::logged()->employee->id) {
             throw new \Exception('Você não tem permissão para editar esse job.');
