@@ -150,6 +150,9 @@ class TaskHelper
 
     public static function checkIfDateAvailable($item, JobActivity $jobActivity, Job $job = null): void
     {
+        // Prioridade: se for feriado, sempre travar com mensagem de feriado
+        // (mesmo que o dia também esteja ocupado/bloqueado por outros motivos).
+        TaskHelper::checkHoliday($item);
         TaskHelper::checkDuration($item, $jobActivity);
         TaskHelper::checkBudgetValue($item, $jobActivity);
         TaskHelper::checkBlocked($item);
@@ -216,6 +219,19 @@ class TaskHelper
 
         throw new Exception('A data ' . (new DateTime($item->date))->format('d/m/Y') .
             ' está bloqueada para o responsável');
+    }
+
+    public static function checkHoliday($item): void
+    {
+        if (!BrazilHoliday::isHoliday($item->date)) {
+            return;
+        }
+
+        $name = BrazilHoliday::holidayName($item->date);
+        $suffix = $name ? ' (' . $name . ')' : '';
+
+        throw new Exception('A data ' . (new DateTime($item->date))->format('d/m/Y') .
+            ' é feriado e está bloqueada' . $suffix);
     }
 
     public static function checkKeepResponsible($item, JobActivity $jobActivity, Job $job = null)

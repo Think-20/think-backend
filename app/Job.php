@@ -81,6 +81,13 @@ class Job extends Model
 
         $overbook = $count > 19 ? 1 : 0;
 
+        $holidayRangeStart = DateHelper::sub(new DateTime(), 31);
+        $holidayRangeEnd = DateHelper::sum(new DateTime(), 730);
+        $holidays = BrazilHoliday::holidaysBetween(
+            $holidayRangeStart->format('Y-m-d'),
+            $holidayRangeEnd->format('Y-m-d')
+        );
+
         return [
             'job_activities' => JobActivity::list(),
             'job_types' => JobType::all(),
@@ -90,7 +97,8 @@ class Job extends Model
             'levels' => JobLevel::all(),
             'how_comes' => JobHowCome::all(),
             'status' => JobStatus::all(),
-            'overbook' => $overbook
+            'overbook' => $overbook,
+            'holidays' => $holidays,
         ];
     }
 

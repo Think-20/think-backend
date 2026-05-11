@@ -268,12 +268,24 @@ class TaskItem extends Model
             return isset($item->task->job) && !is_null($item->task->job);
         })->values();
 
+        $holidays = [];
+        if (!is_null($iniDate) && !is_null($finDate)) {
+            $holidays = BrazilHoliday::holidaysBetween($iniDate, $finDate);
+        } elseif ($result->count() > 0) {
+            $minDate = $result->min('date');
+            $maxDate = $result->max('date');
+            if ($minDate && $maxDate) {
+                $holidays = BrazilHoliday::holidaysBetween($minDate, $maxDate);
+            }
+        }
+
         return [
             'pagination' => [
                 'data' => $result,
                 'total' => $total,
                 'page' => $page
             ],
+            'holidays' => $holidays,
             'updatedInfo' => Task::updatedInfo()
         ];
     }
@@ -425,12 +437,24 @@ class TaskItem extends Model
             $page = 0;
         }
 
+        $holidays = [];
+        if (!is_null($iniDate) && !is_null($finDate)) {
+            $holidays = BrazilHoliday::holidaysBetween($iniDate, $finDate);
+        } elseif ($result->count() > 0) {
+            $minDate = $result->min('date');
+            $maxDate = $result->max('date');
+            if ($minDate && $maxDate) {
+                $holidays = BrazilHoliday::holidaysBetween($minDate, $maxDate);
+            }
+        }
+
         return [
             'pagination' => [
                 'data' => $result,
                 'total' => $total,
                 'page' => $page
             ],
+            'holidays' => $holidays,
             'updatedInfo' => Task::updatedInfo()
         ];
     }

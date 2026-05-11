@@ -48,7 +48,10 @@ class ScheduleBlock extends Model
     public static function sumUtilNonBlocked(DateTime $date, User $user, $interval) {
         $date = DateHelper::sumUtil($date, $interval);
 
-        while(ScheduleBlock::checkIfBlocked($date->format('Y-m-d'), $user->id)) {
+        while (
+            ScheduleBlock::checkIfBlocked($date->format('Y-m-d'), $user->id)
+            || BrazilHoliday::isHoliday($date)
+        ) {
             $date = DateHelper::sumUtil($date, $interval);
         }
 
