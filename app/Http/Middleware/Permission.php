@@ -33,7 +33,7 @@ class Permission
             return $next($request);
         }
 
-        if (strpos($routeUri, '/cedente/') === 0 || strpos($routeUri, '/cedentes/') === 0) {
+        if (strpos($routeUri, '/cedente') !== false) {
             return $next($request);
         }
 

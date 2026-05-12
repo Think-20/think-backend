@@ -44,15 +44,15 @@ class CedenteController extends Controller
             $perPage = 20;
         }
 
-        // `cadastro_status_resumo` vem no JSON raiz junto com current_page, data, etc. (paginate()->additional).
-        // Mesmo payload que `Cedente::cadastroStatusResumo()` / `POST /cedentes/status-resumo` em `data`.
+        // `cadastro_status_resumo` no JSON raiz junto com current_page, data, etc.
+        // (Laravel 5.6: paginador não tem `additional()`; isso existe em versões mais novas.)
         $paginator = Cedente::with(['address', 'pessoasVinculadas', 'contasDesembolso', 'cedenteFiles'])
             ->orderBy('id', 'desc')
             ->paginate($perPage);
 
-        return $paginator->additional([
+        return response()->json(array_merge($paginator->toArray(), [
             'cadastro_status_resumo' => Cedente::cadastroStatusResumo(),
-        ]);
+        ]));
     }
 
     /**
