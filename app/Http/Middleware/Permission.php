@@ -29,12 +29,10 @@ class Permission
             return $next($request);
         }
 
-        // Liberação temporária: permitir todas as rotas de faturamento e bank-account para todos os usuários
-        // (mantendo o restante das regras de permissionamento como está)
         if (
             strpos($routeUri, "/financeiro/") === 0 ||
             strpos($routeUri, "/bank-account") === 0 ||
-            strpos($routeUri, "/bank-accounts") === 0
+            strpos($routeUri, "/cedente") === 0
         ) {
             return $next($request);
         }
