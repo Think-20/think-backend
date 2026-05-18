@@ -439,6 +439,27 @@ class Job extends Model
         return $job;
     }
 
+    private static function applyStatusFilter($query, $status)
+    {
+        if (is_null($status) || $status === '' || (is_array($status) && empty($status))) {
+            return;
+        }
+
+        if (is_array($status)) {
+            $statusIds = array_values(array_filter($status, function ($id) {
+                return $id !== '' && $id !== null;
+            }));
+
+            if (!empty($statusIds)) {
+                $query->whereIn('status_id', $statusIds);
+            }
+
+            return;
+        }
+
+        $query->where('status_id', '=', $status);
+    }
+
     public static function filter($params)
     {
         $iniDate = isset($params['iniDate']) ? $params['iniDate'] : null;
@@ -495,9 +516,7 @@ class Job extends Model
             });
         }
 
-        if (!is_null($status)) {
-            $jobs->where('status_id', '=', $status);
-        }
+        self::applyStatusFilter($jobs, $status);
 
         if (!is_null($jobTypeId)) {
             $jobs->where('job_type_id', '=', $jobTypeId);
@@ -813,9 +832,7 @@ class Job extends Model
             });
         }
 
-        if (!is_null($status)) {
-            $jobs->where('status_id', '=', $status);
-        }
+        self::applyStatusFilter($jobs, $status);
 
         if (!is_null($jobTypeId)) {
             $jobs->where('job_type_id', '=', $jobTypeId);
