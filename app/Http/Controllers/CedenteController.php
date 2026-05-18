@@ -55,14 +55,26 @@ class CedenteController extends Controller
         ]));
     }
 
-    /**
-     * Contagem de cadastros de cedente por status atual (sem listar registros).
-     */
     public static function statusResumo()
     {
         return response()->json([
             'error' => 'false',
             'data' => Cedente::cadastroStatusResumo(),
+        ]);
+    }
+
+    public static function status($id)
+    {
+        $cedente = Cedente::find($id);
+        if (!$cedente) {
+            return response()->json(['error' => 'true', 'message' => 'Cedente nao encontrado'], 404);
+        }
+
+        return response()->json([
+            'error' => 'false',
+            'data' => [
+                'status' => $cedente->status ?: Cedente::STATUS_PENDENTE,
+            ],
         ]);
     }
 
@@ -79,11 +91,6 @@ class CedenteController extends Controller
         ]);
     }
 
-    /**
-     * Histórico de mudanças de status do cadastro (`cedente_audit`).
-     * Quem alterou: `user_id` / `usuario_email` (usuário logado via header User em save/edit).
-     * Quando: `created_at`.
-     */
     public static function historico($id)
     {
         $id = (int) $id;
@@ -143,6 +150,37 @@ class CedenteController extends Controller
         return response()->json([
             'error' => 'false',
             'message' => 'Cedente cadastrado com sucesso',
+            'data' => CedenteService::toApiArray($cedente),
+        ]);
+    }
+
+    public static function patch(Request $request)
+    {
+        try {
+            $cedente = CedenteService::patchPartial(self::decodeRequestPayload($request));
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
+        } catch (QueryException $e) {
+            Log::error('Cedente patch QueryException: ' . $e->getMessage(), ['exception' => $e]);
+
+            $message = 'Erro ao atualizar no banco de dados';
+            if (config('app.debug')) {
+                $message .= ': ' . $e->getMessage();
+            }
+
+            return response()->json(['error' => 'true', 'message' => $message], 400);
+        } catch (Exception $e) {
+            Log::error('Cedente patch: ' . $e->getMessage(), ['exception' => $e]);
+
+            return response()->json([
+                'error' => 'true',
+                'message' => 'Erro ao atualizar cedente: ' . $e->getMessage(),
+            ], 400);
+        }
+
+        return response()->json([
+            'error' => 'false',
+            'message' => 'Cedente atualizado com sucesso',
             'data' => CedenteService::toApiArray($cedente),
         ]);
     }

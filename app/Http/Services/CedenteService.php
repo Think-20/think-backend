@@ -94,7 +94,8 @@ class CedenteService
     }
 
     /**
-     * Atualiza cedente substituindo listas de pessoas e contas (snapshot enviado pelo front).
+     * Atualização completa (PUT /cedente/edit): snapshot — nome/documento obrigatórios;
+     * listas de pessoas e contas sempre substituídas; arquivos só se a chave `arquivos` vier.
      *
      * @return Cedente
      */
@@ -118,7 +119,9 @@ class CedenteService
                 throw new InvalidArgumentException('Nome e documento do cedente sao obrigatorios');
             }
 
-            self::updateAddressForCedente($cedente, isset($data['endereco']) ? $data['endereco'] : null);
+            if (array_key_exists('endereco', $data)) {
+                self::updateAddressForCedente($cedente, $data['endereco']);
+            }
 
             foreach ($cedente->pessoasVinculadas as $p) {
                 if ($p->address_id) {
@@ -173,6 +176,177 @@ class CedenteService
 
             return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles']);
         });
+    }
+
+    /**
+     * Atualização parcial (PATCH /cedente/patch): só altera chaves presentes no JSON.
+     *
+     * @return Cedente
+     */
+    public static function patchPartial(array $data)
+    {
+        $data = self::normalizePayload($data);
+
+        return DB::transaction(function () use ($data) {
+            if (empty($data['id'])) {
+                throw new InvalidArgumentException('ID do cedente e obrigatorio para atualizacao');
+            }
+
+            $cedente = Cedente::with(['pessoasVinculadas.address', 'contasDesembolso'])->find($data['id']);
+            if (!$cedente) {
+                throw new InvalidArgumentException('Cedente nao encontrado');
+            }
+
+            $statusAntes = $cedente->status ?: Cedente::STATUS_PENDENTE;
+
+            if (array_key_exists('nome', $data)) {
+                $nome = is_string($data['nome']) ? trim($data['nome']) : trim((string) $data['nome']);
+                if ($nome === '') {
+                    throw new InvalidArgumentException('Nome do cedente nao pode ser vazio');
+                }
+                $cedente->nome = $nome;
+            }
+
+            if (array_key_exists('documento', $data)) {
+                $documento = is_string($data['documento']) ? trim($data['documento']) : trim((string) $data['documento']);
+                if ($documento === '') {
+                    throw new InvalidArgumentException('Documento do cedente nao pode ser vazio');
+                }
+                $cedente->documento = $documento;
+            }
+
+            if (array_key_exists('email', $data)) {
+                $cedente->email = $data['email'];
+            }
+
+            if (array_key_exists('telefone', $data)) {
+                $cedente->telefone = $data['telefone'];
+            }
+
+            if (array_key_exists('faturamento_anual', $data)) {
+                $cedente->faturamento_anual = self::normalizeOptionalDecimal($data['faturamento_anual']);
+            }
+
+            if (array_key_exists('minimo_assinantes', $data)) {
+                $cedente->minimo_assinantes = self::normalizeOptionalUInt($data['minimo_assinantes']);
+            }
+
+            if (array_key_exists('sistema_financeiro_nacional', $data)) {
+                $cedente->sistema_financeiro_nacional = !empty($data['sistema_financeiro_nacional']);
+            }
+
+            if (array_key_exists('status', $data)) {
+                $cedente->status = self::resolveStatusForUpdate($data['status']);
+            }
+
+            if (array_key_exists('endereco', $data)) {
+                self::updateAddressForCedente($cedente, $data['endereco']);
+            }
+
+            if (array_key_exists('partes_relacionadas', $data) || array_key_exists('avalistas', $data)) {
+                self::replacePessoasVinculadas($cedente, $data);
+            }
+
+            if (array_key_exists('contas_desembolso', $data)) {
+                $cedente->contasDesembolso()->delete();
+                self::syncContas($cedente, $data);
+            }
+
+            if (array_key_exists('arquivos', $data)) {
+                $cedente->load('cedenteFiles');
+                foreach ($cedente->cedenteFiles as $f) {
+                    $f->deletePhysicalFile();
+                }
+                $cedente->cedenteFiles()->delete();
+                self::validateArquivosObrigatorios($data['arquivos']);
+                self::syncArquivos($cedente, $data['arquivos']);
+            }
+
+            $cedente->save();
+
+            if (array_key_exists('status', $data)) {
+                $statusDepois = $cedente->status ?: Cedente::STATUS_PENDENTE;
+                if ($statusAntes !== $statusDepois) {
+                    self::recordStatusAudit(
+                        $cedente->id,
+                        CedenteAudit::EVENT_STATUS_ALTERADO,
+                        $statusDepois,
+                        $statusAntes
+                    );
+                }
+            }
+
+            return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles']);
+        });
+    }
+
+    /**
+     * Substitui pessoas vinculadas; lista omitida no PATCH é preservada a partir do banco.
+     */
+    private static function replacePessoasVinculadas(Cedente $cedente, array $data)
+    {
+        $partes = array_key_exists('partes_relacionadas', $data)
+            ? (is_array($data['partes_relacionadas']) ? $data['partes_relacionadas'] : [])
+            : self::pessoasVinculadasAsInput($cedente, true, false);
+
+        $avalistas = array_key_exists('avalistas', $data)
+            ? (is_array($data['avalistas']) ? $data['avalistas'] : [])
+            : self::pessoasVinculadasAsInput($cedente, false, true);
+
+        foreach ($cedente->pessoasVinculadas as $p) {
+            if ($p->address_id) {
+                Address::where('id', $p->address_id)->delete();
+            }
+        }
+        $cedente->pessoasVinculadas()->delete();
+
+        self::syncPessoas($cedente, [
+            'partes_relacionadas' => $partes,
+            'avalistas' => $avalistas,
+        ]);
+    }
+
+    /**
+     * @param bool $partes
+     * @param bool $avalistas
+     * @return array
+     */
+    private static function pessoasVinculadasAsInput(Cedente $cedente, $partes, $avalistas)
+    {
+        $out = [];
+        foreach ($cedente->pessoasVinculadas as $p) {
+            if ($partes && ! $p->e_parte_relacionada) {
+                continue;
+            }
+            if ($avalistas && ! $p->e_avalista) {
+                continue;
+            }
+            $out[] = self::pessoaVinculadaToInput($p);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array
+     */
+    private static function pessoaVinculadaToInput(CedentePessoaVinculada $p)
+    {
+        return [
+            'nome' => $p->nome,
+            'tipo_parte_relacionada' => $p->tipo_parte_relacionada,
+            'nacionalidade' => $p->nacionalidade,
+            'email' => $p->email,
+            'cpf' => $p->cpf,
+            'telefone' => $p->telefone,
+            'beneficiario_final' => $p->beneficiario_final,
+            'assinante_operacao' => $p->assinante_operacao,
+            'assinante_obrigatorio' => $p->assinante_obrigatorio,
+            'estado_civil' => $p->estado_civil,
+            'regime_casamento' => $p->regime_casamento,
+            'profissao' => $p->profissao,
+            'endereco' => $p->address ? $p->address->toArray() : null,
+        ];
     }
 
     public static function deleteById($id)

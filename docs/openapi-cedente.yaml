@@ -13,9 +13,10 @@ info:
     4. **Importante:** não use o prefixo `Bearer ` no header `Authorization` — o middleware compara o header inteiro com o token salvo no banco.
 
     **Regras de negócio:**
-    - `POST /cedente/save` e `PUT /cedente/edit` recebem **um único JSON** com `partes_relacionadas`, `avalistas` e `contas_desembolso`.
+    - `POST /cedente/save` recebe o cadastro completo (incluindo `partes_relacionadas`, `avalistas`, `contas_desembolso` e os 13 `arquivos`).
+    - **`PUT /cedente/edit`**: atualização em **snapshot** — `nome` e `documento` obrigatórios; `partes_relacionadas`, `avalistas` e `contas_desembolso` enviadas **substituem** as listas (omitir = array vazio e remove tudo). Recomenda-se enviar o objeto completo (ex.: após `GET /cedentes/get/{id}`).
+    - **`PATCH /cedente/patch`**: atualização **parcial** — só altera as chaves enviadas (`id` obrigatório). Ex.: `{ "id": 1, "status": "aprovado" }` sem apagar partes/contas.
     - Itens com o **mesmo CPF** em `partes_relacionadas` e `avalistas` são **unificados** em um registro com ambas as flags.
-    - No **PUT**, as listas enviadas **substituem** as existentes (snapshot completo recomendado).
     - `GET /cedentes/get/{id}` e o objeto `data` de save/edit retornam `partes_relacionadas` e `avalistas` **separados** (espelhando o front).
     - `POST /cedentes/all` retorna paginação Laravel; cada item usa o modelo Eloquent (`pessoas_vinculadas`, não as listas separadas). No **mesmo JSON** (raiz da resposta) vem `cadastro_status_resumo` — contagens globais por status + `total` de cedentes; é o mesmo objeto retornado em `data` por `POST /cedentes/status-resumo`.
     - `POST /cedentes/status-resumo` retorna apenas contagens por `status` do cadastro (pendente, em avaliação, etc.) e o total de cedentes.
@@ -168,13 +169,46 @@ paths:
     put:
       tags: [Cedente]
       operationId: updateCedente
-      summary: Atualizar cedente (id obrigatório; listas substituídas)
+      summary: Atualizar cedente (snapshot completo)
+      description: |
+        Substitui dados do cadastro conforme o body. `nome` e `documento` obrigatórios.
+        `partes_relacionadas`, `avalistas` e `contas_desembolso` **sempre** recriadas a partir do JSON (listas omitidas = vazias).
+        Para alterar só um campo (ex.: status), use **`PATCH /cedente/patch`**.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/CedenteUpdateRequest"
+      responses:
+        "200":
+          description: Atualização realizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CedenteSaveOrEditSuccessResponse"
+        "400":
+          description: Validação ou erro de persistência
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /cedente/patch:
+    patch:
+      tags: [Cedente]
+      operationId: patchCedente
+      summary: Atualização parcial (um ou mais campos)
+      description: |
+        Envie `id` e apenas os campos a alterar (ex.: `status`, `telefone`).
+        O que não vier no JSON **não é alterado**. Listas e arquivos só mudam se a chave existir no body.
+        Não use esta rota para substituir o cadastro inteiro — use `PUT /cedente/edit`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CedentePatchRequest"
       responses:
         "200":
           description: Atualização realizada
@@ -221,7 +255,7 @@ paths:
       operationId: listCedenteHistoricoStatus
       summary: Histórico de alterações de status do cadastro
       description: |
-        Gravações em `cedente_audit`: ao criar (`cadastro_criado`, `old_status` nulo) e a cada mudança de status no `PUT /cedente/edit` (`status_alterado`).
+        Gravações em `cedente_audit`: ao criar (`cadastro_criado`, `old_status` nulo) e a cada mudança de status no `PUT /cedente/edit` ou `PATCH /cedente/patch` (`status_alterado`).
         O usuário é o da requisição autenticada (header `User`); campos `user_id` e `usuario_email` na resposta.
         A data/hora do evento é `created_at`.
       parameters:
@@ -647,6 +681,59 @@ components:
             id:
               type: integer
               minimum: 1
+
+    CedentePatchRequest:
+      type: object
+      required: [id]
+      description: |
+        Atualização parcial (`PUT /cedente/edit` ou `PATCH /cedente/patch`).
+        Apenas `id` é obrigatório; demais propriedades são opcionais e só as enviadas são persistidas.
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        nome:
+          type: string
+        documento:
+          type: string
+        email:
+          type: string
+          nullable: true
+        faturamento_anual:
+          type: number
+          format: double
+          nullable: true
+        minimo_assinantes:
+          type: integer
+          minimum: 0
+          nullable: true
+        sistema_financeiro_nacional:
+          type: boolean
+        telefone:
+          type: string
+          nullable: true
+        status:
+          $ref: "#/components/schemas/CedenteCadastroStatus"
+        endereco:
+          $ref: "#/components/schemas/Address"
+        partes_relacionadas:
+          type: array
+          items:
+            $ref: "#/components/schemas/PessoaVinculadaInput"
+        avalistas:
+          type: array
+          items:
+            $ref: "#/components/schemas/PessoaVinculadaInput"
+        contas_desembolso:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContaDesembolsoInput"
+        arquivos:
+          type: array
+          minItems: 13
+          maxItems: 13
+          items:
+            $ref: "#/components/schemas/CedenteArquivoInput"
 
     PessoaVinculadaDetail:
       type: object
