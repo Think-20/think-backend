@@ -7,17 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class Cedente extends Model
 {
     public const STATUS_PENDENTE = 'pendente';
-
     public const STATUS_EM_AVALIACAO = 'em_avaliacao';
-
     public const STATUS_INCONSISTENTE = 'inconsistente';
-
     public const STATUS_APROVADO = 'aprovado';
-
     public const STATUS_VENCIDO = 'vencido';
-
     public const STATUS_CANCELADO = 'cancelado';
-
     protected $table = 'cedente';
 
     protected $fillable = [
