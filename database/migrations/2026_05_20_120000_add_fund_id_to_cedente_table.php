@@ -13,11 +13,12 @@ class AddFundIdToCedenteTable extends Migration
      */
     public function up()
     {
+        if (Schema::hasColumn('cedente', 'fund_id')) {
+            return;
+        }
+
         Schema::table('cedente', function (Blueprint $table) {
             $table->unsignedInteger('fund_id')->nullable()->after('id');
-            $table->foreign('fund_id')->references('id')->on('fund')->onDelete('restrict');
-            $table->index('fund_id');
-            $table->unique(['fund_id', 'documento'], 'cedente_fund_documento_unique');
         });
     }
 
@@ -28,10 +29,11 @@ class AddFundIdToCedenteTable extends Migration
      */
     public function down()
     {
+        if (! Schema::hasColumn('cedente', 'fund_id')) {
+            return;
+        }
+
         Schema::table('cedente', function (Blueprint $table) {
-            $table->dropForeign(['fund_id']);
-            $table->dropUnique('cedente_fund_documento_unique');
-            $table->dropIndex(['fund_id']);
             $table->dropColumn('fund_id');
         });
     }
