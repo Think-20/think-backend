@@ -4,6 +4,7 @@ namespace App;
 
 use DateInterval;
 use DateTime;
+use InvalidArgumentException;
 
 class BrazilHoliday
 {
@@ -53,6 +54,33 @@ class BrazilHoliday
      * Retorna feriados (nacionais) entre duas datas (inclusive).
      * Formato: [['date' => 'Y-m-d', 'name' => '...'], ...]
      */
+    /**
+     * Soma dias úteis (seg–sex, excluindo feriados nacionais) a partir de $startDate.
+     * O dia inicial não conta; o retorno é a data limite (Y-m-d).
+     *
+     * @param DateTime|string $startDate
+     */
+    public static function addBusinessDays($startDate, int $businessDays): string
+    {
+        if ($businessDays < 1) {
+            throw new InvalidArgumentException('businessDays deve ser >= 1');
+        }
+
+        $date = $startDate instanceof DateTime
+            ? clone $startDate
+            : new DateTime(substr((string) $startDate, 0, 10));
+
+        $remaining = $businessDays;
+        while ($remaining > 0) {
+            $date = DateHelper::sumUtil($date, 1);
+            if (! self::isHoliday($date)) {
+                $remaining--;
+            }
+        }
+
+        return $date->format('Y-m-d');
+    }
+
     public static function holidaysBetween($startDate, $endDate): array
     {
         $start = $startDate instanceof DateTime ? (clone $startDate) : new DateTime(substr((string) $startDate, 0, 10));

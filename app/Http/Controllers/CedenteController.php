@@ -37,52 +37,93 @@ class CedenteController extends Controller
         return array_replace($data, $decoded);
     }
 
+    /**
+     * fund_id no JSON do POST ou query string (GET/DELETE).
+     */
+    private static function payloadWithFund(Request $request)
+    {
+        $data = self::decodeRequestPayload($request);
+        if (! isset($data['fund_id']) && $request->query('fund_id') !== null) {
+            $data['fund_id'] = $request->query('fund_id');
+        }
+
+        return $data;
+    }
+
     public static function all(Request $request)
     {
+        try {
+            $data = self::payloadWithFund($request);
+            $fundId = CedenteService::resolveFundId($data);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
+        }
+
         $perPage = (int) $request->input('per_page', 20);
         if ($perPage < 1 || $perPage > 100) {
             $perPage = 20;
         }
 
-        // `cadastro_status_resumo` no JSON raiz junto com current_page, data, etc.
-        // (Laravel 5.6: paginador não tem `additional()`; isso existe em versões mais novas.)
-        $paginator = Cedente::with(['address', 'pessoasVinculadas', 'contasDesembolso', 'cedenteFiles'])
+        $paginator = Cedente::forFund($fundId)
+            ->with(['address', 'pessoasVinculadas', 'contasDesembolso', 'cedenteFiles', 'fund'])
             ->orderBy('id', 'desc')
             ->paginate($perPage);
 
         return response()->json(array_merge($paginator->toArray(), [
-            'cadastro_status_resumo' => Cedente::cadastroStatusResumo(),
+            'fund_id' => $fundId,
+            'cadastro_status_resumo' => Cedente::cadastroStatusResumo($fundId),
         ]));
     }
 
-    public static function statusResumo()
+    public static function statusResumo(Request $request)
     {
+        try {
+            $data = self::payloadWithFund($request);
+            $fundId = CedenteService::resolveFundId($data);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
+        }
+
         return response()->json([
             'error' => 'false',
-            'data' => Cedente::cadastroStatusResumo(),
+            'data' => Cedente::cadastroStatusResumo($fundId),
         ]);
     }
 
-    public static function status($id)
+    public static function status(Request $request, $id)
     {
-        $cedente = Cedente::find($id);
-        if (!$cedente) {
-            return response()->json(['error' => 'true', 'message' => 'Cedente nao encontrado'], 404);
+        try {
+            $data = self::payloadWithFund($request);
+            $fundId = CedenteService::resolveFundId($data);
+            $cedente = CedenteService::findCedenteForFund($id, $fundId);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 404);
         }
 
         return response()->json([
             'error' => 'false',
             'data' => [
+                'id' => $cedente->id,
+                'fund_id' => $cedente->fund_id,
                 'status' => $cedente->status ?: Cedente::STATUS_PENDENTE,
+                'sla' => $cedente->sla ? $cedente->sla->format('Y-m-d') : null,
             ],
         ]);
     }
 
-    public static function get($id)
+    public static function get(Request $request, $id)
     {
-        $cedente = Cedente::with(['address', 'pessoasVinculadas.address', 'contasDesembolso'])->find($id);
-        if (!$cedente) {
-            return response()->json(['error' => 'true', 'message' => 'Cedente nao encontrado'], 404);
+        try {
+            $data = self::payloadWithFund($request);
+            $fundId = CedenteService::resolveFundId($data);
+            $cedente = Cedente::forFund($fundId)
+                ->with(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'fund'])
+                ->find($id);
+            if (! $cedente) {
+                return response()->json(['error' => 'true', 'message' => 'Cedente nao encontrado'], 404);
+            }
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
         }
 
         return response()->json([
@@ -91,14 +132,17 @@ class CedenteController extends Controller
         ]);
     }
 
-    public static function historico($id)
+    public static function historico(Request $request, $id)
     {
-        $id = (int) $id;
-        if ($id < 1 || Cedente::find($id) === null) {
-            return response()->json(['error' => 'true', 'message' => 'Cedente nao encontrado'], 404);
+        try {
+            $data = self::payloadWithFund($request);
+            $fundId = CedenteService::resolveFundId($data);
+            CedenteService::findCedenteForFund($id, $fundId);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 404);
         }
 
-        $linhas = CedenteAudit::where('cedente_id', $id)
+        $linhas = CedenteAudit::where('cedente_id', (int) $id)
             ->orderBy('id', 'desc')
             ->with(['user'])
             ->get();
@@ -119,6 +163,7 @@ class CedenteController extends Controller
 
         return response()->json([
             'error' => 'false',
+            'fund_id' => $fundId,
             'data' => $data->values()->all(),
         ]);
     }
@@ -216,12 +261,16 @@ class CedenteController extends Controller
         ]);
     }
 
-    public static function remove($id)
+    public static function remove(Request $request, $id)
     {
         try {
-            if (!CedenteService::deleteById($id)) {
+            $data = self::payloadWithFund($request);
+            $fundId = CedenteService::resolveFundId($data);
+            if (! CedenteService::deleteById($id, $fundId)) {
                 return response()->json(['error' => 'true', 'message' => 'Cedente ' . $id . ' nao encontrado'], 404);
             }
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
         } catch (QueryException $e) {
             Log::error('Cedente remove QueryException: ' . $e->getMessage(), ['exception' => $e]);
 

@@ -8,6 +8,7 @@ use App\CedenteAudit;
 use App\CedentePessoaVinculada;
 use App\CedenteFile;
 use App\ContaDesembolso;
+use App\Fund;
 use App\User;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -47,6 +48,55 @@ class CedenteService
     }
 
     /**
+     * @param array $data
+     * @return int
+     */
+    public static function resolveFundId(array $data)
+    {
+        // Remover bloco quando o front passar fund_id em todas as requisições.
+        $fundIdWhenOmitted = 1;
+
+        $raw = isset($data['fund_id']) ? $data['fund_id'] : null;
+        if ($raw === null || $raw === '') {
+            $id = $fundIdWhenOmitted;
+        } else {
+            $id = (int) $raw;
+            if ($id < 1) {
+                throw new InvalidArgumentException('fund_id invalido');
+            }
+        }
+
+        self::assertFundExists($id);
+
+        return $id;
+    }
+
+    /**
+     * @param int $fundId
+     */
+    public static function assertFundExists($fundId)
+    {
+        if (! Fund::where('id', (int) $fundId)->exists()) {
+            throw new InvalidArgumentException('Fundo nao encontrado');
+        }
+    }
+
+    /**
+     * @param int $cedenteId
+     * @param int $fundId
+     * @return Cedente
+     */
+    public static function findCedenteForFund($cedenteId, $fundId)
+    {
+        $cedente = Cedente::forFund($fundId)->find((int) $cedenteId);
+        if (! $cedente) {
+            throw new InvalidArgumentException('Cedente nao encontrado para este fundo');
+        }
+
+        return $cedente;
+    }
+
+    /**
      * Cria cedente com endereço, pessoas vinculadas (partes + avalistas) e contas de desembolso.
      *
      * @return Cedente
@@ -62,10 +112,15 @@ class CedenteService
                 throw new InvalidArgumentException('Nome e documento do cedente sao obrigatorios');
             }
 
+            $fundId = self::resolveFundId($data);
+
             $addressId = self::createAddressFromPayload(isset($data['endereco']) ? $data['endereco'] : null);
+
+            $status = self::resolveStatusForCreate(isset($data['status']) ? $data['status'] : null);
 
             $cedente = new Cedente();
             $cedente->fill([
+                'fund_id' => $fundId,
                 'nome' => $data['nome'],
                 'documento' => $data['documento'],
                 'email' => isset($data['email']) ? $data['email'] : null,
@@ -74,8 +129,9 @@ class CedenteService
                 'address_id' => $addressId,
                 'sistema_financeiro_nacional' => !empty($data['sistema_financeiro_nacional']),
                 'telefone' => isset($data['telefone']) ? $data['telefone'] : null,
-                'status' => self::resolveStatusForCreate(isset($data['status']) ? $data['status'] : null),
+                'status' => $status,
             ]);
+            self::applySlaForStatus($cedente, $status);
             $cedente->save();
 
             self::syncPessoas($cedente, $data);
@@ -108,10 +164,9 @@ class CedenteService
                 throw new InvalidArgumentException('ID do cedente e obrigatorio para atualizacao');
             }
 
-            $cedente = Cedente::with(['pessoasVinculadas', 'contasDesembolso'])->find($data['id']);
-            if (!$cedente) {
-                throw new InvalidArgumentException('Cedente nao encontrado');
-            }
+            $fundId = self::resolveFundId($data);
+            $cedente = self::findCedenteForFund($data['id'], $fundId);
+            $cedente->load(['pessoasVinculadas', 'contasDesembolso']);
 
             $statusAntes = $cedente->status ?: Cedente::STATUS_PENDENTE;
 
@@ -153,6 +208,16 @@ class CedenteService
                 $fill['status'] = self::resolveStatusForUpdate($data['status']);
             }
             $cedente->fill($fill);
+
+            $statusAlterado = false;
+            if (array_key_exists('status', $data)) {
+                $statusDepois = $cedente->status ?: Cedente::STATUS_PENDENTE;
+                $statusAlterado = $statusAntes !== $statusDepois;
+                if ($statusAlterado) {
+                    self::applySlaForStatus($cedente, $statusDepois);
+                }
+            }
+
             $cedente->save();
 
             self::syncPessoas($cedente, $data);
@@ -162,16 +227,13 @@ class CedenteService
                 self::syncArquivos($cedente, $data['arquivos']);
             }
 
-            if (array_key_exists('status', $data)) {
-                $statusDepois = $cedente->status ?: Cedente::STATUS_PENDENTE;
-                if ($statusAntes !== $statusDepois) {
-                    self::recordStatusAudit(
-                        $cedente->id,
-                        CedenteAudit::EVENT_STATUS_ALTERADO,
-                        $statusDepois,
-                        $statusAntes
-                    );
-                }
+            if ($statusAlterado) {
+                self::recordStatusAudit(
+                    $cedente->id,
+                    CedenteAudit::EVENT_STATUS_ALTERADO,
+                    $cedente->status ?: Cedente::STATUS_PENDENTE,
+                    $statusAntes
+                );
             }
 
             return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles']);
@@ -192,10 +254,9 @@ class CedenteService
                 throw new InvalidArgumentException('ID do cedente e obrigatorio para atualizacao');
             }
 
-            $cedente = Cedente::with(['pessoasVinculadas.address', 'contasDesembolso'])->find($data['id']);
-            if (!$cedente) {
-                throw new InvalidArgumentException('Cedente nao encontrado');
-            }
+            $fundId = self::resolveFundId($data);
+            $cedente = self::findCedenteForFund($data['id'], $fundId);
+            $cedente->load(['pessoasVinculadas.address', 'contasDesembolso']);
 
             $statusAntes = $cedente->status ?: Cedente::STATUS_PENDENTE;
 
@@ -262,18 +323,24 @@ class CedenteService
                 self::syncArquivos($cedente, $data['arquivos']);
             }
 
-            $cedente->save();
-
+            $statusAlterado = false;
             if (array_key_exists('status', $data)) {
                 $statusDepois = $cedente->status ?: Cedente::STATUS_PENDENTE;
-                if ($statusAntes !== $statusDepois) {
-                    self::recordStatusAudit(
-                        $cedente->id,
-                        CedenteAudit::EVENT_STATUS_ALTERADO,
-                        $statusDepois,
-                        $statusAntes
-                    );
+                $statusAlterado = $statusAntes !== $statusDepois;
+                if ($statusAlterado) {
+                    self::applySlaForStatus($cedente, $statusDepois);
                 }
+            }
+
+            $cedente->save();
+
+            if ($statusAlterado) {
+                self::recordStatusAudit(
+                    $cedente->id,
+                    CedenteAudit::EVENT_STATUS_ALTERADO,
+                    $cedente->status ?: Cedente::STATUS_PENDENTE,
+                    $statusAntes
+                );
             }
 
             return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles']);
@@ -349,13 +416,16 @@ class CedenteService
         ];
     }
 
-    public static function deleteById($id)
+    public static function deleteById($id, $fundId)
     {
-        return DB::transaction(function () use ($id) {
-            $cedente = Cedente::with(['pessoasVinculadas', 'cedenteFiles'])->find($id);
-            if (!$cedente) {
+        return DB::transaction(function () use ($id, $fundId) {
+            try {
+                $cedente = self::findCedenteForFund($id, $fundId);
+            } catch (InvalidArgumentException $e) {
                 return false;
             }
+
+            $cedente->load(['pessoasVinculadas', 'cedenteFiles']);
 
             foreach ($cedente->cedenteFiles as $f) {
                 $f->deletePhysicalFile();
@@ -389,9 +459,11 @@ class CedenteService
 
         $out = [
             'id' => $cedente->id,
+            'fund_id' => $cedente->fund_id,
             'nome' => $cedente->nome,
             'documento' => $cedente->documento,
             'status' => $cedente->status ?: Cedente::STATUS_PENDENTE,
+            'sla' => self::formatSlaForApi($cedente->sla),
             'email' => $cedente->email,
             'faturamento_anual' => $cedente->faturamento_anual,
             'minimo_assinantes' => $cedente->minimo_assinantes,
@@ -654,6 +726,63 @@ class CedenteService
         }
 
         return null;
+    }
+
+    /**
+     * Recalcula `sla` na criação ou quando o status muda.
+     * Não altera SLA para `inconsistente` e `cancelado`; em `aprovado` usa +3 meses.
+     *
+     * @param string|null $status
+     * @param string|null $referenceDate Y-m-d (padrão hoje)
+     */
+    private static function applySlaForStatus(Cedente $cedente, $status, $referenceDate = null)
+    {
+        $sla = Cedente::computeSlaForStatus($status, $referenceDate ?: date('Y-m-d'));
+        if ($sla !== null) {
+            $cedente->sla = $sla;
+        }
+    }
+
+    /**
+     * @param mixed $sla
+     * @return string|null
+     */
+    private static function formatSlaForApi($sla)
+    {
+        if ($sla === null || $sla === '') {
+            return null;
+        }
+
+        if ($sla instanceof \DateTimeInterface) {
+            return $sla->format('Y-m-d');
+        }
+
+        return substr((string) $sla, 0, 10);
+    }
+
+    /**
+     * Atualiza cedentes existentes sem SLA (útil após deploy).
+     *
+     * @return int quantidade atualizada
+     */
+    public static function backfillMissingSla()
+    {
+        $count = 0;
+        Cedente::whereNull('sla')->orderBy('id')->chunk(100, function ($cedentes) use (&$count) {
+            foreach ($cedentes as $cedente) {
+                self::applySlaForStatus(
+                    $cedente,
+                    $cedente->status ?: Cedente::STATUS_PENDENTE,
+                    $cedente->created_at ? $cedente->created_at->format('Y-m-d') : null
+                );
+                if ($cedente->sla !== null) {
+                    $cedente->save();
+                    $count++;
+                }
+            }
+        });
+
+        return $count;
     }
 
     /**

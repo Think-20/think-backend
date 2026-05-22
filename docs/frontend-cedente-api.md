@@ -37,6 +37,18 @@ Autenticação antes das rotas de cedente (definida em `routes/web.php`, `UserCo
 - **Sucesso:** JSON com `token` (string) e `user` (objeto do usuário, com permissões/telas carregadas pelo backend).
 - **Falha (credenciais inválidas):** `token` e `user` vêm **`null`** (o controller não devolve 401).
 
+### Fundo (`fund_id`)
+
+Todo cedente pertence a um **fundo** (`cedente.fund_id` → tabela `fund`). O front deve:
+
+1. Selecionar ou criar o fundo (rotas `/funds/*`, `/fund/save`, etc.).
+2. Enviar **`fund_id` em todas as operações de cedente**:
+   - **Cadastro/edição:** `fund_id` no JSON (`POST /cedente/save`, `PUT /cedente/edit`, `PATCH /cedente/patch`).
+   - **Listagem/resumo:** `fund_id` no corpo do `POST /cedentes/all` e `POST /cedentes/status-resumo`.
+   - **Consulta/exclusão:** `fund_id` na query (`GET /cedentes/get/{id}?fund_id=1`) ou no corpo.
+
+Listagens e `cadastro_status_resumo` consideram **apenas cedentes daquele fundo**.
+
 ### Autenticação nas demais rotas
 
 O middleware `auth.api` exige **dois** headers em cada requisição protegida (incluindo cedente):

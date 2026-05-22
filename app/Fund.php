@@ -202,4 +202,9 @@ class Fund extends Model
     {
         return Fund::find($id);
     }
+
+    public function cedentes()
+    {
+        return $this->hasMany(Cedente::class, 'fund_id');
+    }
 }
