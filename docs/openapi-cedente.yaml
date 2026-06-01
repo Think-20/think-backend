@@ -12,15 +12,18 @@ info:
     3. Nas rotas protegidas (`auth.api`), envie os headers **`User`** = id do usuário (número) e **`Authorization`** = valor **exato** do `token` retornado.
     4. **Importante:** não use o prefixo `Bearer ` no header `Authorization` — o middleware compara o header inteiro com o token salvo no banco.
 
-    **Fundo (`fund_id`):**
+    **Fundo (`fund_id`) — obrigatório:**
     - Todo cedente pertence a um fundo (`cedente.fund_id` → `fund`).
-    - `fund_id` é usado em cadastro, edição, listagem e consultas de cedente para limitar o escopo ao fundo informado.
-    - Listagens e resumos consideram **somente cedentes do fundo informado**.
+    - O front **deve enviar `fund_id` em toda requisição** do fluxo de cedente (campo obrigatório no contrato da API).
+    - **Onde enviar:** JSON no body (`POST`, `PUT`, `PATCH`) ou query string (`GET`, `DELETE`): `?fund_id={id}`.
+    - **Rotas:** `POST /cedente/save`, `PUT /cedente/edit`, `PATCH /cedente/patch`, `POST /cedentes/all`, `POST /cedentes/status-resumo`, `GET /cedentes/get/{id}`, `GET /cedentes/historico/{id}`, `DELETE /cedente/remove/{id}`.
+    - **Validação:** inteiro ≥ 1; fundo deve existir na tabela `fund`. Erros HTTP 400: `fund_id invalido` (valor inválido) ou `Fundo nao encontrado`.
+    - Listagens e resumos consideram **somente cedentes do fundo informado**; consultas com `id` de outro fundo retornam 404.
 
     **Regras de negócio:**
     - `POST /cedente/save` recebe o cadastro completo (incluindo `fund_id`, `partes_relacionadas`, `avalistas`, `contas_desembolso` e os 13 `arquivos`).
     - **`PUT /cedente/edit`**: atualização em **snapshot** — `nome` e `documento` obrigatórios; `partes_relacionadas`, `avalistas` e `contas_desembolso` enviadas **substituem** as listas (omitir = array vazio e remove tudo). Recomenda-se enviar o objeto completo (ex.: após `GET /cedentes/get/{id}`).
-    - **`PATCH /cedente/patch`**: atualização **parcial** — só altera as chaves enviadas (`id` obrigatório). Ex.: `{ "id": 1, "status": "aprovado" }` sem apagar partes/contas.
+    - **`PATCH /cedente/patch`**: atualização **parcial** — `id` e `fund_id` obrigatórios; só altera as chaves enviadas. Ex.: `{ "id": 1, "fund_id": 1, "status": "aprovado" }` sem apagar partes/contas.
     - Itens com o **mesmo CPF** em `partes_relacionadas` e `avalistas` são **unificados** em um registro com ambas as flags.
     - `GET /cedentes/get/{id}` e o objeto `data` de save/edit retornam `partes_relacionadas` e `avalistas` **separados** (espelhando o front).
     - `POST /cedentes/all` retorna paginação **do fundo informado**; no JSON raiz vêm `fund_id` e `cadastro_status_resumo` filtrados por fundo.
@@ -148,6 +151,8 @@ paths:
       tags: [Cedente]
       operationId: createCedente
       summary: Criar cedente (payload completo)
+      description: |
+        **`fund_id` obrigatório** no JSON (inteiro ≥ 1, fundo existente em `fund`).
       requestBody:
         required: true
         content:
@@ -177,7 +182,7 @@ paths:
       operationId: updateCedente
       summary: Atualizar cedente (snapshot completo)
       description: |
-        Substitui dados do cadastro conforme o body. `nome` e `documento` obrigatórios.
+        Substitui dados do cadastro conforme o body. **`fund_id`**, `nome` e `documento` obrigatórios.
         `partes_relacionadas`, `avalistas` e `contas_desembolso` **sempre** recriadas a partir do JSON (listas omitidas = vazias).
         Para alterar só um campo (ex.: status), use **`PATCH /cedente/patch`**.
       requestBody:
@@ -206,7 +211,7 @@ paths:
       operationId: patchCedente
       summary: Atualização parcial (um ou mais campos)
       description: |
-        Envie `id` e apenas os campos a alterar (ex.: `status`, `telefone`).
+        Envie **`id`** e **`fund_id`** (obrigatórios) e apenas os demais campos a alterar (ex.: `status`, `telefone`).
         O que não vier no JSON **não é alterado**. Listas e arquivos só mudam se a chave existir no body.
         Não use esta rota para substituir o cadastro inteiro — use `PUT /cedente/edit`.
       requestBody:
@@ -234,6 +239,8 @@ paths:
       tags: [Cedente]
       operationId: getCedenteById
       summary: Obter cedente por id (formato com partes e avalistas separados)
+      description: |
+        Query **`fund_id` obrigatória** — escopo do fundo; cedente de outro fundo retorna 404.
       parameters:
         - name: id
           in: path
@@ -244,6 +251,7 @@ paths:
         - name: fund_id
           in: query
           required: true
+          description: ID do fundo (obrigatório). Inteiro ≥ 1; fundo deve existir.
           schema:
             type: integer
             minimum: 1
@@ -270,6 +278,7 @@ paths:
         Gravações em `cedente_audit`: ao criar (`cadastro_criado`, `old_status` nulo) e a cada mudança de status no `PUT /cedente/edit` ou `PATCH /cedente/patch` (`status_alterado`).
         O usuário é o da requisição autenticada (header `User`); campos `user_id` e `usuario_email` na resposta.
         A data/hora do evento é `created_at`.
+        Query **`fund_id` obrigatória** (mesmo escopo das demais rotas de cedente).
       parameters:
         - name: id
           in: path
@@ -280,6 +289,7 @@ paths:
         - name: fund_id
           in: query
           required: true
+          description: ID do fundo (obrigatório). Inteiro ≥ 1; fundo deve existir.
           schema:
             type: integer
             minimum: 1
@@ -303,8 +313,8 @@ paths:
       operationId: listCedentes
       summary: Listar cedentes (paginação Laravel)
       description: |
-        Lista apenas cedentes do **`fund_id`** informado. A raiz do JSON inclui `fund_id` e **`cadastro_status_resumo`**
-        filtrados por fundo.
+        **`fund_id` obrigatório** no corpo JSON. Lista apenas cedentes desse fundo.
+        A raiz da resposta inclui `fund_id` e **`cadastro_status_resumo`** filtrados por fundo.
       requestBody:
         required: true
         content:
@@ -316,6 +326,7 @@ paths:
                 fund_id:
                   type: integer
                   minimum: 1
+                  description: ID do fundo (obrigatório).
                 per_page:
                   type: integer
                   minimum: 1
@@ -336,7 +347,7 @@ paths:
       operationId: cedentesCadastroStatusResumo
       summary: Resumo de cadastros por status
       description: |
-        Retorna contagens por status e total de cedentes **do fundo informado**.
+        **`fund_id` obrigatório** no corpo JSON. Retorna contagens por status e total de cedentes **do fundo informado**.
       requestBody:
         required: true
         content:
@@ -348,6 +359,7 @@ paths:
                 fund_id:
                   type: integer
                   minimum: 1
+                  description: ID do fundo (obrigatório).
       responses:
         "200":
           description: Contagens atuais
@@ -361,6 +373,8 @@ paths:
       tags: [Cedente]
       operationId: deleteCedente
       summary: Excluir cedente e dependências
+      description: |
+        Query **`fund_id` obrigatória** — exclusão limitada ao escopo do fundo informado.
       parameters:
         - name: id
           in: path
@@ -371,6 +385,7 @@ paths:
         - name: fund_id
           in: query
           required: true
+          description: ID do fundo (obrigatório). Inteiro ≥ 1; fundo deve existir.
           schema:
             type: integer
             minimum: 1
@@ -654,12 +669,14 @@ components:
       type: object
       required: [fund_id, nome, documento]
       description: |
+        **`fund_id` obrigatório** em todo cadastro/edição (inteiro ≥ 1, fundo existente).
         No **POST /cedente/save**, `arquivos` é obrigatório na prática (13 itens, tipos 1–13 sem repetir).
         No **PUT /cedente/edit**, `arquivos` é opcional; se enviado, deve trazer os 13 de novo.
       properties:
         fund_id:
           type: integer
           minimum: 1
+          description: ID do fundo ao qual o cedente pertence (obrigatório).
         nome:
           type: string
         documento:
@@ -1183,6 +1200,7 @@ components:
         Cada item usa `content_base64` com um payload mínimo válido (`aGVsbG8=` = texto "hello") só para passar na validação.
         Em ambiente real, substitua pelo base64 de cada PDF (ou data URL `data:application/pdf;base64,...`).
       value:
+        fund_id: 1
         nome: Empresa Exemplo LTDA
         documento: "12345678000199"
         email: financeiro@exemplo.com.br

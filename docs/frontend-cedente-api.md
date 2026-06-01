@@ -37,17 +37,27 @@ Autenticação antes das rotas de cedente (definida em `routes/web.php`, `UserCo
 - **Sucesso:** JSON com `token` (string) e `user` (objeto do usuário, com permissões/telas carregadas pelo backend).
 - **Falha (credenciais inválidas):** `token` e `user` vêm **`null`** (o controller não devolve 401).
 
-### Fundo (`fund_id`)
+### Fundo (`fund_id`) — **obrigatório**
 
-Todo cedente pertence a um **fundo** (`cedente.fund_id` → tabela `fund`). O front deve:
+Todo cedente pertence a um **fundo** (`cedente.fund_id` → tabela `fund`). O front **deve sempre enviar `fund_id`** — é campo obrigatório no contrato da API (mesmo critério dos schemas OpenAPI com `required: [fund_id]`).
 
 1. Selecionar ou criar o fundo (rotas `/funds/*`, `/fund/save`, etc.).
-2. Enviar **`fund_id` em todas as operações de cedente**:
-   - **Cadastro/edição:** `fund_id` no JSON (`POST /cedente/save`, `PUT /cedente/edit`, `PATCH /cedente/patch`).
-   - **Listagem/resumo:** `fund_id` no corpo do `POST /cedentes/all` e `POST /cedentes/status-resumo`.
-   - **Consulta/exclusão:** `fund_id` na query (`GET /cedentes/get/{id}?fund_id=1`) ou no corpo.
+2. Enviar `fund_id` (inteiro ≥ 1, fundo existente) em **toda** requisição do fluxo de cedente:
 
-Listagens e `cadastro_status_resumo` consideram **apenas cedentes daquele fundo**.
+| Operação | Rota | Onde enviar `fund_id` |
+|----------|------|------------------------|
+| Criar | `POST /cedente/save` | JSON (body) |
+| Atualizar (snapshot) | `PUT /cedente/edit` | JSON (body) |
+| Atualizar (parcial) | `PATCH /cedente/patch` | JSON (body), junto com `id` |
+| Listar | `POST /cedentes/all` | JSON (body) |
+| Resumo por status | `POST /cedentes/status-resumo` | JSON (body) |
+| Detalhe | `GET /cedentes/get/{id}` | Query: `?fund_id=1` |
+| Histórico | `GET /cedentes/historico/{id}` | Query: `?fund_id=1` |
+| Excluir | `DELETE /cedente/remove/{id}` | Query: `?fund_id=1` |
+
+**Validação (HTTP 400):** `fund_id invalido` (valor inválido, por exemplo menor que 1) ou `Fundo nao encontrado` (id inexistente em `fund`). Consultas com `id` de cedente de **outro** fundo retornam **404**.
+
+Listagens e `cadastro_status_resumo` consideram **apenas cedentes do fundo informado**.
 
 ### Autenticação nas demais rotas
 
@@ -108,11 +118,14 @@ docker run --rm -p 8080:8080 -e SWAGGER_JSON=/docs/openapi-cedente.yaml \
 | POST | `/login` | Login (`email`, `password`); ver OpenAPI tag **Autenticação** |
 | GET | `/check-token` | Valida token (headers `User` + `Authorization`) |
 | POST | `/logout` | Encerra sessão |
-| POST | `/cedente/save` | Cria cedente completo (um JSON) |
-| PUT | `/cedente/edit` | Atualiza por `id`; listas substituem as anteriores |
-| GET | `/cedentes/get/{id}` | Detalhe com `partes_relacionadas` e `avalistas` separados |
-| POST | `/cedentes/all` | Lista paginada (`per_page` opcional) |
-| DELETE | `/cedente/remove/{id}` | Exclui cedente e dependências |
+| POST | `/cedente/save` | Cria cedente completo (`fund_id` no JSON) |
+| PUT | `/cedente/edit` | Atualiza por `id` (`fund_id` no JSON) |
+| PATCH | `/cedente/patch` | Atualização parcial (`id` + `fund_id` no JSON) |
+| GET | `/cedentes/get/{id}` | Detalhe (`fund_id` na query) |
+| GET | `/cedentes/historico/{id}` | Histórico de status (`fund_id` na query) |
+| POST | `/cedentes/all` | Lista paginada (`fund_id` no JSON) |
+| POST | `/cedentes/status-resumo` | Contagens por status (`fund_id` no JSON) |
+| DELETE | `/cedente/remove/{id}` | Exclui cedente (`fund_id` na query) |
 
 Detalhes de schemas, códigos de resposta, `operationId` (útil para codegen) e exemplo completo de body estão no **YAML**.
 
@@ -127,10 +140,11 @@ Detalhes de schemas, códigos de resposta, `operationId` (útil para codegen) e 
 
 ## Regras rápidas (negócio)
 
-1. **Mesmo CPF** em `partes_relacionadas` e `avalistas` → o backend unifica em **um** registro com as duas flags.
-2. **`tipo_conta`**: apenas `conta_corrente`, `conta_poupanca` ou `conta_salario`.
-3. **`tipo_parte_relacionada`**: inteiro 1–4 ou `null` (ex.: só avalista).
-4. No **PUT**, envie **snapshot completo** das três listas quando possível.
-5. **Arquivos:** no **POST /cedente/save** é obrigatório o array **`arquivos`** com **13** objetos (`document_type` 1–13, `original_name`, `content_base64` ou `base64`). Gravação em `FILES_FOLDER/cedente-files`. No **PUT**, se enviar `arquivos`, devem ser os 13 de novo (substitui); se omitir, mantém os já salvos.
+1. **`fund_id` obrigatório** em todas as rotas de cedente (body ou query conforme a tabela acima).
+2. **Mesmo CPF** em `partes_relacionadas` e `avalistas` → o backend unifica em **um** registro com as duas flags.
+3. **`tipo_conta`**: apenas `conta_corrente`, `conta_poupanca` ou `conta_salario`.
+4. **`tipo_parte_relacionada`**: inteiro 1–4 ou `null` (ex.: só avalista).
+5. No **PUT**, envie **snapshot completo** das três listas quando possível.
+6. **Arquivos:** no **POST /cedente/save** é obrigatório o array **`arquivos`** com **13** objetos (`document_type` 1–13, `original_name`, `content_base64` ou `base64`). Gravação em `FILES_FOLDER/cedente-files`. No **PUT**, se enviar `arquivos`, devem ser os 13 de novo (substitui); se omitir, mantém os já salvos.
 
 O exemplo completo (incluindo os **13** itens de `arquivos` com base64 mínimo de teste) está em **`components.examples.CedenteCreateBody`** no `openapi-cedente.yaml`; troque `content_base64` pelos PDFs reais em produção.
