@@ -22,14 +22,15 @@ class Permission
             return $funcionality['url'];
         }, $funcionalities->toArray());
 
-        $routeUri = '/' . $request->route()->uri;
+        $routeUri = '/' . ltrim((string) $request->route()->uri(), '/');
 
         // Permite todas as rotas de workflow
         if (strpos($routeUri, '/workflow-') === 0) {
             return $next($request);
         }
 
-        if (strpos($routeUri, '/fund') === 0) {
+        // Permite todas as rotas de fund e funds (ex.: POST /funds/all, GET /funds/get/{id})
+        if (self::isFundRoute($routeUri)) {
             return $next($request);
         }
 
@@ -64,5 +65,16 @@ class Permission
         }
 
         return $next($request);
+    }
+
+    /**
+     * Rotas /fund/* e /funds/* liberadas para qualquer usuário autenticado.
+     *
+     * @param string $routeUri URI do padrão da rota (ex.: /funds/all)
+     * @return bool
+     */
+    private static function isFundRoute($routeUri)
+    {
+        return (bool) preg_match('#^/(fund|funds)(/|$)#', $routeUri);
     }
 }
