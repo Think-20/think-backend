@@ -45,6 +45,8 @@ class Permission
             return $next($request);
         }else if($routeUri == "/contract-nf-files/remove/{id}" || $routeUri == "/contract-nf-files/save-multiple" || $routeUri == "/contract-nf-files/download/{id}" || $routeUri == "/contract-nf-files/download-all/{taskId}"){
             return $next($request);
+        }else if($routeUri == "/financeiro-files/remove/{id}" || $routeUri == "/financeiro-files/save-multiple" || $routeUri == "/financeiro-files/download/{id}" || $routeUri == "/financeiro-files/download-all/{taskId}"){
+            return $next($request);
         }else if($routeUri == "/project-photos-files/remove/{id}" || $routeUri == "/project-photos-files/save-multiple" || $routeUri == "/project-photos-files/download/{id}" || $routeUri == "/project-photos-files/download-all/{taskId}"){
             return $next($request);
         }else if($routeUri == "/my-clients/get/"){

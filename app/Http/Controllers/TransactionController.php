@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Category;
 use App\Installment;
+use App\Job;
 use App\Tag;
 use App\Transaction;
 use Exception;
@@ -84,6 +86,169 @@ class TransactionController extends Controller
         return response()->json([
             'total' => (float) $total,
         ]);
+    }
+
+    public function extractByJob(int $jobId, Request $request)
+    {
+        $periodo = $request->query('periodo', 'todas');
+        if ($periodo === null || $periodo === '') {
+            $periodo = 'todas';
+        }
+        $periodo = (string) $periodo;
+
+        if (!in_array($periodo, ['7', '15', '30', 'todas'], true)) {
+            return response()->json([
+                'error' => 'true',
+                'message' => 'periodo invalido. Use 7, 15, 30 ou todas',
+            ], 400);
+        }
+
+        $job = Job::with(['client', 'agency'])->find($jobId);
+        if (!$job) {
+            return response()->json([
+                'error' => 'true',
+                'message' => 'Job ' . $jobId . ' nao encontrado',
+            ], 404);
+        }
+
+        $linhas = $this->buildExtractLines($jobId, $periodo);
+        $saldoTotal = count($linhas) > 0 ? (float) $linhas[count($linhas) - 1]['saldo'] : 0.0;
+
+        return response()->json([
+            'idjob' => $jobId,
+            'periodo' => $periodo,
+            'job' => $this->formatJobToExtractResponse($job),
+            'linhas' => $linhas,
+            'saldoTotal' => $saldoTotal,
+        ]);
+    }
+
+    private function buildExtractLines(int $jobId, string $periodo): array
+    {
+        $query = Transaction::query()
+            ->selectRaw('category_id')
+            ->selectRaw('SUM(CASE WHEN transaction_type = 1 THEN total_value ELSE 0 END) as entradas')
+            ->selectRaw('SUM(CASE WHEN transaction_type = 2 THEN total_value ELSE 0 END) as saidas')
+            ->where('job_id', $jobId);
+
+        $this->applyExtractPeriodFilter($query, $periodo);
+
+        $aggregates = $query->groupBy('category_id')->get();
+
+        $categoryIds = $aggregates->pluck('category_id')->filter(function ($id) {
+            return $id !== null;
+        })->unique()->values()->all();
+
+        $categoriesById = Category::whereIn('id', $categoryIds)->get()->keyBy('id');
+
+        $rows = [];
+        foreach ($aggregates as $row) {
+            $entradas = (float) $row->entradas;
+            $saidas = (float) $row->saidas;
+
+            if ($entradas == 0.0 && $saidas == 0.0) {
+                continue;
+            }
+
+            $categoryId = $row->category_id;
+            if ($categoryId === null) {
+                $categoria = [
+                    'idcategoria' => null,
+                    'nome' => 'Sem categoria',
+                    'tema' => null,
+                ];
+                $sortName = 'zzz_sem_categoria';
+            } else {
+                $category = $categoriesById->get($categoryId);
+                $categoria = [
+                    'idcategoria' => (int) $categoryId,
+                    'nome' => $category ? $category->name : 'Sem categoria',
+                    'tema' => $category ? (int) $category->theme : null,
+                ];
+                $sortName = mb_strtolower($categoria['nome']);
+            }
+
+            $rows[] = [
+                'sortName' => $sortName,
+                'categoria' => $categoria,
+                'entradas' => $entradas,
+                'saidas' => $saidas,
+            ];
+        }
+
+        usort($rows, function ($a, $b) {
+            return strcmp($a['sortName'], $b['sortName']);
+        });
+
+        $linhas = [];
+        $saldoAnterior = 0.0;
+
+        foreach ($rows as $row) {
+            $resultado = $row['entradas'] - $row['saidas'];
+            $saldo = $saldoAnterior + $resultado;
+
+            $linhas[] = [
+                'categoria' => $row['categoria'],
+                'entradas' => $row['entradas'],
+                'saidas' => $row['saidas'],
+                'resultado' => (float) $resultado,
+                'saldoAnterior' => (float) $saldoAnterior,
+                'saldo' => (float) $saldo,
+            ];
+
+            $saldoAnterior = $saldo;
+        }
+
+        return $linhas;
+    }
+
+    private function applyExtractPeriodFilter(Builder $query, string $periodo): void
+    {
+        if ($periodo === 'todas') {
+            return;
+        }
+
+        $days = (int) $periodo;
+        $start = Carbon::today()->subDays($days - 1)->startOfDay()->format('Y-m-d H:i:s');
+        $end = Carbon::today()->endOfDay()->format('Y-m-d H:i:s');
+
+        $query->where(function (Builder $outer) use ($start, $end) {
+            $outer->where(function (Builder $receita) use ($start, $end) {
+                $receita->where('transaction_type', 1)
+                    ->whereRaw('COALESCE(receipt_date, creation_date) BETWEEN ? AND ?', [$start, $end]);
+            })->orWhere(function (Builder $despesa) use ($start, $end) {
+                $despesa->where('transaction_type', 2)
+                    ->whereRaw('COALESCE(due_date, creation_date) BETWEEN ? AND ?', [$start, $end]);
+            });
+        });
+    }
+
+    private function formatJobToExtractResponse(Job $job): array
+    {
+        $cliente = null;
+        if ($job->client) {
+            $cliente = [
+                'id' => $job->client->id,
+                'nome' => $job->client->fantasy_name,
+            ];
+        }
+
+        $agencia = null;
+        if ($job->agency) {
+            $agencia = [
+                'id' => $job->agency->id,
+                'nome' => $job->agency->fantasy_name,
+            ];
+        }
+
+        return [
+            'id' => $job->id,
+            'nome' => $job->getJobName(),
+            'evento' => $job->event,
+            'cliente' => $cliente,
+            'agencia' => $agencia,
+            'not_client' => $job->not_client,
+        ];
     }
 
     /** @param string|null $dateParsed Y-m-d ou null (invalida e rejeitada antes de chamar este metodo) */

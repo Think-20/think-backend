@@ -1151,6 +1151,9 @@ class Job extends Model
             'contract_nf_files',
             'contract_nf_files.responsible',
 
+            'financeiro_files',
+            'financeiro_files.responsible',
+
             'project_photos_files',
             'project_photos_files.responsible',
             

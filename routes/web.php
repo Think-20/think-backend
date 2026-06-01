@@ -121,6 +121,22 @@ Route::get('/contract-nf-files/view/{id}', function ($id) {
     return $response;
 });
 
+Route::get('/financeiro-files/view/{id}', function ($id) {
+    $financeiroFile = App\FinanceiroFile::find($id);
+    $path = env('FILES_FOLDER') . '/financeiro-files/' . $financeiroFile->name;
+
+    if (!File::exists($path)) {
+        abort(404);
+    }
+
+    $fileGet = file_get_contents($path);
+
+    $response = Response::make($fileGet, 200);
+    $response->header('Content-Type',"*/*");
+
+    return $response;
+});
+
 Route::group(['middleware' => ['auth.api']], function () {
     Route::group(['middleware' => 'checkDepartment'], function () {
         Route::post('/dashboard', 'DashboardController@index');
@@ -297,6 +313,7 @@ Route::group(['middleware' => ['auth.api']], function () {
     Route::get('/external/extras/{checkInId}/{hash}', 'CheckinController@confirmMailCheckin');
 
     //Route::get('/financeiro/transacao/{jobId}/{bankAccountId}', 'TransactionController@getByJobAndBankAccount');
+    Route::get('/financeiro/extrato/{jobId}', 'TransactionController@extractByJob');
     Route::get('/financeiro/transacao/total/{jobId}/{tipoTransacao}', 'TransactionController@totalByJobAndType');
     Route::get('/financeiro/transacao/{jobId}/{tipoTransacao}', 'TransactionController@getByJobAndTransactionType');
     Route::post('/financeiro/transacao', 'TransactionController@create');
@@ -512,6 +529,12 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::delete('/contract-nf-files/remove/{id}', 'ContractNfFileController@remove');
     Route::get('/contract-nf-files/download/{id}', 'ContractNfFileController@downloadFile');
     Route::get('/contract-nf-files/download-all/{taskId}', 'ContractNfFileController@downloadAll');
+
+    //Faturamento financeiro-files
+    Route::post('/financeiro-files/save-multiple', 'FinanceiroFileController@saveMultiple');
+    Route::delete('/financeiro-files/remove/{id}', 'FinanceiroFileController@remove');
+    Route::get('/financeiro-files/download/{id}', 'FinanceiroFileController@downloadFile');
+    Route::get('/financeiro-files/download-all/{taskId}', 'FinanceiroFileController@downloadAll');
 
     //Fotos do projeto project-photos
     Route::post('/project-photos-files/save-multiple', 'ProjectPhotosFileController@saveMultiple');
