@@ -187,6 +187,11 @@ class Cedente extends Model
         return $this->hasMany(CedenteAudit::class);
     }
 
+    public function inconsistencias()
+    {
+        return $this->hasMany(CedenteInconsistencia::class);
+    }
+
     /**
      * Valores persistidos em `cedente.status` (cadastro do cedente).
      *

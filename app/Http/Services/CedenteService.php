@@ -138,6 +138,9 @@ class CedenteService
             self::syncContas($cedente, $data);
             self::syncArquivos($cedente, $data['arquivos']);
 
+            CedenteSerproComparison::compareOnCreate($cedente->id, $data);
+            $cedente->refresh();
+
             self::recordStatusAudit(
                 $cedente->id,
                 CedenteAudit::EVENT_CADASTRO_CRIADO,
@@ -145,7 +148,7 @@ class CedenteService
                 null
             );
 
-            return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles']);
+            return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias']);
         });
     }
 
@@ -453,7 +456,7 @@ class CedenteService
 
     public static function toApiArray(Cedente $cedente)
     {
-        $cedente->loadMissing(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles']);
+        $cedente->loadMissing(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias']);
 
         $labels = CedenteFile::documentTypeLabels();
 
@@ -487,6 +490,13 @@ class CedenteService
                     'updated_at' => $f->updated_at,
                 ];
             })->all(),
+            'inconsistencias' => $cedente->inconsistencias->map(function ($i) {
+                return [
+                    'id' => $i->id,
+                    'campo_inconsistente' => $i->campo_inconsistente,
+                    'valor_serpro' => $i->valor_serpro,
+                ];
+            })->values()->all(),
         ];
 
         foreach ($cedente->pessoasVinculadas as $p) {
