@@ -23,45 +23,76 @@ class Permission
         }, $funcionalities->toArray());
 
         $routeUri = "/" . $request->route()->uri;
-        
-        // Permite todas as rotas de workflow
-        if(strpos($routeUri, "/workflow-") === 0) {
+
+        if (self::isPermissionBypassed($routeUri)) {
             return $next($request);
         }
 
-        if (
-            strpos($routeUri, "/financeiro/") === 0 ||
-            strpos($routeUri, "/bank-account") === 0 ||
-            strpos($routeUri, "/cedente") === 0
-        ) {
-            return $next($request);
-        }
-
-        if($routeUri == "/briefing-files/remove/{id}" || $routeUri == "/briefing-files/save-multiple" || $routeUri == "/briefing-files/download/{id}" || $routeUri == "/briefing-files/download-all/{taskId}"){
-            return $next($request);
-        }else if($routeUri == "/feedback/email" || $routeUri == "/feedback"){
-            return $next($request);
-        }else if($routeUri == "/clients/inactive" || $routeUri == "/clients/subject"){
-            return $next($request);
-        }else if($routeUri == "/contract-nf-files/remove/{id}" || $routeUri == "/contract-nf-files/save-multiple" || $routeUri == "/contract-nf-files/download/{id}" || $routeUri == "/contract-nf-files/download-all/{taskId}"){
-            return $next($request);
-        }else if($routeUri == "/financeiro-files/remove/{id}" || $routeUri == "/financeiro-files/save-multiple" || $routeUri == "/financeiro-files/download/{id}" || $routeUri == "/financeiro-files/download-all/{taskId}"){
-            return $next($request);
-        }else if($routeUri == "/project-photos-files/remove/{id}" || $routeUri == "/project-photos-files/save-multiple" || $routeUri == "/project-photos-files/download/{id}" || $routeUri == "/project-photos-files/download-all/{taskId}"){
-            return $next($request);
-        }else if($routeUri == "/my-clients/get/"){
-            return $next($request);
-        }else if(!in_array($routeUri, $urls)) {
-            if($request->isJson()) {
+        if (! in_array($routeUri, $urls)) {
+            if ($request->isJson()) {
                 $content = json_encode([
-                    'message' => 'Você não tem permissão para acessar essa função.'
+                    'message' => 'Você não tem permissão para acessar essa função.',
                 ]);
             } else {
                 $content = 'Você não tem permissão para acessar essa função.';
             }
+
             return response()->make($content, 403);
         }
 
         return $next($request);
+    }
+
+    /**
+     * Rotas liberadas sem checagem de funcionalidade cadastrada no usuario.
+     *
+     * @param string $routeUri
+     * @return bool
+     */
+    private static function isPermissionBypassed($routeUri)
+    {
+        $prefixes = [
+            '/workflow-',
+            '/financeiro/',
+            '/financeiro-files/',
+            '/bank-account',
+            '/bank-accounts',
+            '/category/',
+            '/categories',
+            '/tag/',
+            '/tags',
+            '/cedente',
+            '/fund',
+            '/jobs/get/',
+            '/tasks/get/',
+        ];
+
+        foreach ($prefixes as $prefix) {
+            if (strpos($routeUri, $prefix) === 0) {
+                return true;
+            }
+        }
+
+        $exactRoutes = [
+            '/feedback/email',
+            '/feedback',
+            '/clients/inactive',
+            '/clients/subject',
+            '/my-clients/get/',
+            '/briefing-files/remove/{id}',
+            '/briefing-files/save-multiple',
+            '/briefing-files/download/{id}',
+            '/briefing-files/download-all/{taskId}',
+            '/contract-nf-files/remove/{id}',
+            '/contract-nf-files/save-multiple',
+            '/contract-nf-files/download/{id}',
+            '/contract-nf-files/download-all/{taskId}',
+            '/project-photos-files/remove/{id}',
+            '/project-photos-files/save-multiple',
+            '/project-photos-files/download/{id}',
+            '/project-photos-files/download-all/{taskId}',
+        ];
+
+        return in_array($routeUri, $exactRoutes, true);
     }
 }
