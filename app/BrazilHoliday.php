@@ -111,6 +111,7 @@ class BrazilHoliday
 
     private static function movableHolidaysForYear(int $year): array
     {
+        return [];
         // easter_date() existe no PHP 7+ e retorna timestamp (00:00 UTC) do domingo de Páscoa.
         $easterTs = easter_date($year);
         $easter = (new DateTime('@' . $easterTs))->setTimezone(new \DateTimeZone(date_default_timezone_get()));
