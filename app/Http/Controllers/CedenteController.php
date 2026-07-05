@@ -117,7 +117,7 @@ class CedenteController extends Controller
             $data = self::payloadWithFund($request);
             $fundId = CedenteService::resolveFundId($data);
             $cedente = Cedente::forFund($fundId)
-                ->with(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'fund'])
+                ->with(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'fund', 'inconsistencias'])
                 ->find($id);
             if (! $cedente) {
                 return response()->json(['error' => 'true', 'message' => 'Cedente nao encontrado'], 404);
@@ -155,6 +155,7 @@ class CedenteController extends Controller
                 'event' => $a->event,
                 'old_status' => $a->old_status,
                 'new_status' => $a->new_status,
+                'changes' => $a->changes,
                 'user_id' => $a->user_id,
                 'usuario_email' => $u ? $u->email : null,
                 'created_at' => $a->created_at ? $a->created_at->toDateTimeString() : null,

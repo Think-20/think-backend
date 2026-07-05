@@ -10,6 +10,10 @@ class CedenteAudit extends Model
 
     public const EVENT_STATUS_ALTERADO = 'status_alterado';
 
+    public const EVENT_VALIDACAO_SERPRO = 'validacao_serpro';
+
+    public const EVENT_CEDENTE_ATUALIZADO = 'cedente_atualizado';
+
     protected $table = 'cedente_audit';
 
     protected $fillable = [

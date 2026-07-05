@@ -12,7 +12,7 @@ class CedenteSerproComparison
     /**
      * Consulta o SERPRO no cadastro e persiste divergencias em cedente_inconsistencia.
      *
-     * @return CedenteInconsistencia[]
+     * @return array{validated: bool, inconsistencias: CedenteInconsistencia[]}
      */
     public static function compareOnCreate($cedenteId, array $data)
     {
@@ -27,7 +27,10 @@ class CedenteSerproComparison
                 'message' => $e->getMessage(),
             ]);
 
-            return [];
+            return [
+                'validated' => false,
+                'inconsistencias' => [],
+            ];
         }
 
         $inconsistencias = self::buildInconsistencias($data, $serpro);
@@ -51,7 +54,82 @@ class CedenteSerproComparison
             }
         }
 
-        return $saved;
+        return [
+            'validated' => true,
+            'inconsistencias' => $saved,
+        ];
+    }
+
+    /**
+     * Remove inconsistencias cujo valor cadastrado passou a coincidir com o valor SERPRO.
+     *
+     * @return array{removed: string[], remaining: int, status_alterado: bool, status_anterior: string|null, status_novo: string|null}
+     */
+    public static function reconcileAfterUpdate(Cedente $cedente)
+    {
+        $cedente->loadMissing(['address', 'pessoasVinculadas', 'inconsistencias']);
+
+        $removed = [];
+        foreach ($cedente->inconsistencias as $inconsistencia) {
+            if (self::isInconsistenciaResolved($cedente, $inconsistencia->campo_inconsistente, $inconsistencia->valor_serpro)) {
+                $removed[] = $inconsistencia->campo_inconsistente;
+                $inconsistencia->delete();
+            }
+        }
+
+        $remaining = CedenteInconsistencia::where('cedente_id', $cedente->id)->count();
+        $statusAnterior = $cedente->status ?: Cedente::STATUS_PENDENTE;
+        $statusAlterado = false;
+        $statusNovo = $statusAnterior;
+
+        if ($remaining === 0 && $statusAnterior === Cedente::STATUS_INCONSISTENTE) {
+            $cedente->status = Cedente::STATUS_PENDENTE;
+            $cedente->save();
+            $statusAlterado = true;
+            $statusNovo = Cedente::STATUS_PENDENTE;
+        }
+
+        return [
+            'removed' => $removed,
+            'remaining' => $remaining,
+            'status_alterado' => $statusAlterado,
+            'status_anterior' => $statusAlterado ? $statusAnterior : null,
+            'status_novo' => $statusAlterado ? $statusNovo : null,
+        ];
+    }
+
+    /**
+     * @return bool
+     */
+    public static function isInconsistenciaResolved(Cedente $cedente, $campo, $valorSerpro)
+    {
+        if ($valorSerpro === null || $valorSerpro === '') {
+            return false;
+        }
+
+        if (preg_match('/^partes_relacionadas\[(\d+)\]\.nome$/', $campo, $matches)) {
+            return self::parteRelacionadaNomeResolved($cedente, (int) $matches[1], $valorSerpro);
+        }
+
+        if (preg_match('/^socios\[(\d+)\]\.nome$/', $campo, $matches)) {
+            return self::socioNomeResolved($cedente, $valorSerpro);
+        }
+
+        $current = self::resolveFieldValue($cedente, $campo);
+
+        if ($campo === 'telefone') {
+            return self::telefoneMatchesSerpro($current, $valorSerpro);
+        }
+
+        if ($campo === 'documento') {
+            return self::normalizeDocument($current) === self::normalizeDocument($valorSerpro);
+        }
+
+        if (strpos($campo, 'endereco.cep') === 0 || substr($campo, -4) === '.cep') {
+            return self::normalizeCep($current) === self::normalizeCep($valorSerpro);
+        }
+
+        return self::normalizeText($current) === self::normalizeText($valorSerpro);
     }
 
     /**
@@ -95,6 +173,102 @@ class CedenteSerproComparison
         );
 
         return $items;
+    }
+
+    private static function parteRelacionadaNomeResolved(Cedente $cedente, $index, $valorSerpro)
+    {
+        $partes = self::partesRelacionadasFromCedente($cedente);
+        if (! isset($partes[$index])) {
+            return false;
+        }
+
+        $nomeAtual = self::normalizeText(self::value($partes[$index], 'nome'));
+        if ($nomeAtual === '') {
+            return false;
+        }
+
+        foreach (self::splitSerproList($valorSerpro) as $nomeSerpro) {
+            if ($nomeAtual === self::normalizeText($nomeSerpro)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function socioNomeResolved(Cedente $cedente, $valorSerpro)
+    {
+        $nomeSocio = self::normalizeText($valorSerpro);
+        if ($nomeSocio === '') {
+            return false;
+        }
+
+        foreach (self::partesRelacionadasFromCedente($cedente) as $parte) {
+            if (self::normalizeText(self::value($parte, 'nome')) === $nomeSocio) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function telefoneMatchesSerpro($current, $valorSerpro)
+    {
+        $currentNorm = self::normalizePhone($current);
+        if ($currentNorm === '') {
+            return false;
+        }
+
+        if ($currentNorm === self::normalizePhone($valorSerpro)) {
+            return true;
+        }
+
+        foreach (self::splitSerproList($valorSerpro) as $part) {
+            if ($currentNorm === self::normalizePhone($part)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function splitSerproList($valorSerpro)
+    {
+        $parts = array_map('trim', explode(',', (string) $valorSerpro));
+
+        return array_values(array_filter($parts, function ($part) {
+            return $part !== '';
+        }));
+    }
+
+    private static function partesRelacionadasFromCedente(Cedente $cedente)
+    {
+        $partes = [];
+        foreach ($cedente->pessoasVinculadas as $p) {
+            if ($p->e_parte_relacionada) {
+                $partes[] = ['nome' => $p->nome];
+            }
+        }
+
+        return $partes;
+    }
+
+    private static function resolveFieldValue(Cedente $cedente, $campo)
+    {
+        if (strpos($campo, 'endereco.') === 0) {
+            $key = substr($campo, strlen('endereco.'));
+            if (! $cedente->address) {
+                return null;
+            }
+
+            return $cedente->address->{$key};
+        }
+
+        if (isset($cedente->{$campo})) {
+            return $cedente->{$campo};
+        }
+
+        return null;
     }
 
     private static function comparePartesRelacionadas(array &$items, array $partes, array $socios)

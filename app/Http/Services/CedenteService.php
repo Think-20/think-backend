@@ -138,15 +138,42 @@ class CedenteService
             self::syncContas($cedente, $data);
             self::syncArquivos($cedente, $data['arquivos']);
 
-            CedenteSerproComparison::compareOnCreate($cedente->id, $data);
-            $cedente->refresh();
+            $statusInicial = $cedente->status ?: Cedente::STATUS_PENDENTE;
 
             self::recordStatusAudit(
                 $cedente->id,
                 CedenteAudit::EVENT_CADASTRO_CRIADO,
-                $cedente->status ?: Cedente::STATUS_PENDENTE,
-                null
+                $statusInicial,
+                null,
+                [
+                    'nome' => $cedente->nome,
+                    'documento' => $cedente->documento,
+                    'fund_id' => $cedente->fund_id,
+                ]
             );
+
+            $serproResult = CedenteSerproComparison::compareOnCreate($cedente->id, $data);
+            $cedente->refresh();
+            $statusAtual = $cedente->status ?: Cedente::STATUS_PENDENTE;
+
+            if ($serproResult['validated']) {
+                self::recordStatusAudit(
+                    $cedente->id,
+                    CedenteAudit::EVENT_VALIDACAO_SERPRO,
+                    $statusAtual,
+                    null,
+                    self::buildSerproValidationChanges($serproResult['inconsistencias'], $statusInicial, $statusAtual)
+                );
+
+                if ($statusAtual !== $statusInicial) {
+                    self::recordStatusAudit(
+                        $cedente->id,
+                        CedenteAudit::EVENT_STATUS_ALTERADO,
+                        $statusAtual,
+                        $statusInicial
+                    );
+                }
+            }
 
             return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias']);
         });
@@ -169,9 +196,10 @@ class CedenteService
 
             $fundId = self::resolveFundId($data);
             $cedente = self::findCedenteForFund($data['id'], $fundId);
-            $cedente->load(['pessoasVinculadas', 'contasDesembolso']);
+            $cedente->load(['pessoasVinculadas', 'contasDesembolso', 'address', 'inconsistencias']);
 
             $statusAntes = $cedente->status ?: Cedente::STATUS_PENDENTE;
+            $snapshotAntes = self::snapshotForAudit($cedente);
 
             if (! isset($data['nome'], $data['documento']) || $data['nome'] === '' || $data['documento'] === '') {
                 throw new InvalidArgumentException('Nome e documento do cedente sao obrigatorios');
@@ -230,16 +258,9 @@ class CedenteService
                 self::syncArquivos($cedente, $data['arquivos']);
             }
 
-            if ($statusAlterado) {
-                self::recordStatusAudit(
-                    $cedente->id,
-                    CedenteAudit::EVENT_STATUS_ALTERADO,
-                    $cedente->status ?: Cedente::STATUS_PENDENTE,
-                    $statusAntes
-                );
-            }
+            self::finalizeCedenteUpdate($cedente, $data, $snapshotAntes, $statusAntes, 'edit');
 
-            return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles']);
+            return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias']);
         });
     }
 
@@ -259,9 +280,10 @@ class CedenteService
 
             $fundId = self::resolveFundId($data);
             $cedente = self::findCedenteForFund($data['id'], $fundId);
-            $cedente->load(['pessoasVinculadas.address', 'contasDesembolso']);
+            $cedente->load(['pessoasVinculadas.address', 'contasDesembolso', 'address', 'inconsistencias']);
 
             $statusAntes = $cedente->status ?: Cedente::STATUS_PENDENTE;
+            $snapshotAntes = self::snapshotForAudit($cedente);
 
             if (array_key_exists('nome', $data)) {
                 $nome = is_string($data['nome']) ? trim($data['nome']) : trim((string) $data['nome']);
@@ -337,17 +359,66 @@ class CedenteService
 
             $cedente->save();
 
-            if ($statusAlterado) {
-                self::recordStatusAudit(
-                    $cedente->id,
-                    CedenteAudit::EVENT_STATUS_ALTERADO,
-                    $cedente->status ?: Cedente::STATUS_PENDENTE,
-                    $statusAntes
-                );
-            }
+            self::finalizeCedenteUpdate($cedente, $data, $snapshotAntes, $statusAntes, 'patch');
 
-            return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles']);
+            return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias']);
         });
+    }
+
+    /**
+     * Reconcilia inconsistencias SERPRO, registra historico de alteracao e status.
+     *
+     * @param Cedente $cedente
+     * @param array $data
+     * @param array $snapshotAntes
+     * @param string $statusAntes
+     * @param string $tipo patch|edit
+     */
+    private static function finalizeCedenteUpdate(Cedente $cedente, array $data, array $snapshotAntes, $statusAntes, $tipo)
+    {
+        $cedente->refresh();
+        $cedente->load(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'inconsistencias']);
+
+        $reconcileResult = CedenteSerproComparison::reconcileAfterUpdate($cedente);
+        $cedente->refresh();
+        $cedente->load(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'inconsistencias']);
+
+        $snapshotDepois = self::snapshotForAudit($cedente);
+        $alteracoes = self::buildAlteracoesFromPayload($snapshotAntes, $snapshotDepois, $data, $tipo);
+        $statusAtual = $cedente->status ?: Cedente::STATUS_PENDENTE;
+
+        $auditChanges = [
+            'tipo_atualizacao' => $tipo,
+            'alteracoes' => $alteracoes,
+            'inconsistencias_resolvidas' => $reconcileResult['removed'],
+            'inconsistencias_restantes' => $reconcileResult['remaining'],
+        ];
+
+        if (! empty($alteracoes) || ! empty($reconcileResult['removed']) || $statusAtual !== $statusAntes || $reconcileResult['status_alterado']) {
+            self::recordStatusAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_CEDENTE_ATUALIZADO,
+                $statusAtual,
+                $statusAntes,
+                $auditChanges
+            );
+        }
+
+        if ($reconcileResult['status_alterado']) {
+            self::recordStatusAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_STATUS_ALTERADO,
+                $reconcileResult['status_novo'],
+                $reconcileResult['status_anterior']
+            );
+        } elseif ($statusAtual !== $statusAntes && ! $reconcileResult['status_alterado']) {
+            self::recordStatusAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_STATUS_ALTERADO,
+                $statusAtual,
+                $statusAntes
+            );
+        }
     }
 
     /**
@@ -832,14 +903,141 @@ class CedenteService
     }
 
     /**
+     * @param array $inconsistencias
+     * @param string $statusInicial
+     * @param string $statusAtual
+     * @return array
+     */
+    private static function buildSerproValidationChanges(array $inconsistencias, $statusInicial, $statusAtual)
+    {
+        $campos = [];
+        foreach ($inconsistencias as $item) {
+            if (is_object($item) && isset($item->campo_inconsistente)) {
+                $campos[] = $item->campo_inconsistente;
+            }
+        }
+
+        return [
+            'inconsistencias_count' => count($inconsistencias),
+            'campos_inconsistentes' => $campos,
+            'status_antes_validacao' => $statusInicial,
+            'status_apos_validacao' => $statusAtual,
+        ];
+    }
+
+    /**
+     * @return array
+     */
+    private static function snapshotForAudit(Cedente $cedente)
+    {
+        $cedente->loadMissing(['address', 'pessoasVinculadas.address', 'contasDesembolso']);
+
+        $partes = [];
+        $avalistas = [];
+        foreach ($cedente->pessoasVinculadas as $p) {
+            $block = self::pessoaVinculadaToInput($p);
+            if ($p->e_parte_relacionada) {
+                $partes[] = $block;
+            }
+            if ($p->e_avalista) {
+                $avalistas[] = $block;
+            }
+        }
+
+        return [
+            'nome' => $cedente->nome,
+            'documento' => $cedente->documento,
+            'email' => $cedente->email,
+            'telefone' => $cedente->telefone,
+            'faturamento_anual' => $cedente->faturamento_anual,
+            'minimo_assinantes' => $cedente->minimo_assinantes,
+            'sistema_financeiro_nacional' => (bool) $cedente->sistema_financeiro_nacional,
+            'status' => $cedente->status ?: Cedente::STATUS_PENDENTE,
+            'endereco' => $cedente->address ? $cedente->address->toArray() : null,
+            'partes_relacionadas' => $partes,
+            'avalistas' => $avalistas,
+            'contas_desembolso' => $cedente->contasDesembolso->map(function ($c) {
+                return $c->toArray();
+            })->values()->all(),
+        ];
+    }
+
+    /**
+     * @param array $antes
+     * @param array $depois
+     * @param array $data
+     * @param string $tipo
+     * @return array
+     */
+    private static function buildAlteracoesFromPayload(array $antes, array $depois, array $data, $tipo)
+    {
+        $alteracoes = [];
+        $keys = $tipo === 'patch'
+            ? array_diff(array_keys($data), ['id', 'fund_id', 'payload', 'cedente'])
+            : array_keys($depois);
+
+        foreach ($keys as $key) {
+            if ($key === 'arquivos') {
+                if (array_key_exists('arquivos', $data)) {
+                    $alteracoes['arquivos'] = [
+                        'de' => 'atualizado',
+                        'para' => 'atualizado',
+                    ];
+                }
+                continue;
+            }
+
+            if ($key === 'endereco' && is_array(isset($data['endereco']) ? $data['endereco'] : null)) {
+                foreach ($data['endereco'] as $enderecoKey => $_) {
+                    $path = 'endereco.' . $enderecoKey;
+                    $old = self::nestedSnapshotValue($antes, $path);
+                    $new = self::nestedSnapshotValue($depois, $path);
+                    if ($old !== $new) {
+                        $alteracoes[$path] = ['de' => $old, 'para' => $new];
+                    }
+                }
+                continue;
+            }
+
+            $old = isset($antes[$key]) ? $antes[$key] : null;
+            $new = isset($depois[$key]) ? $depois[$key] : null;
+
+            if (json_encode($old) !== json_encode($new)) {
+                $alteracoes[$key] = ['de' => $old, 'para' => $new];
+            }
+        }
+
+        return $alteracoes;
+    }
+
+    /**
+     * @param array $snapshot
+     * @param string $path
+     * @return mixed
+     */
+    private static function nestedSnapshotValue(array $snapshot, $path)
+    {
+        $current = $snapshot;
+        foreach (explode('.', $path) as $segment) {
+            if (! is_array($current) || ! array_key_exists($segment, $current)) {
+                return null;
+            }
+            $current = $current[$segment];
+        }
+
+        return $current;
+    }
+
+    /**
      * Histórico de status no cadastro (`cedente_audit`). Usuário: header User / user_id (User::logged()).
      *
      * @param int $cedenteId
      * @param string $event
      * @param string $newStatus
      * @param string|null $oldStatus
+     * @param array|null $changes
      */
-    private static function recordStatusAudit($cedenteId, $event, $newStatus, $oldStatus = null)
+    private static function recordStatusAudit($cedenteId, $event, $newStatus, $oldStatus = null, array $changes = null)
     {
         $user = User::logged();
 
@@ -849,7 +1047,7 @@ class CedenteService
             'event' => $event,
             'old_status' => $oldStatus,
             'new_status' => $newStatus,
-            'changes' => null,
+            'changes' => $changes,
         ]);
     }
 
