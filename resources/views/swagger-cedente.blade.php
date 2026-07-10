@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>API Cedente — Documentação</title>
+    <title>Cadastro cedente - API de Cedentes</title>
     <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css" crossorigin="anonymous">
     <style>
         html { box-sizing: border-box; }
@@ -12,8 +12,8 @@
 
         #frontend-guide {
             max-width: 1460px;
-            margin: 0 auto;
-            padding: 0 20px 40px;
+            margin: 24px auto 40px;
+            padding: 0 20px;
             font-family: sans-serif;
         }
 
@@ -22,7 +22,6 @@
             border: 1px solid rgba(59, 65, 81, 0.3);
             border-radius: 4px;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-            margin-top: 24px;
         }
 
         #frontend-guide .guide-header {
@@ -148,7 +147,6 @@
 </head>
 <body>
 <div id="swagger-ui"></div>
-<div id="frontend-guide" hidden></div>
 
 <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-standalone-preset.js" crossorigin="anonymous"></script>
@@ -158,18 +156,45 @@
     (function () {
         var openapiUrl = @json(url('/docs/cedente/openapi.yaml'));
 
+        function escapeHtml(text) {
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function findSchemasSection() {
+            return document.querySelector('#swagger-ui .swagger-ui section.models') ||
+                document.querySelector('#swagger-ui section.models');
+        }
+
+        function placeGuideAfterSchemas(container) {
+            var schemas = findSchemasSection();
+            if (!schemas || !schemas.parentNode) {
+                return false;
+            }
+
+            if (container.parentNode) {
+                container.parentNode.removeChild(container);
+            }
+
+            schemas.insertAdjacentElement('afterend', container);
+            return true;
+        }
+
         function renderFrontendGuide(guide) {
             if (!guide || !guide.sections || !guide.sections.length) {
                 return;
             }
 
-            var container = document.getElementById('frontend-guide');
+            var container = document.createElement('div');
+            container.id = 'frontend-guide';
+
             var block = document.createElement('div');
             block.className = 'guide-block';
 
             var header = document.createElement('div');
             header.className = 'guide-header';
-            header.innerHTML = '<div><h2>' + escapeHtml(guide.title || 'Guia para o front-end') + '</h2>' +
+            header.innerHTML = '<div><h2>' + escapeHtml(guide.title || 'Guia de integração') + '</h2>' +
                 (guide.description ? '<p>' + escapeHtml(guide.description) + '</p>' : '') + '</div>';
             block.appendChild(header);
 
@@ -191,20 +216,21 @@
             });
 
             container.appendChild(block);
-            container.hidden = false;
 
-            var swaggerWrapper = document.querySelector('#swagger-ui .wrapper');
-            if (swaggerWrapper) {
-                swaggerWrapper.appendChild(container);
-            } else {
-                document.getElementById('swagger-ui').insertAdjacentElement('afterend', container);
+            function mount() {
+                if (placeGuideAfterSchemas(container)) {
+                    return;
+                }
+
+                var attempts = 0;
+                var timer = setInterval(function () {
+                    if (placeGuideAfterSchemas(container) || ++attempts >= 40) {
+                        clearInterval(timer);
+                    }
+                }, 100);
             }
-        }
 
-        function escapeHtml(text) {
-            var div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+            mount();
         }
 
         function loadFrontendGuide() {
@@ -215,7 +241,7 @@
                     renderFrontendGuide(spec['x-frontend-guide']);
                 })
                 .catch(function (err) {
-                    console.warn('Não foi possível carregar o guia do front-end:', err);
+                    console.warn('Não foi possível carregar o guia de integração:', err);
                 });
         }
 
@@ -226,7 +252,9 @@
                 deepLinking: true,
                 presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
                 layout: 'StandaloneLayout',
-                onComplete: loadFrontendGuide,
+                onComplete: function () {
+                    setTimeout(loadFrontendGuide, 0);
+                },
             });
         };
     })();

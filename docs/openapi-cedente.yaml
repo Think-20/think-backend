@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Think Backend — API de Cedente
+  title: Cadastro cedente - API de Cedentes
   description: |
     API de **cadastro de cedente** (CRUD): endereço, partes relacionadas, avalistas, contas de desembolso e documentos.
 
@@ -11,7 +11,7 @@ info:
     3. Clique em **Authorize** (cadeado): **`User`** = id do usuário, **`Authorization`** = token **sem** prefixo `Bearer `.
     4. Em rotas de cedente, envie sempre **`fund_id`** no JSON (`POST`/`PUT`/`PATCH`) ou na query (`GET`/`DELETE`).
 
-    O guia completo para integração do front-end (status, payloads, arquivos, avaliação, etc.) está na seção **Guia para o front-end** no final desta página.
+    O guia completo de integração (status, payloads, arquivos, avaliação, etc.) está na seção **Guia de integração** no final desta página, após Schemas.
   version: 1.0.0
   contact:
     name: Think Backend
@@ -21,8 +21,8 @@ servers:
     description: API Think Backend (ambiente padrão)
 
 x-frontend-guide:
-  title: Guia para o front-end
-  description: Referência detalhada de regras de negócio, objetos e fluxos para quem integra o front.
+  title: Guia de integração
+  description: Referência detalhada de regras de negócio, objetos e fluxos para integração do front-end.
   sections:
     - id: status
       title: Status do cadastro
