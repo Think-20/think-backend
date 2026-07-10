@@ -24,13 +24,17 @@ info:
 
     ## Status do cadastro (o que o front precisa saber)
 
-    | Status | Significado para o cliente |
-    |--------|---------------------------|
-    | **`rascunho`** | Cadastro **incompleto**. Pode salvar parcialmente; **não** há validação contra bases oficiais. Corrija os campos faltantes e salve de novo. |
-    | **`pendente`** | Cadastro **completo** e em análise interna. Todos os blocos obrigatórios foram preenchidos. |
-    | **`inconsistente`** | Cadastro completo, mas há **divergências** entre o que foi informado e os dados oficiais (CNPJ/QSA). Veja o array **`inconsistencias`** na resposta e ajuste os campos indicados em `campo_inconsistente`. |
-
-    Outros valores de `status` (`em_avaliacao`, `aprovado`, `vencido`, `cancelado`) podem aparecer em listagens e resumos; são etapas **posteriores** ao envio do cadastro e não exigem ação do formulário de cadastro.
+    | Status | Significado para o front |
+    |--------|--------------------------|
+    | **`rascunho`** | Cadastro **incompleto**. Pode salvar parcialmente; **não** há validação SERPRO. Exiba o que falta e permita continuar depois. |
+    | **`pendente`** | Cadastro **completo**; aguardando análise interna / validação de arquivos. |
+    | **`inconsistente`** | Há **divergências** (SERPRO ou arquivo recusado). Leia **`inconsistencias`** e destaque os campos em `campo_inconsistente`. |
+    | **`em_avaliacao`** | Em análise pelo time interno (fluxo operacional). |
+    | **`aprovado`** | Aprovado pelo analista. Exiba `limite_aprovado`, `prazo_atualizacao_cadastral` e `sla` (data limite). |
+    | **`solicitar_correcoes`** | Analista pediu ajustes. Leia **`observacao`** (obrigatória) e permita editar/reenviar. |
+    | **`rejeitado`** | Cadastro recusado. Leia **`observacao`** (motivo). |
+    | **`vencido`** | Aprovado cujo **`sla`** passou da data atual (atualização automática nas consultas). |
+    | **`cancelado`** | Cadastro cancelado. |
 
     ---
 
@@ -46,37 +50,109 @@ info:
     | Contas de desembolso | Ao menos **1** conta com `tipo_conta`, `codigo_banco`, `agencia`, `numero_conta` |
     | Documentos | **13** arquivos distintos (`document_type` de **1** a **13**), cada um com `original_name` e `content_base64` (ou `base64`) |
 
-    Quando **todos** os itens acima estiverem ok, o status passa automaticamente para **`pendente`**. Se houver divergência com dados oficiais, pode ir para **`inconsistente`** — consulte `inconsistencias` na resposta.
+    Quando **todos** os itens acima estiverem ok, o status passa automaticamente para **`pendente`** e o backend dispara validação **SERPRO** (CNPJ/QSA). Se houver divergência, o status vai para **`inconsistente`** — consulte `inconsistencias` na resposta.
 
     **Dica:** não tente forçar `status: pendente` no JSON enquanto o cadastro estiver incompleto; o backend mantém `rascunho` ou retorna erro 400.
 
     ---
 
-    ## Campo `inconsistencias` (sempre presente na resposta)
+    ## Validação SERPRO (automática)
 
-    Toda vez que um cedente é retornado — `GET /cedentes/get/{id}`, `POST /cedentes/all`, e o `data` de `POST /cedente/save`, `PUT /cedente/edit` e `PATCH /cedente/patch` — o objeto inclui:
+    Ao sair de `rascunho` para cadastro completo (`POST`, `PUT` ou `PATCH`), o backend:
+    1. Registra eventos no **`historico`** (`validacao_iniciada`, `validacao_serpro_chamada`, `validacao_serpro` ou `validacao_serpro_erro`).
+    2. Compara nome, documento, endereço e partes relacionadas com a base oficial.
+    3. Preenche **`inconsistencias`** com `campo_inconsistente` (ex.: `nome`, `documento`, `endereco.cep`, `partes_relacionadas[0].nome`).
+    4. Define `status: inconsistente` se houver divergências; caso contrário permanece `pendente`.
+
+    Eventos automáticos usam `user_name: "Sistema"` e `user_id: null`.
+
+    ---
+
+    ## Arquivos (`arquivos` na resposta e no envio)
+
+    Cada item em **`arquivos`** retorna metadados (sem binário):
+
+    | Campo | Uso no front |
+    |-------|----------------|
+    | `id` | ID em `cedente_file`; use em **`PATCH /cedente/arquivo/validacao`**. |
+    | `document_type` | Inteiro **1–13** (tipos fixos; ver schema `DocumentTypeCedente`). |
+    | `document_type_label` | Rótulo legível (ex.: "Cartão CNPJ"). |
+    | `valido` | `false` = aguardando avaliação; `true` = aprovado pelo analista. |
+    | `status_arquivo` | `em_avaliacao` ou `valido` (espelho de `valido` para exibição). |
+
+    **Envio:** cada arquivo no body precisa de `document_type`, `original_name` e `content_base64` (ou `base64`). Limite ~20MB após decodificar.
+
+    **PATCH parcial de arquivos:** em `PATCH /cedente/patch`, envie **apenas** os `document_type` que deseja criar/substituir — os demais **não são apagados**. Útil para reenviar um documento recusado sem reenviar os 13.
+
+    **Validação manual (analista):** `PATCH /cedente/arquivo/validacao` com `fund_id`, `id` (do arquivo) e `valido`:
+    - `valido: true` → arquivo aprovado.
+    - `valido: false` → arquivo recusado (soft delete), inconsistência `arquivo.document_type.{n}` e cedente `inconsistente`. Campo opcional `motivo` vai para `inconsistencias.valor_serpro`.
+
+    ---
+
+    ## Avaliação do analista
+
+    `PATCH /cedente/avaliacao` — corpo: `fund_id`, `id` (cedente), `resultado`:
+
+    | `resultado` | Campos obrigatórios | Efeito |
+    |-------------|---------------------|--------|
+    | `aprovado` | `limite_aprovado`, `prazo_atualizacao_cadastral` (meses ≥ 1) | `status → aprovado`, calcula `sla` = hoje + N meses; `observacao` opcional |
+    | `solicitar_correcoes` | `observacao` | `status → solicitar_correcoes` |
+    | `rejeitado` | `observacao` | `status → rejeitado` |
+
+    Após aprovação, cedentes com `sla` vencido passam para **`vencido`** automaticamente (job diário e em `GET` / listagem).
+
+    ---
+
+    ## Envelope padrão das respostas
+
+    | Rota | Formato |
+    |------|---------|
+    | `GET /cedentes/get/{id}` | `{ "error": "false", "data": CedenteDetail }` |
+    | `POST /cedente/save`, `PUT /cedente/edit`, `PATCH /cedente/patch`, `PATCH /cedente/arquivo/validacao`, `PATCH /cedente/avaliacao` | `{ "error": "false", "message": "...", "data": CedenteDetail }` |
+    | `GET /cedentes/historico/{id}` | `{ "error": "false", "data": [ eventos ] }` |
+    | `POST /cedentes/all` | Paginação Laravel + `cadastro_status_resumo` na raiz |
+    | Erros | `{ "error": "true", "message": "texto do erro" }` (HTTP 400) |
+
+    ---
+
+    ## Campo `inconsistencias` e `historico` (sempre presentes na resposta)
+
+    Toda vez que um cedente é retornado — `GET /cedentes/get/{id}`, `POST /cedentes/all`, e o `data` de `POST /cedente/save`, `PUT /cedente/edit` e `PATCH /cedente/patch` — o objeto inclui **`inconsistencias`** e **`historico`**:
 
     ```json
     "inconsistencias": [
       { "id": 1, "campo_inconsistente": "nome", "valor_serpro": "RAZAO SOCIAL LTDA" }
+    ],
+    "historico": [
+      { "id": 1, "event": "cadastro_criado", "old_status": null, "new_status": "rascunho", "changes": { "descricao": "Cadastro criado em rascunho" }, "user_id": 1, "user_name": "Maria Souza", "usuario_email": "user@exemplo.com", "created_at": "2026-07-09 12:00:00" }
     ]
     ```
 
-    - Array **vazio** `[]` quando não há divergências pendentes.
-    - Quando `status` é **`inconsistente`**, o array traz **todas** as linhas pendentes; use `campo_inconsistente` para destacar o campo no formulário e `valor_serpro` como referência do valor oficial.
+    - **`inconsistencias`**: array vazio `[]` quando não há divergências. Itens de SERPRO usam campos do cadastro; recusa de arquivo usa `campo_inconsistente: arquivo.document_type.{n}`.
+    - **`historico`**: eventos de `cedente_audit` (mais recente primeiro), com `user_name` e `changes.descricao`. Para carregar **somente** o histórico, use `GET /cedentes/historico/{id}`.
+
+    Eventos possíveis: `cadastro_criado`, `cedente_atualizado`, `status_alterado`, `validacao_iniciada`, `validacao_serpro_chamada`, `validacao_serpro`, `validacao_serpro_erro`, `arquivo_validado`, `arquivo_recusado`, `avaliacao_registrada`.
 
     ---
 
-    ## Operações de cadastro
+    ## Rotas (referência rápida)
 
-    - **`POST /cedente/save`** — criar (completo ou parcial). Só `fund_id` é obrigatório na requisição.
-    - **`PUT /cedente/edit`** — substituição em snapshot; listas enviadas **substituem** as anteriores (omitir lista = esvaziar).
-    - **`PATCH /cedente/patch`** — alteração parcial; só as chaves enviadas mudam.
-    - **`GET /cedentes/get/{id}`** — detalhe com `partes_relacionadas` e `avalistas` separados.
-    - **`POST /cedentes/all`** — listagem paginada do fundo + `cadastro_status_resumo`.
-    - **`POST /cedentes/status-resumo`** — contagem por status (inclui `rascunho`).
-    - **`GET /cedentes/historico/{id}`** — histórico de eventos do cadastro.
-    - **`DELETE /cedente/remove/{id}`** — exclusão.
+    ### Cadastro
+    - **`POST /cedente/save`** — criar (completo ou rascunho). Só `fund_id` obrigatório.
+    - **`PUT /cedente/edit`** — snapshot completo; listas enviadas **substituem** as anteriores (omitir lista = esvaziar).
+    - **`PATCH /cedente/patch`** — parcial; só chaves enviadas mudam. `arquivos`: upsert por `document_type` (não apaga os não enviados).
+    - **`DELETE /cedente/remove/{id}`** — exclusão (`fund_id` na query).
+
+    ### Consulta
+    - **`GET /cedentes/get/{id}`** — detalhe (`partes_relacionadas` e `avalistas` separados; inclui `inconsistencias` e `historico`).
+    - **`POST /cedentes/all`** — listagem paginada + `cadastro_status_resumo`.
+    - **`POST /cedentes/status-resumo`** — contagem por status.
+    - **`GET /cedentes/historico/{id}`** — só o array de histórico.
+
+    ### Análise (analista / backoffice)
+    - **`PATCH /cedente/arquivo/validacao`** — aprovar ou recusar um arquivo (`id` = `cedente_file.id`).
+    - **`PATCH /cedente/avaliacao`** — aprovar, solicitar correções ou rejeitar cedente.
 
     Itens com o **mesmo CPF** em `partes_relacionadas` e `avalistas` são unificados em um único registro com ambas as flags.
   version: 1.0.0
@@ -95,7 +171,9 @@ tags:
   - name: Autenticação
     description: Login e validação de sessão (rotas web do Laravel)
   - name: Cedente
-    description: CRUD de cedente e recursos aninhados
+    description: CRUD de cadastro, consultas e listagens
+  - name: Análise
+    description: Validação de arquivos e avaliação do analista (backoffice)
 
 security:
   - userIdHeader: []
@@ -215,7 +293,7 @@ paths:
       responses:
         "200":
           description: |
-            Cadastro realizado. O `data` retornado inclui `status` (`rascunho`, `pendente` ou `inconsistente`) e `inconsistencias`.
+            Cadastro realizado. O `data` retornado inclui `status`, `inconsistencias`, `historico` e `arquivos`.
           content:
             application/json:
               schema:
@@ -264,8 +342,11 @@ paths:
       operationId: patchCedente
       summary: Atualização parcial (um ou mais campos)
       description: |
-        Envie **`id`** e **`fund_id`** (obrigatórios) e apenas os demais campos a alterar (ex.: `status`, `telefone`).
-        O que não vier no JSON **não é alterado**. Listas e arquivos só mudam se a chave existir no body.
+        Envie **`id`** e **`fund_id`** (obrigatórios) e apenas os demais campos a alterar (ex.: `telefone`, um único item em `arquivos`).
+        O que não vier no JSON **não é alterado**.
+        - **`arquivos`**: envie só os `document_type` a criar/substituir (upsert); os demais arquivos **permanecem**.
+        - **`partes_relacionadas` / `avalistas`**: se a chave vier, a lista **substitui** a anterior (mesma regra do PUT para essas listas).
+        - **`contas_desembolso`**: se a chave vier, substitui todas as contas.
         Completar todos os blocos obrigatórios em um cedente `rascunho` promove automaticamente para `pendente` + SERPRO.
         Não use esta rota para substituir o cadastro inteiro — use `PUT /cedente/edit`.
       requestBody:
@@ -274,9 +355,114 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/CedentePatchRequest"
+            examples:
+              umCampo:
+                summary: Alterar só o telefone
+                value:
+                  id: 42
+                  fund_id: 1
+                  telefone: "11999998888"
+              reenvioArquivo:
+                $ref: "#/components/examples/CedentePatchReenvioArquivo"
       responses:
         "200":
           description: Atualização realizada; `data` inclui `status` e `inconsistencias`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CedenteSaveOrEditSuccessResponse"
+        "400":
+          description: Validação ou erro de persistência
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /cedente/arquivo/validacao:
+    patch:
+      tags: [Análise]
+      operationId: validarArquivoCedente
+      summary: Aprovar ou recusar arquivo do cedente
+      description: |
+        Validação manual de um arquivo (`cedente_file`). Corpo JSON obrigatório:
+
+        | Campo | Tipo | Descrição |
+        |-------|------|-----------|
+        | `fund_id` | int | Escopo do fundo |
+        | `id` | int | **`cedente_file.id`** (não confundir com `cedente.id`) |
+        | `valido` | bool | `true` aprova; `false` recusa |
+        | `motivo` | string | Opcional ao recusar; gravado em `inconsistencias.valor_serpro` |
+
+        **Aprovar (`valido: true`):** `status_arquivo` passa a `valido`; evento `arquivo_validado` no histórico.
+
+        **Recusar (`valido: false`):** soft delete do arquivo, inconsistência `arquivo.document_type.{n}`, cedente → **`inconsistente`**, evento `arquivo_recusado`.
+
+        **Reenvio:** o cliente corrige via `PATCH /cedente/patch` enviando só o `document_type` recusado em `arquivos`; a inconsistência é removida e, sem outras pendências, o status volta para **`pendente`**.
+
+        Resposta: envelope padrão com `data` = `CedenteDetail` atualizado (`inconsistencias`, `historico`, `arquivos`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CedenteArquivoValidacaoRequest"
+            examples:
+              aprovar:
+                $ref: "#/components/examples/CedenteArquivoValidacaoAprovar"
+              recusar:
+                $ref: "#/components/examples/CedenteArquivoValidacaoRecusar"
+      responses:
+        "200":
+          description: Cedente atualizado após validação do arquivo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CedenteSaveOrEditSuccessResponse"
+        "400":
+          description: Validação ou erro de persistência
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /cedente/avaliacao:
+    patch:
+      tags: [Análise]
+      operationId: avaliarCedente
+      summary: Avaliação do analista (aprovar, solicitar correções ou rejeitar)
+      description: |
+        Registra a decisão do analista sobre o cedente. Corpo JSON:
+
+        | Campo | Obrigatório | Descrição |
+        |-------|-------------|-----------|
+        | `fund_id` | sim | Escopo do fundo |
+        | `id` | sim | ID do **cedente** |
+        | `resultado` | sim | `aprovado` \| `solicitar_correcoes` \| `rejeitado` |
+        | `limite_aprovado` | se `aprovado` | Decimal (até 12 dígitos + 2 decimais). Aceita `1500000,50` ou `1500000.50` |
+        | `prazo_atualizacao_cadastral` | se `aprovado` | Inteiro ≥ 1 (meses); define `sla` |
+        | `observacao` | se `solicitar_correcoes` ou `rejeitado` | Texto livre (motivo) |
+
+        Campos persistidos no cedente: `observacao`, `limite_aprovado`, `prazo_atualizacao_cadastral`, `status`, `sla` (quando aprovado).
+
+        Eventos no histórico: `avaliacao_registrada` e, se o status mudou, `status_alterado`.
+
+        Cedentes **aprovados** com `sla` &lt; hoje passam para **`vencido`** (job diário 00:05 e nas consultas).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CedenteAvaliacaoRequest"
+            examples:
+              aprovado:
+                $ref: "#/components/examples/CedenteAvaliacaoAprovado"
+              solicitarCorrecoes:
+                $ref: "#/components/examples/CedenteAvaliacaoSolicitarCorrecoes"
+              rejeitado:
+                $ref: "#/components/examples/CedenteAvaliacaoRejeitado"
+      responses:
+        "200":
+          description: Avaliação registrada
           content:
             application/json:
               schema:
@@ -295,7 +481,7 @@ paths:
       summary: Obter cedente por id
       description: |
         Retorna o cadastro completo no formato do front (`partes_relacionadas` e `avalistas` separados).
-        Inclui sempre o array **`inconsistencias`** (vazio ou com divergências pendentes).
+        Inclui sempre **`inconsistencias`** e **`historico`** (arrays vazios ou preenchidos).
         Query **`fund_id` obrigatória**.
       parameters:
         - name: id
@@ -318,6 +504,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CedenteGetSuccessResponse"
+              examples:
+                detalhe:
+                  $ref: "#/components/examples/CedenteGetSuccessExample"
         "404":
           description: Cedente não encontrado
           content:
@@ -329,11 +518,10 @@ paths:
     get:
       tags: [Cedente]
       operationId: listCedenteHistoricoStatus
-      summary: Histórico de alterações de status do cadastro
+      summary: Histórico de eventos do cadastro (somente histórico)
       description: |
-        Gravações em `cedente_audit`: ao criar (`cadastro_criado`, `old_status` nulo) e a cada mudança de status no `PUT /cedente/edit` ou `PATCH /cedente/patch` (`status_alterado`).
-        O usuário é o da requisição autenticada (header `User`); campos `user_id` e `usuario_email` na resposta.
-        A data/hora do evento é `created_at`.
+        Retorna apenas o array de eventos de `cedente_audit` (mesmo conteúdo do campo `historico` no GET unitário).
+        Use quando precisar atualizar só o histórico sem recarregar o cadastro inteiro.
         Query **`fund_id` obrigatória** (mesmo escopo das demais rotas de cedente).
       parameters:
         - name: id
@@ -370,7 +558,7 @@ paths:
       summary: Listar cedentes (paginação Laravel)
       description: |
         **`fund_id` obrigatório** no corpo JSON. Lista apenas cedentes desse fundo.
-        Cada item em `data` inclui o array **`inconsistencias`** (vazio ou com divergências).
+        Cada item em `data` inclui os arrays **`inconsistencias`** e **`historico`**.
         A raiz da resposta inclui `fund_id` e **`cadastro_status_resumo`** (contagens por status, incluindo `rascunho`).
       requestBody:
         required: true
@@ -715,12 +903,37 @@ components:
         type:
           type: string
           nullable: true
+        valido:
+          type: boolean
+          description: "`true` = válido; `false` = em avaliação (padrão ao enviar)."
+        status_arquivo:
+          type: string
+          enum: [em_avaliacao, valido]
+          description: Rótulo derivado de `valido` para exibição no front.
         created_at:
           type: string
           format: date-time
         updated_at:
           type: string
           format: date-time
+
+    CedenteArquivoValidacaoRequest:
+      type: object
+      required: [fund_id, id, valido]
+      properties:
+        fund_id:
+          type: integer
+          minimum: 1
+        id:
+          type: integer
+          minimum: 1
+          description: ID do registro em `cedente_file`.
+        valido:
+          type: boolean
+          description: "`true` aprova; `false` recusa (soft delete + inconsistência)."
+        motivo:
+          type: string
+          description: Opcional ao recusar; gravado em `inconsistencias.valor_serpro`.
 
     CedenteCreateRequest:
       type: object
@@ -848,7 +1061,9 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CedenteArquivoInput"
-          description: Opcional em rascunho; substitui arquivos se enviado.
+          description: |
+            Se enviado, faz **upsert** por `document_type`: só os tipos listados são criados/substituídos;
+            os demais arquivos do cedente **não são removidos**. Ideal para reenvio de um documento recusado.
 
     PessoaVinculadaDetail:
       type: object
@@ -908,19 +1123,54 @@ components:
     CedenteCadastroStatus:
       type: string
       description: |
-        Status do cadastro. Para o formulário de cadastro, os relevantes são:
-        - **`rascunho`** — incompleto; preencha os blocos obrigatórios (ver descrição geral da API).
+        Status do cadastro. Referência para o front:
+        - **`rascunho`** — incompleto; preencha blocos obrigatórios (ver descrição geral).
         - **`pendente`** — completo; aguardando análise.
-        - **`inconsistente`** — divergência com dados oficiais; corrija campos listados em `inconsistencias`.
-        Demais valores são etapas internas posteriores ao envio.
+        - **`inconsistente`** — divergências em `inconsistencias` (SERPRO ou arquivo recusado).
+        - **`solicitar_correcoes`** / **`rejeitado`** — decisão do analista; leia `observacao`.
+        - **`aprovado`** — leia `limite_aprovado`, `prazo_atualizacao_cadastral`, `sla`.
+        - **`vencido`** — aprovado com SLA expirado.
       enum:
         - rascunho
         - pendente
         - em_avaliacao
         - inconsistente
         - aprovado
+        - solicitar_correcoes
+        - rejeitado
         - vencido
         - cancelado
+
+    CedenteAvaliacaoResultado:
+      type: string
+      enum:
+        - aprovado
+        - solicitar_correcoes
+        - rejeitado
+
+    CedenteAvaliacaoRequest:
+      type: object
+      required: [fund_id, id, resultado]
+      properties:
+        fund_id:
+          type: integer
+          minimum: 1
+        id:
+          type: integer
+          minimum: 1
+          description: ID do cedente.
+        resultado:
+          $ref: "#/components/schemas/CedenteAvaliacaoResultado"
+        observacao:
+          type: string
+          description: Obrigatória para `solicitar_correcoes` e `rejeitado`; opcional para `aprovado`.
+        limite_aprovado:
+          type: string
+          description: Obrigatório para `aprovado`. Até 12 dígitos antes da vírgula e 2 decimais (ex. `1500000.50`).
+        prazo_atualizacao_cadastral:
+          type: integer
+          minimum: 1
+          description: Obrigatório para `aprovado`. Prazo em **meses** para o SLA (`sla`).
 
     CedenteStatusResumoData:
       type: object
@@ -930,6 +1180,8 @@ components:
         - em_avaliacao
         - inconsistente
         - aprovado
+        - solicitar_correcoes
+        - rejeitado
         - vencido
         - cancelado
         - total
@@ -947,6 +1199,12 @@ components:
           type: integer
           minimum: 0
         aprovado:
+          type: integer
+          minimum: 0
+        solicitar_correcoes:
+          type: integer
+          minimum: 0
+        rejeitado:
           type: integer
           minimum: 0
         vencido:
@@ -978,10 +1236,28 @@ components:
         event:
           type: string
           description: |
-            `cadastro_criado` — primeiro status ao salvar; `status_alterado` — mudança via `PUT /cedente/edit`.
+            Tipos de evento no histórico:
+            - `cadastro_criado` — cadastro criado pelo usuário
+            - `cedente_atualizado` — alteração de dados pelo usuário
+            - `status_alterado` — mudança de status (usuário ou sistema)
+            - `validacao_iniciada` — início das validações automáticas (Sistema)
+            - `validacao_serpro_chamada` — chamada à API SERPRO (Sistema)
+            - `validacao_serpro` — resultado da validação SERPRO (Sistema)
+            - `validacao_serpro_erro` — falha na consulta SERPRO (Sistema)
+            - `arquivo_validado` — analista aprovou um arquivo
+            - `arquivo_recusado` — analista recusou um arquivo
+            - `avaliacao_registrada` — analista registrou aprovação, correções ou rejeição
           enum:
             - cadastro_criado
+            - cedente_atualizado
             - status_alterado
+            - validacao_iniciada
+            - validacao_serpro_chamada
+            - validacao_serpro
+            - validacao_serpro_erro
+            - arquivo_validado
+            - arquivo_recusado
+            - avaliacao_registrada
         old_status:
           type: string
           nullable: true
@@ -989,14 +1265,24 @@ components:
         new_status:
           type: string
           description: Status após o evento.
+        changes:
+          type: object
+          nullable: true
+          description: |
+            Detalhes do evento. Sempre inclui `descricao` (texto legível para exibir na tela).
+            Ex.: `{ "descricao": "Cadastro criado" }`, `{ "descricao": "Validacao SERPRO concluida com inconsistencias", "campos_inconsistentes": ["nome"] }`.
         user_id:
           type: integer
           nullable: true
-          description: ID do usuário autenticado na requisição (header `User`).
+          description: ID do usuário responsável. `null` quando o evento foi disparado pelo sistema.
+        user_name:
+          type: string
+          description: Nome do usuário responsável (`employee.name`). Retorna **Sistema** quando `user_id` é nulo.
         usuario_email:
           type: string
           nullable: true
           format: email
+          description: E-mail do usuário responsável. Nulo para eventos do sistema.
         created_at:
           type: string
           format: date-time
@@ -1016,19 +1302,22 @@ components:
 
     CedenteInconsistenciaItem:
       type: object
-      description: Divergência entre o valor cadastrado e o retornado pela base oficial (CNPJ/QSA).
+      description: |
+        Divergência pendente. Origem SERPRO (campos do cadastro) ou recusa de arquivo (`arquivo.document_type.{n}`).
       properties:
         id:
           type: integer
         campo_inconsistente:
           type: string
           description: |
-            Identificador do campo no cadastro (ex.: `nome`, `documento`, `endereco.cep`, `partes_relacionadas[0].nome`).
-            Use para destacar o input correspondente no formulário.
+            Identificador do campo no cadastro. Exemplos:
+            - SERPRO: `nome`, `documento`, `endereco.cep`, `partes_relacionadas[0].nome`
+            - Arquivo recusado: `arquivo.document_type.4` (número = `document_type`)
+            Use para destacar o input ou o slot de upload correspondente no formulário.
         valor_serpro:
           type: string
           nullable: true
-          description: Valor de referência retornado pela base oficial para comparação/correção.
+          description: Valor de referência (SERPRO) ou motivo da recusa do arquivo.
 
     ContaDesembolsoResource:
       type: object
@@ -1061,8 +1350,8 @@ components:
     CedenteDetail:
       type: object
       description: |
-        Formato retornado em `data` no GET, save, edit e patch.
-        Sempre inclui **`inconsistencias`** (array vazio ou com itens quando `status` é `inconsistente`).
+        Formato retornado em `data` no GET, save, edit, patch, validação de arquivo e avaliação.
+        Sempre inclui **`inconsistencias`**, **`historico`** e **`arquivos`** (metadados, sem base64).
       properties:
         id:
           type: integer
@@ -1089,13 +1378,25 @@ components:
         telefone:
           type: string
           nullable: true
+        observacao:
+          type: string
+          nullable: true
+          description: Texto livre (motivo de correção/rejeição ou observação da aprovação).
+        limite_aprovado:
+          type: string
+          nullable: true
+          description: Limite aprovado (decimal, preenchido na aprovação).
+        prazo_atualizacao_cadastral:
+          type: integer
+          nullable: true
+          description: Prazo em meses para atualização cadastral (SLA após aprovação).
         status:
           $ref: "#/components/schemas/CedenteCadastroStatus"
         sla:
           type: string
           format: date
           nullable: true
-          description: Data limite informativa do cadastro (`Y-m-d`). Nulo em `rascunho`.
+          description: Data limite do cadastro (`Y-m-d`). Em aprovado, calculada com `prazo_atualizacao_cadastral` meses; após vencer, status → `vencido`.
         endereco:
           $ref: "#/components/schemas/Address"
           nullable: true
@@ -1122,6 +1423,12 @@ components:
             Quando `status` é `inconsistente`, contém todas as divergências pendentes do cedente.
           items:
             $ref: "#/components/schemas/CedenteInconsistenciaItem"
+        historico:
+          type: array
+          description: |
+            Eventos de `cedente_audit` (mais recente primeiro). Mesmo formato de `GET /cedentes/historico/{id}`.
+          items:
+            $ref: "#/components/schemas/CedenteHistoricoStatusItem"
 
     CedenteGetSuccessResponse:
       type: object
@@ -1150,7 +1457,7 @@ components:
       description: |
         Item retornado em `data` na listagem paginada (`POST /cedentes/all`).
         Estrutura Eloquent (snake_case); `pessoas_vinculadas` agrupa partes e avalistas.
-        Inclui sempre **`inconsistencias`** (mesmo formato do GET unitário).
+        Inclui sempre **`inconsistencias`** e **`historico`** (mesmo formato do GET unitário).
       properties:
         id:
           type: integer
@@ -1179,6 +1486,19 @@ components:
         telefone:
           type: string
           nullable: true
+        observacao:
+          type: string
+          nullable: true
+        limite_aprovado:
+          type: string
+          nullable: true
+        prazo_atualizacao_cadastral:
+          type: integer
+          nullable: true
+        sla:
+          type: string
+          format: date
+          nullable: true
         status:
           $ref: "#/components/schemas/CedenteCadastroStatus"
         created_at:
@@ -1203,6 +1523,11 @@ components:
           description: Divergências pendentes (vazio se não houver).
           items:
             $ref: "#/components/schemas/CedenteInconsistenciaItem"
+        historico:
+          type: array
+          description: Eventos de auditoria do cedente (vazio se não houver).
+          items:
+            $ref: "#/components/schemas/CedenteHistoricoStatusItem"
 
     PessoaVinculadaRowList:
       type: object
@@ -1443,3 +1768,109 @@ components:
             original_name: declaracao-relacionamento-bancario.pdf
             type: pdf
             content_base64: aGVsbG8=
+
+    CedentePatchReenvioArquivo:
+      summary: Reenviar só o documento tipo 4 (cartão CNPJ)
+      description: |
+        Após recusa do analista (`arquivo.document_type.4` em inconsistencias), reenvie apenas esse tipo.
+        Os outros 12 arquivos permanecem; a inconsistência do tipo 4 é removida ao salvar.
+      value:
+        id: 42
+        fund_id: 1
+        arquivos:
+          - document_type: 4
+            original_name: cartao-cnpj-novo.pdf
+            type: pdf
+            content_base64: aGVsbG8=
+
+    CedenteArquivoValidacaoAprovar:
+      summary: Aprovar arquivo
+      value:
+        fund_id: 1
+        id: 101
+        valido: true
+
+    CedenteArquivoValidacaoRecusar:
+      summary: Recusar arquivo com motivo
+      value:
+        fund_id: 1
+        id: 101
+        valido: false
+        motivo: Documento ilegível — favor reenviar em PDF
+
+    CedenteAvaliacaoAprovado:
+      summary: Aprovar cedente
+      value:
+        fund_id: 1
+        id: 42
+        resultado: aprovado
+        limite_aprovado: "1500000.50"
+        prazo_atualizacao_cadastral: 12
+        observacao: Aprovado após análise de crédito
+
+    CedenteAvaliacaoSolicitarCorrecoes:
+      summary: Solicitar correções
+      value:
+        fund_id: 1
+        id: 42
+        resultado: solicitar_correcoes
+        observacao: Atualizar demonstração financeira do último exercício
+
+    CedenteAvaliacaoRejeitado:
+      summary: Rejeitar cadastro
+      value:
+        fund_id: 1
+        id: 42
+        resultado: rejeitado
+        observacao: Não atende política de crédito do fundo
+
+    CedenteGetSuccessExample:
+      summary: Exemplo de resposta GET (trecho)
+      description: Objeto `data` retornado em consultas e após save/patch. Campos aninhados omitidos onde não essenciais.
+      value:
+        error: "false"
+        data:
+          id: 42
+          fund_id: 1
+          nome: Empresa Exemplo LTDA
+          documento: "12345678000199"
+          status: inconsistente
+          sla: null
+          observacao: null
+          limite_aprovado: null
+          prazo_atualizacao_cadastral: null
+          arquivos:
+            - id: 101
+              document_type: 4
+              document_type_label: Cartão CNPJ
+              original_name: cartao-cnpj.pdf
+              name: cedente_42_doc4_abc.pdf
+              type: pdf
+              valido: false
+              status_arquivo: em_avaliacao
+          inconsistencias:
+            - id: 5
+              campo_inconsistente: nome
+              valor_serpro: RAZAO SOCIAL OFICIAL LTDA
+          historico:
+            - id: 20
+              event: validacao_serpro
+              old_status: pendente
+              new_status: inconsistente
+              changes:
+                descricao: Validacao SERPRO concluida com inconsistencias
+                campos_inconsistentes: [nome]
+              user_id: null
+              user_name: Sistema
+              usuario_email: null
+              created_at: "2026-07-09 14:30:00"
+            - id: 1
+              event: cadastro_criado
+              old_status: null
+              new_status: rascunho
+              changes:
+                descricao: Cadastro criado em rascunho
+              user_id: 1
+              user_name: Maria Souza
+              usuario_email: maria@exemplo.com
+              created_at: "2026-07-09 12:00:00"

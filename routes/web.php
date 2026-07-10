@@ -425,6 +425,8 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::post('/cedente/save', 'CedenteController@save');
     Route::put('/cedente/edit', 'CedenteController@edit');
     Route::patch('/cedente/patch', 'CedenteController@patch');
+    Route::patch('/cedente/arquivo/validacao', 'CedenteController@validarArquivo');
+    Route::patch('/cedente/avaliacao', 'CedenteController@avaliar');
     Route::delete('/cedente/remove/{id}', 'CedenteController@remove');
     Route::post('/cedentes/all', 'CedenteController@all');
     Route::post('/cedentes/status-resumo', 'CedenteController@statusResumo');

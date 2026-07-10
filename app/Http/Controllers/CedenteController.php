@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Cedente;
-use App\CedenteAudit;
+use App\Http\Services\CedenteAvaliacaoService;
+use App\Http\Services\CedenteFileService;
 use App\Http\Services\CedenteService;
 use Exception;
 use Illuminate\Database\QueryException;
@@ -59,19 +60,30 @@ class CedenteController extends Controller
             return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
         }
 
+        CedenteService::markExpiredApprovedAsVencido($fundId);
+
         $perPage = (int) $request->input('per_page', 20);
         if ($perPage < 1 || $perPage > 100) {
             $perPage = 20;
         }
 
         $paginator = Cedente::forFund($fundId)
-            ->with(['address', 'pessoasVinculadas', 'contasDesembolso', 'cedenteFiles', 'fund', 'inconsistencias'])
+            ->with([
+                'address',
+                'pessoasVinculadas',
+                'contasDesembolso',
+                'cedenteFiles',
+                'fund',
+                'inconsistencias',
+                'audits.user.employee',
+            ])
             ->orderBy('id', 'desc')
             ->paginate($perPage);
 
         $paginator->getCollection()->transform(function (Cedente $cedente) {
             $row = $cedente->toArray();
             $row['inconsistencias'] = CedenteService::inconsistenciasToApiArray($cedente);
+            $row['historico'] = CedenteService::historicoToApiArray($cedente);
 
             return $row;
         });
@@ -123,6 +135,7 @@ class CedenteController extends Controller
         try {
             $data = self::payloadWithFund($request);
             $fundId = CedenteService::resolveFundId($data);
+            CedenteService::markExpiredApprovedAsVencido($fundId);
             $cedente = Cedente::forFund($fundId)
                 ->with(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'fund', 'inconsistencias'])
                 ->find($id);
@@ -144,35 +157,15 @@ class CedenteController extends Controller
         try {
             $data = self::payloadWithFund($request);
             $fundId = CedenteService::resolveFundId($data);
-            CedenteService::findCedenteForFund($id, $fundId);
+            $cedente = CedenteService::findCedenteForFund($id, $fundId);
         } catch (InvalidArgumentException $e) {
             return response()->json(['error' => 'true', 'message' => $e->getMessage()], 404);
         }
 
-        $linhas = CedenteAudit::where('cedente_id', (int) $id)
-            ->orderBy('id', 'desc')
-            ->with(['user'])
-            ->get();
-
-        $data = $linhas->map(function ($a) {
-            $u = $a->user;
-
-            return [
-                'id' => $a->id,
-                'event' => $a->event,
-                'old_status' => $a->old_status,
-                'new_status' => $a->new_status,
-                'changes' => $a->changes,
-                'user_id' => $a->user_id,
-                'usuario_email' => $u ? $u->email : null,
-                'created_at' => $a->created_at ? $a->created_at->toDateTimeString() : null,
-            ];
-        });
-
         return response()->json([
             'error' => 'false',
             'fund_id' => $fundId,
-            'data' => $data->values()->all(),
+            'data' => CedenteService::historicoToApiArray($cedente),
         ]);
     }
 
@@ -298,5 +291,67 @@ class CedenteController extends Controller
         }
 
         return response()->json(['error' => 'false', 'message' => 'Cedente excluido com sucesso']);
+    }
+
+    public static function validarArquivo(Request $request)
+    {
+        try {
+            $cedente = CedenteFileService::setValidacao(self::decodeRequestPayload($request));
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
+        } catch (QueryException $e) {
+            Log::error('Cedente validarArquivo QueryException: ' . $e->getMessage(), ['exception' => $e]);
+
+            $message = 'Erro ao validar arquivo no banco de dados';
+            if (config('app.debug')) {
+                $message .= ': ' . $e->getMessage();
+            }
+
+            return response()->json(['error' => 'true', 'message' => $message], 400);
+        } catch (Exception $e) {
+            Log::error('Cedente validarArquivo: ' . $e->getMessage(), ['exception' => $e]);
+
+            return response()->json([
+                'error' => 'true',
+                'message' => 'Erro ao validar arquivo: ' . $e->getMessage(),
+            ], 400);
+        }
+
+        return response()->json([
+            'error' => 'false',
+            'message' => 'Validacao do arquivo registrada com sucesso',
+            'data' => CedenteService::toApiArray($cedente),
+        ]);
+    }
+
+    public static function avaliar(Request $request)
+    {
+        try {
+            $cedente = CedenteAvaliacaoService::registrar(self::decodeRequestPayload($request));
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
+        } catch (QueryException $e) {
+            Log::error('Cedente avaliar QueryException: ' . $e->getMessage(), ['exception' => $e]);
+
+            $message = 'Erro ao registrar avaliacao no banco de dados';
+            if (config('app.debug')) {
+                $message .= ': ' . $e->getMessage();
+            }
+
+            return response()->json(['error' => 'true', 'message' => $message], 400);
+        } catch (Exception $e) {
+            Log::error('Cedente avaliar: ' . $e->getMessage(), ['exception' => $e]);
+
+            return response()->json([
+                'error' => 'true',
+                'message' => 'Erro ao registrar avaliacao: ' . $e->getMessage(),
+            ], 400);
+        }
+
+        return response()->json([
+            'error' => 'false',
+            'message' => 'Avaliacao registrada com sucesso',
+            'data' => CedenteService::toApiArray($cedente),
+        ]);
     }
 }

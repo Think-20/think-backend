@@ -30,6 +30,7 @@ class CedenteSerproComparison
             return [
                 'validated' => false,
                 'inconsistencias' => [],
+                'error_message' => $e->getMessage(),
             ];
         }
 
@@ -67,7 +68,7 @@ class CedenteSerproComparison
      */
     public static function reconcileAfterUpdate(Cedente $cedente)
     {
-        $cedente->loadMissing(['address', 'pessoasVinculadas', 'inconsistencias']);
+        $cedente->loadMissing(['address', 'pessoasVinculadas', 'inconsistencias', 'cedenteFiles']);
 
         $removed = [];
         foreach ($cedente->inconsistencias as $inconsistencia) {
@@ -103,6 +104,10 @@ class CedenteSerproComparison
      */
     public static function isInconsistenciaResolved(Cedente $cedente, $campo, $valorSerpro)
     {
+        if (preg_match('/^arquivo\.document_type\.(\d+)$/', $campo, $matches)) {
+            return self::arquivoDocumentTypeResolved($cedente, (int) $matches[1]);
+        }
+
         if ($valorSerpro === null || $valorSerpro === '') {
             return false;
         }
@@ -173,6 +178,24 @@ class CedenteSerproComparison
         );
 
         return $items;
+    }
+
+    /**
+     * @param Cedente $cedente
+     * @param int $documentType
+     * @return bool
+     */
+    private static function arquivoDocumentTypeResolved(Cedente $cedente, $documentType)
+    {
+        $cedente->loadMissing('cedenteFiles');
+
+        foreach ($cedente->cedenteFiles as $file) {
+            if ((int) $file->document_type === (int) $documentType) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static function parteRelacionadaNomeResolved(Cedente $cedente, $index, $valorSerpro)

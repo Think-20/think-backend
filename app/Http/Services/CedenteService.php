@@ -149,6 +149,7 @@ class CedenteService
                     Cedente::STATUS_RASCUNHO,
                     null,
                     [
+                        'descricao' => 'Cadastro criado em rascunho',
                         'nome' => $cedente->nome,
                         'documento' => $cedente->documento,
                         'fund_id' => $cedente->fund_id,
@@ -195,11 +196,6 @@ class CedenteService
             $cedente->contasDesembolso()->delete();
 
             if (array_key_exists('arquivos', $data)) {
-                $cedente->load('cedenteFiles');
-                foreach ($cedente->cedenteFiles as $f) {
-                    $f->deletePhysicalFile();
-                }
-                $cedente->cedenteFiles()->delete();
                 self::validateArquivosObrigatorios($data['arquivos'], false);
             }
 
@@ -226,8 +222,12 @@ class CedenteService
             self::syncContas($cedente, $data, false);
 
             if (array_key_exists('arquivos', $data)) {
+                $cedente->load('cedenteFiles');
+                self::validateArquivosObrigatorios($data['arquivos'], false);
                 self::syncArquivos($cedente, $data['arquivos']);
             }
+
+            $cedente->save();
 
             self::applyStatusAfterSave($cedente, $data, $statusAntes);
 
@@ -306,11 +306,6 @@ class CedenteService
             }
 
             if (array_key_exists('arquivos', $data)) {
-                $cedente->load('cedenteFiles');
-                foreach ($cedente->cedenteFiles as $f) {
-                    $f->deletePhysicalFile();
-                }
-                $cedente->cedenteFiles()->delete();
                 self::validateArquivosObrigatorios($data['arquivos'], false);
                 self::syncArquivos($cedente, $data['arquivos']);
             }
@@ -358,6 +353,7 @@ class CedenteService
         $statusAtual = $cedente->status ?: Cedente::STATUS_PENDENTE;
 
         $auditChanges = [
+            'descricao' => 'Cadastro atualizado',
             'tipo_atualizacao' => $tipo,
             'alteracoes' => $alteracoes,
             'inconsistencias_resolvidas' => $reconcileResult['removed'],
@@ -379,14 +375,20 @@ class CedenteService
                 $cedente->id,
                 CedenteAudit::EVENT_STATUS_ALTERADO,
                 $reconcileResult['status_novo'],
-                $reconcileResult['status_anterior']
+                $reconcileResult['status_anterior'],
+                [
+                    'descricao' => self::auditDescricaoStatusAlterado($reconcileResult['status_anterior'], $reconcileResult['status_novo']),
+                ]
             );
         } elseif ($statusAtual !== $statusAntes && ! $reconcileResult['status_alterado']) {
             self::recordStatusAudit(
                 $cedente->id,
                 CedenteAudit::EVENT_STATUS_ALTERADO,
                 $statusAtual,
-                $statusAntes
+                $statusAntes,
+                [
+                    'descricao' => self::auditDescricaoStatusAlterado($statusAntes, $statusAtual),
+                ]
             );
         }
     }
@@ -497,7 +499,7 @@ class CedenteService
 
     public static function toApiArray(Cedente $cedente)
     {
-        $cedente->loadMissing(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias']);
+        $cedente->loadMissing(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias', 'audits.user.employee']);
 
         $labels = CedenteFile::documentTypeLabels();
 
@@ -513,6 +515,9 @@ class CedenteService
             'minimo_assinantes' => $cedente->minimo_assinantes,
             'sistema_financeiro_nacional' => (bool) $cedente->sistema_financeiro_nacional,
             'telefone' => $cedente->telefone,
+            'observacao' => $cedente->observacao,
+            'limite_aprovado' => $cedente->limite_aprovado !== null ? (string) $cedente->limite_aprovado : null,
+            'prazo_atualizacao_cadastral' => $cedente->prazo_atualizacao_cadastral !== null ? (int) $cedente->prazo_atualizacao_cadastral : null,
             'endereco' => $cedente->address ? $cedente->address->toArray() : null,
             'partes_relacionadas' => [],
             'avalistas' => [],
@@ -527,11 +532,14 @@ class CedenteService
                     'original_name' => $f->original_name,
                     'name' => $f->name,
                     'type' => $f->type,
+                    'valido' => (bool) $f->valido,
+                    'status_arquivo' => CedenteFile::statusFromValido((bool) $f->valido),
                     'created_at' => $f->created_at,
                     'updated_at' => $f->updated_at,
                 ];
             })->all(),
             'inconsistencias' => self::inconsistenciasToApiArray($cedente),
+            'historico' => self::historicoToApiArray($cedente),
         ];
 
         foreach ($cedente->pessoasVinculadas as $p) {
@@ -565,6 +573,82 @@ class CedenteService
                 'valor_serpro' => $i->valor_serpro,
             ];
         })->values()->all();
+    }
+
+    /**
+     * Linhas de `cedente_audit` no formato da API (mesmo conteúdo de GET /cedentes/historico/{id}).
+     *
+     * @param Cedente $cedente
+     * @return array<int, array<string, mixed>>
+     */
+    public static function historicoToApiArray(Cedente $cedente)
+    {
+        $cedente->loadMissing(['audits.user.employee']);
+
+        return $cedente->audits
+            ->sortByDesc('id')
+            ->values()
+            ->map(function ($a) {
+                return self::auditRowToApiArray($a);
+            })
+            ->all();
+    }
+
+    /**
+     * @param \App\CedenteAudit $audit
+     * @return array<string, mixed>
+     */
+    public static function auditRowToApiArray($audit)
+    {
+        $audit->loadMissing(['user.employee']);
+        $u = $audit->user;
+
+        return [
+            'id' => $audit->id,
+            'event' => $audit->event,
+            'old_status' => $audit->old_status,
+            'new_status' => $audit->new_status,
+            'changes' => $audit->changes,
+            'user_id' => $audit->user_id,
+            'user_name' => self::resolveAuditUserName($audit),
+            'usuario_email' => $u ? $u->email : null,
+            'created_at' => $audit->created_at ? $audit->created_at->toDateTimeString() : null,
+        ];
+    }
+
+    /**
+     * @param \App\CedenteAudit $audit
+     * @return string
+     */
+    private static function resolveAuditUserName($audit)
+    {
+        if (! $audit->user_id) {
+            return 'Sistema';
+        }
+
+        $u = $audit->user;
+        if (! $u) {
+            return 'Sistema';
+        }
+
+        if ($u->employee && self::isNonEmptyString($u->employee->name)) {
+            return trim($u->employee->name);
+        }
+
+        return $u->email ?: 'Usuario';
+    }
+
+    /**
+     * @param string|null $statusAnterior
+     * @param string|null $statusNovo
+     * @return string
+     */
+    private static function auditDescricaoStatusAlterado($statusAnterior, $statusNovo)
+    {
+        $de = $statusAnterior ?: '—';
+        $para = $statusNovo ?: '—';
+
+        return 'Status alterado de ' . $de . ' para ' . $para;
     }
 
     private static function syncPessoas(Cedente $cedente, array $data, $strict = true)
@@ -810,10 +894,57 @@ class CedenteService
      */
     private static function applySlaForStatus(Cedente $cedente, $status, $referenceDate = null)
     {
-        $sla = Cedente::computeSlaForStatus($status, $referenceDate ?: date('Y-m-d'));
+        $referenceDate = $referenceDate ?: date('Y-m-d');
+
+        if ($status === Cedente::STATUS_APROVADO && $cedente->prazo_atualizacao_cadastral) {
+            $sla = Cedente::computeSlaDeadlineFromMonths((int) $cedente->prazo_atualizacao_cadastral, $referenceDate);
+        } else {
+            $sla = Cedente::computeSlaForStatus($status, $referenceDate);
+        }
+
         if ($sla !== null) {
             $cedente->sla = $sla;
         }
+    }
+
+    /**
+     * Cedentes aprovados com SLA vencido passam para status vencido.
+     *
+     * @param int|null $fundId
+     * @return int
+     */
+    public static function markExpiredApprovedAsVencido($fundId = null)
+    {
+        $hoje = date('Y-m-d');
+        $query = Cedente::where('status', Cedente::STATUS_APROVADO)
+            ->whereNotNull('sla')
+            ->where('sla', '<', $hoje);
+
+        if ($fundId !== null) {
+            $query->forFund((int) $fundId);
+        }
+
+        $count = 0;
+        foreach ($query->get() as $cedente) {
+            $statusAntes = $cedente->status;
+            $cedente->status = Cedente::STATUS_VENCIDO;
+            $cedente->save();
+            $count++;
+
+            self::recordStatusAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_STATUS_ALTERADO,
+                Cedente::STATUS_VENCIDO,
+                $statusAntes,
+                [
+                    'descricao' => 'Cadastro vencido — prazo de atualizacao cadastral expirado',
+                    'sla' => self::formatSlaForApi($cedente->sla),
+                ],
+                true
+            );
+        }
+
+        return $count;
     }
 
     /**
@@ -968,6 +1099,7 @@ class CedenteService
                 $statusInicial,
                 null,
                 [
+                    'descricao' => 'Cadastro criado',
                     'nome' => $cedente->nome,
                     'documento' => $cedente->documento,
                     'fund_id' => $cedente->fund_id,
@@ -978,31 +1110,81 @@ class CedenteService
                 $cedente->id,
                 CedenteAudit::EVENT_STATUS_ALTERADO,
                 $statusInicial,
-                $statusAnterior
+                $statusAnterior,
+                [
+                    'descricao' => self::auditDescricaoStatusAlterado($statusAnterior, $statusInicial),
+                ]
             );
         }
+
+        self::recordSystemAudit(
+            $cedente->id,
+            CedenteAudit::EVENT_VALIDACAO_INICIADA,
+            $statusInicial,
+            null,
+            [
+                'descricao' => 'Inicio das validacoes automaticas do cadastro',
+            ]
+        );
+
+        self::recordSystemAudit(
+            $cedente->id,
+            CedenteAudit::EVENT_VALIDACAO_SERPRO_CHAMADA,
+            $statusInicial,
+            null,
+            [
+                'descricao' => 'Consulta a API SERPRO (QSA) iniciada',
+                'documento' => $cedente->documento,
+            ]
+        );
 
         $serproResult = CedenteSerproComparison::compareOnCreate($cedente->id, self::payloadForSerpro($cedente));
         $cedente->refresh();
         $statusAtual = $cedente->status ?: Cedente::STATUS_PENDENTE;
 
-        if ($serproResult['validated']) {
-            self::recordStatusAudit(
+        if (! $serproResult['validated']) {
+            self::recordSystemAudit(
                 $cedente->id,
-                CedenteAudit::EVENT_VALIDACAO_SERPRO,
+                CedenteAudit::EVENT_VALIDACAO_SERPRO_ERRO,
                 $statusAtual,
-                null,
-                self::buildSerproValidationChanges($serproResult['inconsistencias'], $statusInicial, $statusAtual)
+                $statusInicial,
+                [
+                    'descricao' => 'Erro ao consultar a API SERPRO',
+                    'erro' => isset($serproResult['error_message']) ? $serproResult['error_message'] : 'Falha na consulta',
+                ]
             );
 
-            if ($statusAtual !== $statusInicial) {
-                self::recordStatusAudit(
-                    $cedente->id,
-                    CedenteAudit::EVENT_STATUS_ALTERADO,
-                    $statusAtual,
-                    $statusInicial
-                );
-            }
+            return;
+        }
+
+        $inconsistencias = isset($serproResult['inconsistencias']) ? $serproResult['inconsistencias'] : [];
+        $validationChanges = self::buildSerproValidationChanges($inconsistencias, $statusInicial, $statusAtual);
+
+        if (empty($inconsistencias)) {
+            $validationChanges['descricao'] = 'Validacao SERPRO concluida sem inconsistencias';
+        } else {
+            $validationChanges['descricao'] = 'Validacao SERPRO concluida com inconsistencias';
+        }
+
+        self::recordSystemAudit(
+            $cedente->id,
+            CedenteAudit::EVENT_VALIDACAO_SERPRO,
+            $statusAtual,
+            $statusInicial,
+            $validationChanges
+        );
+
+        if ($statusAtual !== $statusInicial) {
+            self::recordSystemAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_STATUS_ALTERADO,
+                $statusAtual,
+                $statusInicial,
+                [
+                    'descricao' => self::auditDescricaoStatusAlterado($statusInicial, $statusAtual),
+                    'motivo' => 'inconsistencias_serpro',
+                ]
+            );
         }
     }
 
@@ -1169,6 +1351,9 @@ class CedenteService
             'telefone' => $cedente->telefone,
             'faturamento_anual' => $cedente->faturamento_anual,
             'minimo_assinantes' => $cedente->minimo_assinantes,
+            'observacao' => $cedente->observacao,
+            'limite_aprovado' => $cedente->limite_aprovado,
+            'prazo_atualizacao_cadastral' => $cedente->prazo_atualizacao_cadastral,
             'sistema_financeiro_nacional' => (bool) $cedente->sistema_financeiro_nacional,
             'status' => $cedente->status ?: Cedente::STATUS_PENDENTE,
             'endereco' => $cedente->address ? $cedente->address->toArray() : null,
@@ -1254,19 +1439,36 @@ class CedenteService
      * @param string $newStatus
      * @param string|null $oldStatus
      * @param array|null $changes
+     * @param bool $systemActor Quando true, grava sem user_id (responsável = Sistema).
      */
-    private static function recordStatusAudit($cedenteId, $event, $newStatus, $oldStatus = null, array $changes = null)
+    private static function recordStatusAudit($cedenteId, $event, $newStatus, $oldStatus = null, array $changes = null, $systemActor = false)
     {
-        $user = User::logged();
+        $userId = null;
+        if (! $systemActor) {
+            $user = User::logged();
+            $userId = $user ? (int) $user->id : null;
+        }
 
         CedenteAudit::create([
             'cedente_id' => (int) $cedenteId,
-            'user_id' => $user ? (int) $user->id : null,
+            'user_id' => $userId,
             'event' => $event,
             'old_status' => $oldStatus,
             'new_status' => $newStatus,
             'changes' => $changes,
         ]);
+    }
+
+    /**
+     * @param int $cedenteId
+     * @param string $event
+     * @param string $newStatus
+     * @param string|null $oldStatus
+     * @param array|null $changes
+     */
+    private static function recordSystemAudit($cedenteId, $event, $newStatus, $oldStatus = null, array $changes = null)
+    {
+        self::recordStatusAudit($cedenteId, $event, $newStatus, $oldStatus, $changes, true);
     }
 
     private static function validateArquivosObrigatorios($arquivos, $requireAll = true)
@@ -1326,6 +1528,10 @@ class CedenteService
 
         try {
             foreach ($arquivos as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+
                 $dt = (int) $item['document_type'];
                 $on = trim((string) $item['original_name']);
                 $b64 = isset($item['content_base64']) ? $item['content_base64'] : $item['base64'];
@@ -1343,14 +1549,44 @@ class CedenteService
                     }
                 }
 
-                $created[] = CedenteFile::storeFromBinary($cedente->id, $dt, $on, $binary, $extHint);
+                $created[] = self::upsertArquivo($cedente, $dt, $on, $binary, $extHint);
             }
         } catch (\Exception $e) {
             foreach ($created as $f) {
-                $f->deletePhysicalFile();
+                if ($f && $f->exists) {
+                    $f->deletePhysicalFile();
+                    $f->forceDelete();
+                }
             }
             throw $e;
         }
+    }
+
+    /**
+     * Substitui ou cria arquivo por document_type (permite enviar só o arquivo faltante no PATCH).
+     *
+     * @param Cedente $cedente
+     * @param int $documentType
+     * @param string $originalName
+     * @param string $binary
+     * @param string|null $extHint
+     * @return CedenteFile
+     */
+    private static function upsertArquivo(Cedente $cedente, $documentType, $originalName, $binary, $extHint = null)
+    {
+        $existing = CedenteFile::withTrashed()
+            ->where('cedente_id', $cedente->id)
+            ->where('document_type', (int) $documentType)
+            ->first();
+
+        if ($existing) {
+            if (! $existing->trashed()) {
+                $existing->deletePhysicalFile();
+            }
+            $existing->forceDelete();
+        }
+
+        return CedenteFile::storeFromBinary($cedente->id, $documentType, $originalName, $binary, $extHint);
     }
 
     private static function decodeBase64Payload($raw)

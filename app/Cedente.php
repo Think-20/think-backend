@@ -11,6 +11,8 @@ class Cedente extends Model
     public const STATUS_EM_AVALIACAO = 'em_avaliacao';
     public const STATUS_INCONSISTENTE = 'inconsistente';
     public const STATUS_APROVADO = 'aprovado';
+    public const STATUS_SOLICITAR_CORRECOES = 'solicitar_correcoes';
+    public const STATUS_REJEITADO = 'rejeitado';
     public const STATUS_VENCIDO = 'vencido';
     public const STATUS_CANCELADO = 'cancelado';
 
@@ -32,9 +34,30 @@ class Cedente extends Model
         'address_id',
         'sistema_financeiro_nacional',
         'telefone',
+        'observacao',
+        'limite_aprovado',
+        'prazo_atualizacao_cadastral',
         'status',
         'sla',
     ];
+
+    public const AVALIACAO_APROVADO = 'aprovado';
+
+    public const AVALIACAO_SOLICITAR_CORRECOES = 'solicitar_correcoes';
+
+    public const AVALIACAO_REJEITADO = 'rejeitado';
+
+    /**
+     * @return string[]
+     */
+    public static function avaliacaoResultadoValues()
+    {
+        return [
+            self::AVALIACAO_APROVADO,
+            self::AVALIACAO_SOLICITAR_CORRECOES,
+            self::AVALIACAO_REJEITADO,
+        ];
+    }
 
     protected $casts = [
         'sistema_financeiro_nacional' => 'boolean',
@@ -63,6 +86,9 @@ class Cedente extends Model
             self::STATUS_RASCUNHO,
             self::STATUS_INCONSISTENTE,
             self::STATUS_CANCELADO,
+            self::STATUS_SOLICITAR_CORRECOES,
+            self::STATUS_REJEITADO,
+            self::STATUS_VENCIDO,
         ];
     }
 
@@ -88,14 +114,37 @@ class Cedente extends Model
         return BrazilHoliday::addBusinessDays($fromDate, self::slaBusinessDaysCount());
     }
 
+    public static function computeSlaDeadlineFromMonths($months, $fromDate = null)
+    {
+        if ($fromDate === null) {
+            $fromDate = date('Y-m-d');
+        }
+
+        $months = (int) $months;
+        if ($months < 1) {
+            $months = self::SLA_MESES_APROVADO_DEFAULT;
+        }
+
+        $dt = $fromDate instanceof \DateTimeInterface
+            ? \DateTime::createFromFormat('Y-m-d', $fromDate->format('Y-m-d'))
+            : new \DateTime(substr((string) $fromDate, 0, 10));
+        $dt->modify('+' . $months . ' months');
+
+        return $dt->format('Y-m-d');
+    }
+
     /**
      * SLA de cadastro aprovado: +3 meses corridos a partir de $fromDate.
      *
      * @param \DateTimeInterface|string|null $fromDate
      * @return string Y-m-d
      */
-    public static function computeSlaApprovedDeadline($fromDate = null)
+    public static function computeSlaApprovedDeadline($fromDate = null, $months = null)
     {
+        if ($months !== null && (int) $months > 0) {
+            return self::computeSlaDeadlineFromMonths((int) $months, $fromDate);
+        }
+
         if ($fromDate === null) {
             $fromDate = date('Y-m-d');
         }
@@ -103,11 +152,11 @@ class Cedente extends Model
         $dt = $fromDate instanceof \DateTimeInterface
             ? \DateTime::createFromFormat('Y-m-d', $fromDate->format('Y-m-d'))
             : new \DateTime(substr((string) $fromDate, 0, 10));
-        $months = (int) env('CEDENTE_SLA_MESES_APROVADO', self::SLA_MESES_APROVADO_DEFAULT);
-        if ($months < 1) {
-            $months = self::SLA_MESES_APROVADO_DEFAULT;
+        $monthsDefault = (int) env('CEDENTE_SLA_MESES_APROVADO', self::SLA_MESES_APROVADO_DEFAULT);
+        if ($monthsDefault < 1) {
+            $monthsDefault = self::SLA_MESES_APROVADO_DEFAULT;
         }
-        $dt->modify('+' . $months . ' months');
+        $dt->modify('+' . $monthsDefault . ' months');
 
         return $dt->format('Y-m-d');
     }
@@ -207,6 +256,8 @@ class Cedente extends Model
             self::STATUS_EM_AVALIACAO,
             self::STATUS_INCONSISTENTE,
             self::STATUS_APROVADO,
+            self::STATUS_SOLICITAR_CORRECOES,
+            self::STATUS_REJEITADO,
             self::STATUS_VENCIDO,
             self::STATUS_CANCELADO,
         ];

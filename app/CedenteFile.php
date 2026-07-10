@@ -4,9 +4,12 @@ namespace App;
 
 use Exception;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CedenteFile extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'cedente_file';
 
     public const DOC_CONTRATO_ESTATUTO_SOCIAL = 1;
@@ -29,7 +32,40 @@ class CedenteFile extends Model
         'original_name',
         'type',
         'document_type',
+        'valido',
     ];
+
+    protected $casts = [
+        'valido' => 'boolean',
+    ];
+
+    protected $dates = [
+        'deleted_at',
+    ];
+
+    public const STATUS_EM_AVALIACAO = 'em_avaliacao';
+
+    public const STATUS_VALIDO = 'valido';
+
+    /**
+     * @param bool $valido
+     * @return string
+     */
+    public static function statusFromValido($valido)
+    {
+        return $valido ? self::STATUS_VALIDO : self::STATUS_EM_AVALIACAO;
+    }
+
+    /**
+     * Campo em cedente_inconsistencia para documento recusado/ausente.
+     *
+     * @param int $documentType
+     * @return string
+     */
+    public static function inconsistenciaCampoForDocumentType($documentType)
+    {
+        return 'arquivo.document_type.' . (int) $documentType;
+    }
 
     public static function documentTypeLabels()
     {
@@ -131,6 +167,7 @@ class CedenteFile extends Model
             'original_name' => $originalName,
             'type' => $ext,
             'document_type' => $documentType,
+            'valido' => false,
         ]);
         $row->save();
 

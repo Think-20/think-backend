@@ -10,7 +10,19 @@ class CedenteAudit extends Model
 
     public const EVENT_STATUS_ALTERADO = 'status_alterado';
 
+    public const EVENT_VALIDACAO_INICIADA = 'validacao_iniciada';
+
+    public const EVENT_VALIDACAO_SERPRO_CHAMADA = 'validacao_serpro_chamada';
+
     public const EVENT_VALIDACAO_SERPRO = 'validacao_serpro';
+
+    public const EVENT_VALIDACAO_SERPRO_ERRO = 'validacao_serpro_erro';
+
+    public const EVENT_AVALIACAO_REGISTRADA = 'avaliacao_registrada';
+
+    public const EVENT_ARQUIVO_VALIDADO = 'arquivo_validado';
+
+    public const EVENT_ARQUIVO_RECUSADO = 'arquivo_recusado';
 
     public const EVENT_CEDENTE_ATUALIZADO = 'cedente_atualizado';
 

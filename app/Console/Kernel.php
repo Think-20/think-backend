@@ -30,6 +30,10 @@ class Kernel extends ConsoleKernel
         $schedule->call(function() {
             new CreateNotifyPastTasks;
         })->dailyAt('00:00');
+
+        $schedule->call(function () {
+            \App\Http\Services\CedenteService::markExpiredApprovedAsVencido();
+        })->dailyAt('00:05');
     }
 
     /**
