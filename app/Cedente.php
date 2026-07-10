@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Cedente extends Model
 {
+    public const STATUS_RASCUNHO = 'rascunho';
     public const STATUS_PENDENTE = 'pendente';
     public const STATUS_EM_AVALIACAO = 'em_avaliacao';
     public const STATUS_INCONSISTENTE = 'inconsistente';
@@ -59,6 +60,7 @@ class Cedente extends Model
     public static function slaSkippedStatuses()
     {
         return [
+            self::STATUS_RASCUNHO,
             self::STATUS_INCONSISTENTE,
             self::STATUS_CANCELADO,
         ];
@@ -200,6 +202,7 @@ class Cedente extends Model
     public static function cadastroStatusValues()
     {
         return [
+            self::STATUS_RASCUNHO,
             self::STATUS_PENDENTE,
             self::STATUS_EM_AVALIACAO,
             self::STATUS_INCONSISTENTE,

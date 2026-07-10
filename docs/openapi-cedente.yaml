@@ -2,38 +2,83 @@ openapi: 3.0.3
 info:
   title: Think Backend — API de Cedente
   description: |
-    Cadastro de cedente com endereço, partes relacionadas, avalistas, contas de desembolso e pessoas vinculadas (`cedente_pessoa_vinculada`).
+    API de **cadastro de cedente** para integração do front-end (CRUD). Inclui endereço, partes relacionadas, avalistas, contas de desembolso e documentos.
 
-    **Swagger UI (navegador):** após deploy, acesse `{baseUrl}/docs/cedente` — a página carrega esta especificação automaticamente.
+    **Documentação interativa:** `{baseUrl}/docs/cedente`
 
-    **Autenticação (fluxo real do backend):**
-    1. Chame `POST /login` com `email` e `password` (JSON ou form-urlencoded).
-    2. Guarde `token` (string) e `user.id` da resposta.
-    3. Nas rotas protegidas (`auth.api`), envie os headers **`User`** = id do usuário (número) e **`Authorization`** = valor **exato** do `token` retornado.
-    4. **Importante:** não use o prefixo `Bearer ` no header `Authorization` — o middleware compara o header inteiro com o token salvo no banco.
+    ---
 
-    **Fundo (`fund_id`) — obrigatório:**
-    - Todo cedente pertence a um fundo (`cedente.fund_id` → `fund`).
-    - O front **deve enviar `fund_id` em toda requisição** do fluxo de cedente (campo obrigatório no contrato da API).
-    - **Onde enviar:** JSON no body (`POST`, `PUT`, `PATCH`) ou query string (`GET`, `DELETE`): `?fund_id={id}`.
-    - **Rotas:** `POST /cedente/save`, `PUT /cedente/edit`, `PATCH /cedente/patch`, `POST /cedentes/all`, `POST /cedentes/status-resumo`, `GET /cedentes/get/{id}`, `GET /cedentes/historico/{id}`, `DELETE /cedente/remove/{id}`.
-    - **Validação:** inteiro ≥ 1; fundo deve existir na tabela `fund`. Erros HTTP 400: `fund_id invalido` (valor inválido) ou `Fundo nao encontrado`.
-    - Listagens e resumos consideram **somente cedentes do fundo informado**; consultas com `id` de outro fundo retornam 404.
+    ## Autenticação
 
-    **Regras de negócio:**
-    - `POST /cedente/save` recebe o cadastro completo (incluindo `fund_id`, `partes_relacionadas`, `avalistas`, `contas_desembolso` e os 13 `arquivos`).
-    - **`PUT /cedente/edit`**: atualização em **snapshot** — `nome` e `documento` obrigatórios; `partes_relacionadas`, `avalistas` e `contas_desembolso` enviadas **substituem** as listas (omitir = array vazio e remove tudo). Recomenda-se enviar o objeto completo (ex.: após `GET /cedentes/get/{id}`).
-    - **`PATCH /cedente/patch`**: atualização **parcial** — `id` e `fund_id` obrigatórios; só altera as chaves enviadas. Ex.: `{ "id": 1, "fund_id": 1, "status": "aprovado" }` sem apagar partes/contas.
-    - Itens com o **mesmo CPF** em `partes_relacionadas` e `avalistas` são **unificados** em um registro com ambas as flags.
-    - `GET /cedentes/get/{id}` e o objeto `data` de save/edit retornam `partes_relacionadas` e `avalistas` **separados** (espelhando o front).
-    - `POST /cedentes/all` retorna paginação **do fundo informado**; no JSON raiz vêm `fund_id` e `cadastro_status_resumo` filtrados por fundo.
-    - `POST /cedentes/status-resumo` retorna contagens por `status` e total **do fundo informado**.
-    - `GET /cedentes/historico/{id}` lista o histórico de status (`cedente_audit`): evento, status anterior/novo, `user_id`, e-mail do usuário (`usuario_email`) e `created_at`.
-    - **SLA (`sla`, data limite `Y-m-d`):** recalculado na **criação** e sempre que o **status mudar**, exceto para `inconsistente` e `cancelado` (o SLA anterior é mantido). Demais status: **5 dias úteis** a partir da data da mudança (fins de semana e feriados nacionais excluídos). Status **`aprovado`**: **+3 meses corridos** a partir da data da aprovação. Variáveis opcionais: `CEDENTE_SLA_DIAS_UTEIS`, `CEDENTE_SLA_MESES_APROVADO`.
-    - **Arquivos:** no cadastro (`POST /cedente/save`) é obrigatório o array `arquivos` com **exatamente 13** itens, um por `document_type` (1–13), cada um com `original_name` e `content_base64` (ou `base64`). Os arquivos são gravados em disco (`FILES_FOLDER/cedente-files`), no mesmo espírito de `project_file` (campo `name` = nome armazenado, `type` = extensão).
-    - **PUT /cedente/edit:** se a chave `arquivos` for enviada, deve trazer de novo os **13** documentos (substitui os anteriores no disco e no banco). Se `arquivos` for omitido, os arquivos já cadastrados são mantidos.
+    1. `POST /login` com `email` e `password`.
+    2. Guarde `token` e `user.id`.
+    3. Nas rotas protegidas, envie **`User`** = id do usuário e **`Authorization`** = token **sem** o prefixo `Bearer `.
 
-    **Arquivos na mesma requisição vs segunda chamada:** enviar tudo em JSON com base64 é simples para o cliente da API, porém aumenta o corpo (~33% maior que o binário), uso de memória e tempo de request. Para redes lentas ou PDFs grandes, **multipart em rota dedicada** ou upload em etapas costuma escalar melhor; este backend hoje unifica **cadastro + 13 arquivos em uma chamada** conforme solicitado.
+    ---
+
+    ## `fund_id` (obrigatório em todas as rotas)
+
+    Todo cedente pertence a um fundo. Envie `fund_id` no JSON (`POST`, `PUT`, `PATCH`) ou na query (`GET`, `DELETE`). Inteiro ≥ 1; fundo deve existir. Listagens e consultas são filtradas por fundo.
+
+    ---
+
+    ## Status do cadastro (o que o front precisa saber)
+
+    | Status | Significado para o cliente |
+    |--------|---------------------------|
+    | **`rascunho`** | Cadastro **incompleto**. Pode salvar parcialmente; **não** há validação contra bases oficiais. Corrija os campos faltantes e salve de novo. |
+    | **`pendente`** | Cadastro **completo** e em análise interna. Todos os blocos obrigatórios foram preenchidos. |
+    | **`inconsistente`** | Cadastro completo, mas há **divergências** entre o que foi informado e os dados oficiais (CNPJ/QSA). Veja o array **`inconsistencias`** na resposta e ajuste os campos indicados em `campo_inconsistente`. |
+
+    Outros valores de `status` (`em_avaliacao`, `aprovado`, `vencido`, `cancelado`) podem aparecer em listagens e resumos; são etapas **posteriores** ao envio do cadastro e não exigem ação do formulário de cadastro.
+
+    ---
+
+    ## Por que o cadastro ficou em `rascunho`?
+
+    O backend **não exige** todos os campos na primeira gravação. Ao salvar (`POST /cedente/save`, `PUT /cedente/edit` ou `PATCH /cedente/patch`), se **qualquer** item abaixo estiver faltando, o status permanece ou volta para **`rascunho`**:
+
+    | Bloco | O que precisa estar preenchido |
+    |-------|-------------------------------|
+    | Cedente | `fund_id`, `nome`, `documento` |
+    | Endereço | `cep`, `logradouro`, `numero`, `bairro`, `estado`, `cidade` |
+    | Partes relacionadas | Ao menos **1** item em `partes_relacionadas` com `nome` |
+    | Contas de desembolso | Ao menos **1** conta com `tipo_conta`, `codigo_banco`, `agencia`, `numero_conta` |
+    | Documentos | **13** arquivos distintos (`document_type` de **1** a **13**), cada um com `original_name` e `content_base64` (ou `base64`) |
+
+    Quando **todos** os itens acima estiverem ok, o status passa automaticamente para **`pendente`**. Se houver divergência com dados oficiais, pode ir para **`inconsistente`** — consulte `inconsistencias` na resposta.
+
+    **Dica:** não tente forçar `status: pendente` no JSON enquanto o cadastro estiver incompleto; o backend mantém `rascunho` ou retorna erro 400.
+
+    ---
+
+    ## Campo `inconsistencias` (sempre presente na resposta)
+
+    Toda vez que um cedente é retornado — `GET /cedentes/get/{id}`, `POST /cedentes/all`, e o `data` de `POST /cedente/save`, `PUT /cedente/edit` e `PATCH /cedente/patch` — o objeto inclui:
+
+    ```json
+    "inconsistencias": [
+      { "id": 1, "campo_inconsistente": "nome", "valor_serpro": "RAZAO SOCIAL LTDA" }
+    ]
+    ```
+
+    - Array **vazio** `[]` quando não há divergências pendentes.
+    - Quando `status` é **`inconsistente`**, o array traz **todas** as linhas pendentes; use `campo_inconsistente` para destacar o campo no formulário e `valor_serpro` como referência do valor oficial.
+
+    ---
+
+    ## Operações de cadastro
+
+    - **`POST /cedente/save`** — criar (completo ou parcial). Só `fund_id` é obrigatório na requisição.
+    - **`PUT /cedente/edit`** — substituição em snapshot; listas enviadas **substituem** as anteriores (omitir lista = esvaziar).
+    - **`PATCH /cedente/patch`** — alteração parcial; só as chaves enviadas mudam.
+    - **`GET /cedentes/get/{id}`** — detalhe com `partes_relacionadas` e `avalistas` separados.
+    - **`POST /cedentes/all`** — listagem paginada do fundo + `cadastro_status_resumo`.
+    - **`POST /cedentes/status-resumo`** — contagem por status (inclui `rascunho`).
+    - **`GET /cedentes/historico/{id}`** — histórico de eventos do cadastro.
+    - **`DELETE /cedente/remove/{id}`** — exclusão.
+
+    Itens com o **mesmo CPF** em `partes_relacionadas` e `avalistas` são unificados em um único registro com ambas as flags.
   version: 1.0.0
   contact:
     name: Think Backend
@@ -150,9 +195,12 @@ paths:
     post:
       tags: [Cedente]
       operationId: createCedente
-      summary: Criar cedente (payload completo)
+      summary: Criar cedente (completo ou rascunho)
       description: |
         **`fund_id` obrigatório** no JSON (inteiro ≥ 1, fundo existente em `fund`).
+        Demais campos são opcionais: cadastro incompleto recebe status **`rascunho`**.
+        Quando todos os blocos obrigatórios estiverem preenchidos (ver descrição geral), o status passa para **`pendente`** automaticamente.
+        A resposta inclui **`inconsistencias`** (preenchido se o status for `inconsistente`).
       requestBody:
         required: true
         content:
@@ -160,11 +208,14 @@ paths:
             schema:
               $ref: "#/components/schemas/CedenteCreateRequest"
             examples:
-              completo:
+              rascunho:
                 $ref: "#/components/examples/CedenteCreateBody"
+              completo:
+                $ref: "#/components/examples/CedenteCreateBodyCompleto"
       responses:
         "200":
-          description: Cadastro realizado
+          description: |
+            Cadastro realizado. O `data` retornado inclui `status` (`rascunho`, `pendente` ou `inconsistente`) e `inconsistencias`.
           content:
             application/json:
               schema:
@@ -182,7 +233,9 @@ paths:
       operationId: updateCedente
       summary: Atualizar cedente (snapshot completo)
       description: |
-        Substitui dados do cadastro conforme o body. **`fund_id`**, `nome` e `documento` obrigatórios.
+        Substitui dados do cadastro conforme o body. **`fund_id`** obrigatório.
+        `nome` e `documento` obrigatórios apenas quando o cadastro estiver completo (fora de rascunho).
+        Após salvar, se o cadastro passar a estar completo saindo de rascunho, promove para `pendente` + SERPRO.
         `partes_relacionadas`, `avalistas` e `contas_desembolso` **sempre** recriadas a partir do JSON (listas omitidas = vazias).
         Para alterar só um campo (ex.: status), use **`PATCH /cedente/patch`**.
       requestBody:
@@ -193,7 +246,7 @@ paths:
               $ref: "#/components/schemas/CedenteUpdateRequest"
       responses:
         "200":
-          description: Atualização realizada
+          description: Atualização realizada; `data` inclui `status` e `inconsistencias`.
           content:
             application/json:
               schema:
@@ -213,6 +266,7 @@ paths:
       description: |
         Envie **`id`** e **`fund_id`** (obrigatórios) e apenas os demais campos a alterar (ex.: `status`, `telefone`).
         O que não vier no JSON **não é alterado**. Listas e arquivos só mudam se a chave existir no body.
+        Completar todos os blocos obrigatórios em um cedente `rascunho` promove automaticamente para `pendente` + SERPRO.
         Não use esta rota para substituir o cadastro inteiro — use `PUT /cedente/edit`.
       requestBody:
         required: true
@@ -222,7 +276,7 @@ paths:
               $ref: "#/components/schemas/CedentePatchRequest"
       responses:
         "200":
-          description: Atualização realizada
+          description: Atualização realizada; `data` inclui `status` e `inconsistencias`.
           content:
             application/json:
               schema:
@@ -238,9 +292,11 @@ paths:
     get:
       tags: [Cedente]
       operationId: getCedenteById
-      summary: Obter cedente por id (formato com partes e avalistas separados)
+      summary: Obter cedente por id
       description: |
-        Query **`fund_id` obrigatória** — escopo do fundo; cedente de outro fundo retorna 404.
+        Retorna o cadastro completo no formato do front (`partes_relacionadas` e `avalistas` separados).
+        Inclui sempre o array **`inconsistencias`** (vazio ou com divergências pendentes).
+        Query **`fund_id` obrigatória**.
       parameters:
         - name: id
           in: path
@@ -314,7 +370,8 @@ paths:
       summary: Listar cedentes (paginação Laravel)
       description: |
         **`fund_id` obrigatório** no corpo JSON. Lista apenas cedentes desse fundo.
-        A raiz da resposta inclui `fund_id` e **`cadastro_status_resumo`** filtrados por fundo.
+        Cada item em `data` inclui o array **`inconsistencias`** (vazio ou com divergências).
+        A raiz da resposta inclui `fund_id` e **`cadastro_status_resumo`** (contagens por status, incluindo `rascunho`).
       requestBody:
         required: true
         content:
@@ -667,11 +724,11 @@ components:
 
     CedenteCreateRequest:
       type: object
-      required: [fund_id, nome, documento]
+      required: [fund_id]
       description: |
         **`fund_id` obrigatório** em todo cadastro/edição (inteiro ≥ 1, fundo existente).
-        No **POST /cedente/save**, `arquivos` é obrigatório na prática (13 itens, tipos 1–13 sem repetir).
-        No **PUT /cedente/edit**, `arquivos` é opcional; se enviado, deve trazer os 13 de novo.
+        Cadastro incompleto → status `rascunho` (sem SERPRO). `arquivos` opcional em rascunho; necessários 13 tipos (1–13) para promoção a `pendente`.
+        No **PUT /cedente/edit**, `arquivos` é opcional; se enviado, substitui os anteriores.
       properties:
         fund_id:
           type: integer
@@ -679,8 +736,12 @@ components:
           description: ID do fundo ao qual o cedente pertence (obrigatório).
         nome:
           type: string
+          nullable: true
+          description: Opcional em rascunho; obrigatório para cadastro completo.
         documento:
           type: string
+          nullable: true
+          description: Opcional em rascunho; obrigatório para cadastro completo.
         email:
           type: string
           nullable: true
@@ -700,7 +761,7 @@ components:
           nullable: true
         status:
           $ref: "#/components/schemas/CedenteCadastroStatus"
-          description: Opcional no POST; padrão `pendente`. No PUT, só altera se a chave for enviada.
+          description: Opcional no POST; inferido automaticamente (`rascunho` ou `pendente`). Não é possível forçar status final enquanto incompleto.
         endereco:
           $ref: "#/components/schemas/Address"
         partes_relacionadas:
@@ -720,12 +781,10 @@ components:
           default: []
         arquivos:
           type: array
-          minItems: 13
-          maxItems: 13
           items:
             $ref: "#/components/schemas/CedenteArquivoInput"
           description: |
-            Treze documentos no cadastro. Cada `document_type` de 1 a 13 exatamente uma vez.
+            Opcional em rascunho. Para cadastro completo, envie os treze documentos (tipos 1–13, sem repetir).
 
     CedenteUpdateRequest:
       allOf:
@@ -787,10 +846,9 @@ components:
             $ref: "#/components/schemas/ContaDesembolsoInput"
         arquivos:
           type: array
-          minItems: 13
-          maxItems: 13
           items:
             $ref: "#/components/schemas/CedenteArquivoInput"
+          description: Opcional em rascunho; substitui arquivos se enviado.
 
     PessoaVinculadaDetail:
       type: object
@@ -849,8 +907,14 @@ components:
 
     CedenteCadastroStatus:
       type: string
-      description: Status do cadastro do cedente (persistido em `cedente.status`).
+      description: |
+        Status do cadastro. Para o formulário de cadastro, os relevantes são:
+        - **`rascunho`** — incompleto; preencha os blocos obrigatórios (ver descrição geral da API).
+        - **`pendente`** — completo; aguardando análise.
+        - **`inconsistente`** — divergência com dados oficiais; corrija campos listados em `inconsistencias`.
+        Demais valores são etapas internas posteriores ao envio.
       enum:
+        - rascunho
         - pendente
         - em_avaliacao
         - inconsistente
@@ -861,6 +925,7 @@ components:
     CedenteStatusResumoData:
       type: object
       required:
+        - rascunho
         - pendente
         - em_avaliacao
         - inconsistente
@@ -869,6 +934,9 @@ components:
         - cancelado
         - total
       properties:
+        rascunho:
+          type: integer
+          minimum: 0
         pendente:
           type: integer
           minimum: 0
@@ -946,6 +1014,22 @@ components:
           items:
             $ref: "#/components/schemas/CedenteHistoricoStatusItem"
 
+    CedenteInconsistenciaItem:
+      type: object
+      description: Divergência entre o valor cadastrado e o retornado pela base oficial (CNPJ/QSA).
+      properties:
+        id:
+          type: integer
+        campo_inconsistente:
+          type: string
+          description: |
+            Identificador do campo no cadastro (ex.: `nome`, `documento`, `endereco.cep`, `partes_relacionadas[0].nome`).
+            Use para destacar o input correspondente no formulário.
+        valor_serpro:
+          type: string
+          nullable: true
+          description: Valor de referência retornado pela base oficial para comparação/correção.
+
     ContaDesembolsoResource:
       type: object
       properties:
@@ -976,14 +1060,20 @@ components:
 
     CedenteDetail:
       type: object
-      description: Formato retornado em `data` no GET e nos POST/PUT de sucesso.
+      description: |
+        Formato retornado em `data` no GET, save, edit e patch.
+        Sempre inclui **`inconsistencias`** (array vazio ou com itens quando `status` é `inconsistente`).
       properties:
         id:
           type: integer
+        fund_id:
+          type: integer
         nome:
           type: string
+          nullable: true
         documento:
           type: string
+          nullable: true
         email:
           type: string
           nullable: true
@@ -1005,9 +1095,7 @@ components:
           type: string
           format: date
           nullable: true
-          description: |
-            Prazo limite do cadastro. Recalculado na criação e ao mudar o status (exceto para `inconsistente` e `cancelado`).
-            Demais status: 5 dias úteis a partir da data da mudança; `aprovado`: +3 meses corridos.
+          description: Data limite informativa do cadastro (`Y-m-d`). Nulo em `rascunho`.
         endereco:
           $ref: "#/components/schemas/Address"
           nullable: true
@@ -1027,6 +1115,13 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CedenteArquivoResource"
+        inconsistencias:
+          type: array
+          description: |
+            Sempre presente. Vazio quando não há divergências.
+            Quando `status` é `inconsistente`, contém todas as divergências pendentes do cedente.
+          items:
+            $ref: "#/components/schemas/CedenteInconsistenciaItem"
 
     CedenteGetSuccessResponse:
       type: object
@@ -1053,15 +1148,20 @@ components:
     CedenteListItem:
       type: object
       description: |
-        Item retornado em `data` na listagem paginada. Estrutura do Eloquent (snake_case);
-        `pessoas_vinculadas` contém registros com `e_parte_relacionada` / `e_avalista` — não há arrays separados partes/avalistas nesta rota.
+        Item retornado em `data` na listagem paginada (`POST /cedentes/all`).
+        Estrutura Eloquent (snake_case); `pessoas_vinculadas` agrupa partes e avalistas.
+        Inclui sempre **`inconsistencias`** (mesmo formato do GET unitário).
       properties:
         id:
           type: integer
+        fund_id:
+          type: integer
         nome:
           type: string
+          nullable: true
         documento:
           type: string
+          nullable: true
         email:
           type: string
           nullable: true
@@ -1098,6 +1198,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ContaDesembolsoResource"
+        inconsistencias:
+          type: array
+          description: Divergências pendentes (vazio se não houver).
+          items:
+            $ref: "#/components/schemas/CedenteInconsistenciaItem"
 
     PessoaVinculadaRowList:
       type: object
@@ -1195,10 +1300,19 @@ components:
 
   examples:
     CedenteCreateBody:
-      summary: Exemplo completo para Postman / testes (inclui 13 arquivos obrigatórios)
+      summary: Exemplo de rascunho (só fund_id e nome)
       description: |
-        Cada item usa `content_base64` com um payload mínimo válido (`aGVsbG8=` = texto "hello") só para passar na validação.
-        Em ambiente real, substitua pelo base64 de cada PDF (ou data URL `data:application/pdf;base64,...`).
+        Cadastro parcial — retorna `status: rascunho` e `inconsistencias: []`.
+        Complete os blocos obrigatórios (ver descrição geral) para ir a `pendente`.
+      value:
+        fund_id: 1
+        nome: Empresa Exemplo LTDA
+
+    CedenteCreateBodyCompleto:
+      summary: Exemplo completo para promoção a pendente
+      description: |
+        Com todos os blocos obrigatórios, o cadastro vai direto para `pendente` (e pode ir para `inconsistente` se houver divergências).
+        Cada arquivo usa `content_base64` mínimo (`aGVsbG8=`) apenas para testes.
       value:
         fund_id: 1
         nome: Empresa Exemplo LTDA

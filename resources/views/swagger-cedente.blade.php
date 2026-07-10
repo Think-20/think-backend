@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>API Cedente — Swagger</title>
+    <title>API Cedente — Documentação</title>
     <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css" crossorigin="anonymous">
     <style>html { box-sizing: border-box; } *, *::before, *::after { box-sizing: inherit; } body { margin: 0; }</style>
 </head>

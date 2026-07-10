@@ -105,74 +105,55 @@ class CedenteService
     {
         $data = self::normalizePayload($data);
 
-        self::validateArquivosObrigatorios(isset($data['arquivos']) ? $data['arquivos'] : null);
-
         return DB::transaction(function () use ($data) {
-            if (! isset($data['nome'], $data['documento']) || $data['nome'] === '' || $data['documento'] === '') {
-                throw new InvalidArgumentException('Nome e documento do cedente sao obrigatorios');
-            }
-
             $fundId = self::resolveFundId($data);
 
             $addressId = self::createAddressFromPayload(isset($data['endereco']) ? $data['endereco'] : null);
 
-            $status = self::resolveStatusForCreate(isset($data['status']) ? $data['status'] : null);
+            $nome = isset($data['nome']) && is_string($data['nome']) ? trim($data['nome']) : (isset($data['nome']) ? trim((string) $data['nome']) : '');
+            $documento = isset($data['documento']) && is_string($data['documento']) ? trim($data['documento']) : (isset($data['documento']) ? trim((string) $data['documento']) : '');
 
             $cedente = new Cedente();
             $cedente->fill([
                 'fund_id' => $fundId,
-                'nome' => $data['nome'],
-                'documento' => $data['documento'],
+                'nome' => $nome !== '' ? $nome : null,
+                'documento' => $documento !== '' ? $documento : null,
                 'email' => isset($data['email']) ? $data['email'] : null,
                 'faturamento_anual' => self::normalizeOptionalDecimal(isset($data['faturamento_anual']) ? $data['faturamento_anual'] : null),
                 'minimo_assinantes' => self::normalizeOptionalUInt(isset($data['minimo_assinantes']) ? $data['minimo_assinantes'] : null),
                 'address_id' => $addressId,
                 'sistema_financeiro_nacional' => !empty($data['sistema_financeiro_nacional']),
                 'telefone' => isset($data['telefone']) ? $data['telefone'] : null,
-                'status' => $status,
+                'status' => Cedente::STATUS_RASCUNHO,
             ]);
-            self::applySlaForStatus($cedente, $status);
             $cedente->save();
 
-            self::syncPessoas($cedente, $data);
-            self::syncContas($cedente, $data);
-            self::syncArquivos($cedente, $data['arquivos']);
+            self::syncPessoas($cedente, $data, false);
+            self::syncContas($cedente, $data, false);
 
-            $statusInicial = $cedente->status ?: Cedente::STATUS_PENDENTE;
+            if (array_key_exists('arquivos', $data) && is_array($data['arquivos'])) {
+                self::validateArquivosObrigatorios($data['arquivos'], false);
+                self::syncArquivos($cedente, $data['arquivos']);
+            }
 
-            self::recordStatusAudit(
-                $cedente->id,
-                CedenteAudit::EVENT_CADASTRO_CRIADO,
-                $statusInicial,
-                null,
-                [
-                    'nome' => $cedente->nome,
-                    'documento' => $cedente->documento,
-                    'fund_id' => $cedente->fund_id,
-                ]
-            );
-
-            $serproResult = CedenteSerproComparison::compareOnCreate($cedente->id, $data);
             $cedente->refresh();
-            $statusAtual = $cedente->status ?: Cedente::STATUS_PENDENTE;
+            $cedente->load(['address', 'partesRelacionadas', 'contasDesembolso', 'cedenteFiles']);
 
-            if ($serproResult['validated']) {
+            if (self::isCadastroCompleto($cedente)) {
+                self::promoteAndValidateSerpro($cedente, null);
+            } else {
+                self::enforceDraftStatusIfIncomplete($cedente);
                 self::recordStatusAudit(
                     $cedente->id,
-                    CedenteAudit::EVENT_VALIDACAO_SERPRO,
-                    $statusAtual,
+                    CedenteAudit::EVENT_CADASTRO_CRIADO,
+                    Cedente::STATUS_RASCUNHO,
                     null,
-                    self::buildSerproValidationChanges($serproResult['inconsistencias'], $statusInicial, $statusAtual)
+                    [
+                        'nome' => $cedente->nome,
+                        'documento' => $cedente->documento,
+                        'fund_id' => $cedente->fund_id,
+                    ]
                 );
-
-                if ($statusAtual !== $statusInicial) {
-                    self::recordStatusAudit(
-                        $cedente->id,
-                        CedenteAudit::EVENT_STATUS_ALTERADO,
-                        $statusAtual,
-                        $statusInicial
-                    );
-                }
             }
 
             return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias']);
@@ -201,10 +182,6 @@ class CedenteService
             $statusAntes = $cedente->status ?: Cedente::STATUS_PENDENTE;
             $snapshotAntes = self::snapshotForAudit($cedente);
 
-            if (! isset($data['nome'], $data['documento']) || $data['nome'] === '' || $data['documento'] === '') {
-                throw new InvalidArgumentException('Nome e documento do cedente sao obrigatorios');
-            }
-
             if (array_key_exists('endereco', $data)) {
                 self::updateAddressForCedente($cedente, $data['endereco']);
             }
@@ -223,12 +200,15 @@ class CedenteService
                     $f->deletePhysicalFile();
                 }
                 $cedente->cedenteFiles()->delete();
-                self::validateArquivosObrigatorios($data['arquivos']);
+                self::validateArquivosObrigatorios($data['arquivos'], false);
             }
 
+            $nome = isset($data['nome']) && is_string($data['nome']) ? trim($data['nome']) : (isset($data['nome']) ? trim((string) $data['nome']) : '');
+            $documento = isset($data['documento']) && is_string($data['documento']) ? trim($data['documento']) : (isset($data['documento']) ? trim((string) $data['documento']) : '');
+
             $fill = [
-                'nome' => $data['nome'],
-                'documento' => $data['documento'],
+                'nome' => $nome !== '' ? $nome : null,
+                'documento' => $documento !== '' ? $documento : null,
                 'email' => isset($data['email']) ? $data['email'] : null,
                 'faturamento_anual' => self::normalizeOptionalDecimal(isset($data['faturamento_anual']) ? $data['faturamento_anual'] : null),
                 'minimo_assinantes' => self::normalizeOptionalUInt(isset($data['minimo_assinantes']) ? $data['minimo_assinantes'] : null),
@@ -240,23 +220,16 @@ class CedenteService
             }
             $cedente->fill($fill);
 
-            $statusAlterado = false;
-            if (array_key_exists('status', $data)) {
-                $statusDepois = $cedente->status ?: Cedente::STATUS_PENDENTE;
-                $statusAlterado = $statusAntes !== $statusDepois;
-                if ($statusAlterado) {
-                    self::applySlaForStatus($cedente, $statusDepois);
-                }
-            }
-
             $cedente->save();
 
-            self::syncPessoas($cedente, $data);
-            self::syncContas($cedente, $data);
+            self::syncPessoas($cedente, $data, false);
+            self::syncContas($cedente, $data, false);
 
             if (array_key_exists('arquivos', $data)) {
                 self::syncArquivos($cedente, $data['arquivos']);
             }
+
+            self::applyStatusAfterSave($cedente, $data, $statusAntes);
 
             self::finalizeCedenteUpdate($cedente, $data, $snapshotAntes, $statusAntes, 'edit');
 
@@ -287,18 +260,12 @@ class CedenteService
 
             if (array_key_exists('nome', $data)) {
                 $nome = is_string($data['nome']) ? trim($data['nome']) : trim((string) $data['nome']);
-                if ($nome === '') {
-                    throw new InvalidArgumentException('Nome do cedente nao pode ser vazio');
-                }
-                $cedente->nome = $nome;
+                $cedente->nome = $nome === '' ? null : $nome;
             }
 
             if (array_key_exists('documento', $data)) {
                 $documento = is_string($data['documento']) ? trim($data['documento']) : trim((string) $data['documento']);
-                if ($documento === '') {
-                    throw new InvalidArgumentException('Documento do cedente nao pode ser vazio');
-                }
-                $cedente->documento = $documento;
+                $cedente->documento = $documento === '' ? null : $documento;
             }
 
             if (array_key_exists('email', $data)) {
@@ -335,7 +302,7 @@ class CedenteService
 
             if (array_key_exists('contas_desembolso', $data)) {
                 $cedente->contasDesembolso()->delete();
-                self::syncContas($cedente, $data);
+                self::syncContas($cedente, $data, false);
             }
 
             if (array_key_exists('arquivos', $data)) {
@@ -344,20 +311,13 @@ class CedenteService
                     $f->deletePhysicalFile();
                 }
                 $cedente->cedenteFiles()->delete();
-                self::validateArquivosObrigatorios($data['arquivos']);
+                self::validateArquivosObrigatorios($data['arquivos'], false);
                 self::syncArquivos($cedente, $data['arquivos']);
             }
 
-            $statusAlterado = false;
-            if (array_key_exists('status', $data)) {
-                $statusDepois = $cedente->status ?: Cedente::STATUS_PENDENTE;
-                $statusAlterado = $statusAntes !== $statusDepois;
-                if ($statusAlterado) {
-                    self::applySlaForStatus($cedente, $statusDepois);
-                }
-            }
-
             $cedente->save();
+
+            self::applyStatusAfterSave($cedente, $data, $statusAntes);
 
             self::finalizeCedenteUpdate($cedente, $data, $snapshotAntes, $statusAntes, 'patch');
 
@@ -379,9 +339,19 @@ class CedenteService
         $cedente->refresh();
         $cedente->load(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'inconsistencias']);
 
-        $reconcileResult = CedenteSerproComparison::reconcileAfterUpdate($cedente);
-        $cedente->refresh();
-        $cedente->load(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'inconsistencias']);
+        $reconcileResult = [
+            'removed' => [],
+            'remaining' => 0,
+            'status_alterado' => false,
+            'status_anterior' => null,
+            'status_novo' => null,
+        ];
+
+        if ($cedente->status !== Cedente::STATUS_RASCUNHO) {
+            $reconcileResult = CedenteSerproComparison::reconcileAfterUpdate($cedente);
+            $cedente->refresh();
+            $cedente->load(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'inconsistencias']);
+        }
 
         $snapshotDepois = self::snapshotForAudit($cedente);
         $alteracoes = self::buildAlteracoesFromPayload($snapshotAntes, $snapshotDepois, $data, $tipo);
@@ -444,7 +414,7 @@ class CedenteService
         self::syncPessoas($cedente, [
             'partes_relacionadas' => $partes,
             'avalistas' => $avalistas,
-        ]);
+        ], false);
     }
 
     /**
@@ -561,13 +531,7 @@ class CedenteService
                     'updated_at' => $f->updated_at,
                 ];
             })->all(),
-            'inconsistencias' => $cedente->inconsistencias->map(function ($i) {
-                return [
-                    'id' => $i->id,
-                    'campo_inconsistente' => $i->campo_inconsistente,
-                    'valor_serpro' => $i->valor_serpro,
-                ];
-            })->values()->all(),
+            'inconsistencias' => self::inconsistenciasToApiArray($cedente),
         ];
 
         foreach ($cedente->pessoasVinculadas as $p) {
@@ -584,7 +548,26 @@ class CedenteService
         return $out;
     }
 
-    private static function syncPessoas(Cedente $cedente, array $data)
+    /**
+     * Linhas de `cedente_inconsistencia` no formato da API.
+     *
+     * @param Cedente $cedente
+     * @return array<int, array{id: int, campo_inconsistente: string, valor_serpro: string|null}>
+     */
+    public static function inconsistenciasToApiArray(Cedente $cedente)
+    {
+        $cedente->loadMissing('inconsistencias');
+
+        return $cedente->inconsistencias->map(function ($i) {
+            return [
+                'id' => $i->id,
+                'campo_inconsistente' => $i->campo_inconsistente,
+                'valor_serpro' => $i->valor_serpro,
+            ];
+        })->values()->all();
+    }
+
+    private static function syncPessoas(Cedente $cedente, array $data, $strict = true)
     {
         $partes = isset($data['partes_relacionadas']) && is_array($data['partes_relacionadas'])
             ? $data['partes_relacionadas'] : [];
@@ -596,6 +579,9 @@ class CedenteService
         foreach ($merged as $item) {
             $row = $item['data'];
             if (empty($row['nome'])) {
+                if (! $strict) {
+                    continue;
+                }
                 throw new InvalidArgumentException('Nome e obrigatorio em cada parte relacionada ou avalista');
             }
 
@@ -673,7 +659,7 @@ class CedenteService
         return $prefix . ':' . $index;
     }
 
-    private static function syncContas(Cedente $cedente, array $data)
+    private static function syncContas(Cedente $cedente, array $data, $strict = true)
     {
         $list = isset($data['contas_desembolso']) && is_array($data['contas_desembolso'])
             ? $data['contas_desembolso'] : [];
@@ -685,9 +671,15 @@ class CedenteService
                 continue;
             }
             if (empty($c['tipo_conta']) || !in_array($c['tipo_conta'], $allowed, true)) {
+                if (! $strict) {
+                    continue;
+                }
                 throw new InvalidArgumentException('tipo_conta invalido em conta de desembolso (use conta_corrente, conta_poupanca ou conta_salario)');
             }
             if (!isset($c['codigo_banco']) || !isset($c['agencia']) || !isset($c['numero_conta'])) {
+                if (! $strict) {
+                    continue;
+                }
                 throw new InvalidArgumentException('codigo_banco, agencia e numero_conta sao obrigatorios em cada conta de desembolso');
             }
 
@@ -825,6 +817,232 @@ class CedenteService
     }
 
     /**
+     * Avalia completude após save e promove para pendente + SERPRO ou mantém rascunho.
+     *
+     * @param Cedente $cedente
+     * @param array $data
+     * @param string|null $statusAntes
+     */
+    private static function applyStatusAfterSave(Cedente $cedente, array $data, $statusAntes)
+    {
+        $cedente->refresh();
+        $cedente->load(['address', 'partesRelacionadas', 'contasDesembolso', 'cedenteFiles']);
+
+        if (self::isCadastroCompleto($cedente)) {
+            $wasDraft = ($statusAntes === Cedente::STATUS_RASCUNHO || $statusAntes === null || $statusAntes === '');
+            if ($wasDraft) {
+                self::promoteAndValidateSerpro($cedente, $statusAntes);
+
+                return;
+            }
+
+            if (array_key_exists('status', $data)) {
+                $statusDepois = $cedente->status ?: Cedente::STATUS_PENDENTE;
+                if ($statusAntes !== $statusDepois) {
+                    self::applySlaForStatus($cedente, $statusDepois);
+                    $cedente->save();
+                }
+            }
+
+            return;
+        }
+
+        if (array_key_exists('status', $data)) {
+            $requested = self::normalizeStatusValue($data['status']);
+            if ($requested !== null && $requested !== Cedente::STATUS_RASCUNHO) {
+                throw new InvalidArgumentException('Cadastro incompleto: apenas status rascunho e permitido ate completar todos os campos obrigatorios');
+            }
+        }
+
+        self::enforceDraftStatusIfIncomplete($cedente);
+    }
+
+    /**
+     * Verifica se o cadastro persistido atende todos os requisitos para promoção a pendente.
+     *
+     * @param Cedente $cedente
+     * @return bool
+     */
+    public static function isCadastroCompleto(Cedente $cedente)
+    {
+        $cedente->loadMissing(['address', 'partesRelacionadas', 'contasDesembolso', 'cedenteFiles']);
+
+        if (empty($cedente->fund_id)) {
+            return false;
+        }
+
+        if (! self::isNonEmptyString($cedente->nome) || ! self::isNonEmptyString($cedente->documento)) {
+            return false;
+        }
+
+        $requiredTypes = CedenteFile::requiredDocumentTypeIds();
+        $fileTypes = $cedente->cedenteFiles->pluck('document_type')->unique()->values()->all();
+        foreach ($requiredTypes as $type) {
+            if (! in_array($type, $fileTypes, true)) {
+                return false;
+            }
+        }
+
+        $addr = $cedente->address;
+        if (! $addr) {
+            return false;
+        }
+
+        foreach (['cep', 'logradouro', 'numero', 'bairro', 'estado', 'cidade'] as $field) {
+            if (! self::isNonEmptyString($addr->$field)) {
+                return false;
+            }
+        }
+
+        $hasParte = false;
+        foreach ($cedente->partesRelacionadas as $p) {
+            if (self::isNonEmptyString($p->nome)) {
+                $hasParte = true;
+                break;
+            }
+        }
+        if (! $hasParte) {
+            return false;
+        }
+
+        $allowed = array_keys(ContaDesembolso::tiposConta());
+        foreach ($cedente->contasDesembolso as $c) {
+            if (! empty($c->tipo_conta) && in_array($c->tipo_conta, $allowed, true)
+                && self::isNonEmptyString($c->codigo_banco)
+                && self::isNonEmptyString($c->agencia)
+                && self::isNonEmptyString($c->numero_conta)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Monta payload de comparação SERPRO a partir do estado persistido do cedente.
+     *
+     * @param Cedente $cedente
+     * @return array
+     */
+    private static function payloadForSerpro(Cedente $cedente)
+    {
+        $cedente->loadMissing(['address', 'partesRelacionadas']);
+
+        $partes = [];
+        foreach ($cedente->partesRelacionadas as $p) {
+            $partes[] = [
+                'nome' => $p->nome,
+                'cpf' => $p->cpf,
+                'email' => $p->email,
+                'telefone' => $p->telefone,
+            ];
+        }
+
+        return [
+            'nome' => $cedente->nome,
+            'documento' => $cedente->documento,
+            'email' => $cedente->email,
+            'telefone' => $cedente->telefone,
+            'endereco' => $cedente->address ? $cedente->address->toArray() : null,
+            'partes_relacionadas' => $partes,
+        ];
+    }
+
+    /**
+     * Promove cedente completo para pendente, aplica SLA e executa validação SERPRO.
+     *
+     * @param Cedente $cedente
+     * @param string|null $statusAnterior
+     */
+    private static function promoteAndValidateSerpro(Cedente $cedente, $statusAnterior)
+    {
+        $statusInicial = Cedente::STATUS_PENDENTE;
+        $cedente->status = $statusInicial;
+        self::applySlaForStatus($cedente, $statusInicial);
+        $cedente->save();
+
+        if ($statusAnterior === null || $statusAnterior === '') {
+            self::recordStatusAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_CADASTRO_CRIADO,
+                $statusInicial,
+                null,
+                [
+                    'nome' => $cedente->nome,
+                    'documento' => $cedente->documento,
+                    'fund_id' => $cedente->fund_id,
+                ]
+            );
+        } elseif ($statusAnterior === Cedente::STATUS_RASCUNHO) {
+            self::recordStatusAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_STATUS_ALTERADO,
+                $statusInicial,
+                $statusAnterior
+            );
+        }
+
+        $serproResult = CedenteSerproComparison::compareOnCreate($cedente->id, self::payloadForSerpro($cedente));
+        $cedente->refresh();
+        $statusAtual = $cedente->status ?: Cedente::STATUS_PENDENTE;
+
+        if ($serproResult['validated']) {
+            self::recordStatusAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_VALIDACAO_SERPRO,
+                $statusAtual,
+                null,
+                self::buildSerproValidationChanges($serproResult['inconsistencias'], $statusInicial, $statusAtual)
+            );
+
+            if ($statusAtual !== $statusInicial) {
+                self::recordStatusAudit(
+                    $cedente->id,
+                    CedenteAudit::EVENT_STATUS_ALTERADO,
+                    $statusAtual,
+                    $statusInicial
+                );
+            }
+        }
+    }
+
+    /**
+     * Força status rascunho e limpa SLA quando o cadastro está incompleto.
+     *
+     * @param Cedente $cedente
+     */
+    private static function enforceDraftStatusIfIncomplete(Cedente $cedente)
+    {
+        $cedente->status = Cedente::STATUS_RASCUNHO;
+        $cedente->sla = null;
+        $cedente->save();
+    }
+
+    /**
+     * @param mixed $value
+     * @return bool
+     */
+    private static function isNonEmptyString($value)
+    {
+        return is_string($value) && trim($value) !== '';
+    }
+
+    /**
+     * @param mixed $raw
+     * @return string|null
+     */
+    private static function normalizeStatusValue($raw)
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        $s = is_string($raw) ? trim($raw) : trim((string) $raw);
+
+        return $s === '' ? null : $s;
+    }
+
+    /**
      * @param mixed $sla
      * @return string|null
      */
@@ -873,7 +1091,7 @@ class CedenteService
     private static function resolveStatusForCreate($raw)
     {
         if ($raw === null || $raw === '') {
-            return Cedente::STATUS_PENDENTE;
+            return Cedente::STATUS_RASCUNHO;
         }
 
         $s = is_string($raw) ? trim($raw) : trim((string) $raw);
@@ -1051,10 +1269,14 @@ class CedenteService
         ]);
     }
 
-    private static function validateArquivosObrigatorios($arquivos)
+    private static function validateArquivosObrigatorios($arquivos, $requireAll = true)
     {
         if (! is_array($arquivos)) {
-            throw new InvalidArgumentException('E obrigatorio enviar o array arquivos com os 13 documentos (base64)');
+            if ($requireAll) {
+                throw new InvalidArgumentException('E obrigatorio enviar o array arquivos com os 13 documentos (base64)');
+            }
+
+            return;
         }
 
         $required = CedenteFile::requiredDocumentTypeIds();
@@ -1088,6 +1310,9 @@ class CedenteService
 
         foreach ($required as $r) {
             if (! isset($seen[$r])) {
+                if (! $requireAll) {
+                    continue;
+                }
                 $label = isset($labels[$r]) ? $labels[$r] : '';
                 throw new InvalidArgumentException('Faltou arquivo para document_type ' . $r . ($label !== '' ? ' (' . $label . ')' : ''));
             }

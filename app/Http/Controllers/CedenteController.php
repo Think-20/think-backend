@@ -65,9 +65,16 @@ class CedenteController extends Controller
         }
 
         $paginator = Cedente::forFund($fundId)
-            ->with(['address', 'pessoasVinculadas', 'contasDesembolso', 'cedenteFiles', 'fund'])
+            ->with(['address', 'pessoasVinculadas', 'contasDesembolso', 'cedenteFiles', 'fund', 'inconsistencias'])
             ->orderBy('id', 'desc')
             ->paginate($perPage);
+
+        $paginator->getCollection()->transform(function (Cedente $cedente) {
+            $row = $cedente->toArray();
+            $row['inconsistencias'] = CedenteService::inconsistenciasToApiArray($cedente);
+
+            return $row;
+        });
 
         return response()->json(array_merge($paginator->toArray(), [
             'fund_id' => $fundId,
