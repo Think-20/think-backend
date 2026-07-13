@@ -126,7 +126,11 @@ class ContractNfFile extends Model
 
     public function updateDone(Task $task)
     {
-        $task->done = 1;
+        if ($task->contract_nf_files()->count() > 0) {
+            $task->done = 1;
+        } else {
+            $task->done = 0;
+        }
 
         $task->save();
     }

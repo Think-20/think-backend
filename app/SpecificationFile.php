@@ -158,7 +158,7 @@ class SpecificationFile extends Model {
     }
 
     public function updateDone(Task $task) {
-        if($task->specification_files->count() > 0) {
+        if ($task->specification_files()->count() > 0) {
             $task->done = 1;
         } else {
             $task->done = 0;

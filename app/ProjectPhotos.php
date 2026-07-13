@@ -127,7 +127,11 @@ class ProjectPhotos extends Model
 
     public function updateDone(Task $task)
     {
-        $task->done = 1;
+        if ($task->project_photos_files()->count() > 0) {
+            $task->done = 1;
+        } else {
+            $task->done = 0;
+        }
 
         $task->save();
     }

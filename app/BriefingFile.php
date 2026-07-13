@@ -127,11 +127,11 @@ class BriefingFile extends Model
 
     public function updateDone(Task $task)
     {
-        // if($task->project_files->count() > 0) {
-        $task->done = 1;
-        // } else {
-        //     $task->done = 0;
-        // }
+        if ($task->briefing_files()->count() > 0) {
+            $task->done = 1;
+        } else {
+            $task->done = 0;
+        }
 
         $task->save();
     }
