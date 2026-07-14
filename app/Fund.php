@@ -15,6 +15,7 @@ class Fund extends Model
         'name',
         'type',
         'code',
+        'cnpj',
         'quantidade_cedente',
         'is_active',
         'deactivated_at',
@@ -40,6 +41,20 @@ class Fund extends Model
         return $t === '' ? null : $t;
     }
 
+    /**
+     * @param string|null $value
+     * @return string|null
+     */
+    public static function normalizeCnpj($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+        $digits = preg_replace('/\D+/', '', (string) $value);
+
+        return $digits === '' ? null : $digits;
+    }
+
     public static function insert(array $data)
     {
         $name = static::normalizeString(isset($data['name']) ? $data['name'] : null);
@@ -54,12 +69,14 @@ class Fund extends Model
         if ($code === null) {
             throw new InvalidArgumentException('Codigo invalido');
         }
+        $cnpj = static::normalizeCnpj(isset($data['cnpj']) ? $data['cnpj'] : null);
         $quantidadeCedente = isset($data['quantidade_cedente']) ? $data['quantidade_cedente'] : 0;
 
         $fund = new Fund([
             'name' => $name,
             'type' => $type,
             'code' => $code,
+            'cnpj' => $cnpj,
             'quantidade_cedente' => $quantidadeCedente,
             'is_active' => true,
             'deactivated_at' => null,
@@ -100,6 +117,9 @@ class Fund extends Model
                 throw new InvalidArgumentException('Codigo invalido');
             }
             $updates['code'] = $c;
+        }
+        if (array_key_exists('cnpj', $data)) {
+            $updates['cnpj'] = static::normalizeCnpj($data['cnpj']);
         }
         if (array_key_exists('quantidade_cedente', $data)) {
             $updates['quantidade_cedente'] = $data['quantidade_cedente'];
@@ -165,7 +185,9 @@ class Fund extends Model
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'LIKE', '%' . $search . '%')
                     ->orWhere('code', 'LIKE', '%' . $search . '%')
-                    ->orWhere('type', 'LIKE', '%' . $search . '%');
+                    ->orWhere('type', 'LIKE', '%' . $search . '%')
+                    ->orWhere('cnpj', 'LIKE', '%' . preg_replace('/\D+/', '', $search) . '%')
+                    ->orWhere('cnpj', 'LIKE', '%' . $search . '%');
             });
         }
 
