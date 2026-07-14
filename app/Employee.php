@@ -366,6 +366,11 @@ class Employee extends Model implements NotifierInterface
     public function department() {
         return $this->belongsTo('App\Department', 'department_id');
     }
+
+    public function funds() {
+        return $this->belongsToMany(Fund::class, 'fund_employee', 'employee_id', 'fund_id')
+            ->withTimestamps();
+    }
     
     public function notifications() {
         return $this->morphMany(Notification::class, 'notifier');

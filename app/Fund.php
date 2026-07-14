@@ -5,6 +5,7 @@ namespace App;
 use DateTime;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class Fund extends Model
@@ -165,6 +166,53 @@ class Fund extends Model
         ]);
     }
 
+    /**
+     * IDs de fundo preferidos do employee. Colecao vazia = sem restricao (ve todos).
+     *
+     * @param int|null $employeeId
+     * @return \Illuminate\Support\Collection
+     */
+    public static function preferredFundIdsForEmployee($employeeId)
+    {
+        if ($employeeId === null) {
+            return collect();
+        }
+
+        return DB::table('fund_employee')
+            ->where('employee_id', (int) $employeeId)
+            ->pluck('fund_id');
+    }
+
+    /**
+     * @param int|null $employeeId
+     * @param int $fundId
+     * @return bool
+     */
+    public static function employeeCanAccess($employeeId, $fundId)
+    {
+        $preferred = static::preferredFundIdsForEmployee($employeeId);
+        if ($preferred->isEmpty()) {
+            return true;
+        }
+
+        return $preferred->contains((int) $fundId);
+    }
+
+    /**
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int|null $employeeId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeAccessibleByEmployee($query, $employeeId)
+    {
+        $preferred = static::preferredFundIdsForEmployee($employeeId);
+        if ($preferred->isEmpty()) {
+            return $query;
+        }
+
+        return $query->whereIn('fund.id', $preferred);
+    }
+
     public static function list(array $data)
     {
         $paginate = isset($data['paginate'])
@@ -175,7 +223,15 @@ class Fund extends Model
             ? filter_var($data['include_inactive'], FILTER_VALIDATE_BOOLEAN)
             : false;
 
-        $query = Fund::query()->orderBy('name', 'asc');
+        $employeeId = null;
+        $logged = User::logged();
+        if ($logged && $logged->employee) {
+            $employeeId = $logged->employee->id;
+        }
+
+        $query = Fund::query()
+            ->accessibleByEmployee($employeeId)
+            ->orderBy('name', 'asc');
 
         if (!$includeInactive) {
             $query->where('is_active', true);
@@ -222,11 +278,26 @@ class Fund extends Model
 
     public static function get(int $id)
     {
-        return Fund::find($id);
+        $employeeId = null;
+        $logged = User::logged();
+        if ($logged && $logged->employee) {
+            $employeeId = $logged->employee->id;
+        }
+
+        return Fund::query()
+            ->accessibleByEmployee($employeeId)
+            ->where('fund.id', $id)
+            ->first();
     }
 
     public function cedentes()
     {
         return $this->hasMany(Cedente::class, 'fund_id');
+    }
+
+    public function employees()
+    {
+        return $this->belongsToMany(Employee::class, 'fund_employee', 'fund_id', 'employee_id')
+            ->withTimestamps();
     }
 }

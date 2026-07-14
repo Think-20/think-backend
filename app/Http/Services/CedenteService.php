@@ -79,6 +79,16 @@ class CedenteService
         if (! Fund::where('id', (int) $fundId)->exists()) {
             throw new InvalidArgumentException('Fundo nao encontrado');
         }
+
+        $employeeId = null;
+        $logged = User::logged();
+        if ($logged && $logged->employee) {
+            $employeeId = $logged->employee->id;
+        }
+
+        if (! Fund::employeeCanAccess($employeeId, (int) $fundId)) {
+            throw new InvalidArgumentException('Fundo nao permitido para este usuario');
+        }
     }
 
     /**
