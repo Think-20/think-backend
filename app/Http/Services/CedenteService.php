@@ -114,6 +114,7 @@ class CedenteService
     public static function create(array $data)
     {
         $data = self::normalizePayload($data);
+        CedentePermissionService::assertCanCreate();
 
         return DB::transaction(function () use ($data) {
             $fundId = self::resolveFundId($data);
@@ -188,6 +189,7 @@ class CedenteService
 
             $fundId = self::resolveFundId($data);
             $cedente = self::findCedenteForFund($data['id'], $fundId);
+            CedentePermissionService::assertCanUpdate($cedente, $data);
             $cedente->load(['pessoasVinculadas', 'contasDesembolso', 'address', 'inconsistencias']);
 
             $statusAntes = $cedente->status ?: Cedente::STATUS_PENDENTE;
@@ -263,6 +265,7 @@ class CedenteService
 
             $fundId = self::resolveFundId($data);
             $cedente = self::findCedenteForFund($data['id'], $fundId);
+            CedentePermissionService::assertCanUpdate($cedente, $data);
             $cedente->load(['pessoasVinculadas.address', 'contasDesembolso', 'address', 'inconsistencias']);
 
             $statusAntes = $cedente->status ?: Cedente::STATUS_PENDENTE;
@@ -356,6 +359,20 @@ class CedenteService
             $reconcileResult = CedenteSerproComparison::reconcileAfterUpdate($cedente);
             $cedente->refresh();
             $cedente->load(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'inconsistencias']);
+
+            // Reconciliacao pode devolver o status (ex.: pendente pedido com
+            // inconsistencias abertas → inconsistente). Ajusta SLA do status final.
+            if ($reconcileResult['status_alterado'] && $reconcileResult['status_novo']) {
+                self::applySlaForStatus($cedente, $reconcileResult['status_novo']);
+                $cedente->save();
+
+                // Evita historico com ida temporaria (inconsistente → pendente → inconsistente).
+                if ($reconcileResult['status_novo'] === $statusAntes) {
+                    $reconcileResult['status_alterado'] = false;
+                    $reconcileResult['status_anterior'] = null;
+                    $reconcileResult['status_novo'] = null;
+                }
+            }
         }
 
         $snapshotDepois = self::snapshotForAudit($cedente);
@@ -370,7 +387,18 @@ class CedenteService
             'inconsistencias_restantes' => $reconcileResult['remaining'],
         ];
 
-        if (! empty($alteracoes) || ! empty($reconcileResult['removed']) || $statusAtual !== $statusAntes || $reconcileResult['status_alterado']) {
+        $manteveInconsistentePorPendencias = false;
+        if (array_key_exists('status', $data) && $reconcileResult['remaining'] > 0) {
+            $requestedStatus = self::normalizeStatusValue($data['status']);
+            if ($requestedStatus === Cedente::STATUS_PENDENTE
+                && $statusAtual === Cedente::STATUS_INCONSISTENTE) {
+                $manteveInconsistentePorPendencias = true;
+                $auditChanges['descricao'] = 'Cadastro mantido inconsistente: ainda ha inconsistencias abertas';
+                $auditChanges['status_solicitado'] = Cedente::STATUS_PENDENTE;
+            }
+        }
+
+        if (! empty($alteracoes) || ! empty($reconcileResult['removed']) || $statusAtual !== $statusAntes || $reconcileResult['status_alterado'] || $manteveInconsistentePorPendencias) {
             self::recordStatusAudit(
                 $cedente->id,
                 CedenteAudit::EVENT_CEDENTE_ATUALIZADO,
@@ -474,6 +502,8 @@ class CedenteService
 
     public static function deleteById($id, $fundId)
     {
+        CedentePermissionService::assertCanDelete();
+
         return DB::transaction(function () use ($id, $fundId) {
             try {
                 $cedente = self::findCedenteForFund($id, $fundId);

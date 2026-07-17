@@ -83,7 +83,17 @@ class CedenteSerproComparison
         $statusAlterado = false;
         $statusNovo = $statusAnterior;
 
-        if ($remaining === 0 && $statusAnterior === Cedente::STATUS_INCONSISTENTE) {
+        if ($remaining > 0) {
+            // Mesmo que o payload peça pendente (ou outro status), cadastro com
+            // inconsistencias abertas permanece inconsistente.
+            if ($statusAnterior !== Cedente::STATUS_INCONSISTENTE
+                && $statusAnterior !== Cedente::STATUS_RASCUNHO) {
+                $cedente->status = Cedente::STATUS_INCONSISTENTE;
+                $cedente->save();
+                $statusAlterado = true;
+                $statusNovo = Cedente::STATUS_INCONSISTENTE;
+            }
+        } elseif ($statusAnterior === Cedente::STATUS_INCONSISTENTE) {
             $cedente->status = Cedente::STATUS_PENDENTE;
             $cedente->save();
             $statusAlterado = true;

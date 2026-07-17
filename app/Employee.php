@@ -371,6 +371,21 @@ class Employee extends Model implements NotifierInterface
         return $this->belongsToMany(Fund::class, 'fund_employee', 'employee_id', 'fund_id')
             ->withTimestamps();
     }
+
+    public function cedenteRoles() {
+        return $this->belongsToMany(CedenteRole::class, 'cedente_role_employee', 'employee_id', 'cedente_role_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Papel unico de cedente do employee (preenchimento|avalista|administrador).
+     *
+     * @return CedenteRole|null
+     */
+    public function cedenteRole()
+    {
+        return CedenteRole::forEmployee($this->id);
+    }
     
     public function notifications() {
         return $this->morphMany(Notification::class, 'notifier');

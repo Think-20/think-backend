@@ -11,6 +11,10 @@ class Cedente extends Model
     public const STATUS_EM_AVALIACAO = 'em_avaliacao';
     public const STATUS_INCONSISTENTE = 'inconsistente';
     public const STATUS_APROVADO = 'aprovado';
+    /**
+     * @deprecated Resultado de avaliacao legado como status.
+     * Novas solicitacoes de correcao usam STATUS_INCONSISTENTE.
+     */
     public const STATUS_SOLICITAR_CORRECOES = 'solicitar_correcoes';
     public const STATUS_REJEITADO = 'rejeitado';
     public const STATUS_VENCIDO = 'vencido';
@@ -256,7 +260,6 @@ class Cedente extends Model
             self::STATUS_EM_AVALIACAO,
             self::STATUS_INCONSISTENTE,
             self::STATUS_APROVADO,
-            self::STATUS_SOLICITAR_CORRECOES,
             self::STATUS_REJEITADO,
             self::STATUS_VENCIDO,
             self::STATUS_CANCELADO,

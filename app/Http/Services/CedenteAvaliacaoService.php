@@ -19,6 +19,7 @@ class CedenteAvaliacaoService
     public static function registrar(array $data)
     {
         $data = CedenteService::normalizePayload($data);
+        CedentePermissionService::assertCanAvaliar();
 
         if (empty($data['id'])) {
             throw new InvalidArgumentException('ID do cedente e obrigatorio');
@@ -102,9 +103,11 @@ class CedenteAvaliacaoService
     {
         $observacao = self::normalizeObservacao(isset($data['observacao']) ? $data['observacao'] : null, true);
 
+        // "solicitar_correcoes" continua sendo o resultado da avaliacao,
+        // mas no workflow o cedente volta para a coluna de inconsistentes.
         $novoStatus = $resultado === Cedente::AVALIACAO_REJEITADO
             ? Cedente::STATUS_REJEITADO
-            : Cedente::STATUS_SOLICITAR_CORRECOES;
+            : Cedente::STATUS_INCONSISTENTE;
 
         $cedente->observacao = $observacao;
         $cedente->limite_aprovado = null;

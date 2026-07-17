@@ -21,6 +21,7 @@ class CedenteFileService
     public static function setValidacao(array $data)
     {
         $data = CedenteService::normalizePayload($data);
+        CedentePermissionService::assertCanValidarArquivo();
 
         if (empty($data['id'])) {
             throw new InvalidArgumentException('ID do arquivo e obrigatorio');
