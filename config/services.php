@@ -38,9 +38,7 @@ return [
     'serpro' => [
         'username' => env('SERPRO_USERNAME'),
         'password' => env('SERPRO_PASSWORD'),
-        'bearer_token' => env('SERPRO_BEARER_TOKEN'),
         'ssl_verify' => env('SERPRO_SSL_VERIFY'),
-        // Producao CNPJ QSA (nao usar consulta-cpf nem *-trial).
         'qsa_url' => env('SERPRO_QSA_URL', 'https://gateway.apiserpro.serpro.gov.br/consulta-cnpj-df/v2/qsa/'),
         'token_url' => env('SERPRO_TOKEN_URL', 'https://gateway.apiserpro.serpro.gov.br/token'),
     ],

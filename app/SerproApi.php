@@ -26,11 +26,12 @@ class SerproApi
         try {
             return self::requestQsa($cnpj, $token);
         } catch (RequestException $e) {
-            if (! self::shouldRetryWithAlternateToken($e)) {
+            if (! self::shouldRefreshToken($e)) {
                 throw new Exception('Erro ao consultar QSA no SERPRO: ' . self::requestExceptionMessage($e));
             }
 
-            $token = self::resolveAlternateAccessToken($token);
+            // Token invalido/expirado ou sem autorizacao: gera novo via USERNAME/PASSWORD e tenta de novo.
+            $token = self::refreshAccessToken();
 
             try {
                 return self::requestQsa($cnpj, $token);
@@ -41,7 +42,7 @@ class SerproApi
     }
 
     /**
-     * Obtem bearer token via POST /token e persiste em cache.
+     * Obtem bearer token via POST /token (USERNAME + PASSWORD) e persiste em cache.
      *
      * @return string
      */
@@ -51,8 +52,7 @@ class SerproApi
     }
 
     /**
-     * Producao: OAuth via Consumer Key/Secret (USERNAME/PASSWORD).
-     * Bearer estatico fica apenas como fallback.
+     * Usa token em cache se ainda valido; senao gera novo com Consumer Key/Secret.
      *
      * @return string
      */
@@ -63,44 +63,12 @@ class SerproApi
             return $cached;
         }
 
-        try {
-            return self::refreshAccessToken();
-        } catch (Exception $e) {
-            $fallback = self::configuredBearerToken();
-            if ($fallback !== '') {
-                return $fallback;
-            }
-
-            throw $e;
-        }
+        return self::refreshAccessToken();
     }
 
     /**
-     * Em 401/403, tenta o outro meio de autenticacao disponivel.
+     * Sempre gera um novo access_token via OAuth (igual ao Postman: USERNAME + PASSWORD).
      *
-     * @param string $currentToken
-     * @return string
-     */
-    private static function resolveAlternateAccessToken($currentToken)
-    {
-        try {
-            $refreshed = self::refreshAccessToken();
-            if ($refreshed !== $currentToken) {
-                return $refreshed;
-            }
-        } catch (Exception $e) {
-            // Tenta bearer estatico abaixo.
-        }
-
-        $bearer = self::configuredBearerToken();
-        if ($bearer !== '' && $bearer !== $currentToken) {
-            return $bearer;
-        }
-
-        throw new Exception('Nao foi possivel renovar o token SERPRO.');
-    }
-
-    /**
      * @return string
      */
     private static function refreshAccessToken()
@@ -114,9 +82,10 @@ class SerproApi
         }
 
         $token = trim((string) $data['access_token']);
-        $ttl = self::tokenTtlSeconds($data);
+        $ttlMinutes = self::tokenTtlMinutes($data);
 
-        Cache::put(self::CACHE_KEY, $token, $ttl);
+        // Laravel 5.6: Cache::put usa minutos (nao segundos).
+        Cache::put(self::CACHE_KEY, $token, $ttlMinutes);
 
         return $token;
     }
@@ -130,7 +99,7 @@ class SerproApi
         $password = config('services.serpro.password');
 
         if (empty($username) || empty($password)) {
-            throw new Exception('Credenciais SERPRO nao configuradas.');
+            throw new Exception('Credenciais SERPRO nao configuradas (SERPRO_USERNAME / SERPRO_PASSWORD).');
         }
 
         $client = new Client();
@@ -157,16 +126,6 @@ class SerproApi
         } catch (RequestException $e) {
             throw new Exception('Erro ao obter bearer token no SERPRO: ' . self::requestExceptionMessage($e));
         }
-    }
-
-    /**
-     * @return string
-     */
-    private static function configuredBearerToken()
-    {
-        $token = config('services.serpro.bearer_token');
-
-        return is_string($token) ? trim($token) : '';
     }
 
     /**
@@ -210,26 +169,30 @@ class SerproApi
     }
 
     /**
+     * Converte expires_in (segundos) para minutos do Cache do Laravel 5.6.
+     * Renova um pouco antes do vencimento informado pela SERPRO.
+     *
      * @param array $data
      * @return int
      */
-    private static function tokenTtlSeconds(array $data)
+    private static function tokenTtlMinutes(array $data)
     {
         $expiresIn = isset($data['expires_in']) ? (int) $data['expires_in'] : 3600;
 
         if ($expiresIn < 1) {
-            return 60;
+            return 1;
         }
 
-        // Renova um pouco antes do vencimento informado pelo SERPRO.
-        return max(60, $expiresIn - 60);
+        $seconds = max(60, $expiresIn - 60);
+
+        return max(1, (int) floor($seconds / 60));
     }
 
     /**
      * @param RequestException $e
      * @return bool
      */
-    private static function shouldRetryWithAlternateToken(RequestException $e)
+    private static function shouldRefreshToken(RequestException $e)
     {
         if (! $e->hasResponse()) {
             return false;
@@ -242,7 +205,9 @@ class SerproApi
 
         $body = (string) $e->getResponse()->getBody();
 
-        return strpos($body, '900908') !== false;
+        return strpos($body, '900908') !== false
+            || strpos($body, '900901') !== false
+            || strpos($body, '900902') !== false;
     }
 
     /**
@@ -257,8 +222,6 @@ class SerproApi
     }
 
     /**
-     * Monta o header Authorization sem duplicar o prefixo Bearer.
-     *
      * @param string $token
      * @return string
      */
@@ -274,8 +237,6 @@ class SerproApi
     }
 
     /**
-     * Opcoes comuns do Guzzle (verificacao SSL).
-     *
      * @return array
      */
     private static function requestOptions()
