@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Cache;
 
 class SerproApi
 {
-    const QSA_URL = 'https://gateway.apiserpro.serpro.gov.br/consulta-cnpj-df-trial/v2/qsa/';
-    const TOKEN_URL = 'https://gateway.apiserpro.serpro.gov.br/token';
+    const DEFAULT_QSA_URL = 'https://gateway.apiserpro.serpro.gov.br/consulta-cnpj-df/v2/qsa/';
+    const DEFAULT_TOKEN_URL = 'https://gateway.apiserpro.serpro.gov.br/token';
     const CACHE_KEY = 'serpro_access_token';
 
     public static function serproQsa($cnpj)
@@ -26,11 +26,11 @@ class SerproApi
         try {
             return self::requestQsa($cnpj, $token);
         } catch (RequestException $e) {
-            if (! self::isUnauthorized($e)) {
+            if (! self::shouldRetryWithAlternateToken($e)) {
                 throw new Exception('Erro ao consultar QSA no SERPRO: ' . self::requestExceptionMessage($e));
             }
 
-            $token = self::refreshAccessToken();
+            $token = self::resolveAlternateAccessToken($token);
 
             try {
                 return self::requestQsa($cnpj, $token);
@@ -51,6 +51,9 @@ class SerproApi
     }
 
     /**
+     * Producao: OAuth via Consumer Key/Secret (USERNAME/PASSWORD).
+     * Bearer estatico fica apenas como fallback.
+     *
      * @return string
      */
     private static function resolveAccessToken()
@@ -60,7 +63,41 @@ class SerproApi
             return $cached;
         }
 
-        return self::refreshAccessToken();
+        try {
+            return self::refreshAccessToken();
+        } catch (Exception $e) {
+            $fallback = self::configuredBearerToken();
+            if ($fallback !== '') {
+                return $fallback;
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Em 401/403, tenta o outro meio de autenticacao disponivel.
+     *
+     * @param string $currentToken
+     * @return string
+     */
+    private static function resolveAlternateAccessToken($currentToken)
+    {
+        try {
+            $refreshed = self::refreshAccessToken();
+            if ($refreshed !== $currentToken) {
+                return $refreshed;
+            }
+        } catch (Exception $e) {
+            // Tenta bearer estatico abaixo.
+        }
+
+        $bearer = self::configuredBearerToken();
+        if ($bearer !== '' && $bearer !== $currentToken) {
+            return $bearer;
+        }
+
+        throw new Exception('Nao foi possivel renovar o token SERPRO.');
     }
 
     /**
@@ -89,8 +126,8 @@ class SerproApi
      */
     private static function fetchAccessTokenFromSerpro()
     {
-        $username = env('SERPRO_USERNAME');
-        $password = env('SERPRO_PASSWORD');
+        $username = config('services.serpro.username');
+        $password = config('services.serpro.password');
 
         if (empty($username) || empty($password)) {
             throw new Exception('Credenciais SERPRO nao configuradas.');
@@ -99,7 +136,7 @@ class SerproApi
         $client = new Client();
 
         try {
-            $response = $client->request('POST', self::TOKEN_URL, array_merge(self::requestOptions(), [
+            $response = $client->request('POST', self::tokenUrl(), array_merge(self::requestOptions(), [
                 'auth' => [$username, $password],
                 'headers' => [
                     'Accept' => 'application/json',
@@ -123,6 +160,16 @@ class SerproApi
     }
 
     /**
+     * @return string
+     */
+    private static function configuredBearerToken()
+    {
+        $token = config('services.serpro.bearer_token');
+
+        return is_string($token) ? trim($token) : '';
+    }
+
+    /**
      * @param string $cnpj
      * @param string $token
      * @return array|null
@@ -131,7 +178,7 @@ class SerproApi
     {
         $client = new Client();
 
-        $response = $client->request('GET', self::QSA_URL . $cnpj, array_merge(self::requestOptions(), [
+        $response = $client->request('GET', self::qsaUrl() . $cnpj, array_merge(self::requestOptions(), [
             'headers' => [
                 'Accept' => 'application/json',
                 'Authorization' => self::authorizationHeader($token),
@@ -139,6 +186,27 @@ class SerproApi
         ]));
 
         return json_decode($response->getBody(), true);
+    }
+
+    /**
+     * @return string
+     */
+    private static function qsaUrl()
+    {
+        $url = config('services.serpro.qsa_url', self::DEFAULT_QSA_URL);
+        $url = is_string($url) && $url !== '' ? $url : self::DEFAULT_QSA_URL;
+
+        return rtrim($url, '/') . '/';
+    }
+
+    /**
+     * @return string
+     */
+    private static function tokenUrl()
+    {
+        $url = config('services.serpro.token_url', self::DEFAULT_TOKEN_URL);
+
+        return is_string($url) && $url !== '' ? $url : self::DEFAULT_TOKEN_URL;
     }
 
     /**
@@ -161,9 +229,20 @@ class SerproApi
      * @param RequestException $e
      * @return bool
      */
-    private static function isUnauthorized(RequestException $e)
+    private static function shouldRetryWithAlternateToken(RequestException $e)
     {
-        return $e->hasResponse() && $e->getResponse()->getStatusCode() === 401;
+        if (! $e->hasResponse()) {
+            return false;
+        }
+
+        $status = $e->getResponse()->getStatusCode();
+        if ($status === 401 || $status === 403) {
+            return true;
+        }
+
+        $body = (string) $e->getResponse()->getBody();
+
+        return strpos($body, '900908') !== false;
     }
 
     /**
@@ -201,10 +280,10 @@ class SerproApi
      */
     private static function requestOptions()
     {
-        $verify = env('SERPRO_SSL_VERIFY');
+        $verify = config('services.serpro.ssl_verify');
 
         if ($verify === null || $verify === '') {
-            $verify = env('APP_ENV') === 'local' ? false : true;
+            $verify = config('app.env') === 'local' ? false : true;
         } else {
             $verify = filter_var($verify, FILTER_VALIDATE_BOOLEAN);
         }
