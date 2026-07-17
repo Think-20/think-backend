@@ -3,47 +3,54 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\UserNotification;
 use Response;
 
 class NotificationController extends Controller
 {
-    public static function read(Request $request) {
-        $status = false;
+    /**
+     * Desativado temporariamente: nenhuma notificacao e devolvida a nenhum usuario.
+     * Remover este short-circuit quando as notificacoes voltarem a ser usadas.
+     */
+    private static function emptyList()
+    {
+        return [
+            'pagination' => [
+                'data' => [],
+            ],
+            'updatedInfo' => [],
+        ];
+    }
 
-        try {
-            UserNotification::read($request->all());
-            $message = 'Notificações marcadas como lidas.';
-            $status = true;
-        } catch(Exception $e) {
-            $message = 'Um erro desconhecido ocorreu ao atualizar: ' . $e->getMessage();
-        }
-
+    public static function read(Request $request)
+    {
         return Response::make(json_encode([
-            'message' => $message,
-            'status' => $status,
-         ]), 200);
-    }
-    
-    public static function all() {
-        return UserNotification::list();
-    }
-    
-    public static function recents() {
-        return UserNotification::recents();
+            'message' => 'Notificações marcadas como lidas.',
+            'status' => true,
+        ]), 200);
     }
 
-    public static function listen() {
-        return UserNotification::listen();
+    public static function all()
+    {
+        return self::emptyList();
     }
 
-    public static function window() {
-        return UserNotification::notificationsWindow();
+    public static function recents()
+    {
+        return self::emptyList();
     }
 
-    public static function windowCheckin() {
-        return UserNotification::notificationsWindowCheckin();
+    public static function listen()
+    {
+        return [];
     }
 
-    
+    public static function window()
+    {
+        return [];
+    }
+
+    public static function windowCheckin()
+    {
+        return [];
+    }
 }
