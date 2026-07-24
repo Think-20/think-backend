@@ -20,7 +20,7 @@ A especificação também pode ser importada em **Postman** (Import → OpenAPI)
 
 ### Ajustar a URL base
 
-No arquivo YAML, edite a variável `servers[0].variables.baseUrl.default` (ou sobrescreva no Swagger UI) para o host real da API (sem barra no final). Deve ser a **mesma origem** usada para `POST /login` e para as rotas de cedente.
+No arquivo YAML, edite `servers[0].url` (ou sobrescreva no Swagger UI) para o host real da API (sem barra no final). Deve ser a **mesma origem** usada para `POST /login` e para as rotas de cedente.
 
 ### Login (`POST /login`)
 
@@ -49,10 +49,13 @@ Todo cedente pertence a um **fundo** (`cedente.fund_id` → tabela `fund`). O fr
 | Criar | `POST /cedente/save` | JSON (body) |
 | Atualizar (snapshot) | `PUT /cedente/edit` | JSON (body) |
 | Atualizar (parcial) | `PATCH /cedente/patch` | JSON (body), junto com `id` |
+| Validar arquivo | `PATCH /cedente/arquivo/validacao` | JSON (body) |
+| Avaliar cedente | `PATCH /cedente/avaliacao` | JSON (body) |
 | Listar | `POST /cedentes/all` | JSON (body) |
 | Resumo por status | `POST /cedentes/status-resumo` | JSON (body) |
 | Detalhe | `GET /cedentes/get/{id}` | Query: `?fund_id=1` |
 | Histórico | `GET /cedentes/historico/{id}` | Query: `?fund_id=1` |
+| Download ZIP arquivos | `GET /cedentes/arquivos/download-all/{id}` | Query: `?fund_id=1` |
 | Excluir | `DELETE /cedente/remove/{id}` | Query: `?fund_id=1` |
 
 **Validação (HTTP 400):** `fund_id invalido` (valor inválido, por exemplo menor que 1) ou `Fundo nao encontrado` (id inexistente em `fund`). Consultas com `id` de cedente de **outro** fundo retornam **404**.
@@ -113,21 +116,69 @@ docker run --rm -p 8080:8080 -e SWAGGER_JSON=/docs/openapi-cedente.yaml \
 
 ## Rotas (resumo)
 
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| POST | `/login` | Login (`email`, `password`); ver OpenAPI tag **Autenticação** |
-| GET | `/check-token` | Valida token (headers `User` + `Authorization`) |
-| POST | `/logout` | Encerra sessão |
-| POST | `/cedente/save` | Cria cedente completo (`fund_id` no JSON) |
-| PUT | `/cedente/edit` | Atualiza por `id` (`fund_id` no JSON) |
-| PATCH | `/cedente/patch` | Atualização parcial (`id` + `fund_id` no JSON) |
-| GET | `/cedentes/get/{id}` | Detalhe (`fund_id` na query) |
-| GET | `/cedentes/historico/{id}` | Histórico de status (`fund_id` na query) |
-| POST | `/cedentes/all` | Lista paginada (`fund_id` no JSON) |
-| POST | `/cedentes/status-resumo` | Contagens por status (`fund_id` no JSON) |
-| DELETE | `/cedente/remove/{id}` | Exclui cedente (`fund_id` na query) |
+| Método | Rota | Descrição | Quem |
+|--------|------|-----------|------|
+| POST | `/login` | Login (`email`, `password`) | — |
+| GET | `/check-token` | Valida token | — |
+| POST | `/logout` | Encerra sessão | — |
+| POST | `/cedente/save` | Cria cedente (`fund_id` no JSON) | Preenchimento / Admin |
+| PUT | `/cedente/edit` | Atualiza por `id` (snapshot) | Preenchimento* / Admin |
+| PATCH | `/cedente/patch` | Atualização parcial | Preenchimento* / Admin |
+| PATCH | `/cedente/arquivo/validacao` | Aprovar/recusar arquivo | Avalista / Admin |
+| PATCH | `/cedente/avaliacao` | Aprovar / inconsistente / rejeitar | Avalista / Admin |
+| GET | `/cedentes/get/{id}` | Detalhe | Todos os papéis |
+| GET | `/cedentes/historico/{id}` | Histórico de status | Todos os papéis |
+| GET | `/cedentes/arquivos/download-all/{id}` | ZIP dos arquivos ativos | Todos os papéis |
+| POST | `/cedentes/all` | Lista paginada | Todos os papéis |
+| POST | `/cedentes/status-resumo` | Contagens por status | Todos os papéis |
+| DELETE | `/cedente/remove/{id}` | Exclui cedente | Admin |
 
-Detalhes de schemas, códigos de resposta, `operationId` (útil para codegen) e exemplo completo de body estão no **YAML**.
+\* Preenchimento só edita cedente em **`rascunho`** ou **`inconsistente`**.
+
+Detalhes de schemas, códigos de resposta, `operationId` (útil para codegen) e exemplos estão no **YAML**.
+
+---
+
+## Papéis e regras de negócio
+
+Employee autenticado pode ter um papel em `cedente_role`: `preenchimento`, `avalista` ou `administrador`.
+
+### Preenchimento
+
+- Pode criar e editar cadastro (formulário completo) em `rascunho` e `inconsistente`.
+- Pode enviar status `rascunho` / `pendente` / `inconsistente` (com regras de transição).
+- **Não** pode: excluir cedente, avaliar, aprovar/recusar arquivos.
+
+### Avalista
+
+- Pode **ver** cedente em qualquer status.
+- **Não** edita formulário (`PUT`/`PATCH`/`POST save` bloqueados).
+- Avalia via `PATCH /cedente/avaliacao` (exceto `rascunho`).
+- Valida arquivos via `PATCH /cedente/arquivo/validacao` (exceto `rascunho`).
+- Se o cadastro precisa de correção de dados: observação + `solicitar_correcoes` → status `inconsistente`; o preenchimento corrige os campos.
+
+### Administrador
+
+- Sem as restrições acima (CRUD + avaliação + validação de arquivos).
+
+### Status automático
+
+| Situação | Status |
+|----------|--------|
+| Cadastro incompleto | `rascunho` |
+| Cadastro completo | `pendente` (+ SLA dias úteis) |
+| Arquivo recusado pelo avalista/admin | `inconsistente` + soft delete do arquivo |
+| Arquivo reenviado e sem inconsistências | volta para `pendente` |
+| Avaliação `aprovado` | `aprovado` + `sla` = hoje + meses |
+| Avaliação `solicitar_correcoes` | `inconsistente` (`observacao` opcional) |
+| Avaliação `rejeitado` / `recusado` | `rejeitado` (`observacao` opcional) |
+
+Validação **SERPRO** automática após promoção a `pendente` está **desligada temporariamente**.
+
+### Arquivos
+
+- Recusa → soft delete (some da lista `arquivos` na API; permanece no banco/histórico).
+- Download: `GET /cedentes/arquivos/download-all/{id}?fund_id=` → ZIP só com arquivos ativos.
 
 ---
 
@@ -145,6 +196,7 @@ Detalhes de schemas, códigos de resposta, `operationId` (útil para codegen) e 
 3. **`tipo_conta`**: apenas `conta_corrente`, `conta_poupanca` ou `conta_salario`.
 4. **`tipo_parte_relacionada`**: inteiro 1–4 ou `null` (ex.: só avalista).
 5. No **PUT**, envie **snapshot completo** das três listas quando possível.
-6. **Arquivos:** no **POST /cedente/save** é obrigatório o array **`arquivos`** com **13** objetos (`document_type` 1–13, `original_name`, `content_base64` ou `base64`). Gravação em `FILES_FOLDER/cedente-files`. No **PUT**, se enviar `arquivos`, devem ser os 13 de novo (substitui); se omitir, mantém os já salvos.
+6. **Arquivos:** no **POST /cedente/save** é obrigatório o array **`arquivos`** com **13** objetos (`document_type` 1–13, `original_name`, `content_base64` ou `base64`) para cadastro completo. Gravação em `FILES_FOLDER/cedente-files`. No **PUT**, se enviar `arquivos`, devem ser os 13 de novo (substitui); se omitir, mantém os já salvos. No **PATCH**, upsert parcial por `document_type`.
+7. **Aprovar/recusar arquivo e avaliar cedente:** somente **avalista** ou **administrador**.
 
 O exemplo completo (incluindo os **13** itens de `arquivos` com base64 mínimo de teste) está em **`components.examples.CedenteCreateBody`** no `openapi-cedente.yaml`; troque `content_base64` pelos PDFs reais em produção.

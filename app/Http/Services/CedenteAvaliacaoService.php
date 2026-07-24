@@ -19,7 +19,6 @@ class CedenteAvaliacaoService
     public static function registrar(array $data)
     {
         $data = CedenteService::normalizePayload($data);
-        CedentePermissionService::assertCanAvaliar();
 
         if (empty($data['id'])) {
             throw new InvalidArgumentException('ID do cedente e obrigatorio');
@@ -29,8 +28,8 @@ class CedenteAvaliacaoService
             throw new InvalidArgumentException('Campo resultado e obrigatorio (aprovado, solicitar_correcoes ou rejeitado)');
         }
 
-        $resultado = is_string($data['resultado']) ? trim($data['resultado']) : trim((string) $data['resultado']);
-        if (! in_array($resultado, Cedente::avaliacaoResultadoValues(), true)) {
+        $resultado = self::normalizeResultado($data['resultado']);
+        if ($resultado === null || ! in_array($resultado, Cedente::avaliacaoResultadoValues(), true)) {
             throw new InvalidArgumentException('Resultado invalido. Use aprovado, solicitar_correcoes ou rejeitado');
         }
 
@@ -38,13 +37,14 @@ class CedenteAvaliacaoService
 
         return DB::transaction(function () use ($data, $fundId, $resultado) {
             $cedente = CedenteService::findCedenteForFund($data['id'], $fundId);
+            CedentePermissionService::assertCanAvaliar($cedente);
             $statusAntes = $cedente->status ?: Cedente::STATUS_PENDENTE;
 
             if ($resultado === Cedente::AVALIACAO_APROVADO) {
                 return self::aprovar($cedente, $data, $statusAntes);
             }
 
-            return self::registrarComObservacaoObrigatoria($cedente, $data, $resultado, $statusAntes);
+            return self::registrarComObservacaoOpcional($cedente, $data, $resultado, $statusAntes);
         });
     }
 
@@ -80,7 +80,7 @@ class CedenteAvaliacaoService
             Cedente::STATUS_APROVADO,
             $statusAntes,
             [
-                'descricao' => 'Cedente aprovado pelo analista',
+                'descricao' => 'Cedente aprovado pelo avalista',
                 'resultado' => Cedente::AVALIACAO_APROVADO,
                 'limite_aprovado' => $limite,
                 'prazo_atualizacao_cadastral' => $meses,
@@ -93,15 +93,17 @@ class CedenteAvaliacaoService
     }
 
     /**
+     * Inconsistente / rejeitado: observacao e opcional.
+     *
      * @param Cedente $cedente
      * @param array $data
      * @param string $resultado
      * @param string $statusAntes
      * @return Cedente
      */
-    private static function registrarComObservacaoObrigatoria(Cedente $cedente, array $data, $resultado, $statusAntes)
+    private static function registrarComObservacaoOpcional(Cedente $cedente, array $data, $resultado, $statusAntes)
     {
-        $observacao = self::normalizeObservacao(isset($data['observacao']) ? $data['observacao'] : null, true);
+        $observacao = self::normalizeObservacao(isset($data['observacao']) ? $data['observacao'] : null, false);
 
         // "solicitar_correcoes" continua sendo o resultado da avaliacao,
         // mas no workflow o cedente volta para a coluna de inconsistentes.
@@ -116,8 +118,8 @@ class CedenteAvaliacaoService
         $cedente->save();
 
         $descricao = $resultado === Cedente::AVALIACAO_REJEITADO
-            ? 'Cedente rejeitado pelo analista'
-            : 'Analista solicitou correcoes no cadastro';
+            ? 'Cedente rejeitado pelo avalista'
+            : 'Avalista solicitou correcoes no cadastro (inconsistente)';
 
         self::recordAvaliacaoAudit(
             $cedente,
@@ -131,6 +133,31 @@ class CedenteAvaliacaoService
         );
 
         return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias']);
+    }
+
+    /**
+     * @param mixed $raw
+     * @return string|null
+     */
+    private static function normalizeResultado($raw)
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        $s = is_string($raw) ? trim($raw) : trim((string) $raw);
+        $s = strtolower($s);
+        $s = str_replace([' ', '-'], '_', $s);
+
+        $aliases = [
+            'recusado' => Cedente::AVALIACAO_REJEITADO,
+            'rejeitado' => Cedente::AVALIACAO_REJEITADO,
+            'solicitar_correcoes' => Cedente::AVALIACAO_SOLICITAR_CORRECOES,
+            'inconsistente' => Cedente::AVALIACAO_SOLICITAR_CORRECOES,
+            'aprovado' => Cedente::AVALIACAO_APROVADO,
+        ];
+
+        return isset($aliases[$s]) ? $aliases[$s] : $s;
     }
 
     /**
@@ -240,7 +267,7 @@ class CedenteAvaliacaoService
                 'new_status' => $novoStatus,
                 'changes' => [
                     'descricao' => 'Status alterado de ' . $statusAntes . ' para ' . $novoStatus,
-                    'motivo' => 'avaliacao_analista',
+                    'motivo' => 'avaliacao_avalista',
                 ],
             ]);
         }

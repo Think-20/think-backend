@@ -7,6 +7,7 @@ use App\Cedente;
 use App\CedenteAudit;
 use App\CedentePessoaVinculada;
 use App\CedenteFile;
+use App\CedenteInconsistencia;
 use App\ContaDesembolso;
 use App\Fund;
 use App\User;
@@ -1620,19 +1621,64 @@ class CedenteService
      */
     private static function upsertArquivo(Cedente $cedente, $documentType, $originalName, $binary, $extHint = null)
     {
-        $existing = CedenteFile::withTrashed()
-            ->where('cedente_id', $cedente->id)
+        // Soft-deleted (ex.: recusados) permanecem no banco para historico.
+        // Apenas o arquivo ativo do document_type e substituido.
+        $existingActive = CedenteFile::where('cedente_id', $cedente->id)
             ->where('document_type', (int) $documentType)
             ->first();
 
-        if ($existing) {
-            if (! $existing->trashed()) {
-                $existing->deletePhysicalFile();
-            }
-            $existing->forceDelete();
+        if ($existingActive) {
+            $existingActive->delete();
         }
 
-        return CedenteFile::storeFromBinary($cedente->id, $documentType, $originalName, $binary, $extHint);
+        $created = CedenteFile::storeFromBinary($cedente->id, $documentType, $originalName, $binary, $extHint);
+
+        self::clearArquivoInconsistenciaAfterUpload($cedente, (int) $documentType);
+
+        return $created;
+    }
+
+    /**
+     * Remove inconsistencia do document_type reenviado e, se nao restarem
+     * inconsistencias, devolve o cedente de inconsistente para pendente.
+     *
+     * @param Cedente $cedente
+     * @param int $documentType
+     */
+    private static function clearArquivoInconsistenciaAfterUpload(Cedente $cedente, $documentType)
+    {
+        $campo = CedenteFile::inconsistenciaCampoForDocumentType($documentType);
+        CedenteInconsistencia::where('cedente_id', $cedente->id)
+            ->where('campo_inconsistente', $campo)
+            ->delete();
+
+        $remaining = CedenteInconsistencia::where('cedente_id', $cedente->id)->count();
+        if ($remaining > 0) {
+            return;
+        }
+
+        $statusAntes = $cedente->status ?: Cedente::STATUS_PENDENTE;
+        if ($statusAntes !== Cedente::STATUS_INCONSISTENTE) {
+            return;
+        }
+
+        $cedente->status = Cedente::STATUS_PENDENTE;
+        self::applySlaForStatus($cedente, Cedente::STATUS_PENDENTE);
+        $cedente->save();
+
+        $user = User::logged();
+        CedenteAudit::create([
+            'cedente_id' => $cedente->id,
+            'user_id' => $user ? (int) $user->id : null,
+            'event' => CedenteAudit::EVENT_STATUS_ALTERADO,
+            'old_status' => $statusAntes,
+            'new_status' => Cedente::STATUS_PENDENTE,
+            'changes' => [
+                'descricao' => 'Status alterado de inconsistente para pendente',
+                'motivo' => 'arquivo_reenviado',
+                'document_type' => $documentType,
+            ],
+        ]);
     }
 
     private static function decodeBase64Payload($raw)

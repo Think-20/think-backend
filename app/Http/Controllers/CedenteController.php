@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Cedente;
+use App\CedenteFile;
 use App\Http\Services\CedenteAvaliacaoService;
 use App\Http\Services\CedenteFileService;
+use App\Http\Services\CedentePermissionService;
 use App\Http\Services\CedenteService;
 use Exception;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Response;
 use InvalidArgumentException;
 
 class CedenteController extends Controller
@@ -353,5 +356,40 @@ class CedenteController extends Controller
             'message' => 'Avaliacao registrada com sucesso',
             'data' => CedenteService::toApiArray($cedente),
         ]);
+    }
+
+    /**
+     * GET /cedentes/arquivos/download-all/{id}?fund_id=
+     * ZIP com todos os arquivos ativos do cedente.
+     */
+    public static function downloadAllArquivos(Request $request, $id)
+    {
+        try {
+            CedentePermissionService::assertCanDownloadArquivos();
+
+            $data = self::payloadWithFund($request);
+            $data['id'] = $id;
+            $fundId = CedenteService::resolveFundId($data);
+            CedenteService::findCedenteForFund($id, $fundId);
+
+            $zipPath = CedenteFile::downloadAllFiles($id);
+            $contents = file_get_contents($zipPath);
+            $mime = function_exists('mime_content_type') ? mime_content_type($zipPath) : 'application/zip';
+            @unlink($zipPath);
+
+            return Response::make($contents, 200, [
+                'Content-Type' => $mime ?: 'application/zip',
+                'Content-Disposition' => 'attachment; filename="cedente-' . (int) $id . '-arquivos.zip"',
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
+        } catch (Exception $e) {
+            Log::error('Cedente downloadAllArquivos: ' . $e->getMessage(), ['exception' => $e]);
+
+            return response()->json([
+                'error' => 'true',
+                'message' => $e->getMessage(),
+            ], 404);
+        }
     }
 }

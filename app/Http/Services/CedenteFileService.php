@@ -21,7 +21,6 @@ class CedenteFileService
     public static function setValidacao(array $data)
     {
         $data = CedenteService::normalizePayload($data);
-        CedentePermissionService::assertCanValidarArquivo();
 
         if (empty($data['id'])) {
             throw new InvalidArgumentException('ID do arquivo e obrigatorio');
@@ -45,7 +44,8 @@ class CedenteFileService
                 throw new InvalidArgumentException('Arquivo do cedente nao encontrado');
             }
 
-            CedenteService::findCedenteForFund($file->cedente_id, $fundId);
+            $cedente = CedenteService::findCedenteForFund($file->cedente_id, $fundId);
+            CedentePermissionService::assertCanValidarArquivo($cedente);
 
             if ($valido) {
                 return self::aprovarArquivo($file);
@@ -99,6 +99,8 @@ class CedenteFileService
         $campo = CedenteFile::inconsistenciaCampoForDocumentType($documentType);
         $valorInconsistencia = $motivo !== '' ? $motivo : $label . ' recusado';
         $arquivoId = $file->id;
+        $storedName = $file->name;
+        $originalName = $file->original_name;
 
         $file->delete();
 
@@ -137,7 +139,10 @@ class CedenteFileService
                 'descricao' => 'Arquivo recusado: ' . $label,
                 'arquivo_id' => $arquivoId,
                 'document_type' => $documentType,
+                'name' => $storedName,
+                'original_name' => $originalName,
                 'motivo' => $valorInconsistencia,
+                'soft_deleted' => true,
             ],
             $statusAntes
         );

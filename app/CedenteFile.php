@@ -117,6 +117,69 @@ class CedenteFile extends Model
         return self::storageDir() . DIRECTORY_SEPARATOR . $this->name;
     }
 
+    /**
+     * Gera ZIP com todos os arquivos ativos (nao soft-deleted) do cedente.
+     *
+     * @param int $cedenteId
+     * @return string caminho absoluto do zip temporario
+     */
+    public static function downloadAllFiles($cedenteId)
+    {
+        $files = static::where('cedente_id', (int) $cedenteId)->get();
+        if ($files->isEmpty()) {
+            throw new Exception('Nenhum arquivo encontrado para este cedente.');
+        }
+
+        $zip = new \ZipArchive();
+        $path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'cedente-' . (int) $cedenteId . '-' . uniqid('', true) . '.zip';
+
+        if ($zip->open($path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            throw new Exception('Erro ao criar o arquivo zip.');
+        }
+
+        $usedNames = [];
+        $added = 0;
+
+        foreach ($files as $file) {
+            $absolute = $file->absolutePath();
+            if (! is_file($absolute)) {
+                continue;
+            }
+
+            $entryName = $file->original_name ?: $file->name;
+            if (isset($usedNames[$entryName])) {
+                $usedNames[$entryName]++;
+                $pathInfo = pathinfo($entryName);
+                $base = isset($pathInfo['filename']) ? $pathInfo['filename'] : $entryName;
+                $ext = isset($pathInfo['extension']) && $pathInfo['extension'] !== ''
+                    ? '.' . $pathInfo['extension']
+                    : '';
+                $entryName = $base . '_' . $usedNames[$entryName] . $ext;
+            } else {
+                $usedNames[$entryName] = 0;
+            }
+
+            $labels = self::documentTypeLabels();
+            $label = isset($labels[$file->document_type])
+                ? $labels[$file->document_type]
+                : ('tipo_' . $file->document_type);
+            $safeLabel = preg_replace('/[^a-zA-Z0-9_\- ]+/', '', $label);
+            $zipPath = trim($safeLabel) . '/' . $entryName;
+
+            $zip->addFile($absolute, $zipPath);
+            $added++;
+        }
+
+        $zip->close();
+
+        if ($added < 1) {
+            @unlink($path);
+            throw new Exception('Nenhum arquivo fisico encontrado para este cedente.');
+        }
+
+        return $path;
+    }
+
     public function deletePhysicalFile()
     {
         $path = $this->absolutePath();
