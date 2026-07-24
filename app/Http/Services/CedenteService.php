@@ -355,25 +355,26 @@ class CedenteService
             'status_novo' => null,
         ];
 
-        if ($cedente->status !== Cedente::STATUS_RASCUNHO) {
-            $reconcileResult = CedenteSerproComparison::reconcileAfterUpdate($cedente);
-            $cedente->refresh();
-            $cedente->load(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'inconsistencias']);
-
-            // Reconciliacao pode devolver o status (ex.: pendente pedido com
-            // inconsistencias abertas → inconsistente). Ajusta SLA do status final.
-            if ($reconcileResult['status_alterado'] && $reconcileResult['status_novo']) {
-                self::applySlaForStatus($cedente, $reconcileResult['status_novo']);
-                $cedente->save();
-
-                // Evita historico com ida temporaria (inconsistente → pendente → inconsistente).
-                if ($reconcileResult['status_novo'] === $statusAntes) {
-                    $reconcileResult['status_alterado'] = false;
-                    $reconcileResult['status_anterior'] = null;
-                    $reconcileResult['status_novo'] = null;
-                }
-            }
-        }
+        // TODO: reativar quando o front estiver preparado para inconsistencias SERPRO.
+        // if ($cedente->status !== Cedente::STATUS_RASCUNHO) {
+        //     $reconcileResult = CedenteSerproComparison::reconcileAfterUpdate($cedente);
+        //     $cedente->refresh();
+        //     $cedente->load(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'inconsistencias']);
+        //
+        //     // Reconciliacao pode devolver o status (ex.: pendente pedido com
+        //     // inconsistencias abertas → inconsistente). Ajusta SLA do status final.
+        //     if ($reconcileResult['status_alterado'] && $reconcileResult['status_novo']) {
+        //         self::applySlaForStatus($cedente, $reconcileResult['status_novo']);
+        //         $cedente->save();
+        //
+        //         // Evita historico com ida temporaria (inconsistente → pendente → inconsistente).
+        //         if ($reconcileResult['status_novo'] === $statusAntes) {
+        //             $reconcileResult['status_alterado'] = false;
+        //             $reconcileResult['status_anterior'] = null;
+        //             $reconcileResult['status_novo'] = null;
+        //         }
+        //     }
+        // }
 
         $snapshotDepois = self::snapshotForAudit($cedente);
         $alteracoes = self::buildAlteracoesFromPayload($snapshotAntes, $snapshotDepois, $data, $tipo);
@@ -988,7 +989,8 @@ class CedenteService
     }
 
     /**
-     * Avalia completude após save e promove para pendente + SERPRO ou mantém rascunho.
+     * Avalia completude após save e promove para pendente ou mantém rascunho.
+     * Validacao SERPRO desligada temporariamente (front ainda nao preparado).
      *
      * @param Cedente $cedente
      * @param array $data
@@ -1120,7 +1122,8 @@ class CedenteService
     }
 
     /**
-     * Promove cedente completo para pendente, aplica SLA e executa validação SERPRO.
+     * Promove cedente completo para pendente e aplica SLA.
+     * Validacao SERPRO desligada temporariamente (front ainda nao preparado).
      *
      * @param Cedente $cedente
      * @param string|null $statusAnterior
@@ -1157,6 +1160,8 @@ class CedenteService
             );
         }
 
+        // TODO: reativar quando o front estiver preparado para inconsistencias SERPRO.
+        /*
         self::recordSystemAudit(
             $cedente->id,
             CedenteAudit::EVENT_VALIDACAO_INICIADA,
@@ -1226,6 +1231,7 @@ class CedenteService
                 ]
             );
         }
+        */
     }
 
     /**
