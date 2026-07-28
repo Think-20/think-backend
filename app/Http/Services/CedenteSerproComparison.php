@@ -7,6 +7,17 @@ use App\CedenteInconsistencia;
 use App\SerproApi;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Comparacao cadastro x SERPRO (QSA).
+ *
+ * Normalizacao aplicada em create e reconcile (quando reativados no CedenteService):
+ * - texto/nome: caixa unica, sem acentos/simbolos
+ * - email: lowercase
+ * - telefone: so digitos; DDD+8 (SERPRO antigo) vira DDD+9+8
+ * - logradouro: match se texto SERPRO estiver contido no do cadastro
+ * - numero endereco: comparacao numerica (497 == 00497)
+ * - nomes de socios/partes: igualdade do nome completo apos normalizar
+ */
 class CedenteSerproComparison
 {
     /**
@@ -136,8 +147,20 @@ class CedenteSerproComparison
             return self::telefoneMatchesSerpro($current, $valorSerpro);
         }
 
+        if ($campo === 'email') {
+            return self::normalizeEmail($current) === self::normalizeEmail($valorSerpro);
+        }
+
         if ($campo === 'documento') {
             return self::normalizeDocument($current) === self::normalizeDocument($valorSerpro);
+        }
+
+        if ($campo === 'endereco.logradouro') {
+            return self::logradouroMatches($current, $valorSerpro);
+        }
+
+        if ($campo === 'endereco.numero') {
+            return self::normalizeAddressNumber($current) === self::normalizeAddressNumber($valorSerpro);
         }
 
         if (strpos($campo, 'endereco.cep') === 0 || substr($campo, -4) === '.cep') {
@@ -155,16 +178,16 @@ class CedenteSerproComparison
         $items = [];
 
         self::compareScalarField($items, 'nome', self::value($data, 'nome'), self::value($serpro, 'nomeEmpresarial'));
-        self::compareScalarField($items, 'documento', self::normalizeDocument(self::value($data, 'documento')), self::normalizeDocument(self::value($serpro, 'ni')));
-        self::compareScalarField($items, 'email', self::value($data, 'email'), self::value($serpro, 'correioEletronico'));
+        self::compareScalarField($items, 'documento', self::value($data, 'documento'), self::value($serpro, 'ni'), 'normalizeDocument');
+        self::compareScalarField($items, 'email', self::value($data, 'email'), self::value($serpro, 'correioEletronico'), 'normalizeEmail');
         self::compareTelefone($items, self::value($data, 'telefone'), isset($serpro['telefones']) ? $serpro['telefones'] : []);
 
         $enderecoCadastro = isset($data['endereco']) && is_array($data['endereco']) ? $data['endereco'] : [];
         $enderecoSerpro = isset($serpro['endereco']) && is_array($serpro['endereco']) ? $serpro['endereco'] : [];
 
         self::compareScalarField($items, 'endereco.cep', self::value($enderecoCadastro, 'cep'), self::value($enderecoSerpro, 'cep'), 'normalizeCep');
-        self::compareScalarField($items, 'endereco.logradouro', self::value($enderecoCadastro, 'logradouro'), self::value($enderecoSerpro, 'logradouro'));
-        self::compareScalarField($items, 'endereco.numero', self::value($enderecoCadastro, 'numero'), self::value($enderecoSerpro, 'numero'));
+        self::compareLogradouro($items, self::value($enderecoCadastro, 'logradouro'), self::value($enderecoSerpro, 'logradouro'));
+        self::compareScalarField($items, 'endereco.numero', self::value($enderecoCadastro, 'numero'), self::value($enderecoSerpro, 'numero'), 'normalizeAddressNumber');
         self::compareScalarField($items, 'endereco.complemento', self::value($enderecoCadastro, 'complemento'), self::value($enderecoSerpro, 'complemento'));
         self::compareScalarField($items, 'endereco.bairro', self::value($enderecoCadastro, 'bairro'), self::value($enderecoSerpro, 'bairro'));
         self::compareScalarField($items, 'endereco.estado', self::value($enderecoCadastro, 'estado'), self::value($enderecoSerpro, 'uf'));
@@ -263,6 +286,53 @@ class CedenteSerproComparison
         }
 
         return false;
+    }
+
+    /**
+     * Logradouro: SERPRO costuma vir sem tipo (Rua/Av) e em CAPS sem acento.
+     * Considera match se o texto SERPRO normalizado estiver contido no do cadastro.
+     *
+     * @param string|null $cadastro
+     * @param string|null $serpro
+     * @return bool
+     */
+    private static function logradouroMatches($cadastro, $serpro)
+    {
+        $cadastroNorm = self::normalizeText($cadastro);
+        $serproNorm = self::normalizeText($serpro);
+
+        if ($cadastroNorm === '' && $serproNorm === '') {
+            return true;
+        }
+
+        if ($cadastroNorm === '' || $serproNorm === '') {
+            return false;
+        }
+
+        if ($cadastroNorm === $serproNorm) {
+            return true;
+        }
+
+        return strpos($cadastroNorm, $serproNorm) !== false;
+    }
+
+    private static function compareLogradouro(array &$items, $cadastro, $serpro)
+    {
+        $cadastroNorm = self::normalizeText($cadastro);
+        $serproNorm = self::normalizeText($serpro);
+
+        if ($cadastroNorm === '' && $serproNorm === '') {
+            return;
+        }
+
+        if (self::logradouroMatches($cadastro, $serpro)) {
+            return;
+        }
+
+        $items[] = [
+            'campo_inconsistente' => 'endereco.logradouro',
+            'valor_serpro' => $serpro !== null && $serpro !== '' ? (string) $serpro : null,
+        ];
     }
 
     private static function splitSerproList($valorSerpro)
@@ -479,11 +549,80 @@ class CedenteSerproComparison
         return preg_replace('/\D+/', '', (string) $value);
     }
 
+    /**
+     * Remove espacos/parenteses/simbolos e padroniza celular antigo SERPRO (DDD + 8)
+     * para o formato com 9 apos o DDD (DDD + 9 + 8).
+     *
+     * Exemplos:
+     * - cliente: 11974000839
+     * - serpro:  (11) 74000839  → 11974000839
+     *
+     * @param mixed $value
+     * @return string
+     */
     private static function normalizePhone($value)
     {
-        return preg_replace('/\D+/', '', (string) $value);
+        $digits = preg_replace('/\D+/', '', (string) $value);
+        if ($digits === null || $digits === '') {
+            return '';
+        }
+
+        // DDD (2 digitos) + 8 digitos (modelo antigo SERPRO) → inserir 9 apos o DDD
+        if (strlen($digits) === 10) {
+            $digits = substr($digits, 0, 2) . '9' . substr($digits, 2);
+        }
+
+        return $digits;
     }
 
+    /**
+     * Email case-insensitive; remove espacos.
+     *
+     * @param mixed $value
+     * @return string
+     */
+    private static function normalizeEmail($value)
+    {
+        $email = trim((string) $value);
+        if ($email === '') {
+            return '';
+        }
+
+        $email = mb_strtolower($email, 'UTF-8');
+        $email = preg_replace('/\s+/', '', $email);
+
+        return $email !== null ? $email : '';
+    }
+
+    /**
+     * Numero de endereco comparado como numero (497 == 00497).
+     * Valores nao numericos (ex.: S/N) caem em normalizeText.
+     *
+     * @param mixed $value
+     * @return string
+     */
+    private static function normalizeAddressNumber($value)
+    {
+        $text = trim((string) $value);
+        if ($text === '') {
+            return '';
+        }
+
+        $digits = preg_replace('/\D+/', '', $text);
+        if ($digits !== null && $digits !== '' && preg_match('/^\d+$/', $digits) && preg_match('/^[\d\s.\-\/]+$/', $text)) {
+            return (string) ((int) $digits);
+        }
+
+        return self::normalizeText($text);
+    }
+
+    /**
+     * Normalizacao padrao para comparacao textual SERPRO x cadastro:
+     * caixa unica, sem acentos, sem simbolos, espacos colapsados.
+     *
+     * @param mixed $value
+     * @return string
+     */
     private static function normalizeText($value)
     {
         $text = trim((string) $value);
@@ -492,7 +631,6 @@ class CedenteSerproComparison
         }
 
         $text = mb_strtoupper($text, 'UTF-8');
-        $text = preg_replace('/\s+/', ' ', $text);
 
         if (function_exists('iconv')) {
             $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
@@ -501,6 +639,10 @@ class CedenteSerproComparison
             }
         }
 
-        return $text;
+        // Remove simbolos; mantem letras, digitos e espacos
+        $text = preg_replace('/[^A-Z0-9\s]+/', '', $text);
+        $text = preg_replace('/\s+/', ' ', $text);
+
+        return trim((string) $text);
     }
 }
