@@ -4,19 +4,27 @@ namespace App\Http\Services;
 
 use App\Cedente;
 use App\CedenteRole;
+use App\Fund;
 use App\User;
 use InvalidArgumentException;
 
 /**
- * Regras de acesso por papel de cedente (cedente_role_employee).
+ * Regras de acesso por papel de cedente (cedente_role_employee) e por fundo (fund_employee).
  *
+ * Fundo:
+ * - employee com fundos em fund_employee: so acessa esses fundos;
+ * - employee sem nenhum fundo atrelado: acessa todos;
+ * - sempre exige fund_id valido e existente.
+ *
+ * Papeis:
  * - preenchimento: cria/edita rascunho e inconsistente; nao avalia nem valida arquivo.
  * - avalista: visualiza qualquer status; avalia e valida arquivo; nao edita formulario.
- * - administrador: sem restricoes adicionais aqui.
+ * - administrador: sem restricoes de papel adicionais (ainda respeita fundo).
  */
 class CedentePermissionService
 {
     const MSG_SEM_PERMISSAO = 'Voce nao tem permissao para realizar esta acao';
+    const MSG_FUNDO_NEGADO = 'Fundo nao permitido para este usuario';
 
     /**
      * @return int|null
@@ -64,10 +72,38 @@ class CedentePermissionService
     }
 
     /**
-     * POST /cedente/save
+     * Escopo de fundo: sem vinculos em fund_employee = todos; com vinculos = so esses.
+     *
+     * @param int $fundId
      */
-    public static function assertCanCreate()
+    public static function assertCanAccessFund($fundId)
     {
+        $fundId = (int) $fundId;
+        if ($fundId < 1) {
+            throw new InvalidArgumentException('fund_id invalido');
+        }
+
+        if (! Fund::where('id', $fundId)->exists()) {
+            throw new InvalidArgumentException('Fundo nao encontrado');
+        }
+
+        $employeeId = self::currentEmployeeId();
+        if (! Fund::employeeCanAccess($employeeId, $fundId)) {
+            throw new InvalidArgumentException(self::MSG_FUNDO_NEGADO);
+        }
+    }
+
+    /**
+     * POST /cedente/save
+     *
+     * @param int|null $fundId
+     */
+    public static function assertCanCreate($fundId = null)
+    {
+        if ($fundId !== null) {
+            self::assertCanAccessFund($fundId);
+        }
+
         if (self::isAvalista()) {
             throw new InvalidArgumentException(
                 self::MSG_SEM_PERMISSAO . '. Usuario avalista nao pode criar cedentes'
@@ -78,14 +114,13 @@ class CedentePermissionService
     /**
      * PUT /cedente/edit e PATCH /cedente/patch.
      *
-     * Preenchimento: so edita rascunho ou inconsistente.
-     * Avalista: nao edita formulario (usa /avaliacao e /arquivo/validacao).
-     *
      * @param Cedente $cedente
      * @param array $data
      */
     public static function assertCanUpdate(Cedente $cedente, array $data)
     {
+        self::assertCanAccessFund($cedente->fund_id);
+
         if (self::isAvalista()) {
             throw new InvalidArgumentException(
                 self::MSG_SEM_PERMISSAO . '. Usuario avalista nao pode editar os dados do cadastro. Use avaliacao e validacao de arquivos'
@@ -140,9 +175,15 @@ class CedentePermissionService
 
     /**
      * DELETE /cedente/remove/{id}
+     *
+     * @param Cedente|null $cedente
      */
-    public static function assertCanDelete()
+    public static function assertCanDelete($cedente = null)
     {
+        if ($cedente instanceof Cedente) {
+            self::assertCanAccessFund($cedente->fund_id);
+        }
+
         if (self::isPreenchimento()) {
             throw new InvalidArgumentException(self::MSG_SEM_PERMISSAO . '. Usuario de preenchimento nao pode excluir cedentes');
         }
@@ -159,6 +200,10 @@ class CedentePermissionService
      */
     public static function assertCanAvaliar($cedente = null)
     {
+        if ($cedente instanceof Cedente) {
+            self::assertCanAccessFund($cedente->fund_id);
+        }
+
         if (self::isPreenchimento()) {
             throw new InvalidArgumentException(self::MSG_SEM_PERMISSAO . '. Usuario de preenchimento nao pode avaliar cedentes');
         }
@@ -186,6 +231,10 @@ class CedentePermissionService
      */
     public static function assertCanValidarArquivo($cedente = null)
     {
+        if ($cedente instanceof Cedente) {
+            self::assertCanAccessFund($cedente->fund_id);
+        }
+
         if (self::isPreenchimento()) {
             throw new InvalidArgumentException(
                 self::MSG_SEM_PERMISSAO . '. Usuario de preenchimento nao pode aprovar ou recusar arquivos'
@@ -209,11 +258,23 @@ class CedentePermissionService
     }
 
     /**
-     * Download ZIP dos arquivos do cedente — qualquer papel autenticado com acesso ao fundo.
+     * GET /cedentes/arquivos/download-all/{id}
+     *
+     * @param int $fundId
      */
-    public static function assertCanDownloadArquivos()
+    public static function assertCanDownloadArquivos($fundId)
     {
-        // Visualizacao permitida a todos os papeis de cedente (e usuarios sem papel).
+        self::assertCanAccessFund($fundId);
+    }
+
+    /**
+     * Consultas (get/list/historico/status-resumo) — qualquer autenticado com acesso ao fundo.
+     *
+     * @param int $fundId
+     */
+    public static function assertCanView($fundId)
+    {
+        self::assertCanAccessFund($fundId);
     }
 
     /**

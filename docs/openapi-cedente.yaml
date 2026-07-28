@@ -50,10 +50,11 @@ x-frontend-guide:
         | Criar (`POST /cedente/save`) | Sim | **Não** | Sim |
         | Editar formulário (`PUT` / `PATCH`) | Só em `rascunho` ou `inconsistente` | **Não** | Sim |
         | Excluir (`DELETE`) | **Não** | **Não** | Sim |
-        | Ver detalhe / listar / histórico | Sim | Sim (qualquer status) | Sim |
+        | Ver detalhe / listar / histórico / ZIP | Sim | Sim (qualquer status) | Sim |
         | Validar arquivo (`PATCH /cedente/arquivo/validacao`) | **Não** | Sim (exceto `rascunho`) | Sim |
         | Avaliar cedente (`PATCH /cedente/avaliacao`) | **Não** | Sim (exceto `rascunho`) | Sim |
-        | Download ZIP dos arquivos | Sim | Sim | Sim |
+
+        **Escopo de fundo (sempre):** além do papel, o employee só acessa fundos vinculados em `fund_employee`. Sem vínculos, acessa todos. Sem `fund_id` na requisição → 400.
 
         **Preenchimento — status que pode enviar no edit:** `rascunho`, `pendente`, `inconsistente` (com regras de transição: de rascunho só rascunho/pendente; de inconsistente só pendente/inconsistente).
 

@@ -114,6 +114,8 @@ class CedenteFileService
             ]
         );
 
+        $cedente->unsetRelation('inconsistencias');
+
         if ($cedente->status !== Cedente::STATUS_INCONSISTENTE) {
             $cedente->status = Cedente::STATUS_INCONSISTENTE;
             $cedente->save();

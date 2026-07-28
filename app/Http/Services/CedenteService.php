@@ -9,7 +9,6 @@ use App\CedentePessoaVinculada;
 use App\CedenteFile;
 use App\CedenteInconsistencia;
 use App\ContaDesembolso;
-use App\Fund;
 use App\User;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -54,20 +53,17 @@ class CedenteService
      */
     public static function resolveFundId(array $data)
     {
-        // Remover bloco quando o front passar fund_id em todas as requisições.
-        $fundIdWhenOmitted = 1;
-
         $raw = isset($data['fund_id']) ? $data['fund_id'] : null;
         if ($raw === null || $raw === '') {
-            $id = $fundIdWhenOmitted;
-        } else {
-            $id = (int) $raw;
-            if ($id < 1) {
-                throw new InvalidArgumentException('fund_id invalido');
-            }
+            throw new InvalidArgumentException('fund_id e obrigatorio');
         }
 
-        self::assertFundExists($id);
+        $id = (int) $raw;
+        if ($id < 1) {
+            throw new InvalidArgumentException('fund_id invalido');
+        }
+
+        CedentePermissionService::assertCanAccessFund($id);
 
         return $id;
     }
@@ -77,19 +73,7 @@ class CedenteService
      */
     public static function assertFundExists($fundId)
     {
-        if (! Fund::where('id', (int) $fundId)->exists()) {
-            throw new InvalidArgumentException('Fundo nao encontrado');
-        }
-
-        $employeeId = null;
-        $logged = User::logged();
-        if ($logged && $logged->employee) {
-            $employeeId = $logged->employee->id;
-        }
-
-        if (! Fund::employeeCanAccess($employeeId, (int) $fundId)) {
-            throw new InvalidArgumentException('Fundo nao permitido para este usuario');
-        }
+        CedentePermissionService::assertCanAccessFund($fundId);
     }
 
     /**
@@ -99,6 +83,8 @@ class CedenteService
      */
     public static function findCedenteForFund($cedenteId, $fundId)
     {
+        CedentePermissionService::assertCanAccessFund($fundId);
+
         $cedente = Cedente::forFund($fundId)->find((int) $cedenteId);
         if (! $cedente) {
             throw new InvalidArgumentException('Cedente nao encontrado para este fundo');
@@ -115,11 +101,10 @@ class CedenteService
     public static function create(array $data)
     {
         $data = self::normalizePayload($data);
-        CedentePermissionService::assertCanCreate();
+        $fundId = self::resolveFundId($data);
+        CedentePermissionService::assertCanCreate($fundId);
 
-        return DB::transaction(function () use ($data) {
-            $fundId = self::resolveFundId($data);
-
+        return DB::transaction(function () use ($data, $fundId) {
             $addressId = self::createAddressFromPayload(isset($data['endereco']) ? $data['endereco'] : null);
 
             $nome = isset($data['nome']) && is_string($data['nome']) ? trim($data['nome']) : (isset($data['nome']) ? trim((string) $data['nome']) : '');
@@ -504,7 +489,7 @@ class CedenteService
 
     public static function deleteById($id, $fundId)
     {
-        CedentePermissionService::assertCanDelete();
+        CedentePermissionService::assertCanAccessFund($fundId);
 
         return DB::transaction(function () use ($id, $fundId) {
             try {
@@ -512,6 +497,8 @@ class CedenteService
             } catch (InvalidArgumentException $e) {
                 return false;
             }
+
+            CedentePermissionService::assertCanDelete($cedente);
 
             $cedente->load(['pessoasVinculadas', 'cedenteFiles']);
 
@@ -600,21 +587,29 @@ class CedenteService
 
     /**
      * Linhas de `cedente_inconsistencia` no formato da API.
+     * Sempre consulta o banco (evita relacao stale em memoria apos create/update/recusa).
      *
      * @param Cedente $cedente
      * @return array<int, array{id: int, campo_inconsistente: string, valor_serpro: string|null}>
      */
     public static function inconsistenciasToApiArray(Cedente $cedente)
     {
-        $cedente->loadMissing('inconsistencias');
+        if (! $cedente->id) {
+            return [];
+        }
 
-        return $cedente->inconsistencias->map(function ($i) {
-            return [
-                'id' => $i->id,
-                'campo_inconsistente' => $i->campo_inconsistente,
-                'valor_serpro' => $i->valor_serpro,
-            ];
-        })->values()->all();
+        return CedenteInconsistencia::where('cedente_id', (int) $cedente->id)
+            ->orderBy('id', 'asc')
+            ->get()
+            ->map(function ($i) {
+                return [
+                    'id' => (int) $i->id,
+                    'campo_inconsistente' => $i->campo_inconsistente,
+                    'valor_serpro' => $i->valor_serpro,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**
@@ -1651,6 +1646,8 @@ class CedenteService
         CedenteInconsistencia::where('cedente_id', $cedente->id)
             ->where('campo_inconsistente', $campo)
             ->delete();
+
+        $cedente->unsetRelation('inconsistencias');
 
         $remaining = CedenteInconsistencia::where('cedente_id', $cedente->id)->count();
         if ($remaining > 0) {

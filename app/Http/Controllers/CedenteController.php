@@ -59,6 +59,7 @@ class CedenteController extends Controller
         try {
             $data = self::payloadWithFund($request);
             $fundId = CedenteService::resolveFundId($data);
+            CedentePermissionService::assertCanView($fundId);
         } catch (InvalidArgumentException $e) {
             return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
         }
@@ -84,6 +85,7 @@ class CedenteController extends Controller
             ->paginate($perPage);
 
         $paginator->getCollection()->transform(function (Cedente $cedente) {
+            // Garante o mesmo formato de inconsistencias/historico do GET unitario.
             $row = $cedente->toArray();
             $row['inconsistencias'] = CedenteService::inconsistenciasToApiArray($cedente);
             $row['historico'] = CedenteService::historicoToApiArray($cedente);
@@ -102,6 +104,7 @@ class CedenteController extends Controller
         try {
             $data = self::payloadWithFund($request);
             $fundId = CedenteService::resolveFundId($data);
+            CedentePermissionService::assertCanView($fundId);
         } catch (InvalidArgumentException $e) {
             return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
         }
@@ -117,6 +120,7 @@ class CedenteController extends Controller
         try {
             $data = self::payloadWithFund($request);
             $fundId = CedenteService::resolveFundId($data);
+            CedentePermissionService::assertCanView($fundId);
             $cedente = CedenteService::findCedenteForFund($id, $fundId);
         } catch (InvalidArgumentException $e) {
             return response()->json(['error' => 'true', 'message' => $e->getMessage()], 404);
@@ -138,6 +142,7 @@ class CedenteController extends Controller
         try {
             $data = self::payloadWithFund($request);
             $fundId = CedenteService::resolveFundId($data);
+            CedentePermissionService::assertCanView($fundId);
             CedenteService::markExpiredApprovedAsVencido($fundId);
             $cedente = Cedente::forFund($fundId)
                 ->with(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'fund', 'inconsistencias'])
@@ -160,6 +165,7 @@ class CedenteController extends Controller
         try {
             $data = self::payloadWithFund($request);
             $fundId = CedenteService::resolveFundId($data);
+            CedentePermissionService::assertCanView($fundId);
             $cedente = CedenteService::findCedenteForFund($id, $fundId);
         } catch (InvalidArgumentException $e) {
             return response()->json(['error' => 'true', 'message' => $e->getMessage()], 404);
@@ -365,11 +371,10 @@ class CedenteController extends Controller
     public static function downloadAllArquivos(Request $request, $id)
     {
         try {
-            CedentePermissionService::assertCanDownloadArquivos();
-
             $data = self::payloadWithFund($request);
             $data['id'] = $id;
             $fundId = CedenteService::resolveFundId($data);
+            CedentePermissionService::assertCanDownloadArquivos($fundId);
             CedenteService::findCedenteForFund($id, $fundId);
 
             $zipPath = CedenteFile::downloadAllFiles($id);

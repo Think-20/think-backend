@@ -39,10 +39,20 @@ Autenticação antes das rotas de cedente (definida em `routes/web.php`, `UserCo
 
 ### Fundo (`fund_id`) — **obrigatório**
 
-Todo cedente pertence a um **fundo** (`cedente.fund_id` → tabela `fund`). O front **deve sempre enviar `fund_id`** — é campo obrigatório no contrato da API (mesmo critério dos schemas OpenAPI com `required: [fund_id]`).
+Todo cedente pertence a um **fundo** (`cedente.fund_id` → tabela `fund`). O front **deve sempre enviar `fund_id`** — é campo obrigatório no contrato da API (mesmo critério dos schemas OpenAPI com `required: [fund_id]`). Sem `fund_id` a API responde **400** (`fund_id e obrigatorio`).
+
+Além de existir, o fundo precisa ser **permitido** para o usuário logado (`fund_employee`):
+
+| Situação do employee | Acesso |
+|----------------------|--------|
+| Tem um ou mais fundos em `fund_employee` | Só pode operar nesses fundos |
+| **Não** tem nenhum fundo atrelado | Pode operar em **todos** os fundos |
+| Fundo fora da lista permitida | HTTP 400: `Fundo nao permitido para este usuario` |
+
+Isso vale para **todas** as rotas de cedente (CRUD, avaliação, validação de arquivo, listagem, histórico e **download ZIP**).
 
 1. Selecionar ou criar o fundo (rotas `/funds/*`, `/fund/save`, etc.).
-2. Enviar `fund_id` (inteiro ≥ 1, fundo existente) em **toda** requisição do fluxo de cedente:
+2. Enviar `fund_id` (inteiro ≥ 1, fundo existente **e permitido**) em **toda** requisição do fluxo de cedente:
 
 | Operação | Rota | Onde enviar `fund_id` |
 |----------|------|------------------------|
