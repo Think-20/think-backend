@@ -26,6 +26,18 @@ class CedenteAudit extends Model
 
     public const EVENT_CEDENTE_ATUALIZADO = 'cedente_atualizado';
 
+    public const EVENT_DAYCOVAL_CADASTRO_CHAMADA = 'daycoval_cadastro_chamada';
+
+    public const EVENT_DAYCOVAL_CADASTRO = 'daycoval_cadastro';
+
+    public const EVENT_DAYCOVAL_CADASTRO_ERRO = 'daycoval_cadastro_erro';
+
+    public const EVENT_VALIDACAO_VADU_CHAMADA = 'validacao_vadu_chamada';
+
+    public const EVENT_VALIDACAO_VADU = 'validacao_vadu';
+
+    public const EVENT_VALIDACAO_VADU_ERRO = 'validacao_vadu_erro';
+
     protected $table = 'cedente_audit';
 
     protected $fillable = [

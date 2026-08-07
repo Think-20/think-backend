@@ -79,15 +79,17 @@ class CedenteController extends Controller
                 'cedenteFiles',
                 'fund',
                 'inconsistencias',
+                'restricoes',
                 'audits.user.employee',
             ])
             ->orderBy('id', 'desc')
             ->paginate($perPage);
 
         $paginator->getCollection()->transform(function (Cedente $cedente) {
-            // Garante o mesmo formato de inconsistencias/historico do GET unitario.
+            // Garante o mesmo formato de inconsistencias/restricoes/historico do GET unitario.
             $row = $cedente->toArray();
             $row['inconsistencias'] = CedenteService::inconsistenciasToApiArray($cedente);
+            $row['restricoes'] = CedenteService::restricoesToApiArray($cedente);
             $row['historico'] = CedenteService::historicoToApiArray($cedente);
 
             return $row;
@@ -145,7 +147,7 @@ class CedenteController extends Controller
             CedentePermissionService::assertCanView($fundId);
             CedenteService::markExpiredApprovedAsVencido($fundId);
             $cedente = Cedente::forFund($fundId)
-                ->with(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'fund', 'inconsistencias'])
+                ->with(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'fund', 'inconsistencias', 'restricoes'])
                 ->find($id);
             if (! $cedente) {
                 return response()->json(['error' => 'true', 'message' => 'Cedente nao encontrado'], 404);

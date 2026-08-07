@@ -77,6 +77,7 @@ class Employee extends Model implements NotifierInterface
         $deleted = isset($data['deleted']) ? $data['deleted'] : null;
 
         $query = Employee::with('user', 'position', 'department')
+        ->orderByRaw('employee.deleted_at IS NOT NULL ASC')
         ->orderBy('name', 'asc');
 
         if($deleted) {
@@ -163,7 +164,8 @@ class Employee extends Model implements NotifierInterface
             $query->where('position_id', '=', $positionId);
         }
 
-        $query->orderBy('name', 'asc');
+        $query->orderByRaw('employee.deleted_at IS NOT NULL ASC')
+            ->orderBy('name', 'asc');
 
         if($deleted) {
             $query->withTrashed();

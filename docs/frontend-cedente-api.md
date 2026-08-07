@@ -183,10 +183,11 @@ Employee autenticado pode ter um papel em `cedente_role`: `preenchimento`, `aval
 | Avaliação `solicitar_correcoes` | `inconsistente` (`observacao` opcional) |
 | Avaliação `rejeitado` / `recusado` | `rejeitado` (`observacao` opcional) |
 
-Validação **SERPRO** automática após promoção a `pendente` está **desligada temporariamente**.
+Validação **SERPRO** e **Vadu** automática após promoção a `pendente` está **desligada temporariamente** (procure `//Reativar validações Serpro e Vadu` no código).
 
 ### Arquivos
 
+- **Nenhum arquivo é obrigatório** para o cedente sair de `rascunho` e ir para `pendente` — só os campos preenchíveis obrigatórios.
 - Recusa → soft delete (some da lista `arquivos` na API; permanece no banco/histórico).
 - Download: `GET /cedentes/arquivos/download-all/{id}?fund_id=` → ZIP só com arquivos ativos.
 
@@ -206,7 +207,7 @@ Validação **SERPRO** automática após promoção a `pendente` está **desliga
 3. **`tipo_conta`**: apenas `conta_corrente`, `conta_poupanca` ou `conta_salario`.
 4. **`tipo_parte_relacionada`**: inteiro 1–4 ou `null` (ex.: só avalista).
 5. No **PUT**, envie **snapshot completo** das três listas quando possível.
-6. **Arquivos:** no **POST /cedente/save** é obrigatório o array **`arquivos`** com **13** objetos (`document_type` 1–13, `original_name`, `content_base64` ou `base64`) para cadastro completo. Gravação em `FILES_FOLDER/cedente-files`. No **PUT**, se enviar `arquivos`, devem ser os 13 de novo (substitui); se omitir, mantém os já salvos. No **PATCH**, upsert parcial por `document_type`.
+6. **Arquivos:** opcionais no **POST /cedente/save**, **PUT** e **PATCH** — **não** entram na regra de completude para `pendente`. Se enviados, use `document_type` 1–13, `original_name` e `content_base64`/`base64`. Gravação em `FILES_FOLDER/cedente-files`. No **PUT**, se enviar `arquivos`, substitui; se omitir, mantém. No **PATCH**, upsert parcial por `document_type`.
 7. **Aprovar/recusar arquivo e avaliar cedente:** somente **avalista** ou **administrador**.
 
-O exemplo completo (incluindo os **13** itens de `arquivos` com base64 mínimo de teste) está em **`components.examples.CedenteCreateBody`** no `openapi-cedente.yaml`; troque `content_base64` pelos PDFs reais em produção.
+Exemplo de payload (incluindo itens opcionais de `arquivos`) em **`components.examples.CedenteCreateBody`** no `openapi-cedente.yaml`.

@@ -77,22 +77,24 @@ x-frontend-guide:
         | Endereço | `cep`, `logradouro`, `numero`, `bairro`, `estado`, `cidade` |
         | Partes relacionadas | Ao menos **1** item em `partes_relacionadas` com `nome` |
         | Contas de desembolso | Ao menos **1** conta com `tipo_conta`, `codigo_banco`, `agencia`, `numero_conta` |
-        | Documentos | **13** arquivos distintos (`document_type` de **1** a **13**), cada um com `original_name` e `content_base64` (ou `base64`) |
+        | Documentos | **Nenhum arquivo é obrigatório** para promoção a `pendente` (podem ser enviados depois) |
 
-        Quando **todos** os itens acima estiverem ok, o status passa automaticamente para **`pendente`** (com SLA de dias úteis). A validação **SERPRO** automática está **desligada temporariamente** (front ainda não preparado); o cadastro completo permanece em `pendente` sem gerar inconsistências SERPRO.
+        Quando **todos** os campos preenchíveis obrigatórios acima estiverem ok, o status passa automaticamente para **`pendente`** (com SLA de dias úteis). Validações **SERPRO** e **Vadu** automáticas estão **desligadas temporariamente** (front ainda não preparado); o cadastro completo permanece em `pendente` sem gerar inconsistências SERPRO nem restrições Vadu.
 
         **Dica:** não tente forçar `status: pendente` no JSON enquanto o cadastro estiver incompleto; o backend mantém `rascunho` ou retorna erro 400.
 
     - id: serpro
-      title: Validação SERPRO (automática) — temporariamente desligada
+      title: Validações SERPRO e Vadu (automáticas) — temporariamente desligadas
       content: |
-        A comparação automática com a API SERPRO (QSA) após promoção para `pendente` está **comentada/desligada** no backend até o front tratar inconsistências SERPRO.
+        As validações automáticas **SERPRO** (QSA) e **Vadu** (restrições) após promoção para `pendente` estão **comentadas/desligadas** no backend até o front estar preparado.
 
-        Quando reativada, o fluxo esperado será:
+        No código, procure `//Reativar validações Serpro e Vadu` para descomentar.
 
-        1. Eventos no **`historico`** (`validacao_iniciada`, `validacao_serpro_chamada`, `validacao_serpro` ou `validacao_serpro_erro`).
-        2. Comparação de nome, documento, endereço e partes relacionadas.
-        3. Preenchimento de **`inconsistencias`** e eventual `status: inconsistente`.
+        Quando reativadas, o fluxo esperado será:
+
+        1. Eventos no **`historico`** (`validacao_iniciada`, `validacao_serpro_chamada`, `validacao_serpro` / erro; depois `validacao_vadu_*`).
+        2. Comparação SERPRO de nome, documento, endereço e partes relacionadas → `inconsistencias` / `status: inconsistente`.
+        3. Se SERPRO passar limpo, consulta Vadu → restrições em `restricoes` e eventual `status: cancelado`.
 
         Hoje, inconsistências na prática vêm de **arquivo recusado** pelo avalista/admin ou de **avaliação** `solicitar_correcoes`.
 
@@ -339,7 +341,7 @@ paths:
       description: |
         Substitui dados do cadastro conforme o body. **`fund_id`** obrigatório.
         `nome` e `documento` obrigatórios apenas quando o cadastro estiver completo (fora de rascunho).
-        Após salvar, se o cadastro passar a estar completo saindo de rascunho, promove para `pendente` + SERPRO.
+        Após salvar, se o cadastro passar a estar completo saindo de rascunho, promove para `pendente` (SERPRO/Vadu desligados temporariamente).
         `partes_relacionadas`, `avalistas` e `contas_desembolso` **sempre** recriadas a partir do JSON (listas omitidas = vazias).
         Para alterar só um campo (ex.: status), use **`PATCH /cedente/patch`**.
       requestBody:
@@ -373,7 +375,7 @@ paths:
         - **`arquivos`**: envie só os `document_type` a criar/substituir (upsert); os demais arquivos **permanecem**.
         - **`partes_relacionadas` / `avalistas`**: se a chave vier, a lista **substitui** a anterior (mesma regra do PUT para essas listas).
         - **`contas_desembolso`**: se a chave vier, substitui todas as contas.
-        Completar todos os blocos obrigatórios em um cedente `rascunho` promove automaticamente para `pendente` + SERPRO.
+        Completar todos os blocos obrigatórios (campos preenchíveis; arquivos não contam) em um cedente `rascunho` promove automaticamente para `pendente` (SERPRO/Vadu desligados temporariamente).
         Não use esta rota para substituir o cadastro inteiro — use `PUT /cedente/edit`.
       requestBody:
         required: true
@@ -1024,8 +1026,8 @@ components:
       required: [fund_id]
       description: |
         **`fund_id` obrigatório** em todo cadastro/edição (inteiro ≥ 1, fundo existente).
-        Cadastro incompleto → status `rascunho` (sem SERPRO). `arquivos` opcional em rascunho; necessários 13 tipos (1–13) para promoção a `pendente`.
-        No **PUT /cedente/edit**, `arquivos` é opcional; se enviado, substitui os anteriores.
+        Cadastro incompleto → status `rascunho`. `arquivos` sempre opcional — nenhum `document_type` é exigido para promoção a `pendente` (só campos preenchíveis obrigatórios).
+        No **PUT /cedente/edit**, `arquivos` é opcional; se enviado, substitui os anteriores. Validações SERPRO/Vadu automáticas desligadas temporariamente.
       properties:
         fund_id:
           type: integer
@@ -1081,7 +1083,7 @@ components:
           items:
             $ref: "#/components/schemas/CedenteArquivoInput"
           description: |
-            Opcional em rascunho. Para cadastro completo, envie os treze documentos (tipos 1–13, sem repetir).
+            Opcional. Nenhum arquivo é obrigatório para promoção a `pendente`. Se enviado no PUT, substitui os anteriores; no PATCH, upsert parcial por `document_type`.
 
     CedenteUpdateRequest:
       allOf:

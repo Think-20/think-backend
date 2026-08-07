@@ -35,7 +35,7 @@ class CedenteAvaliacaoService
 
         $fundId = CedenteService::resolveFundId($data);
 
-        return DB::transaction(function () use ($data, $fundId, $resultado) {
+        $cedente = DB::transaction(function () use ($data, $fundId, $resultado) {
             $cedente = CedenteService::findCedenteForFund($data['id'], $fundId);
             CedentePermissionService::assertCanAvaliar($cedente);
             $statusAntes = $cedente->status ?: Cedente::STATUS_PENDENTE;
@@ -46,6 +46,13 @@ class CedenteAvaliacaoService
 
             return self::registrarComObservacaoOpcional($cedente, $data, $resultado, $statusAntes);
         });
+
+        // Cedente aprovado localmente: replica automaticamente no WS Daycoval (sem rota propria).
+        if ($cedente->status === Cedente::STATUS_APROVADO && DaycovalCedenteService::isEnabled()) {
+            DaycovalCedenteService::cadastrarAprovadoSafe($cedente, false);
+        }
+
+        return $cedente;
     }
 
     /**
@@ -89,7 +96,7 @@ class CedenteAvaliacaoService
             ]
         );
 
-        return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias']);
+        return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias', 'restricoes']);
     }
 
     /**
@@ -132,7 +139,7 @@ class CedenteAvaliacaoService
             ]
         );
 
-        return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias']);
+        return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias', 'restricoes']);
     }
 
     /**

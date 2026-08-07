@@ -127,6 +127,14 @@ class CedentePermissionService
             );
         }
 
+        if (array_key_exists('status', $data) && $data['status'] !== null && $data['status'] !== '') {
+            $requested = self::normalizeStatus($data['status']);
+            $atual = $cedente->status ?: Cedente::STATUS_PENDENTE;
+            if ($requested !== null && $requested !== $atual) {
+                self::assertNotLockedByVaduRestricao($cedente);
+            }
+        }
+
         if (!self::isPreenchimento()) {
             return;
         }
@@ -174,6 +182,20 @@ class CedentePermissionService
     }
 
     /**
+     * Cedente com restricao Vadu permanece em cancelado e nao pode mudar de status.
+     *
+     * @param Cedente $cedente
+     */
+    public static function assertNotLockedByVaduRestricao(Cedente $cedente)
+    {
+        if (CedenteVaduService::isLockedByRestricao($cedente)) {
+            throw new InvalidArgumentException(
+                'Cedente cancelado por restricao Vadu e nao pode ter o status alterado'
+            );
+        }
+    }
+
+    /**
      * DELETE /cedente/remove/{id}
      *
      * @param Cedente|null $cedente
@@ -215,12 +237,18 @@ class CedentePermissionService
         }
 
         if (self::isAvalista() && $cedente instanceof Cedente) {
+            self::assertNotLockedByVaduRestricao($cedente);
+
             $statusAtual = $cedente->status ?: Cedente::STATUS_PENDENTE;
             if ($statusAtual === Cedente::STATUS_RASCUNHO) {
                 throw new InvalidArgumentException(
                     self::MSG_SEM_PERMISSAO . '. Usuario avalista nao pode avaliar cedentes em rascunho'
                 );
             }
+        }
+
+        if (self::isAdministrador() && $cedente instanceof Cedente) {
+            self::assertNotLockedByVaduRestricao($cedente);
         }
     }
 

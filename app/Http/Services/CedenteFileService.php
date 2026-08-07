@@ -81,7 +81,7 @@ class CedenteFileService
             ]
         );
 
-        return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias']);
+        return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias', 'restricoes']);
     }
 
     /**
@@ -149,7 +149,7 @@ class CedenteFileService
             $statusAntes
         );
 
-        return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias']);
+        return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias', 'restricoes']);
     }
 
     /**

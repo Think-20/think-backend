@@ -8,6 +8,7 @@ use App\CedenteAudit;
 use App\CedentePessoaVinculada;
 use App\CedenteFile;
 use App\CedenteInconsistencia;
+use App\CedenteRestricao;
 use App\ContaDesembolso;
 use App\User;
 use Illuminate\Support\Facades\DB;
@@ -154,7 +155,7 @@ class CedenteService
                 );
             }
 
-            return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias']);
+            return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias', 'restricoes']);
         });
     }
 
@@ -231,7 +232,7 @@ class CedenteService
 
             self::finalizeCedenteUpdate($cedente, $data, $snapshotAntes, $statusAntes, 'edit');
 
-            return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias']);
+            return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias', 'restricoes']);
         });
     }
 
@@ -315,7 +316,7 @@ class CedenteService
 
             self::finalizeCedenteUpdate($cedente, $data, $snapshotAntes, $statusAntes, 'patch');
 
-            return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias']);
+            return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias', 'restricoes']);
         });
     }
 
@@ -341,7 +342,7 @@ class CedenteService
             'status_novo' => null,
         ];
 
-        // TODO: reativar quando o front estiver preparado para inconsistencias SERPRO.
+        //Reativar validações Serpro e Vadu
         // if ($cedente->status !== Cedente::STATUS_RASCUNHO) {
         //     $reconcileResult = CedenteSerproComparison::reconcileAfterUpdate($cedente);
         //     $cedente->refresh();
@@ -528,7 +529,7 @@ class CedenteService
 
     public static function toApiArray(Cedente $cedente)
     {
-        $cedente->loadMissing(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias', 'audits.user.employee']);
+        $cedente->loadMissing(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias', 'restricoes', 'audits.user.employee']);
 
         $labels = CedenteFile::documentTypeLabels();
 
@@ -568,6 +569,7 @@ class CedenteService
                 ];
             })->all(),
             'inconsistencias' => self::inconsistenciasToApiArray($cedente),
+            'restricoes' => self::restricoesToApiArray($cedente),
             'historico' => self::historicoToApiArray($cedente),
         ];
 
@@ -606,6 +608,40 @@ class CedenteService
                     'id' => (int) $i->id,
                     'campo_inconsistente' => $i->campo_inconsistente,
                     'valor_serpro' => $i->valor_serpro,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Linhas de `cedente_restricao` (Vadu) no formato da API.
+     * Restricoes levam o cedente a cancelado e travam mudanca de status.
+     *
+     * @param Cedente $cedente
+     * @return array<int, array<string, mixed>>
+     */
+    public static function restricoesToApiArray(Cedente $cedente)
+    {
+        if (! $cedente->id) {
+            return [];
+        }
+
+        return CedenteRestricao::where('cedente_id', (int) $cedente->id)
+            ->orderBy('id', 'asc')
+            ->get()
+            ->map(function ($r) {
+                return [
+                    'id' => (int) $r->id,
+                    'campo_restrito' => $r->campo_restrito,
+                    'socio_indice' => $r->socio_indice !== null ? (int) $r->socio_indice : null,
+                    'socio_nome' => $r->socio_nome,
+                    'qualificacao_representante_legal' => $r->qualificacao_representante_legal,
+                    'nome_representante_legal' => $r->nome_representante_legal,
+                    'codigo' => $r->codigo,
+                    'descricao' => $r->descricao,
+                    'valor_vadu' => $r->valor_vadu,
+                    'fonte' => $r->fonte ?: 'vadu',
                 ];
             })
             ->values()
@@ -986,7 +1022,7 @@ class CedenteService
 
     /**
      * Avalia completude após save e promove para pendente ou mantém rascunho.
-     * Validacao SERPRO desligada temporariamente (front ainda nao preparado).
+     * Arquivos nao entram na completude. Validacoes SERPRO/Vadu desligadas temporariamente.
      *
      * @param Cedente $cedente
      * @param array $data
@@ -1044,13 +1080,7 @@ class CedenteService
             return false;
         }
 
-        $requiredTypes = CedenteFile::requiredDocumentTypeIds();
-        $fileTypes = $cedente->cedenteFiles->pluck('document_type')->unique()->values()->all();
-        foreach ($requiredTypes as $type) {
-            if (! in_array($type, $fileTypes, true)) {
-                return false;
-            }
-        }
+        // Arquivos nao bloqueiam promocao a pendente (nenhum document_type e obrigatorio).
 
         $addr = $cedente->address;
         if (! $addr) {
@@ -1119,7 +1149,8 @@ class CedenteService
 
     /**
      * Promove cedente completo para pendente e aplica SLA.
-     * Validacao SERPRO desligada temporariamente (front ainda nao preparado).
+     * Validacoes automaticas SERPRO/Vadu: comentadas temporariamente (front nao preparado).
+     * Para reativar: procure //Reativar validações Serpro e Vadu
      *
      * @param Cedente $cedente
      * @param string|null $statusAnterior
@@ -1156,8 +1187,55 @@ class CedenteService
             );
         }
 
-        // TODO: reativar quando o front estiver preparado para inconsistencias SERPRO.
-        /*
+        //Reativar validações Serpro e Vadu
+        // self::runAutomaticValidationsAfterPendente($cedente, $statusInicial);
+    }
+
+    /**
+     * Validacoes automaticas apos o cadastro entrar em pendente.
+     * SERPRO primeiro (inconsistencias). Vadu so roda se SERPRO passou sem inconsistencias.
+     *
+     * @param Cedente $cedente
+     * @param string $statusInicial
+     */
+    private static function runAutomaticValidationsAfterPendente(Cedente $cedente, $statusInicial)
+    {
+        //Reativar validações Serpro e Vadu
+        // $serproPassed = self::runSerproValidationAfterPendente($cedente, $statusInicial);
+        //
+        // if (! $serproPassed) {
+        //     return;
+        // }
+        //
+        // self::runVaduRestricoesAfterPendente($cedente, $statusInicial);
+    }
+
+    /**
+     * Executa SERPRO se habilitado. Retorna true somente quando a validacao
+     * concluiu sem inconsistencias (pronto para Vadu).
+     *
+     * @param Cedente $cedente
+     * @param string $statusInicial
+     * @return bool
+     */
+    private static function runSerproValidationAfterPendente(Cedente $cedente, $statusInicial)
+    {
+        if (! self::isSerproEnabled()) {
+            // Sem SERPRO ativo o cedente ainda nao "passou" na validacao cadastral.
+            self::recordSystemAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_VALIDACAO_SERPRO,
+                $cedente->status ?: Cedente::STATUS_PENDENTE,
+                $statusInicial,
+                [
+                    'descricao' => 'SERPRO desabilitado; Vadu nao sera consultada ate a validacao SERPRO passar sem inconsistencias',
+                    'serpro_enabled' => false,
+                ]
+            );
+
+            return false;
+        }
+
         self::recordSystemAudit(
             $cedente->id,
             CedenteAudit::EVENT_VALIDACAO_INICIADA,
@@ -1183,7 +1261,7 @@ class CedenteService
         $cedente->refresh();
         $statusAtual = $cedente->status ?: Cedente::STATUS_PENDENTE;
 
-        if (! $serproResult['validated']) {
+        if (empty($serproResult['validated'])) {
             self::recordSystemAudit(
                 $cedente->id,
                 CedenteAudit::EVENT_VALIDACAO_SERPRO_ERRO,
@@ -1195,7 +1273,7 @@ class CedenteService
                 ]
             );
 
-            return;
+            return false;
         }
 
         $inconsistencias = isset($serproResult['inconsistencias']) ? $serproResult['inconsistencias'] : [];
@@ -1227,7 +1305,119 @@ class CedenteService
                 ]
             );
         }
-        */
+
+        return empty($inconsistencias);
+    }
+
+    /**
+     * @return bool
+     */
+    private static function isSerproEnabled()
+    {
+        $enabled = config('services.serpro.enabled', false);
+        if (is_string($enabled)) {
+            return ! in_array(strtolower($enabled), ['false', '0', 'no', 'off', ''], true);
+        }
+
+        return (bool) $enabled;
+    }
+
+    /**
+     * Consulta Vadu e persiste restricoes.
+     * Com restricao: status vira cancelado (definitivo enquanto houver restricao Vadu).
+     *
+     * @param Cedente $cedente
+     * @param string $statusInicial
+     */
+    private static function runVaduRestricoesAfterPendente(Cedente $cedente, $statusInicial)
+    {
+        if (! CedenteVaduService::isEnabled()) {
+            return;
+        }
+
+        $statusAtual = $cedente->status ?: Cedente::STATUS_PENDENTE;
+
+        self::recordSystemAudit(
+            $cedente->id,
+            CedenteAudit::EVENT_VALIDACAO_VADU_CHAMADA,
+            $statusAtual,
+            null,
+            [
+                'descricao' => 'Consulta a API Vadu (restricoes) iniciada',
+                'documento' => $cedente->documento,
+            ]
+        );
+
+        $vaduResult = CedenteVaduService::syncRestricoesOnPendente($cedente);
+        $cedente->refresh();
+        $statusApos = $cedente->status ?: Cedente::STATUS_PENDENTE;
+
+        if (! empty($vaduResult['error_message'])) {
+            self::recordSystemAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_VALIDACAO_VADU_ERRO,
+                $statusApos,
+                $statusInicial,
+                [
+                    'descricao' => 'Erro ao consultar a API Vadu',
+                    'erro' => $vaduResult['error_message'],
+                ]
+            );
+
+            return;
+        }
+
+        if (empty($vaduResult['consulted'])) {
+            return;
+        }
+
+        $restricoes = isset($vaduResult['restricoes']) ? $vaduResult['restricoes'] : [];
+        $socios = [];
+        $codigos = [];
+        foreach ($restricoes as $item) {
+            if (is_object($item) && ! empty($item->socio_nome)) {
+                $socios[] = $item->socio_nome;
+            }
+            if (is_object($item) && ! empty($item->codigo)) {
+                $codigos[] = $item->codigo;
+            }
+        }
+
+        $temRestricao = ! empty($restricoes);
+        $statusAlterado = ! empty($vaduResult['status_alterado']);
+
+        self::recordSystemAudit(
+            $cedente->id,
+            CedenteAudit::EVENT_VALIDACAO_VADU,
+            $statusApos,
+            $statusInicial,
+            [
+                'descricao' => $temRestricao
+                    ? 'Validacao Vadu concluida com restricoes; cedente passou para cancelado'
+                    : 'Consulta Vadu concluida sem restricoes',
+                'restricoes_count' => count($restricoes),
+                'codigos' => $codigos,
+                'socios' => $socios,
+                'status_alterado' => $statusAlterado,
+            ]
+        );
+
+        if ($statusAlterado) {
+            self::recordSystemAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_STATUS_ALTERADO,
+                Cedente::STATUS_CANCELADO,
+                isset($vaduResult['status_anterior']) ? $vaduResult['status_anterior'] : $statusInicial,
+                [
+                    'descricao' => self::auditDescricaoStatusAlterado(
+                        isset($vaduResult['status_anterior']) ? $vaduResult['status_anterior'] : $statusInicial,
+                        Cedente::STATUS_CANCELADO
+                    ),
+                    'motivo' => 'restricoes_vadu',
+                    'travado' => true,
+                ]
+            );
+        }
     }
 
     /**

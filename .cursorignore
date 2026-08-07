@@ -1,3 +1,17 @@
 .env
 .env.*
 !.env.example
+
+
+# Pastas de dependências e build
+node_modules/
+.next/
+.nuxt/
+dist/
+build/
+out/
+
+# Arquivos de log e sistema
+*.log
+.DS_Store
+.git/
