@@ -4,7 +4,6 @@ namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
-use App\CreateNotifyPastTasks;
 
 class Kernel extends ConsoleKernel
 {
@@ -25,12 +24,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')
-        //          ->hourly();
-        $schedule->call(function() {
-            new CreateNotifyPastTasks;
-        })->dailyAt('00:00');
-
+        // Cedente: aprovados com SLA vencido → status vencido
         $schedule->call(function () {
             \App\Http\Services\CedenteService::markExpiredApprovedAsVencido();
         })->dailyAt('00:05');

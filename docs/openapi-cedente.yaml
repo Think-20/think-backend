@@ -123,6 +123,8 @@ x-frontend-guide:
 
         **Reenvio após recusa:** `PATCH /cedente/patch` com só o `document_type` faltante; remove a inconsistência daquele tipo. Se não restarem inconsistências e o status era `inconsistente`, volta para **`pendente`**. Registros soft-deleted antigos **não** são apagados (auditoria).
 
+        **Visualizar um arquivo:** `GET /cedente-files/view/{id}` — `{id}` = **`cedente_file.id`** (igual ao padrão de `/briefing-files/view/{id}`). Retorna o binário com `Content-Type: */*`.
+
         **Download ZIP:** `GET /cedentes/arquivos/download-all/{id}?fund_id=` — zip com todos os arquivos **ativos** (não soft-deleted), organizados por pasta do tipo de documento.
 
     - id: avaliacao
@@ -588,6 +590,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
+
+  /cedente-files/view/{id}:
+    get:
+      tags: [Cedente]
+      operationId: viewArquivoCedente
+      summary: Visualizar um arquivo do cedente
+      description: |
+        Mesmo padrão de `/briefing-files/view/{id}`.
+        Path **`id`** = **`cedente_file.id`** (o `arquivos[].id` do GET do cedente).
+        Resposta: binário com `Content-Type: */*` (para o front exibir).
+        Rota pública no mesmo estilo das outras `*-files/view`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do registro em `cedente_file` (não é o id do cedente)
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Conteúdo do arquivo
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Arquivo não encontrado
 
   /cedentes/arquivos/download-all/{id}:
     get:

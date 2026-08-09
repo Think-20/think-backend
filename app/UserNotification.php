@@ -61,11 +61,12 @@ class UserNotification extends Model
 
     public static function recents()
     {
-        self::checkStandByPendencies(); //Cria as stand by pendentes
-        self::checkNotificaClienteAgenciaInativo(); //Cria as notificações para os clientes do tipo Agência(client_type_id = 1) a mais de 30 dias sem novas oportunidades
-        self::checkNotificaClienteExpositorInativo(); //Cria as notificações para os clientes do tipo Expositor(client_type_id = 2) a mais de 30 dias sem novas oportunidades
-        self::checkInativaClientesInformados(); //Inativa os clientes que foram informados do prazo de 15 dias e ainda sim n foram inativados
-        
+        // Pausado nesta branch (fluxo de jobs/clientes). Reativar quando a branch de jobs voltar.
+        // self::checkStandByPendencies(); // standby > 15 dias
+        // self::checkNotificaClienteAgenciaInativo(); // agencia inativa ~3 meses
+        // self::checkNotificaClienteExpositorInativo(); // expositor inativo ~3 meses
+        // self::checkInativaClientesInformados(); // inativa clientes apos aviso
+
         if (User::logged()->employee->id == 51 || User::logged()->employee->id == 61 || User::logged()->employee->id == 55 ||  User::logged()->employee->id == 11 || User::logged()->employee->id == 52 ||  User::logged()->employee->department->description == 'Orçamento') {
             $usersNotification = UserNotification::select('user_notification.*')
             ->with(['notification', 'notification.type', 'notification.notifier'])

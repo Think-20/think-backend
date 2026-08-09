@@ -108,6 +108,27 @@ Route::get('/briefing-files/view/{id}', function ($id) {
     return $response;
 });
 
+//Rota responsável por exibir o arquivo do cedente na tela de detalhes do cedente
+Route::get('/cedente-files/view/{id}', function ($id) {
+    $cedenteFile = App\CedenteFile::find($id);
+    if (!$cedenteFile) {
+        abort(404);
+    }
+
+    $path = env('FILES_FOLDER') . '/cedente-files/' . $cedenteFile->name;
+
+    if (!File::exists($path)) {
+        abort(404);
+    }
+
+    $fileGet = file_get_contents($path);
+
+    $response = Response::make($fileGet, 200);
+    $response->header('Content-Type', "*/*");
+
+    return $response;
+});
+
 Route::get('/contract-nf-files/view/{id}', function ($id) {
     $specificationFile = App\ContractNfFile::find($id);
     $path = env('FILES_FOLDER') . '/contract-nf-files/' . $specificationFile->name;
