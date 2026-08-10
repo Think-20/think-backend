@@ -811,9 +811,28 @@ components:
         user:
           nullable: true
           description: |
-            Modelo `User` serializado (senha oculta), com relações carregadas pelo login (`functionalities`, `employee`, `displays`, etc.), ou null se falhou.
+            Modelo `User` serializado (senha oculta), com relações carregadas pelo login
+            (`functionalities`, `employee`, `displays`, etc.), ou null se falhou.
+
+            Inclui **`cedente_role`**: objeto `{ id, code, name }` quando existe vínculo em
+            `cedente_role_employee`; **`null`** quando não há papel (front trata como admin de cedente).
+            Também espelhado em `employee.cedente_role`.
+            Codes: `preenchimento` | `avalista` | `administrador`.
           type: object
           additionalProperties: true
+          properties:
+            cedente_role:
+              nullable: true
+              description: Papel de cedente do employee; null = sem papel (tratar como admin no front).
+              type: object
+              properties:
+                id:
+                  type: integer
+                code:
+                  type: string
+                  enum: [preenchimento, avalista, administrador]
+                name:
+                  type: string
 
     CheckTokenResponse:
       type: object

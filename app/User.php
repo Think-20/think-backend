@@ -184,6 +184,7 @@ class User extends Model
             $foundUser->employee->department;
             $foundUser->employee->position;
             $foundUser->getDisplays();
+            static::attachCedenteRole($foundUser);
 
             return $foundUser;
         } 
@@ -203,8 +204,34 @@ class User extends Model
         $foundUser->employee->department;
         $foundUser->employee->position;
         $foundUser->getDisplays();
+        static::attachCedenteRole($foundUser);
 
         return $foundUser;
+    }
+
+    /**
+     * Anexa papel de cedente no employee (cedente_role_employee).
+     * Null = sem papel cadastrado (front trata como admin do fluxo de cedente).
+     *
+     * @param User $user
+     */
+    private static function attachCedenteRole(User $user)
+    {
+        if (! $user->employee) {
+            $user->cedente_role = null;
+
+            return;
+        }
+
+        $role = CedenteRole::forEmployee($user->employee->id);
+        $payload = $role ? [
+            'id' => (int) $role->id,
+            'code' => $role->code,
+            'name' => $role->name,
+        ] : null;
+
+        $user->cedente_role = $payload;
+        $user->employee->cedente_role = $payload;
     }
 
     public static function logout(string $userId, string $token) {

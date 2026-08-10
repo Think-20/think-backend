@@ -35,6 +35,9 @@ Autenticação antes das rotas de cedente (definida em `routes/web.php`, `UserCo
 **Resposta HTTP 200** em todos os casos:
 
 - **Sucesso:** JSON com `token` (string) e `user` (objeto do usuário, com permissões/telas carregadas pelo backend).
+  - Inclui **`cedente_role`**: `{ id, code, name }` se o employee tiver papel em `cedente_role_employee`; **`null`** se não tiver (o front deve tratar como **admin** do fluxo de cedente).
+  - O mesmo objeto também vem em `user.employee.cedente_role`.
+  - `code` possível: `preenchimento` | `avalista` | `administrador`.
 - **Falha (credenciais inválidas):** `token` e `user` vêm **`null`** (o controller não devolve 401).
 
 ### Fundo (`fund_id`) — **obrigatório**
