@@ -129,6 +129,11 @@ class CedenteSerproComparison
             return self::arquivoDocumentTypeResolved($cedente, (int) $matches[1]);
         }
 
+        // Observacao do avalista: qualquer correcao do preenchimento remove a pendencia.
+        if ($campo === CedenteInconsistencia::CAMPO_APROVADOR) {
+            return true;
+        }
+
         if ($valorSerpro === null || $valorSerpro === '') {
             return false;
         }

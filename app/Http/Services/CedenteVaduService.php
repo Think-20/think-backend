@@ -10,9 +10,8 @@ use Illuminate\Support\Facades\Log;
 /**
  * Consulta Vadu e persiste restricoes em cedente_restricao.
  *
- * Regras atuais:
+ * Regra atual:
  * - Socio com QualificacaoRepresentanteLegal E NomeRepresentanteLegal preenchidos
- * - ReceitaSituacao igual a "ATIVA"
  *
  * Com qualquer restricao: status vira cancelado e fica travado (nao pode mudar status).
  */
@@ -145,44 +144,7 @@ class CedenteVaduService
      */
     public static function extractRestricoes(array $payload)
     {
-        return array_merge(
-            self::extractRestricoesFromReceitaSituacao($payload),
-            self::extractRestricoesFromSocios($payload)
-        );
-    }
-
-    /**
-     * Restricao quando ReceitaSituacao e exatamente "ATIVA".
-     *
-     * @param array $payload
-     * @return array<int, array>
-     */
-    public static function extractRestricoesFromReceitaSituacao(array $payload)
-    {
-        $situacao = self::stringOrNull($payload, [
-            'ReceitaSituacao',
-            'receitaSituacao',
-            'receita_situacao',
-        ]);
-
-        if ($situacao === null) {
-            return [];
-        }
-
-        if (mb_strtoupper($situacao, 'UTF-8') !== 'ATIVA') {
-            return [];
-        }
-
-        return [[
-            'campo_restrito' => 'ReceitaSituacao',
-            'socio_indice' => null,
-            'socio_nome' => null,
-            'qualificacao_representante_legal' => null,
-            'nome_representante_legal' => null,
-            'codigo' => 'RECEITA_SITUACAO_ATIVA',
-            'descricao' => 'ReceitaSituacao ATIVA na consulta Vadu',
-            'valor_vadu' => $situacao,
-        ]];
+        return self::extractRestricoesFromSocios($payload);
     }
 
     /**

@@ -79,25 +79,19 @@ x-frontend-guide:
         | Contas de desembolso | Ao menos **1** conta com `tipo_conta`, `codigo_banco`, `agencia`, `numero_conta` |
         | Documentos | **Nenhum arquivo é obrigatório** para promoção a `pendente` (podem ser enviados depois) |
 
-        Quando **todos** os campos preenchíveis obrigatórios acima estiverem ok, o status passa automaticamente para **`pendente`** (com SLA de dias úteis). Validações **SERPRO** e **Vadu** automáticas estão **desligadas temporariamente** (front ainda não preparado); o cadastro completo permanece em `pendente` sem gerar inconsistências SERPRO nem restrições Vadu.
+        Quando **todos** os campos preenchíveis obrigatórios acima estiverem ok, o status passa automaticamente para **`pendente`** (com SLA de dias úteis) e dispara validações **SERPRO** e, se limpo, **Vadu**.
 
         **Dica:** não tente forçar `status: pendente` no JSON enquanto o cadastro estiver incompleto; o backend mantém `rascunho` ou retorna erro 400.
 
     - id: serpro
-      title: Validações SERPRO e Vadu (automáticas) — temporariamente desligadas
+      title: Validações SERPRO e Vadu (automáticas)
       content: |
-        As validações automáticas **SERPRO** (QSA) e **Vadu** (restrições) após promoção para `pendente` estão **comentadas/desligadas** no backend até o front estar preparado.
+        Após promoção para `pendente`, o backend executa:
 
-        No código, procure `//Reativar validações Serpro e Vadu` para descomentar.
+        1. **SERPRO** (QSA) — compara cadastro com Receita; preenche `inconsistencias` e pode ir para `inconsistente`.
+        2. Se SERPRO passou sem inconsistências, **Vadu** — grava `restricoes`; com restrição o status vira **`cancelado`** (travado).
 
-        Quando reativadas, o fluxo esperado será:
-
-        1. Eventos no **`historico`** (`validacao_iniciada`, `validacao_serpro_chamada`, `validacao_serpro` / erro; depois `validacao_vadu_*`).
-        2. Comparação SERPRO de nome, documento, endereço e partes relacionadas → `inconsistencias` / `status: inconsistente`.
-        3. Se SERPRO passar limpo, consulta Vadu → restrições em `restricoes` e eventual `status: cancelado`.
-
-        Hoje, inconsistências na prática vêm de **arquivo recusado** pelo avalista/admin ou de **avaliação** `solicitar_correcoes`.
-
+        Flags: `SERPRO_ENABLED` e `VADU_ENABLED` no `.env`. Se SERPRO estiver off, a Vadu também não roda.
     - id: arquivos
       title: Arquivos (envio e resposta)
       content: |
@@ -138,7 +132,7 @@ x-frontend-guide:
         | `resultado` | Campos | Efeito |
         |-------------|--------|--------|
         | `aprovado` | **Obrigatórios:** `limite_aprovado`, `prazo_atualizacao_cadastral` (meses ≥ 1). `observacao` opcional | `status → aprovado`; `sla` = hoje + N meses |
-        | `solicitar_correcoes` (ou alias de inconsistente) | `observacao` **opcional** | `status → inconsistente` |
+        | `solicitar_correcoes` (ou alias de inconsistente) | `observacao` **obrigatória** | `status → inconsistente` + linha em `inconsistencias` (`campo_inconsistente: aprovador`, `valor_serpro` = observação) |
         | `rejeitado` (alias: `recusado`) | `observacao` **opcional** | `status → rejeitado` |
 
         Após aprovação, cedentes com `sla` vencido passam para **`vencido`** automaticamente (job diário e em `GET` / listagem).
@@ -345,7 +339,7 @@ paths:
       description: |
         Substitui dados do cadastro conforme o body. **`fund_id`** obrigatório.
         `nome` e `documento` obrigatórios apenas quando o cadastro estiver completo (fora de rascunho).
-        Após salvar, se o cadastro passar a estar completo saindo de rascunho, promove para `pendente` (SERPRO/Vadu desligados temporariamente).
+        Após salvar, se o cadastro passar a estar completo saindo de rascunho, promove para `pendente` + SERPRO/Vadu.
         `partes_relacionadas`, `avalistas` e `contas_desembolso` **sempre** recriadas a partir do JSON (listas omitidas = vazias).
         Para alterar só um campo (ex.: status), use **`PATCH /cedente/patch`**.
       requestBody:
@@ -379,7 +373,7 @@ paths:
         - **`arquivos`**: envie só os `document_type` a criar/substituir (upsert); os demais arquivos **permanecem**.
         - **`partes_relacionadas` / `avalistas`**: se a chave vier, a lista **substitui** a anterior (mesma regra do PUT para essas listas).
         - **`contas_desembolso`**: se a chave vier, substitui todas as contas.
-        Completar todos os blocos obrigatórios (campos preenchíveis; arquivos não contam) em um cedente `rascunho` promove automaticamente para `pendente` (SERPRO/Vadu desligados temporariamente).
+        Completar todos os blocos obrigatórios (campos preenchíveis; arquivos não contam) em um cedente `rascunho` promove automaticamente para `pendente` + SERPRO/Vadu.
         Não use esta rota para substituir o cadastro inteiro — use `PUT /cedente/edit`.
       requestBody:
         required: true
@@ -478,12 +472,12 @@ paths:
         | `resultado` | sim | `aprovado` \| `solicitar_correcoes` \| `rejeitado` (alias: `recusado`) |
         | `limite_aprovado` | se `aprovado` | Decimal (até 12 dígitos + 2 decimais). Aceita `1500000,50` ou `1500000.50` |
         | `prazo_atualizacao_cadastral` | se `aprovado` | Inteiro ≥ 1 (meses); define o novo `sla` |
-        | `observacao` | não | Opcional em todos os resultados (incluindo inconsistente e rejeitado) |
+        | `observacao` | se `solicitar_correcoes` | **Obrigatória** para inconsistente; opcional em `aprovado` e `rejeitado` |
 
         Efeitos:
 
         - `aprovado` → `status: aprovado`, `sla` = hoje + N meses
-        - `solicitar_correcoes` → `status: inconsistente` (resultado da avaliação continua `solicitar_correcoes` no histórico)
+        - `solicitar_correcoes` → `status: inconsistente` + inconsistência `{ campo_inconsistente: "aprovador", valor_serpro: <observacao> }` (resultado da avaliação continua `solicitar_correcoes` no histórico). Qualquer correção do preenchimento remove essa linha e, sem outras pendências, devolve a `pendente`.
         - `rejeitado` / `recusado` → `status: rejeitado`
 
         Eventos no histórico: `avaliacao_registrada` e, se o status mudou, `status_alterado`.
@@ -1124,7 +1118,7 @@ components:
       description: |
         **`fund_id` obrigatório** em todo cadastro/edição (inteiro ≥ 1, fundo existente).
         Cadastro incompleto → status `rascunho`. `arquivos` sempre opcional — nenhum `document_type` é exigido para promoção a `pendente` (só campos preenchíveis obrigatórios).
-        No **PUT /cedente/edit**, `arquivos` é opcional; se enviado, substitui os anteriores. Validações SERPRO/Vadu automáticas desligadas temporariamente.
+        No **PUT /cedente/edit**, `arquivos` é opcional; se enviado, substitui os anteriores. Após promoção a `pendente`: SERPRO e depois Vadu (se SERPRO limpo).
       properties:
         fund_id:
           type: integer
@@ -1349,7 +1343,9 @@ components:
           $ref: "#/components/schemas/CedenteAvaliacaoResultado"
         observacao:
           type: string
-          description: Opcional para todos os resultados (aprovado, inconsistente via solicitar_correcoes, rejeitado).
+          description: |
+            Obrigatória para `solicitar_correcoes` (gravada também em `inconsistencias.valor_serpro` com `campo_inconsistente: aprovador`).
+            Opcional para `aprovado` e `rejeitado`.
         limite_aprovado:
           type: string
           description: Obrigatório para `aprovado`. Até 12 dígitos antes da vírgula e 2 decimais (ex. `1500000.50`).
@@ -1489,7 +1485,7 @@ components:
     CedenteInconsistenciaItem:
       type: object
       description: |
-        Divergência pendente. Origem SERPRO (campos do cadastro) ou recusa de arquivo (`arquivo.document_type.{n}`).
+        Divergência pendente. Origem SERPRO (campos do cadastro), recusa de arquivo (`arquivo.document_type.{n}`) ou solicitação de correções do avalista (`aprovador`).
       properties:
         id:
           type: integer
@@ -1499,11 +1495,12 @@ components:
             Identificador do campo no cadastro. Exemplos:
             - SERPRO: `nome`, `documento`, `endereco.cep`, `partes_relacionadas[0].nome`
             - Arquivo recusado: `arquivo.document_type.4` (número = `document_type`)
+            - Avalista (`solicitar_correcoes`): `aprovador`
             Use para destacar o input ou o slot de upload correspondente no formulário.
         valor_serpro:
           type: string
           nullable: true
-          description: Valor de referência (SERPRO) ou motivo da recusa do arquivo.
+          description: Valor de referência (SERPRO), motivo da recusa do arquivo, ou observação do avalista quando `campo_inconsistente` é `aprovador`.
 
     ContaDesembolsoResource:
       type: object

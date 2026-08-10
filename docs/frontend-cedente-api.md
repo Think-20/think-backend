@@ -183,10 +183,10 @@ Employee autenticado pode ter um papel em `cedente_role`: `preenchimento`, `aval
 | Arquivo recusado pelo avalista/admin | `inconsistente` + soft delete do arquivo |
 | Arquivo reenviado e sem inconsistências | volta para `pendente` |
 | Avaliação `aprovado` | `aprovado` + `sla` = hoje + meses |
-| Avaliação `solicitar_correcoes` | `inconsistente` (`observacao` opcional) |
+| Avaliação `solicitar_correcoes` | `inconsistente` (`observacao` obrigatória + inconsistência `aprovador`) |
 | Avaliação `rejeitado` / `recusado` | `rejeitado` (`observacao` opcional) |
 
-Validação **SERPRO** e **Vadu** automática após promoção a `pendente` está **desligada temporariamente** (procure `//Reativar validações Serpro e Vadu` no código).
+Validação **SERPRO** (e, se limpa, **Vadu**) roda automaticamente após promoção a `pendente`. Flags: `SERPRO_ENABLED` e `VADU_ENABLED`.
 
 ### Arquivos
 

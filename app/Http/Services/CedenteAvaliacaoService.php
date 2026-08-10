@@ -4,6 +4,7 @@ namespace App\Http\Services;
 
 use App\Cedente;
 use App\CedenteAudit;
+use App\CedenteInconsistencia;
 use App\User;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -100,7 +101,8 @@ class CedenteAvaliacaoService
     }
 
     /**
-     * Inconsistente / rejeitado: observacao e opcional.
+     * Inconsistente: observacao obrigatoria + linha em cedente_inconsistencia.
+     * Rejeitado: observacao opcional.
      *
      * @param Cedente $cedente
      * @param array $data
@@ -110,7 +112,8 @@ class CedenteAvaliacaoService
      */
     private static function registrarComObservacaoOpcional(Cedente $cedente, array $data, $resultado, $statusAntes)
     {
-        $observacao = self::normalizeObservacao(isset($data['observacao']) ? $data['observacao'] : null, false);
+        $exigeObservacao = $resultado === Cedente::AVALIACAO_SOLICITAR_CORRECOES;
+        $observacao = self::normalizeObservacao(isset($data['observacao']) ? $data['observacao'] : null, $exigeObservacao);
 
         // "solicitar_correcoes" continua sendo o resultado da avaliacao,
         // mas no workflow o cedente volta para a coluna de inconsistentes.
@@ -123,6 +126,10 @@ class CedenteAvaliacaoService
         $cedente->prazo_atualizacao_cadastral = null;
         $cedente->status = $novoStatus;
         $cedente->save();
+
+        if ($resultado === Cedente::AVALIACAO_SOLICITAR_CORRECOES) {
+            self::syncInconsistenciaAprovador($cedente, $observacao);
+        }
 
         $descricao = $resultado === Cedente::AVALIACAO_REJEITADO
             ? 'Cedente rejeitado pelo avalista'
@@ -140,6 +147,28 @@ class CedenteAvaliacaoService
         );
 
         return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias', 'restricoes']);
+    }
+
+    /**
+     * Persiste a observacao do avalista como inconsistencia (mesmo formato SERPRO).
+     * Uma unica linha `aprovador` por cedente.
+     *
+     * @param Cedente $cedente
+     * @param string $observacao
+     */
+    private static function syncInconsistenciaAprovador(Cedente $cedente, $observacao)
+    {
+        CedenteInconsistencia::where('cedente_id', (int) $cedente->id)
+            ->where('campo_inconsistente', CedenteInconsistencia::CAMPO_APROVADOR)
+            ->delete();
+
+        CedenteInconsistencia::create([
+            'cedente_id' => (int) $cedente->id,
+            'campo_inconsistente' => CedenteInconsistencia::CAMPO_APROVADOR,
+            'valor_serpro' => $observacao,
+        ]);
+
+        $cedente->unsetRelation('inconsistencias');
     }
 
     /**

@@ -342,26 +342,25 @@ class CedenteService
             'status_novo' => null,
         ];
 
-        //Reativar validações Serpro e Vadu
-        // if ($cedente->status !== Cedente::STATUS_RASCUNHO) {
-        //     $reconcileResult = CedenteSerproComparison::reconcileAfterUpdate($cedente);
-        //     $cedente->refresh();
-        //     $cedente->load(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'inconsistencias']);
-        //
-        //     // Reconciliacao pode devolver o status (ex.: pendente pedido com
-        //     // inconsistencias abertas → inconsistente). Ajusta SLA do status final.
-        //     if ($reconcileResult['status_alterado'] && $reconcileResult['status_novo']) {
-        //         self::applySlaForStatus($cedente, $reconcileResult['status_novo']);
-        //         $cedente->save();
-        //
-        //         // Evita historico com ida temporaria (inconsistente → pendente → inconsistente).
-        //         if ($reconcileResult['status_novo'] === $statusAntes) {
-        //             $reconcileResult['status_alterado'] = false;
-        //             $reconcileResult['status_anterior'] = null;
-        //             $reconcileResult['status_novo'] = null;
-        //         }
-        //     }
-        // }
+        if ($cedente->status !== Cedente::STATUS_RASCUNHO) {
+            $reconcileResult = CedenteSerproComparison::reconcileAfterUpdate($cedente);
+            $cedente->refresh();
+            $cedente->load(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'inconsistencias']);
+
+            // Reconciliacao pode devolver o status (ex.: pendente pedido com
+            // inconsistencias abertas → inconsistente). Ajusta SLA do status final.
+            if ($reconcileResult['status_alterado'] && $reconcileResult['status_novo']) {
+                self::applySlaForStatus($cedente, $reconcileResult['status_novo']);
+                $cedente->save();
+
+                // Evita historico com ida temporaria (inconsistente → pendente → inconsistente).
+                if ($reconcileResult['status_novo'] === $statusAntes) {
+                    $reconcileResult['status_alterado'] = false;
+                    $reconcileResult['status_anterior'] = null;
+                    $reconcileResult['status_novo'] = null;
+                }
+            }
+        }
 
         $snapshotDepois = self::snapshotForAudit($cedente);
         $alteracoes = self::buildAlteracoesFromPayload($snapshotAntes, $snapshotDepois, $data, $tipo);
@@ -1022,7 +1021,7 @@ class CedenteService
 
     /**
      * Avalia completude após save e promove para pendente ou mantém rascunho.
-     * Arquivos nao entram na completude. Validacoes SERPRO/Vadu desligadas temporariamente.
+     * Arquivos nao entram na completude. Apos pendente: SERPRO e depois Vadu.
      *
      * @param Cedente $cedente
      * @param array $data
@@ -1149,8 +1148,9 @@ class CedenteService
 
     /**
      * Promove cedente completo para pendente e aplica SLA.
-     * Validacoes automaticas SERPRO/Vadu: comentadas temporariamente (front nao preparado).
-     * Para reativar: procure //Reativar validações Serpro e Vadu
+     * Em seguida dispara validacoes automaticas:
+     * - SERPRO (inconsistencias) — se SERPRO_ENABLED
+     * - Vadu (restricoes) — so se SERPRO passou sem inconsistencias; restricao cancela o cedente
      *
      * @param Cedente $cedente
      * @param string|null $statusAnterior
@@ -1187,8 +1187,7 @@ class CedenteService
             );
         }
 
-        //Reativar validações Serpro e Vadu
-        // self::runAutomaticValidationsAfterPendente($cedente, $statusInicial);
+        self::runAutomaticValidationsAfterPendente($cedente, $statusInicial);
     }
 
     /**
@@ -1200,14 +1199,13 @@ class CedenteService
      */
     private static function runAutomaticValidationsAfterPendente(Cedente $cedente, $statusInicial)
     {
-        //Reativar validações Serpro e Vadu
-        // $serproPassed = self::runSerproValidationAfterPendente($cedente, $statusInicial);
-        //
-        // if (! $serproPassed) {
-        //     return;
-        // }
-        //
-        // self::runVaduRestricoesAfterPendente($cedente, $statusInicial);
+        $serproPassed = self::runSerproValidationAfterPendente($cedente, $statusInicial);
+
+        if (! $serproPassed) {
+            return;
+        }
+
+        self::runVaduRestricoesAfterPendente($cedente, $statusInicial);
     }
 
     /**

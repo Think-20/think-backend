@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class CedenteInconsistencia extends Model
 {
+    /** Observação do avalista ao solicitar correções (`solicitar_correcoes`). */
+    const CAMPO_APROVADOR = 'aprovador';
+
     protected $table = 'cedente_inconsistencia';
 
     protected $fillable = [
