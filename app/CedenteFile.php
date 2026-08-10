@@ -118,6 +118,27 @@ class CedenteFile extends Model
     }
 
     /**
+     * Caminho absoluto do arquivo fisico ativo (nao soft-deleted).
+     *
+     * @param int $id cedente_file.id
+     * @return string
+     */
+    public static function downloadFile($id)
+    {
+        $file = static::find((int) $id);
+        if (! $file) {
+            throw new Exception('O arquivo solicitado nao existe.');
+        }
+
+        $path = $file->absolutePath();
+        if (! is_file($path)) {
+            throw new Exception('Arquivo fisico nao encontrado.');
+        }
+
+        return $path;
+    }
+
+    /**
      * Gera ZIP com todos os arquivos ativos (nao soft-deleted) do cedente.
      *
      * @param int $cedenteId

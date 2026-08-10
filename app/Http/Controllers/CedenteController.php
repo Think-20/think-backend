@@ -367,6 +367,45 @@ class CedenteController extends Controller
     }
 
     /**
+     * GET /cedentes/arquivos/download/{id}?fund_id=
+     * Binario de um arquivo ativo do cedente (id = cedente_file.id).
+     */
+    public static function downloadArquivo(Request $request, $id)
+    {
+        try {
+            $data = self::payloadWithFund($request);
+            $fundId = CedenteService::resolveFundId($data);
+            CedentePermissionService::assertCanDownloadArquivos($fundId);
+
+            $file = CedenteFile::with('cedente')->find((int) $id);
+            if (! $file || ! $file->cedente) {
+                return response()->json(['error' => 'true', 'message' => 'Arquivo nao encontrado'], 404);
+            }
+            if ((int) $file->cedente->fund_id !== (int) $fundId) {
+                return response()->json(['error' => 'true', 'message' => 'Arquivo nao pertence ao fundo informado'], 404);
+            }
+
+            $path = CedenteFile::downloadFile($id);
+            $mime = function_exists('mime_content_type') ? mime_content_type($path) : 'application/octet-stream';
+            $downloadName = $file->original_name ?: $file->name;
+
+            return Response::make(file_get_contents($path), 200, [
+                'Content-Type' => $mime ?: 'application/octet-stream',
+                'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $downloadName) . '"',
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
+        } catch (Exception $e) {
+            Log::error('Cedente downloadArquivo: ' . $e->getMessage(), ['exception' => $e]);
+
+            return response()->json([
+                'error' => 'true',
+                'message' => $e->getMessage(),
+            ], 404);
+        }
+    }
+
+    /**
      * GET /cedentes/arquivos/download-all/{id}?fund_id=
      * ZIP com todos os arquivos ativos do cedente.
      */

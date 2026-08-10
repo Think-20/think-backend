@@ -125,6 +125,8 @@ x-frontend-guide:
 
         **Visualizar um arquivo:** `GET /cedente-files/view/{id}` — `{id}` = **`cedente_file.id`** (igual ao padrão de `/briefing-files/view/{id}`). Retorna o binário com `Content-Type: */*`.
 
+        **Download de um arquivo:** `GET /cedentes/arquivos/download/{id}?fund_id=` — `{id}` = **`cedente_file.id`**. Requer auth + `fund_id`. Retorna o binário com `Content-Disposition: attachment`.
+
         **Download ZIP:** `GET /cedentes/arquivos/download-all/{id}?fund_id=` — zip com todos os arquivos **ativos** (não soft-deleted), organizados por pasta do tipo de documento.
 
     - id: avaliacao
@@ -619,6 +621,51 @@ paths:
                 format: binary
         "404":
           description: Arquivo não encontrado
+
+  /cedentes/arquivos/download/{id}:
+    get:
+      tags: [Cedente]
+      operationId: downloadArquivoCedente
+      summary: Download de um arquivo do cedente
+      description: |
+        Retorna o binário de **um** arquivo ativo (`cedente_file`), com auth.
+        Path **`id`** = **`cedente_file.id`**. Query **`fund_id` obrigatória**.
+        Soft-deleted / recusados não entram. `Content-Disposition: attachment`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do registro em `cedente_file` (não é o id do cedente)
+          schema:
+            type: integer
+            minimum: 1
+        - name: fund_id
+          in: query
+          required: true
+          description: ID do fundo (obrigatório). Inteiro ≥ 1; fundo deve existir.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Conteúdo do arquivo
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: fund_id inválido ou sem permissão de fundo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Arquivo não encontrado ou fora do fundo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
 
   /cedentes/arquivos/download-all/{id}:
     get:
