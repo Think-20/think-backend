@@ -224,11 +224,7 @@ class User extends Model
         }
 
         $role = CedenteRole::forEmployee($user->employee->id);
-        $payload = $role ? [
-            'id' => (int) $role->id,
-            'code' => $role->code,
-            'name' => $role->name,
-        ] : null;
+        $payload = $role ? $role->toApiArray() : null;
 
         $user->cedente_role = $payload;
         $user->employee->cedente_role = $payload;

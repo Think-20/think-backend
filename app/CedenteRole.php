@@ -23,10 +23,41 @@ class CedenteRole extends Model
     public const ID_AVALISTA = 2;
     public const ID_ADMINISTRADOR = 3;
 
+    /** Label exibida na API para o papel id 2 (code continua `avalista`). */
+    public const LABEL_APROVADOR = 'Aprovador';
+
     public function employees()
     {
         return $this->belongsToMany(Employee::class, 'cedente_role_employee', 'cedente_role_id', 'employee_id')
             ->withTimestamps();
+    }
+
+    /**
+     * Nome amigável para resposta da API (avalista → Aprovador).
+     *
+     * @return string
+     */
+    public function displayName()
+    {
+        if ((int) $this->id === self::ID_AVALISTA || $this->code === self::CODE_AVALISTA) {
+            return self::LABEL_APROVADOR;
+        }
+
+        return $this->name;
+    }
+
+    /**
+     * Payload padrão `{ id, code, name }` para login / user.
+     *
+     * @return array{id: int, code: string, name: string}
+     */
+    public function toApiArray()
+    {
+        return [
+            'id' => (int) $this->id,
+            'code' => $this->code,
+            'name' => $this->displayName(),
+        ];
     }
 
     /**

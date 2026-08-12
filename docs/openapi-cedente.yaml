@@ -859,6 +859,7 @@ components:
             `cedente_role_employee`; **`null`** quando não há papel (front trata como admin de cedente).
             Também espelhado em `employee.cedente_role`.
             Codes: `preenchimento` | `avalista` | `administrador`.
+            Para `code: avalista` (id 2), o `name` retornado na API é sempre **`Aprovador`**.
           type: object
           additionalProperties: true
           properties:
@@ -874,6 +875,7 @@ components:
                   enum: [preenchimento, avalista, administrador]
                 name:
                   type: string
+                  description: Label amigável. `avalista` → `Aprovador`.
 
     CheckTokenResponse:
       type: object

@@ -44,7 +44,7 @@ class CreateCedenteRoleTables extends Migration
             ],
             [
                 'code' => 'avalista',
-                'name' => 'Avalista',
+                'name' => 'Aprovador',
                 'created_at' => $now,
                 'updated_at' => $now,
             ],
