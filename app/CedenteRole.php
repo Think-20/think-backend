@@ -18,6 +18,11 @@ class CedenteRole extends Model
     public const CODE_AVALISTA = 'avalista';
     public const CODE_ADMINISTRADOR = 'administrador';
 
+    /** IDs canônicos do seed (migrations) — use estes nas regras de permissão. */
+    public const ID_PREENCHIMENTO = 1;
+    public const ID_AVALISTA = 2;
+    public const ID_ADMINISTRADOR = 3;
+
     public function employees()
     {
         return $this->belongsToMany(Employee::class, 'cedente_role_employee', 'cedente_role_id', 'employee_id')
@@ -50,6 +55,17 @@ class CedenteRole extends Model
                     ->where('employee_id', (int) $employeeId);
             })
             ->first();
+    }
+
+    /**
+     * @param int $employeeId
+     * @return int|null
+     */
+    public static function idForEmployee($employeeId)
+    {
+        $role = static::forEmployee($employeeId);
+
+        return $role ? (int) $role->id : null;
     }
 
     /**

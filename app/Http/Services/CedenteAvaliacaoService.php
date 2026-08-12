@@ -151,17 +151,13 @@ class CedenteAvaliacaoService
 
     /**
      * Persiste a observacao do avalista como inconsistencia (mesmo formato SERPRO).
-     * Uma unica linha `aprovador` por cedente.
+     * Acumula linhas `aprovador` — cada solicitação de correção gera uma nova.
      *
      * @param Cedente $cedente
      * @param string $observacao
      */
     private static function syncInconsistenciaAprovador(Cedente $cedente, $observacao)
     {
-        CedenteInconsistencia::where('cedente_id', (int) $cedente->id)
-            ->where('campo_inconsistente', CedenteInconsistencia::CAMPO_APROVADOR)
-            ->delete();
-
         CedenteInconsistencia::create([
             'cedente_id' => (int) $cedente->id,
             'campo_inconsistente' => CedenteInconsistencia::CAMPO_APROVADOR,

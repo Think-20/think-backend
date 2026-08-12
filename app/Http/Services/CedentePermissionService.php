@@ -16,10 +16,10 @@ use InvalidArgumentException;
  * - employee sem nenhum fundo atrelado: acessa todos;
  * - sempre exige fund_id valido e existente.
  *
- * Papeis:
- * - preenchimento: cria/edita rascunho e inconsistente; nao avalia nem valida arquivo.
- * - avalista: visualiza qualquer status; avalia e valida arquivo; nao edita formulario.
- * - administrador: sem restricoes de papel adicionais (ainda respeita fundo).
+ * Papeis (por id em cedente_role; nao depende de code/name):
+ * - 1 preenchimento: cria/edita rascunho e inconsistente; nao avalia nem valida arquivo.
+ * - 2 avalista (aprovador): visualiza qualquer status; avalia e valida arquivo; nao edita formulario.
+ * - 3 administrador: sem restricoes de papel adicionais (ainda respeita fundo).
  */
 class CedentePermissionService
 {
@@ -40,6 +40,14 @@ class CedentePermissionService
     }
 
     /**
+     * @return int|null id em cedente_role (1 preenchimento, 2 avalista, 3 administrador)
+     */
+    public static function currentRoleId()
+    {
+        return CedenteRole::idForEmployee(self::currentEmployeeId());
+    }
+
+    /**
      * @return string|null preenchimento|avalista|administrador|null
      */
     public static function currentRoleCode()
@@ -52,15 +60,17 @@ class CedentePermissionService
      */
     public static function isPreenchimento()
     {
-        return self::currentRoleCode() === CedenteRole::CODE_PREENCHIMENTO;
+        return self::currentRoleId() === CedenteRole::ID_PREENCHIMENTO;
     }
 
     /**
+     * Avalista / aprovador = cedente_role.id 2
+     *
      * @return bool
      */
     public static function isAvalista()
     {
-        return self::currentRoleCode() === CedenteRole::CODE_AVALISTA;
+        return self::currentRoleId() === CedenteRole::ID_AVALISTA;
     }
 
     /**
@@ -68,7 +78,7 @@ class CedentePermissionService
      */
     public static function isAdministrador()
     {
-        return self::currentRoleCode() === CedenteRole::CODE_ADMINISTRADOR;
+        return self::currentRoleId() === CedenteRole::ID_ADMINISTRADOR;
     }
 
     /**

@@ -477,7 +477,7 @@ paths:
         Efeitos:
 
         - `aprovado` → `status: aprovado`, `sla` = hoje + N meses
-        - `solicitar_correcoes` → `status: inconsistente` + inconsistência `{ campo_inconsistente: "aprovador", valor_serpro: <observacao> }` (resultado da avaliação continua `solicitar_correcoes` no histórico). Qualquer correção do preenchimento remove essa linha e, sem outras pendências, devolve a `pendente`.
+        - `solicitar_correcoes` → `status: inconsistente` + **nova** inconsistência `{ campo_inconsistente: "aprovador", valor_serpro: <observacao> }` (acumula se houver outras). Qualquer correção do preenchimento remove **todas** as linhas `aprovador` e, sem outras pendências, devolve a `pendente`.
         - `rejeitado` / `recusado` → `status: rejeitado`
 
         Eventos no histórico: `avaliacao_registrada` e, se o status mudou, `status_alterado`.
