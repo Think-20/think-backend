@@ -1880,9 +1880,9 @@ components:
             - `validacao_serpro_chamada` — chamada à API SERPRO (Sistema)
             - `validacao_serpro` — resultado da SERPRO (ou skip se Vadu cancelou / SERPRO desligada)
             - `validacao_serpro_erro` — falha na consulta SERPRO (Sistema)
-            - `validacao_vadu_chamada` — chamada à API Vadu (Sistema)
-            - `validacao_vadu` — resultado da Vadu (ou skip se desligada)
-            - `validacao_vadu_erro` — falha na consulta Vadu (Sistema)
+            - `validacao_vadu_chamada` — Validacao Vadu iniciada
+            - `validacao_vadu` — resultado (`changes.resultado`: `ok` | `restricao` | `nao_executada` | `nao_concluida`; `executada`/`sucesso`)
+            - `validacao_vadu_erro` — Validacao Vadu falhou (`resultado: erro`)
             - `arquivo_validado` — analista aprovou um arquivo
             - `arquivo_recusado` — analista recusou um arquivo
             - `avaliacao_registrada` — analista registrou aprovação, correções ou rejeição

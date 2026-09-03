@@ -38,6 +38,11 @@ class CurlHttp
             $body = (string) $options['body'];
         }
 
+        // IIS/alguns hosts exigem Content-Length em POST/PUT/PATCH (HTTP 411).
+        if ($body === null && in_array($method, ['POST', 'PUT', 'PATCH'], true)) {
+            $body = '';
+        }
+
         if (function_exists('curl_init')) {
             return self::viaPhpCurl($method, $url, $headers, $body, $auth, $verify, $timeout);
         }
@@ -89,6 +94,10 @@ class CurlHttp
 
         if ($body !== null && $method !== 'GET' && $method !== 'HEAD') {
             $opts[CURLOPT_POSTFIELDS] = $body;
+            if ($body === '' && ! self::hasHeader($headers, 'Content-Length')) {
+                $headerLines[] = 'Content-Length: 0';
+                $opts[CURLOPT_HTTPHEADER] = $headerLines;
+            }
         }
 
         if ($auth !== null && isset($auth[0], $auth[1])) {
@@ -154,6 +163,10 @@ class CurlHttp
         if ($body !== null && $method !== 'GET' && $method !== 'HEAD') {
             $cmd[] = '--data-binary';
             $cmd[] = escapeshellarg($body);
+            if ($body === '' && ! self::hasHeader($headers, 'Content-Length')) {
+                $cmd[] = '-H';
+                $cmd[] = escapeshellarg('Content-Length: 0');
+            }
         }
 
         $cmd[] = escapeshellarg($url);

@@ -154,7 +154,9 @@ class VaduApi
             'headers' => [
                 'Accept' => 'application/json',
                 'Authorization' => 'Bearer ' . $token,
+                'Content-Length' => '0',
             ],
+            'body' => '',
             'verify' => self::sslVerify(),
             'timeout' => (int) config('services.vadu.timeout', 60),
         ]);

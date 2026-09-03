@@ -1341,6 +1341,7 @@ class CedenteService
     /**
      * Consulta Vadu e persiste restricoes.
      * Com restricao: status vira cancelado (definitivo enquanto houver restricao Vadu).
+     * Sempre grava no historico se rodou, se foi pulada, e o resultado.
      *
      * @param Cedente $cedente
      * @param string $statusInicial
@@ -1354,7 +1355,10 @@ class CedenteService
                 $cedente->status ?: Cedente::STATUS_PENDENTE,
                 $statusInicial,
                 [
-                    'descricao' => 'Vadu desabilitado (VADU_ENABLED=false); consulta de restricoes nao executada',
+                    'descricao' => 'Validacao Vadu nao executada: VADU_ENABLED=false',
+                    'executada' => false,
+                    'sucesso' => null,
+                    'resultado' => 'nao_executada',
                     'skipped' => true,
                     'vadu_enabled' => false,
                 ]
@@ -1371,7 +1375,8 @@ class CedenteService
             $statusAtual,
             null,
             [
-                'descricao' => 'Consulta a API Vadu (restricoes) iniciada',
+                'descricao' => 'Validacao Vadu iniciada: consultando API de restricoes',
+                'executada' => true,
                 'documento' => $cedente->documento,
             ]
         );
@@ -1387,7 +1392,10 @@ class CedenteService
                 $statusApos,
                 $statusInicial,
                 [
-                    'descricao' => 'Erro ao consultar a API Vadu',
+                    'descricao' => 'Validacao Vadu falhou: erro ao consultar a API',
+                    'executada' => true,
+                    'sucesso' => false,
+                    'resultado' => 'erro',
                     'erro' => $vaduResult['error_message'],
                 ]
             );
@@ -1396,12 +1404,26 @@ class CedenteService
         }
 
         if (empty($vaduResult['consulted'])) {
+            self::recordSystemAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_VALIDACAO_VADU,
+                $statusApos,
+                $statusInicial,
+                [
+                    'descricao' => 'Validacao Vadu nao concluida: consulta nao retornou resultado',
+                    'executada' => false,
+                    'sucesso' => false,
+                    'resultado' => 'nao_concluida',
+                ]
+            );
+
             return;
         }
 
         $restricoes = isset($vaduResult['restricoes']) ? $vaduResult['restricoes'] : [];
         $socios = [];
         $codigos = [];
+        $detalhes = [];
         foreach ($restricoes as $item) {
             if (is_object($item) && ! empty($item->socio_nome)) {
                 $socios[] = $item->socio_nome;
@@ -1409,10 +1431,26 @@ class CedenteService
             if (is_object($item) && ! empty($item->codigo)) {
                 $codigos[] = $item->codigo;
             }
+            if (is_object($item) && ! empty($item->descricao)) {
+                $detalhes[] = $item->descricao;
+            }
         }
 
         $temRestricao = ! empty($restricoes);
         $statusAlterado = ! empty($vaduResult['status_alterado']);
+
+        if ($temRestricao) {
+            $descricao = 'Validacao Vadu concluida com restricao: cedente cancelado e travado';
+            if (! empty($detalhes)) {
+                $descricao .= ' (' . implode('; ', array_slice($detalhes, 0, 3)) . ')';
+            }
+            $resultado = 'restricao';
+            $sucesso = false;
+        } else {
+            $descricao = 'Validacao Vadu concluida com sucesso: nenhuma restricao encontrada';
+            $resultado = 'ok';
+            $sucesso = true;
+        }
 
         self::recordSystemAudit(
             $cedente->id,
@@ -1420,9 +1458,10 @@ class CedenteService
             $statusApos,
             $statusInicial,
             [
-                'descricao' => $temRestricao
-                    ? 'Validacao Vadu concluida com restricoes; cedente passou para cancelado'
-                    : 'Consulta Vadu concluida sem restricoes',
+                'descricao' => $descricao,
+                'executada' => true,
+                'sucesso' => $sucesso,
+                'resultado' => $resultado,
                 'restricoes_count' => count($restricoes),
                 'codigos' => $codigos,
                 'socios' => $socios,
@@ -1440,7 +1479,7 @@ class CedenteService
                     'descricao' => self::auditDescricaoStatusAlterado(
                         isset($vaduResult['status_anterior']) ? $vaduResult['status_anterior'] : $statusInicial,
                         Cedente::STATUS_CANCELADO
-                    ),
+                    ) . ' (motivo: restricao Vadu)',
                     'motivo' => 'restricoes_vadu',
                     'travado' => true,
                 ]
