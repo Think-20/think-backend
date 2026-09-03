@@ -297,10 +297,10 @@ class Employee extends Model implements NotifierInterface
         DB::beginTransaction();
 
         try {
-            $employee = new Employee($data);
+            $employee = new Employee();
             $employee->name = $name;
-            $employee->department_id = isset($data['department']['id']) ? $data['department']['id'] : null;
-            $employee->position_id = isset($data['position']['id']) ? $data['position']['id'] : null;
+            $employee->department_id = self::resolveCedenteDepartmentId($data);
+            $employee->position_id = self::resolveCedentePositionId($data);
             $employee->updated_by = User::logged()->employee->id;
             $employee->image = isset($data['image']) ? $data['image'] : 'sem-foto.jpg';
             $employee->save();
@@ -365,10 +365,14 @@ class Employee extends Model implements NotifierInterface
                 $employee->name = trim((string) $data['name']);
             }
             if (array_key_exists('department', $data)) {
-                $employee->department_id = isset($data['department']['id']) ? $data['department']['id'] : null;
+                $employee->department_id = isset($data['department']['id']) && (int) $data['department']['id'] > 0
+                    ? (int) $data['department']['id']
+                    : self::resolveCedenteDepartmentId($data);
             }
             if (array_key_exists('position', $data)) {
-                $employee->position_id = isset($data['position']['id']) ? $data['position']['id'] : null;
+                $employee->position_id = isset($data['position']['id']) && (int) $data['position']['id'] > 0
+                    ? (int) $data['position']['id']
+                    : self::resolveCedentePositionId($data);
             }
             if (isset($data['image'])) {
                 $employee->image = $data['image'];
@@ -493,6 +497,120 @@ class Employee extends Model implements NotifierInterface
         }
 
         return $password;
+    }
+
+    /**
+     * department_id obrigatorio na tabela employee. Para usuarios so do modulo cedente,
+     * usa valor do front se enviado; senao CEDENTE_EMPLOYEE_DEPARTMENT_ID ou um departamento
+     * sem privilegios especiais do jobs (evita 1=diretoria, 4=atendimento).
+     *
+     * @param array $data
+     * @return int
+     */
+    public static function resolveCedenteDepartmentId(array $data = [])
+    {
+        if (isset($data['department']['id']) && (int) $data['department']['id'] > 0) {
+            $id = (int) $data['department']['id'];
+            if (Department::find($id)) {
+                return $id;
+            }
+            throw new InvalidArgumentException('department informado nao existe');
+        }
+
+        if (isset($data['department_id']) && (int) $data['department_id'] > 0) {
+            $id = (int) $data['department_id'];
+            if (Department::find($id)) {
+                return $id;
+            }
+            throw new InvalidArgumentException('department_id informado nao existe');
+        }
+
+        $configured = env('CEDENTE_EMPLOYEE_DEPARTMENT_ID');
+        if ($configured !== null && $configured !== '') {
+            $id = (int) $configured;
+            if ($id > 0 && Department::find($id)) {
+                return $id;
+            }
+        }
+
+        $cedenteDept = Department::where('description', 'like', '%cedente%')
+            ->orderBy('id', 'asc')
+            ->first();
+        if ($cedenteDept) {
+            return (int) $cedenteDept->id;
+        }
+
+        // 1 = diretoria (dashboard jobs); 4 = atendimento (notificacoes de clientes)
+        $safe = Department::whereNotIn('id', [1, 4])->orderBy('id', 'asc')->first();
+        if ($safe) {
+            return (int) $safe->id;
+        }
+
+        $any = Department::orderBy('id', 'asc')->first();
+        if ($any) {
+            return (int) $any->id;
+        }
+
+        throw new InvalidArgumentException(
+            'Nenhum departamento cadastrado. Defina CEDENTE_EMPLOYEE_DEPARTMENT_ID no .env'
+        );
+    }
+
+    /**
+     * position_id obrigatorio na tabela employee. Cargo generico para modulo cedente
+     * (evita combos especiais do jobs, ex.: dept 5 + position 7).
+     *
+     * @param array $data
+     * @return int
+     */
+    public static function resolveCedentePositionId(array $data = [])
+    {
+        if (isset($data['position']['id']) && (int) $data['position']['id'] > 0) {
+            $id = (int) $data['position']['id'];
+            if (Position::find($id)) {
+                return $id;
+            }
+            throw new InvalidArgumentException('position informado nao existe');
+        }
+
+        if (isset($data['position_id']) && (int) $data['position_id'] > 0) {
+            $id = (int) $data['position_id'];
+            if (Position::find($id)) {
+                return $id;
+            }
+            throw new InvalidArgumentException('position_id informado nao existe');
+        }
+
+        $configured = env('CEDENTE_EMPLOYEE_POSITION_ID');
+        if ($configured !== null && $configured !== '') {
+            $id = (int) $configured;
+            if ($id > 0 && Position::find($id)) {
+                return $id;
+            }
+        }
+
+        $cedentePos = Position::where('description', 'like', '%cedente%')
+            ->orWhere('name', 'like', '%cedente%')
+            ->orderBy('id', 'asc')
+            ->first();
+        if ($cedentePos) {
+            return (int) $cedentePos->id;
+        }
+
+        // 6 e 7 tem regras especiais no cadastro de jobs
+        $safe = Position::whereNotIn('id', [6, 7])->orderBy('id', 'asc')->first();
+        if ($safe) {
+            return (int) $safe->id;
+        }
+
+        $any = Position::orderBy('id', 'asc')->first();
+        if ($any) {
+            return (int) $any->id;
+        }
+
+        throw new InvalidArgumentException(
+            'Nenhum cargo cadastrado. Defina CEDENTE_EMPLOYEE_POSITION_ID no .env'
+        );
     }
 
     /**
