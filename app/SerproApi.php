@@ -2,9 +2,8 @@
 
 namespace App;
 
+use App\Support\CurlHttp;
 use Exception;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Cache;
 
 class SerproApi
@@ -25,24 +24,22 @@ class SerproApi
 
         try {
             return self::requestQsa($cnpj, $token);
-        } catch (RequestException $e) {
+        } catch (Exception $e) {
             if (! self::shouldRetryWithAlternateToken($e)) {
-                throw new Exception('Erro ao consultar QSA no SERPRO: ' . self::requestExceptionMessage($e));
+                throw new Exception('Erro ao consultar QSA no SERPRO: ' . $e->getMessage());
             }
 
             $token = self::resolveAlternateAccessToken($token);
 
             try {
                 return self::requestQsa($cnpj, $token);
-            } catch (RequestException $retryException) {
-                throw new Exception('Erro ao consultar QSA no SERPRO: ' . self::requestExceptionMessage($retryException));
+            } catch (Exception $retryException) {
+                throw new Exception('Erro ao consultar QSA no SERPRO: ' . $retryException->getMessage());
             }
         }
     }
 
     /**
-     * Obtem bearer token via POST /token (USERNAME + PASSWORD) e persiste em cache.
-     *
      * @return string
      */
     public static function bearerSerpro()
@@ -51,9 +48,6 @@ class SerproApi
     }
 
     /**
-     * OAuth via Consumer Key/Secret. Bearer estatico (SERPRO_BEARER_TOKEN) e fallback
-     * se o POST /token falhar (SSL/fopen no servidor, 401, etc.).
-     *
      * @return string
      */
     private static function resolveAccessToken()
@@ -76,8 +70,6 @@ class SerproApi
     }
 
     /**
-     * Em 401/403/900908, tenta o outro meio de autenticacao.
-     *
      * @param string $currentToken
      * @return string
      */
@@ -101,8 +93,6 @@ class SerproApi
     }
 
     /**
-     * Sempre gera um novo access_token via OAuth (igual ao Postman: USERNAME + PASSWORD).
-     *
      * @return string
      */
     private static function refreshAccessToken()
@@ -134,34 +124,32 @@ class SerproApi
 
         if ($username === '' || $password === '') {
             throw new Exception(
-                'Credenciais SERPRO nao configuradas. No .env do servidor PHP use SERPRO_USERNAME (Consumer Key) e SERPRO_PASSWORD (Consumer Secret) da Area do Cliente SERPRO — nao e o e-mail/senha de login da Think. Depois: php artisan config:clear'
+                'Credenciais SERPRO nao configuradas. Use SERPRO_USERNAME (Consumer Key) e SERPRO_PASSWORD (Consumer Secret). Depois: php artisan config:clear'
             );
         }
 
-        $client = new Client();
+        $response = CurlHttp::request('POST', self::tokenUrl(), [
+            'auth' => [$username, $password],
+            'headers' => [
+                'Accept' => 'application/json',
+            ],
+            'form_params' => [
+                'grant_type' => 'client_credentials',
+            ],
+            'verify' => self::sslVerify(),
+        ]);
 
-        try {
-            $response = $client->request('POST', self::tokenUrl(), array_merge(self::requestOptions(), [
-                'auth' => [$username, $password],
-                'headers' => [
-                    'Accept' => 'application/json',
-                    'Content-Type' => 'application/x-www-form-urlencoded',
-                ],
-                'form_params' => [
-                    'grant_type' => 'client_credentials',
-                ],
-            ]));
-
-            $data = json_decode($response->getBody(), true);
-
-            if (! is_array($data)) {
-                throw new Exception('Resposta SERPRO invalida ao obter token.');
-            }
-
-            return $data;
-        } catch (RequestException $e) {
-            throw new Exception('Erro ao obter bearer token no SERPRO: ' . self::requestExceptionMessage($e));
+        if ($response['status'] < 200 || $response['status'] >= 300) {
+            throw new Exception('Erro ao obter bearer token no SERPRO: HTTP ' . $response['status'] . ' ' . $response['body']);
         }
+
+        $data = json_decode($response['body'], true);
+
+        if (! is_array($data)) {
+            throw new Exception('Resposta SERPRO invalida ao obter token.');
+        }
+
+        return $data;
     }
 
     /**
@@ -181,16 +169,23 @@ class SerproApi
      */
     private static function requestQsa($cnpj, $token)
     {
-        $client = new Client();
-
-        $response = $client->request('GET', self::qsaUrl() . $cnpj, array_merge(self::requestOptions(), [
+        $response = CurlHttp::request('GET', self::qsaUrl() . $cnpj, [
             'headers' => [
                 'Accept' => 'application/json',
                 'Authorization' => self::authorizationHeader($token),
             ],
-        ]));
+            'verify' => self::sslVerify(),
+        ]);
 
-        return json_decode($response->getBody(), true);
+        if (self::isAuthFailureStatus($response['status'], $response['body'])) {
+            throw new SerproAuthException($response['body'], $response['status']);
+        }
+
+        if ($response['status'] < 200 || $response['status'] >= 300) {
+            throw new Exception('HTTP ' . $response['status'] . ' ' . $response['body']);
+        }
+
+        return json_decode($response['body'], true);
     }
 
     /**
@@ -215,9 +210,6 @@ class SerproApi
     }
 
     /**
-     * Converte expires_in (segundos) para minutos do Cache do Laravel 5.6.
-     * Renova um pouco antes do vencimento informado pela SERPRO.
-     *
      * @param array $data
      * @return int
      */
@@ -235,36 +227,36 @@ class SerproApi
     }
 
     /**
-     * @param RequestException $e
+     * @param Exception $e
      * @return bool
      */
-    private static function shouldRetryWithAlternateToken(RequestException $e)
+    private static function shouldRetryWithAlternateToken(Exception $e)
     {
-        if (! $e->hasResponse()) {
-            return false;
+        if ($e instanceof SerproAuthException) {
+            return true;
         }
 
-        $status = $e->getResponse()->getStatusCode();
+        $message = $e->getMessage();
+
+        return strpos($message, '900908') !== false
+            || strpos($message, '900901') !== false
+            || strpos($message, '900902') !== false;
+    }
+
+    /**
+     * @param int $status
+     * @param string $body
+     * @return bool
+     */
+    private static function isAuthFailureStatus($status, $body)
+    {
         if ($status === 401 || $status === 403) {
             return true;
         }
 
-        $body = (string) $e->getResponse()->getBody();
-
         return strpos($body, '900908') !== false
             || strpos($body, '900901') !== false
             || strpos($body, '900902') !== false;
-    }
-
-    /**
-     * @param RequestException $e
-     * @return string
-     */
-    private static function requestExceptionMessage(RequestException $e)
-    {
-        return $e->hasResponse()
-            ? (string) $e->getResponse()->getBody()
-            : $e->getMessage();
     }
 
     /**
@@ -283,19 +275,17 @@ class SerproApi
     }
 
     /**
-     * @return array
+     * @return bool
      */
-    private static function requestOptions()
+    private static function sslVerify()
     {
         $verify = config('services.serpro.ssl_verify');
 
         if ($verify === null || $verify === '') {
-            $verify = config('app.env') === 'local' ? false : true;
-        } else {
-            $verify = filter_var($verify, FILTER_VALIDATE_BOOLEAN);
+            return config('app.env') !== 'local';
         }
 
-        return ['verify' => $verify];
+        return filter_var($verify, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**

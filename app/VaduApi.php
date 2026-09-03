@@ -2,19 +2,16 @@
 
 namespace App;
 
+use App\Support\CurlHttp;
 use Exception;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Cliente Vadu/CreditBox.
  *
- * Fluxo (igual SERPRO):
- * 1) GET JSONPegarToken com Bearer master (VADU_TOKEN) → token temporario em "token"
- * 2) POST ServicoAnaliseOperacao/Consulta/{cnpj} com Bearer do token temporario
- * 3) Em 401/403, renova o token temporario e tenta de novo
+ * 1) GET JSONPegarToken com Bearer master (VADU_TOKEN) → token temporario
+ * 2) POST Consulta/{cnpj} com Bearer do token temporario
+ * 3) Em 401/403, renova o token e tenta de novo
  */
 class VaduApi
 {
@@ -24,8 +21,6 @@ class VaduApi
     const DEFAULT_CONSULTA_BASE = 'https://www.vadu.com.br/vadu.dll/ServicoAnaliseOperacao/Consulta';
 
     /**
-     * Consulta CNPJ/CPF na Vadu e devolve o payload bruto.
-     *
      * @param string $documento
      * @return array
      */
@@ -44,24 +39,20 @@ class VaduApi
 
         try {
             return self::requestConsulta($documento, $token);
-        } catch (RequestException $e) {
-            if (! self::shouldRefreshToken($e)) {
-                throw new Exception('Erro ao consultar Vadu: ' . self::requestExceptionMessage($e));
-            }
-
+        } catch (VaduAuthException $e) {
             $token = self::refreshAccessToken();
 
             try {
                 return self::requestConsulta($documento, $token);
-            } catch (RequestException $retry) {
-                throw new Exception('Erro ao consultar Vadu: ' . self::requestExceptionMessage($retry));
+            } catch (Exception $retry) {
+                throw new Exception('Erro ao consultar Vadu: ' . $retry->getMessage());
             }
+        } catch (Exception $e) {
+            throw new Exception('Erro ao consultar Vadu: ' . $e->getMessage());
         }
     }
 
     /**
-     * Alias usado pelo CedenteVaduService.
-     *
      * @param string $documento
      * @return array
      */
@@ -71,8 +62,6 @@ class VaduApi
     }
 
     /**
-     * GET CreditBox JSONPegarToken com Bearer master → grava token temporario.
-     *
      * @return string
      */
     public static function pegarToken()
@@ -115,40 +104,41 @@ class VaduApi
             throw new Exception('VADU_TOKEN (token master) nao configurado.');
         }
 
-        $client = new Client();
-        $url = self::tokenUrl();
+        $response = CurlHttp::request('GET', self::tokenUrl(), [
+            'headers' => [
+                'Accept' => 'application/json',
+                'Authorization' => 'Bearer ' . $master,
+            ],
+            'verify' => self::sslVerify(),
+            'timeout' => (int) config('services.vadu.timeout', 60),
+        ]);
 
-        try {
-            $response = $client->request('GET', $url, array_merge(self::requestOptions(), [
-                'headers' => [
-                    'Accept' => 'application/json',
-                    'Authorization' => 'Bearer ' . $master,
-                ],
-            ]));
-
-            $data = json_decode((string) $response->getBody(), true);
-            if (! is_array($data)) {
-                throw new Exception('Resposta invalida ao obter token Vadu (JSON esperado).');
-            }
-
-            $token = null;
-            if (! empty($data['token']) && is_scalar($data['token'])) {
-                $token = trim((string) $data['token']);
-            } elseif (! empty($data['Token']) && is_scalar($data['Token'])) {
-                $token = trim((string) $data['Token']);
-            }
-
-            if ($token === null || $token === '') {
-                throw new Exception('Resposta Vadu sem campo token.');
-            }
-
-            $ttl = max(1, (int) config('services.vadu.token_ttl_minutes', 50));
-            Cache::put(self::CACHE_KEY, $token, $ttl);
-
-            return $token;
-        } catch (RequestException $e) {
-            throw new Exception('Erro ao obter token temporario Vadu: ' . self::requestExceptionMessage($e));
+        if ($response['status'] < 200 || $response['status'] >= 300) {
+            throw new Exception(
+                'Erro ao obter token temporario Vadu: HTTP ' . $response['status'] . ' ' . self::bodySnippet($response['body'])
+            );
         }
+
+        $data = json_decode($response['body'], true);
+        if (! is_array($data)) {
+            throw new Exception('Resposta invalida ao obter token Vadu (JSON esperado).');
+        }
+
+        $token = null;
+        if (! empty($data['token']) && is_scalar($data['token'])) {
+            $token = trim((string) $data['token']);
+        } elseif (! empty($data['Token']) && is_scalar($data['Token'])) {
+            $token = trim((string) $data['Token']);
+        }
+
+        if ($token === null || $token === '') {
+            throw new Exception('Resposta Vadu sem campo token.');
+        }
+
+        $ttl = max(1, (int) config('services.vadu.token_ttl_minutes', 50));
+        Cache::put(self::CACHE_KEY, $token, $ttl);
+
+        return $token;
     }
 
     /**
@@ -158,17 +148,26 @@ class VaduApi
      */
     private static function requestConsulta($documento, $token)
     {
-        $client = new Client();
         $url = rtrim(self::consultaBaseUrl(), '/') . '/' . $documento;
 
-        $response = $client->request('POST', $url, array_merge(self::requestOptions(), [
+        $response = CurlHttp::request('POST', $url, [
             'headers' => [
                 'Accept' => 'application/json',
                 'Authorization' => 'Bearer ' . $token,
             ],
-        ]));
+            'verify' => self::sslVerify(),
+            'timeout' => (int) config('services.vadu.timeout', 60),
+        ]);
 
-        $data = json_decode((string) $response->getBody(), true);
+        if ($response['status'] === 401 || $response['status'] === 403) {
+            throw new VaduAuthException($response['body'], $response['status']);
+        }
+
+        if ($response['status'] < 200 || $response['status'] >= 300) {
+            throw new Exception('HTTP ' . $response['status'] . ' ' . self::bodySnippet($response['body']));
+        }
+
+        $data = json_decode($response['body'], true);
         if (! is_array($data)) {
             throw new Exception('Resposta Vadu invalida na consulta CNPJ (JSON esperado).');
         }
@@ -197,50 +196,29 @@ class VaduApi
     }
 
     /**
-     * @return array
+     * @return bool
      */
-    private static function requestOptions()
+    private static function sslVerify()
     {
         $verify = config('services.vadu.ssl_verify', true);
         if (is_string($verify)) {
-            $verify = ! in_array(strtolower($verify), ['false', '0', 'no', 'off'], true);
+            return ! in_array(strtolower($verify), ['false', '0', 'no', 'off'], true);
         }
 
-        return [
-            'http_errors' => true,
-            'verify' => (bool) $verify,
-            'timeout' => (int) config('services.vadu.timeout', 60),
-        ];
+        return (bool) $verify;
     }
 
     /**
-     * @param RequestException $e
-     * @return bool
-     */
-    private static function shouldRefreshToken(RequestException $e)
-    {
-        if (! $e->hasResponse()) {
-            return false;
-        }
-
-        $code = $e->getResponse()->getStatusCode();
-
-        return $code === 401 || $code === 403;
-    }
-
-    /**
-     * @param RequestException $e
+     * @param string $body
      * @return string
      */
-    private static function requestExceptionMessage(RequestException $e)
+    private static function bodySnippet($body)
     {
-        if ($e->hasResponse()) {
-            $body = (string) $e->getResponse()->getBody();
-            $snippet = mb_substr(trim(strip_tags($body)), 0, 400);
-
-            return $e->getMessage() . ($snippet !== '' ? ' | ' . $snippet : '');
+        $snippet = trim(strip_tags((string) $body));
+        if (function_exists('mb_substr')) {
+            return mb_substr($snippet, 0, 400);
         }
 
-        return $e->getMessage();
+        return substr($snippet, 0, 400);
     }
 }
