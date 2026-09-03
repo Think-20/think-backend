@@ -65,7 +65,7 @@ return [
     ],
 
     /*
-    | Vadu/CreditBox — restricoes apos SERPRO passar limpo.
+    | Vadu/CreditBox — restricoes (roda antes da SERPRO; flags independentes).
     | Token master (VADU_TOKEN) -> GET JSONPegarToken -> token temporario -> POST Consulta/{cnpj}
     | Com restricao o cedente vai para cancelado e fica travado enquanto houver restricao.
     */

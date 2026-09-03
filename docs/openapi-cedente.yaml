@@ -87,19 +87,19 @@ x-frontend-guide:
         | Contas de desembolso | Ao menos **1** conta com `tipo_conta`, `codigo_banco`, `agencia`, `numero_conta` |
         | Documentos | **Nenhum arquivo é obrigatório** para promoção a `pendente` (podem ser enviados depois) |
 
-        Quando **todos** os campos preenchíveis obrigatórios acima estiverem ok, o status passa automaticamente para **`pendente`** (com SLA de dias úteis) e dispara validações **SERPRO** e, se limpo, **Vadu**.
+        Quando **todos** os campos preenchíveis obrigatórios acima estiverem ok, o status passa automaticamente para **`pendente`** (com SLA de dias úteis) e dispara validações **Vadu** e **SERPRO** (independentes; Vadu primeiro).
 
         **Dica:** não tente forçar `status: pendente` no JSON enquanto o cadastro estiver incompleto; o backend mantém `rascunho` ou retorna erro 400.
 
     - id: serpro
       title: Validações SERPRO e Vadu (automáticas)
       content: |
-        Após promoção para `pendente`, o backend executa:
+        Após promoção para `pendente`, o backend executa (flags independentes):
 
-        1. **SERPRO** (QSA) — compara cadastro com Receita; preenche `inconsistencias` e pode ir para `inconsistente`.
-        2. Se SERPRO passou sem inconsistências, **Vadu** — grava `restricoes`; com restrição o status vira **`cancelado`** (travado).
+        1. **Vadu** — grava `restricoes`; com restrição o status vira **`cancelado`** (travado).
+        2. **SERPRO** (QSA) — só se a Vadu não cancelou; compara cadastro com Receita; preenche `inconsistencias` e pode ir para `inconsistente`.
 
-        Flags: `SERPRO_ENABLED` e `VADU_ENABLED` no `.env`. Se SERPRO estiver off, a Vadu também não roda.
+        Flags: `SERPRO_ENABLED` e `VADU_ENABLED` no `.env` (uma não depende da outra).
     - id: arquivos
       title: Arquivos (envio e resposta)
       content: |
@@ -1572,7 +1572,7 @@ components:
       description: |
         **`fund_id` obrigatório** em todo cadastro/edição (inteiro ≥ 1, fundo existente).
         Cadastro incompleto → status `rascunho`. `arquivos` sempre opcional — nenhum `document_type` é exigido para promoção a `pendente` (só campos preenchíveis obrigatórios).
-        No **PUT /cedente/edit**, `arquivos` é opcional; se enviado, substitui os anteriores. Após promoção a `pendente`: SERPRO e depois Vadu (se SERPRO limpo).
+        No **PUT /cedente/edit**, `arquivos` é opcional; se enviado, substitui os anteriores. Após promoção a `pendente`: Vadu e depois SERPRO (se a Vadu não cancelar).
       properties:
         fund_id:
           type: integer
@@ -1878,10 +1878,10 @@ components:
             - `status_alterado` — mudança de status (usuário ou sistema)
             - `validacao_iniciada` — início das validações automáticas (Sistema)
             - `validacao_serpro_chamada` — chamada à API SERPRO (Sistema)
-            - `validacao_serpro` — resultado da validação SERPRO (Sistema)
+            - `validacao_serpro` — resultado da SERPRO (ou skip se Vadu cancelou / SERPRO desligada)
             - `validacao_serpro_erro` — falha na consulta SERPRO (Sistema)
             - `validacao_vadu_chamada` — chamada à API Vadu (Sistema)
-            - `validacao_vadu` — resultado da Vadu, inclusive skip (SERPRO sujo / Vadu desligada)
+            - `validacao_vadu` — resultado da Vadu (ou skip se desligada)
             - `validacao_vadu_erro` — falha na consulta Vadu (Sistema)
             - `arquivo_validado` — analista aprovou um arquivo
             - `arquivo_recusado` — analista recusou um arquivo

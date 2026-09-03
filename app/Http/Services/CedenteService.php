@@ -408,14 +408,6 @@ class CedenteService
             );
         }
 
-        // SERPRO limpou inconsistencias e voltou para pendente: Vadu ainda nao tinha rodado.
-        if ($reconcileResult['status_alterado']
-            && $reconcileResult['status_novo'] === Cedente::STATUS_PENDENTE
-            && $reconcileResult['status_anterior'] === Cedente::STATUS_INCONSISTENTE) {
-            $cedente->refresh();
-            self::runVaduRestricoesAfterPendente($cedente, Cedente::STATUS_PENDENTE);
-        }
-
         if ($statusAtual !== $statusAntes && ! $reconcileResult['status_alterado']) {
             self::recordStatusAudit(
                 $cedente->id,
@@ -1032,7 +1024,7 @@ class CedenteService
 
     /**
      * Avalia completude após save e promove para pendente ou mantém rascunho.
-     * Arquivos nao entram na completude. Apos pendente: SERPRO e depois Vadu.
+     * Arquivos nao entram na completude. Apos pendente: Vadu e depois SERPRO (independentes).
      *
      * @param Cedente $cedente
      * @param array $data
@@ -1160,8 +1152,8 @@ class CedenteService
     /**
      * Promove cedente completo para pendente e aplica SLA.
      * Em seguida dispara validacoes automaticas:
-     * - SERPRO (inconsistencias) — se SERPRO_ENABLED
-     * - Vadu (restricoes) — so se SERPRO passou sem inconsistencias; restricao cancela o cedente
+     * - Vadu (restricoes) — se VADU_ENABLED; restricao cancela/trava o cedente
+     * - SERPRO (inconsistencias) — se SERPRO_ENABLED e o cedente nao foi travado pela Vadu
      *
      * @param Cedente $cedente
      * @param string|null $statusAnterior
@@ -1203,60 +1195,14 @@ class CedenteService
 
     /**
      * Validacoes automaticas apos o cadastro entrar em pendente.
-     * SERPRO primeiro (inconsistencias). Vadu so roda se SERPRO passou sem inconsistencias.
+     * Vadu primeiro (pode cancelar/travar). SERPRO depois, se nao travou.
+     * Flags independentes: VADU_ENABLED e SERPRO_ENABLED.
      *
      * @param Cedente $cedente
      * @param string $statusInicial
      */
     private static function runAutomaticValidationsAfterPendente(Cedente $cedente, $statusInicial)
     {
-        $serproPassed = self::runSerproValidationAfterPendente($cedente, $statusInicial);
-
-        if (! $serproPassed) {
-            self::recordSystemAudit(
-                $cedente->id,
-                CedenteAudit::EVENT_VALIDACAO_VADU,
-                $cedente->status ?: Cedente::STATUS_PENDENTE,
-                $statusInicial,
-                [
-                    'descricao' => 'Vadu nao consultada: SERPRO nao passou sem inconsistencias',
-                    'skipped' => true,
-                    'motivo' => 'serpro_nao_limpo',
-                ]
-            );
-
-            return;
-        }
-
-        self::runVaduRestricoesAfterPendente($cedente, $statusInicial);
-    }
-
-    /**
-     * Executa SERPRO se habilitado. Retorna true somente quando a validacao
-     * concluiu sem inconsistencias (pronto para Vadu).
-     *
-     * @param Cedente $cedente
-     * @param string $statusInicial
-     * @return bool
-     */
-    private static function runSerproValidationAfterPendente(Cedente $cedente, $statusInicial)
-    {
-        if (! self::isSerproEnabled()) {
-            // Sem SERPRO ativo o cedente ainda nao "passou" na validacao cadastral.
-            self::recordSystemAudit(
-                $cedente->id,
-                CedenteAudit::EVENT_VALIDACAO_SERPRO,
-                $cedente->status ?: Cedente::STATUS_PENDENTE,
-                $statusInicial,
-                [
-                    'descricao' => 'SERPRO desabilitado; Vadu nao sera consultada ate a validacao SERPRO passar sem inconsistencias',
-                    'serpro_enabled' => false,
-                ]
-            );
-
-            return false;
-        }
-
         self::recordSystemAudit(
             $cedente->id,
             CedenteAudit::EVENT_VALIDACAO_INICIADA,
@@ -1267,10 +1213,61 @@ class CedenteService
             ]
         );
 
+        self::runVaduRestricoesAfterPendente($cedente, $statusInicial);
+        $cedente->refresh();
+
+        // Travado pela Vadu: nao pede correcao SERPRO em cedente que ja vai ficar cancelado.
+        if (CedenteVaduService::isLockedByRestricao($cedente)
+            || ($cedente->status === Cedente::STATUS_CANCELADO)
+        ) {
+            self::recordSystemAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_VALIDACAO_SERPRO,
+                $cedente->status ?: Cedente::STATUS_CANCELADO,
+                $statusInicial,
+                [
+                    'descricao' => 'SERPRO nao consultada: cedente cancelado/travado pela Vadu',
+                    'skipped' => true,
+                    'motivo' => 'vadu_cancelado',
+                ]
+            );
+
+            return;
+        }
+
+        self::runSerproValidationAfterPendente($cedente, $statusInicial);
+    }
+
+    /**
+     * Executa SERPRO se habilitado (independente do resultado da Vadu, salvo cancelamento).
+     *
+     * @param Cedente $cedente
+     * @param string $statusInicial
+     */
+    private static function runSerproValidationAfterPendente(Cedente $cedente, $statusInicial)
+    {
+        if (! self::isSerproEnabled()) {
+            self::recordSystemAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_VALIDACAO_SERPRO,
+                $cedente->status ?: Cedente::STATUS_PENDENTE,
+                $statusInicial,
+                [
+                    'descricao' => 'SERPRO desabilitado (SERPRO_ENABLED=false); consulta nao executada',
+                    'skipped' => true,
+                    'serpro_enabled' => false,
+                ]
+            );
+
+            return;
+        }
+
+        $statusAntesSerpro = $cedente->status ?: Cedente::STATUS_PENDENTE;
+
         self::recordSystemAudit(
             $cedente->id,
             CedenteAudit::EVENT_VALIDACAO_SERPRO_CHAMADA,
-            $statusInicial,
+            $statusAntesSerpro,
             null,
             [
                 'descricao' => 'Consulta a API SERPRO (QSA) iniciada',
@@ -1294,11 +1291,11 @@ class CedenteService
                 ]
             );
 
-            return false;
+            return;
         }
 
         $inconsistencias = isset($serproResult['inconsistencias']) ? $serproResult['inconsistencias'] : [];
-        $validationChanges = self::buildSerproValidationChanges($inconsistencias, $statusInicial, $statusAtual);
+        $validationChanges = self::buildSerproValidationChanges($inconsistencias, $statusAntesSerpro, $statusAtual);
 
         if (empty($inconsistencias)) {
             $validationChanges['descricao'] = 'Validacao SERPRO concluida sem inconsistencias';
@@ -1314,20 +1311,18 @@ class CedenteService
             $validationChanges
         );
 
-        if ($statusAtual !== $statusInicial) {
+        if ($statusAtual !== $statusAntesSerpro) {
             self::recordSystemAudit(
                 $cedente->id,
                 CedenteAudit::EVENT_STATUS_ALTERADO,
                 $statusAtual,
-                $statusInicial,
+                $statusAntesSerpro,
                 [
-                    'descricao' => self::auditDescricaoStatusAlterado($statusInicial, $statusAtual),
+                    'descricao' => self::auditDescricaoStatusAlterado($statusAntesSerpro, $statusAtual),
                     'motivo' => 'inconsistencias_serpro',
                 ]
             );
         }
-
-        return empty($inconsistencias);
     }
 
     /**

@@ -357,7 +357,7 @@ O login desses usuários é o mesmo `POST /login` (`email` + `password` enviados
 | Avaliação `solicitar_correcoes` | `inconsistente` (`observacao` obrigatória + inconsistência `aprovador`) |
 | Avaliação `rejeitado` / `recusado` | `rejeitado` (`observacao` opcional) |
 
-Validação **SERPRO** (e, se limpa, **Vadu**) roda automaticamente após promoção a `pendente`. Flags: `SERPRO_ENABLED` e `VADU_ENABLED`.
+Validação **Vadu** (primeiro) e **SERPRO** (depois, se a Vadu não cancelar) rodam automaticamente após promoção a `pendente`. Flags independentes: `VADU_ENABLED` e `SERPRO_ENABLED`.
 
 ### Arquivos
 
