@@ -1221,7 +1221,7 @@ components:
           example: 1
         cedente_role:
           type: object
-          description: Alternativa a `cedente_role_id` (`{ "id": 1 }`).
+          description: 'Alternativa a `cedente_role_id` (`{ "id": 1 }`).'
           properties:
             id:
               type: integer

@@ -95,11 +95,13 @@ class SerproApi
      */
     private static function fetchAccessTokenFromSerpro()
     {
-        $username = config('services.serpro.username');
-        $password = config('services.serpro.password');
+        $username = self::credentialValue(config('services.serpro.username'));
+        $password = self::credentialValue(config('services.serpro.password'));
 
-        if (empty($username) || empty($password)) {
-            throw new Exception('Credenciais SERPRO nao configuradas (SERPRO_USERNAME / SERPRO_PASSWORD).');
+        if ($username === '' || $password === '') {
+            throw new Exception(
+                'Credenciais SERPRO nao configuradas. No .env do servidor PHP use SERPRO_USERNAME (Consumer Key) e SERPRO_PASSWORD (Consumer Secret) da Area do Cliente SERPRO — nao e o e-mail/senha de login da Think. Depois: php artisan config:clear'
+            );
         }
 
         $client = new Client();
@@ -250,5 +252,23 @@ class SerproApi
         }
 
         return ['verify' => $verify];
+    }
+
+    /**
+     * @param mixed $value
+     * @return string
+     */
+    private static function credentialValue($value)
+    {
+        if (! is_string($value) && ! is_numeric($value)) {
+            return '';
+        }
+
+        $text = trim((string) $value);
+        if ($text === '' || strtolower($text) === 'null') {
+            return '';
+        }
+
+        return $text;
     }
 }
