@@ -155,12 +155,7 @@ class CedenteVaduService
      */
     public static function extractRestricoesFromSocios(array $payload)
     {
-        $socios = [];
-        if (isset($payload['Socios']) && is_array($payload['Socios'])) {
-            $socios = $payload['Socios'];
-        } elseif (isset($payload['socios']) && is_array($payload['socios'])) {
-            $socios = $payload['socios'];
-        }
+        $socios = self::collectSocios($payload);
 
         $out = [];
         foreach ($socios as $index => $socio) {
@@ -199,6 +194,62 @@ class CedenteVaduService
         }
 
         return $out;
+    }
+
+    /**
+     * Localiza listas de socios no payload (raiz ou aninhado: Consulta/Dados/etc.).
+     *
+     * @param array $payload
+     * @return array<int, array>
+     */
+    private static function collectSocios(array $payload)
+    {
+        $found = [];
+        self::walkForSocios($payload, $found);
+
+        return $found;
+    }
+
+    /**
+     * @param mixed $node
+     * @param array<int, array> $found
+     */
+    private static function walkForSocios($node, array &$found)
+    {
+        if (! is_array($node)) {
+            return;
+        }
+
+        foreach (['Socios', 'socios'] as $key) {
+            if (! isset($node[$key]) || ! is_array($node[$key])) {
+                continue;
+            }
+
+            $list = $node[$key];
+            $looksLikeSocio = isset($list['Nome'])
+                || isset($list['nome'])
+                || isset($list['QualificacaoRepresentanteLegal'])
+                || isset($list['NomeRepresentanteLegal']);
+
+            if ($looksLikeSocio) {
+                $found[] = $list;
+            } else {
+                foreach ($list as $item) {
+                    if (is_array($item)) {
+                        $found[] = $item;
+                    }
+                }
+            }
+        }
+
+        foreach ($node as $key => $child) {
+            if ($key === 'Socios' || $key === 'socios') {
+                continue;
+            }
+            if (is_array($child)) {
+                self::walkForSocios($child, $found);
+            }
+        }
     }
 
     /**

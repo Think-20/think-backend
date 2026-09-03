@@ -406,7 +406,17 @@ class CedenteService
                     'descricao' => self::auditDescricaoStatusAlterado($reconcileResult['status_anterior'], $reconcileResult['status_novo']),
                 ]
             );
-        } elseif ($statusAtual !== $statusAntes && ! $reconcileResult['status_alterado']) {
+        }
+
+        // SERPRO limpou inconsistencias e voltou para pendente: Vadu ainda nao tinha rodado.
+        if ($reconcileResult['status_alterado']
+            && $reconcileResult['status_novo'] === Cedente::STATUS_PENDENTE
+            && $reconcileResult['status_anterior'] === Cedente::STATUS_INCONSISTENTE) {
+            $cedente->refresh();
+            self::runVaduRestricoesAfterPendente($cedente, Cedente::STATUS_PENDENTE);
+        }
+
+        if ($statusAtual !== $statusAntes && ! $reconcileResult['status_alterado']) {
             self::recordStatusAudit(
                 $cedente->id,
                 CedenteAudit::EVENT_STATUS_ALTERADO,
@@ -1203,6 +1213,18 @@ class CedenteService
         $serproPassed = self::runSerproValidationAfterPendente($cedente, $statusInicial);
 
         if (! $serproPassed) {
+            self::recordSystemAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_VALIDACAO_VADU,
+                $cedente->status ?: Cedente::STATUS_PENDENTE,
+                $statusInicial,
+                [
+                    'descricao' => 'Vadu nao consultada: SERPRO nao passou sem inconsistencias',
+                    'skipped' => true,
+                    'motivo' => 'serpro_nao_limpo',
+                ]
+            );
+
             return;
         }
 
@@ -1331,6 +1353,18 @@ class CedenteService
     private static function runVaduRestricoesAfterPendente(Cedente $cedente, $statusInicial)
     {
         if (! CedenteVaduService::isEnabled()) {
+            self::recordSystemAudit(
+                $cedente->id,
+                CedenteAudit::EVENT_VALIDACAO_VADU,
+                $cedente->status ?: Cedente::STATUS_PENDENTE,
+                $statusInicial,
+                [
+                    'descricao' => 'Vadu desabilitado (VADU_ENABLED=false); consulta de restricoes nao executada',
+                    'skipped' => true,
+                    'vadu_enabled' => false,
+                ]
+            );
+
             return;
         }
 
