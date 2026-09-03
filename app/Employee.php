@@ -299,10 +299,7 @@ class Employee extends Model implements NotifierInterface
         try {
             $employee = new Employee();
             $employee->name = $name;
-            $employee->department_id = self::resolveCedenteDepartmentId($data);
-            $employee->position_id = self::resolveCedentePositionId($data);
-            $employee->updated_by = User::logged()->employee->id;
-            $employee->image = isset($data['image']) ? $data['image'] : 'sem-foto.jpg';
+            self::applyCedenteEmployeeDefaults($employee, $data);
             $employee->save();
             $employee->moveFile();
 
@@ -611,6 +608,61 @@ class Employee extends Model implements NotifierInterface
         throw new InvalidArgumentException(
             'Nenhum cargo cadastrado. Defina CEDENTE_EMPLOYEE_POSITION_ID no .env'
         );
+    }
+
+    /**
+     * payment NOT NULL na tabela employee. Default 10 para modulo cedente.
+     *
+     * @param array $data
+     * @return float
+     */
+    public static function resolveCedentePayment(array $data = [])
+    {
+        if (array_key_exists('payment', $data) && $data['payment'] !== null && $data['payment'] !== '') {
+            return (float) $data['payment'];
+        }
+
+        return (float) env('CEDENTE_EMPLOYEE_PAYMENT', 10);
+    }
+
+    /**
+     * schedule_active — 0 evita listar o usuario em pickers de tarefas do jobs.
+     *
+     * @param array $data
+     * @return int 0|1
+     */
+    public static function resolveCedenteScheduleActive(array $data = [])
+    {
+        if (array_key_exists('schedule_active', $data)) {
+            $v = $data['schedule_active'];
+
+            return ($v === true || $v === 1 || $v === '1' || $v === 'true') ? 1 : 0;
+        }
+
+        $configured = env('CEDENTE_EMPLOYEE_SCHEDULE_ACTIVE', 0);
+        if (is_string($configured)) {
+            return in_array(strtolower($configured), ['1', 'true', 'yes', 'on'], true) ? 1 : 0;
+        }
+
+        return (int) $configured === 1 ? 1 : 0;
+    }
+
+    /**
+     * Campos obrigatorios da tabela employee preenchidos com valores seguros para o modulo cedente.
+     *
+     * @param Employee $employee
+     * @param array $data
+     */
+    public static function applyCedenteEmployeeDefaults(Employee $employee, array $data = [])
+    {
+        $employee->department_id = self::resolveCedenteDepartmentId($data);
+        $employee->position_id = self::resolveCedentePositionId($data);
+        $employee->payment = self::resolveCedentePayment($data);
+        $employee->schedule_active = self::resolveCedenteScheduleActive($data);
+        $employee->image = (isset($data['image']) && trim((string) $data['image']) !== '')
+            ? $data['image']
+            : 'sem-foto.jpg';
+        $employee->updated_by = User::logged()->employee->id;
     }
 
     /**
