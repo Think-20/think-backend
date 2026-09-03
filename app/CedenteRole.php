@@ -111,7 +111,8 @@ class CedenteRole extends Model
     }
 
     /**
-     * Atrela (ou troca) o papel de cedente do employee.
+     * Atrela (ou troca) o papel de cedente do employee pelo code (legado).
+     * Preferir assignToEmployeeById nas regras de API.
      *
      * @param int $employeeId
      * @param string $code
@@ -124,6 +125,38 @@ class CedenteRole extends Model
             throw new \InvalidArgumentException('Papel de cedente invalido');
         }
 
+        return static::persistEmployeeRole($employeeId, $role);
+    }
+
+    /**
+     * Atrela (ou troca) o papel pelo id em cedente_role — nao usa code/name.
+     *
+     * @param int $employeeId
+     * @param int $roleId
+     * @return CedenteRole
+     */
+    public static function assignToEmployeeById($employeeId, $roleId)
+    {
+        $roleId = (int) $roleId;
+        if ($roleId < 1) {
+            throw new \InvalidArgumentException('cedente_role_id invalido');
+        }
+
+        $role = static::find($roleId);
+        if (!$role) {
+            throw new \InvalidArgumentException('cedente_role_id nao encontrado');
+        }
+
+        return static::persistEmployeeRole($employeeId, $role);
+    }
+
+    /**
+     * @param int $employeeId
+     * @param CedenteRole $role
+     * @return CedenteRole
+     */
+    private static function persistEmployeeRole($employeeId, CedenteRole $role)
+    {
         $now = date('Y-m-d H:i:s');
         $exists = DB::table('cedente_role_employee')
             ->where('employee_id', (int) $employeeId)

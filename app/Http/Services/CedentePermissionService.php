@@ -316,6 +316,19 @@ class CedentePermissionService
     }
 
     /**
+     * POST /cedente/employee/save, PUT /cedente/employee/edit e GET /cedentes/roles.
+     * Somente cedente_role.id = 3 (administrador). Nao usa code/name.
+     */
+    public static function assertCanRegisterEmployee()
+    {
+        if (!self::isAdministrador()) {
+            throw new InvalidArgumentException(
+                self::MSG_SEM_PERMISSAO . '. Apenas administrador pode cadastrar ou alterar usuarios do modulo de cedentes'
+            );
+        }
+    }
+
+    /**
      * @param mixed $raw
      * @return string|null
      */

@@ -1,0 +1,1004 @@
+openapi: 3.0.3
+info:
+  title: Think Backend — Faturamento Financeiro
+  version: 1.0.0
+  description: |
+    API do **módulo financeiro / faturamento** por Job: receitas, despesas, extrato,
+    anexos (`financeiro-files`) e orçamento legado (`budget`).
+
+    ## Autenticação
+    Rotas sob middleware `auth.api` (mesmo token das demais APIs autenticadas).
+    Prefixo `/financeiro/` e `/financeiro-files/` têm bypass no middleware de
+    `permission` (ainda exigem login).
+
+    ## Fluxo resumido (orçamento → financeiro)
+    1. Job nasce com valores de **orçamento legado** (`job.budget_value`, task de orçamento,
+       tabela `budget`, `task.final_value`, etc.).
+    2. Após aprovação/check-in, o **financeiro** opera no **mesmo Job** via `transaction`
+       (`tipotransacao` 1=receita, 2=despesa).
+    3. Comparar entradas x saídas: lista por tipo + **extrato** agregado por categoria.
+    4. Anexos de faturamento (NF, boletos, etc.) ficam em `financeiro-files` ligados à **task**.
+
+    O vínculo forte entre orçamento e financeiro é o **`idjob`**. Não há endpoint que
+    “importe” automaticamente o orçamento como despesas — o front/usuário cadastra as
+    transações; os valores de orçamento servem de referência/contexto.
+
+    ## Enums
+    | Campo | Valores |
+    |-------|---------|
+    | `tipotransacao` | `1` receita · `2` despesa |
+    | `status` | `1` pendente · `2` confirmado · `3` conciliado |
+    | `formapagamento` | `1` dinheiro · `2` depósito · `3` pix · `4` cartão crédito · `5` boleto |
+    | extrato `periodo` | `7` · `15` · `30` · `todas` |
+
+    ## Como abrir este Swagger
+    ```bash
+    docker run --rm -p 8080:8080 -e SWAGGER_JSON=/docs/openapi-financeiro.yaml \
+      -v "$(pwd)/docs:/docs" swaggerapi/swagger-ui
+    ```
+    Ou cole o YAML em https://editor.swagger.io/
+
+servers:
+  - url: /
+    description: Base URL do backend (mesma do app autenticado)
+
+tags:
+  - name: Transacoes
+    description: CRUD de receitas/despesas por Job
+  - name: Extrato
+    description: Comparativo entradas x saídas por categoria no Job
+  - name: FinanceiroFiles
+    description: Anexos de faturamento ligados à task
+  - name: OrcamentoLegado
+    description: Tabela `budget` (breakdown da task de orçamento) — referência histórica
+  - name: CadastrosAuxiliares
+    description: Categorias, contas bancárias e tags usados nas transações
+
+paths:
+  /financeiro/transacao:
+    post:
+      tags: [Transacoes]
+      operationId: criarTransacao
+      summary: Cadastrar receita ou despesa
+      description: |
+        Cria uma transação no Job.
+        - **Despesa:** `tipotransacao: 2` (use `datavencimento` tipicamente).
+        - **Receita:** `tipotransacao: 1` (use `datarecebimento` tipicamente).
+        Parcelas e tags são opcionais; se enviadas, são sincronizadas.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransacaoUpsertRequest'
+            examples:
+              despesa:
+                $ref: '#/components/examples/DespesaCreate'
+              receita:
+                $ref: '#/components/examples/ReceitaCreate'
+      responses:
+        '200':
+          description: Transação criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransacaoResponse'
+        '400':
+          description: Validação / erro de persistência
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+    put:
+      tags: [Transacoes]
+      operationId: editarTransacao
+      summary: Editar receita ou despesa
+      description: |
+        Exige `idtransacao`. Campos iguais ao POST.
+        Se `parcelas` / `tags` vierem no body, fazem **sync** (upsert + remove omitidos).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/TransacaoUpsertRequest'
+                - type: object
+                  required: [idtransacao]
+                  properties:
+                    idtransacao:
+                      type: integer
+            examples:
+              editarDespesa:
+                $ref: '#/components/examples/DespesaEdit'
+      responses:
+        '200':
+          description: Transação atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransacaoResponse'
+        '400':
+          description: Id ausente, não encontrada ou validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /financeiro/transacao/status:
+    put:
+      tags: [Transacoes]
+      operationId: atualizarStatusTransacao
+      summary: Atualizar apenas o status
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idtransacao, status]
+              properties:
+                idtransacao:
+                  type: integer
+                status:
+                  $ref: '#/components/schemas/StatusTransacao'
+            example:
+              idtransacao: 10
+              status: 2
+      responses:
+        '200':
+          description: Status atualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  idtransacao:
+                    type: integer
+                  status:
+                    $ref: '#/components/schemas/StatusTransacao'
+        '400':
+          description: Id/status inválido ou transação não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /financeiro/tag/transacao/{id}:
+    delete:
+      tags: [Transacoes]
+      operationId: removerTransacao
+      summary: Remover transação
+      description: |
+        Apesar do path conter `tag`, **remove a transação inteira**
+        (detach de tags + delete).
+      parameters:
+        - $ref: '#/components/parameters/TransacaoIdPath'
+      responses:
+        '200':
+          description: Removida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+        '400':
+          description: Não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /financeiro/transacao/{jobId}/{tipoTransacao}:
+    get:
+      tags: [Transacoes]
+      operationId: listarTransacoesPorTipo
+      summary: Listar receitas ou despesas do Job (com totais)
+      description: |
+        **Comparar despesas entre si no Job:** chame com `tipoTransacao=2`.
+        Retorna lista + totais previstos/realizados/a receber.
+
+        Filtros opcionais:
+        - `date` (Y-m-d): receita filtra `receipt_date <= date`; despesa `due_date <= date`
+        - `contaBancariaId`: filtra conta
+      parameters:
+        - $ref: '#/components/parameters/JobIdPath'
+        - $ref: '#/components/parameters/TipoTransacaoPath'
+        - $ref: '#/components/parameters/DateQuery'
+        - $ref: '#/components/parameters/ContaBancariaIdQuery'
+      responses:
+        '200':
+          description: Lista + totais
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransacaoListaResponse'
+              example:
+                totalRealizado: 500.0
+                totalReceber: 1500.0
+                totalPrevisto: 2000.0
+                transacoes: []
+        '400':
+          description: tipoTransacao ou date inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /financeiro/transacao/total/{jobId}/{tipoTransacao}:
+    get:
+      tags: [Transacoes]
+      operationId: totalTransacoesPorTipo
+      summary: Soma do valor total (receitas ou despesas) do Job
+      parameters:
+        - $ref: '#/components/parameters/JobIdPath'
+        - $ref: '#/components/parameters/TipoTransacaoPath'
+        - $ref: '#/components/parameters/DateQuery'
+        - $ref: '#/components/parameters/ContaBancariaIdQuery'
+      responses:
+        '200':
+          description: Total
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: number
+                    format: float
+                    example: 2000.0
+        '400':
+          description: Parâmetros inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /financeiro/extrato/{jobId}:
+    get:
+      tags: [Extrato]
+      operationId: extratoPorJob
+      summary: Extrato do Job (entradas x saídas por categoria)
+      description: |
+        Agrega **receitas (entradas)** e **despesas (saídas)** por categoria,
+        com saldo acumulado — útil para comparar o resultado financeiro do Job.
+      parameters:
+        - $ref: '#/components/parameters/JobIdPath'
+        - name: periodo
+          in: query
+          schema:
+            type: string
+            enum: ['7', '15', '30', 'todas']
+            default: todas
+          description: Janela em dias (ou todas)
+      responses:
+        '200':
+          description: Extrato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtratoResponse'
+        '400':
+          description: período inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Job não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /upload-file:
+    post:
+      tags: [FinanceiroFiles]
+      operationId: uploadTempFile
+      summary: Upload temporário (pré-requisito dos anexos)
+      description: |
+        Envia o arquivo para o diretório temporário do servidor.
+        Em seguida chame `POST /financeiro-files/save-multiple` com o mesmo
+        `original_name` para persistir e mover para `FILES_FOLDER/financeiro-files/`.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Upload ok (formato legado do UploadFileController)
+
+  /financeiro-files/save-multiple:
+    post:
+      tags: [FinanceiroFiles]
+      operationId: salvarFinanceiroFiles
+      summary: Persistir anexos de faturamento na task
+      description: |
+        Body = **array** de itens. Cada item precisa do `original_name` já
+        enviado via `/upload-file` e da `task.id`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/FinanceiroFileSaveItem'
+            example:
+              - original_name: nf-fornecedor.pdf
+                task:
+                  id: 456
+      responses:
+        '200':
+          description: Resultado (status true/false no body)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinanceiroFileSaveResponse'
+
+  /financeiro-files/remove/{id}:
+    delete:
+      tags: [FinanceiroFiles]
+      operationId: removerFinanceiroFile
+      summary: Remover anexo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Removido (ou erro no body com status false)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: boolean
+
+  /financeiro-files/download/{id}:
+    get:
+      tags: [FinanceiroFiles]
+      operationId: downloadFinanceiroFile
+      summary: Download de um anexo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Binário do arquivo
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Arquivo não encontrado
+
+  /financeiro-files/download-all/{taskId}:
+    get:
+      tags: [FinanceiroFiles]
+      operationId: downloadAllFinanceiroFiles
+      summary: Download ZIP de todos os anexos da task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: ZIP
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Sem arquivos / erro
+
+  /financeiro-files/view/{id}:
+    get:
+      tags: [FinanceiroFiles]
+      operationId: viewFinanceiroFile
+      summary: Visualizar anexo (rota pública)
+      description: Serve o arquivo diretamente. Sem `auth.api`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Conteúdo do arquivo
+
+  /budget/save:
+    post:
+      tags: [OrcamentoLegado]
+      operationId: salvarBudget
+      summary: Cadastrar breakdown de orçamento da task
+      description: |
+        Orçamento **legado** ligado à **task** (não cria `transaction`).
+        Valores aceitam vírgula decimal (`"10000,00"`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetUpsertRequest'
+            example:
+              task:
+                id: 456
+              gross_value: "10000,00"
+              optional_value: "500"
+              bv_value: "0"
+              equipments_value: "0"
+              logistics_value: "0"
+              sales_commission_value: "0"
+              tax_aliquot: "6"
+              others_value: "0"
+              markup_aliquot: "1.3"
+      responses:
+        '200':
+          description: Budget salvo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetSaveResponse'
+
+  /budget/edit:
+    put:
+      tags: [OrcamentoLegado]
+      operationId: editarBudget
+      summary: Editar breakdown de orçamento
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/BudgetUpsertRequest'
+                - type: object
+                  required: [id]
+                  properties:
+                    id:
+                      type: integer
+      responses:
+        '200':
+          description: Budget atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetSaveResponse'
+
+  /categories/all:
+    post:
+      tags: [CadastrosAuxiliares]
+      operationId: listarCategorias
+      summary: Listar categorias financeiras
+      responses:
+        '200':
+          description: Lista de categorias (`id`, `name`, `theme`)
+
+  /bank-accounts/all:
+    post:
+      tags: [CadastrosAuxiliares]
+      operationId: listarContasBancarias
+      summary: Listar contas bancárias
+      responses:
+        '200':
+          description: Lista paginada/legado de contas
+
+  /tags/all:
+    post:
+      tags: [CadastrosAuxiliares]
+      operationId: listarTags
+      summary: Listar tags
+      responses:
+        '200':
+          description: Lista de tags
+
+components:
+  parameters:
+    JobIdPath:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+      description: ID do Job
+    TipoTransacaoPath:
+      name: tipoTransacao
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/TipoTransacao'
+      description: '1 = receita · 2 = despesa'
+    TransacaoIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID da transação (`idtransacao`)
+    DateQuery:
+      name: date
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date
+        example: '2026-03-01'
+      description: Filtro de data (Y-m-d)
+    ContaBancariaIdQuery:
+      name: contaBancariaId
+      in: query
+      required: false
+      schema:
+        type: integer
+      description: Filtra por conta bancária
+
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        error:
+          oneOf:
+            - type: boolean
+            - type: string
+          example: 'true'
+        message:
+          type: string
+
+    TipoTransacao:
+      type: integer
+      enum: [1, 2]
+      description: 1 receita · 2 despesa
+
+    StatusTransacao:
+      type: integer
+      enum: [1, 2, 3]
+      description: 1 pendente · 2 confirmado · 3 conciliado
+
+    FormaPagamento:
+      type: integer
+      enum: [1, 2, 3, 4, 5]
+      description: 1 dinheiro · 2 depósito · 3 pix · 4 cartão crédito · 5 boleto
+
+    ParcelaInput:
+      type: object
+      required: [valor, ordem]
+      properties:
+        idparcela:
+          type: integer
+          nullable: true
+          description: Em edit, id existente; em create pode ser null/omitido
+        valor:
+          type: number
+          format: float
+        data:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-03-01T00:00:00'
+        ordem:
+          type: integer
+          minimum: 1
+
+    TagInput:
+      type: object
+      description: Envie `idtag` existente **ou** `descricao` (cria/reutiliza tag)
+      properties:
+        idtag:
+          type: integer
+        descricao:
+          type: string
+
+    TransacaoUpsertRequest:
+      type: object
+      required: [idjob, tipotransacao, idcontabancaria, valortotal]
+      properties:
+        idtransacao:
+          type: integer
+          description: Obrigatório só no PUT
+        idjob:
+          type: integer
+        tipotransacao:
+          $ref: '#/components/schemas/TipoTransacao'
+        descricao:
+          type: string
+          nullable: true
+        observacao:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/StatusTransacao'
+        datacriacao:
+          type: string
+          format: date-time
+          nullable: true
+        datarecebimento:
+          type: string
+          format: date-time
+          nullable: true
+          description: Preferencial para receitas
+        datavencimento:
+          type: string
+          format: date-time
+          nullable: true
+          description: Preferencial para despesas
+        datarealizado:
+          type: string
+          format: date-time
+          nullable: true
+          description: Se preenchido, entra em totalRealizado na listagem
+        datacobranca:
+          type: string
+          format: date-time
+          nullable: true
+        idcategoria:
+          type: integer
+          nullable: true
+        idcontabancaria:
+          type: integer
+        formapagamento:
+          $ref: '#/components/schemas/FormaPagamento'
+        numparcelas:
+          type: integer
+          minimum: 1
+          default: 1
+        valortotal:
+          type: number
+          format: float
+          minimum: 0
+        periodo:
+          type: integer
+          minimum: 1
+          default: 1
+          description: Período da recorrência/parcelamento (inteiro ≥ 1)
+        chavepix:
+          type: string
+        banco:
+          type: string
+        agencia:
+          type: string
+        contacorrente:
+          type: string
+        diretorioarquivoboleto:
+          type: string
+        parcelas:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParcelaInput'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagInput'
+
+    TransacaoResponse:
+      type: object
+      properties:
+        idtransacao:
+          type: integer
+        idjob:
+          type: integer
+        tipotransacao:
+          $ref: '#/components/schemas/TipoTransacao'
+        descricao:
+          type: string
+          nullable: true
+        observacao:
+          type: string
+        status:
+          $ref: '#/components/schemas/StatusTransacao'
+        datacriacao:
+          type: string
+          nullable: true
+        datarecebimento:
+          type: string
+          nullable: true
+        datavencimento:
+          type: string
+          nullable: true
+        datarealizado:
+          type: string
+          nullable: true
+        datacobranca:
+          type: string
+          nullable: true
+        idcategoria:
+          type: integer
+          nullable: true
+        categoria:
+          nullable: true
+          type: object
+          properties:
+            idcategoria:
+              type: integer
+            nome:
+              type: string
+            tema:
+              type: integer
+        idcontabancaria:
+          type: integer
+        contabancaria:
+          nullable: true
+          type: object
+          properties:
+            idcontabancaria:
+              type: integer
+            nome:
+              type: string
+            banco:
+              type: string
+            agencia:
+              type: string
+            conta:
+              type: string
+            datacadastro:
+              type: string
+              nullable: true
+        formapagamento:
+          $ref: '#/components/schemas/FormaPagamento'
+        numparcelas:
+          type: integer
+        valortotal:
+          type: number
+        periodo:
+          type: integer
+        chavepix:
+          type: string
+        banco:
+          type: string
+        agencia:
+          type: string
+        contacorrente:
+          type: string
+        diretorioarquivoboleto:
+          type: string
+        parcelas:
+          type: array
+          items:
+            type: object
+            properties:
+              idparcela:
+                type: integer
+              idtransacao:
+                type: integer
+              valor:
+                type: number
+              data:
+                type: string
+                nullable: true
+              ordem:
+                type: integer
+        tags:
+          type: array
+          items:
+            type: object
+            properties:
+              idtag:
+                type: integer
+              descricao:
+                type: string
+
+    TransacaoListaResponse:
+      type: object
+      properties:
+        totalRealizado:
+          type: number
+          description: Soma de valortotal onde datarealizado != null
+        totalReceber:
+          type: number
+          description: totalPrevisto - totalRealizado
+        totalPrevisto:
+          type: number
+          description: Soma de todos os valortotal da lista
+        transacoes:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransacaoResponse'
+
+    ExtratoLinha:
+      type: object
+      properties:
+        categoria:
+          type: object
+          properties:
+            idcategoria:
+              type: integer
+            nome:
+              type: string
+            tema:
+              type: integer
+        entradas:
+          type: number
+          description: Soma receitas (tipo 1) da categoria
+        saidas:
+          type: number
+          description: Soma despesas (tipo 2) da categoria
+        resultado:
+          type: number
+          description: entradas - saidas
+        saldoAnterior:
+          type: number
+        saldo:
+          type: number
+          description: Saldo acumulado
+
+    ExtratoResponse:
+      type: object
+      properties:
+        idjob:
+          type: integer
+        periodo:
+          type: string
+        job:
+          type: object
+          properties:
+            id:
+              type: integer
+            nome:
+              type: string
+            evento:
+              type: string
+              nullable: true
+            cliente:
+              type: object
+              nullable: true
+            agencia:
+              type: object
+              nullable: true
+            not_client:
+              nullable: true
+        linhas:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExtratoLinha'
+        saldoTotal:
+          type: number
+
+    FinanceiroFileSaveItem:
+      type: object
+      required: [original_name, task]
+      properties:
+        original_name:
+          type: string
+          description: Nome do arquivo já enviado em /upload-file
+        task:
+          type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+
+    FinanceiroFileSaveResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        status:
+          type: boolean
+        files:
+          description: Modelos salvos ou null em erro
+          nullable: true
+
+    BudgetUpsertRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Obrigatório no edit
+        task:
+          type: object
+          properties:
+            id:
+              type: integer
+        gross_value:
+          type: string
+        optional_value:
+          type: string
+        bv_value:
+          type: string
+        equipments_value:
+          type: string
+        logistics_value:
+          type: string
+        sales_commission_value:
+          type: string
+        tax_aliquot:
+          type: string
+        others_value:
+          type: string
+        markup_aliquot:
+          type: string
+
+    BudgetSaveResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        status:
+          type: boolean
+        budget:
+          type: object
+          additionalProperties: true
+
+  examples:
+    DespesaCreate:
+      summary: Cadastrar despesa no Job
+      value:
+        idjob: 123
+        tipotransacao: 2
+        descricao: Fornecedor X — material
+        observacao: NF a conferir
+        status: 1
+        datavencimento: '2026-03-01T00:00:00'
+        idcategoria: 4
+        idcontabancaria: 1
+        formapagamento: 3
+        numparcelas: 2
+        valortotal: 1000
+        periodo: 1
+        chavepix: ''
+        parcelas:
+          - valor: 500
+            data: '2026-03-01T00:00:00'
+            ordem: 1
+          - valor: 500
+            data: '2026-04-01T00:00:00'
+            ordem: 2
+        tags:
+          - descricao: urgente
+
+    ReceitaCreate:
+      summary: Cadastrar receita no Job
+      value:
+        idjob: 123
+        tipotransacao: 1
+        descricao: Parcela cliente
+        status: 1
+        datarecebimento: '2026-03-15T00:00:00'
+        idcategoria: 1
+        idcontabancaria: 1
+        formapagamento: 3
+        numparcelas: 1
+        valortotal: 5000
+        periodo: 1
+
+    DespesaEdit:
+      summary: Editar despesa existente
+      value:
+        idtransacao: 10
+        idjob: 123
+        tipotransacao: 2
+        descricao: Fornecedor X — material (ajustado)
+        status: 2
+        datavencimento: '2026-03-01T00:00:00'
+        datarealizado: '2026-03-02T00:00:00'
+        idcategoria: 4
+        idcontabancaria: 1
+        formapagamento: 5
+        numparcelas: 1
+        valortotal: 980
+        periodo: 1
+        diretorioarquivoboleto: ''

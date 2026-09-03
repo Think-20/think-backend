@@ -60,6 +60,7 @@ Isso vale para **todas** as rotas de cedente (CRUD, avaliação, validação de 
 | Operação | Rota | Onde enviar `fund_id` |
 |----------|------|------------------------|
 | Criar | `POST /cedente/save` | JSON (body) |
+| Importar XML em lote | `POST /cedente/import/xml` | Form/query (`fund_id`) + XML (multipart, JSON ou corpo raw) |
 | Atualizar (snapshot) | `PUT /cedente/edit` | JSON (body) |
 | Atualizar (parcial) | `PATCH /cedente/patch` | JSON (body), junto com `id` |
 | Validar arquivo | `PATCH /cedente/arquivo/validacao` | JSON (body) |
@@ -134,7 +135,11 @@ docker run --rm -p 8080:8080 -e SWAGGER_JSON=/docs/openapi-cedente.yaml \
 | POST | `/login` | Login (`email`, `password`) | — |
 | GET | `/check-token` | Valida token | — |
 | POST | `/logout` | Encerra sessão | — |
+| GET | `/cedentes/roles` | Lista funções (`id`, `code`, `name`) | **Admin** (id 3) |
+| POST | `/cedente/employee/save` | Cria usuário do módulo (email, senha, função, fundos) | **Admin** (id 3) |
+| PUT | `/cedente/employee/edit` | Altera usuário do módulo (nome, email, senha, função, fundos) | **Admin** (id 3) |
 | POST | `/cedente/save` | Cria cedente (`fund_id` no JSON) | Preenchimento / Admin |
+| POST | `/cedente/import/xml` | Importa cedentes a partir de XML Daycoval/Fromtis | Preenchimento / Admin |
 | PUT | `/cedente/edit` | Atualiza por `id` (snapshot) | Preenchimento* / Admin |
 | PATCH | `/cedente/patch` | Atualização parcial | Preenchimento* / Admin |
 | PATCH | `/cedente/arquivo/validacao` | Aprovar/recusar arquivo | Avalista / Admin |
@@ -147,6 +152,47 @@ docker run --rm -p 8080:8080 -e SWAGGER_JSON=/docs/openapi-cedente.yaml \
 | DELETE | `/cedente/remove/{id}` | Exclui cedente | Admin |
 
 \* Preenchimento só edita cedente em **`rascunho`** ou **`inconsistente`**.
+
+### Importação em lote via XML (`POST /cedente/import/xml`)
+
+Recebe o XML no formato **`cadastroCedente` → `cedentes` → `cedente[]`** (Daycoval/Fromtis) e cria um cedente por nó `<cedente>`, reutilizando a mesma lógica de `POST /cedente/save`.
+
+**Entrada**
+
+| Campo | Onde | Obrigatório |
+|-------|------|-------------|
+| `fund_id` | form, JSON ou query | Sim |
+| XML | multipart (`xml` ou `file`), JSON (`xml`) ou corpo `application/xml` | Sim |
+
+**Conferência de fundo:** se o XML tiver `fundo/cnpjFundo`, o backend compara com o CNPJ do `fund_id` selecionado na tela. Divergência → erro naquele item.
+
+**Mapeamento XML → API interna**
+
+| XML (`cedente/...`) | Campo interno |
+|---------------------|---------------|
+| `dadosContato/contato/nomeContato` (fallback `nome`) | `nome` |
+| `cnpjCpf` | `documento` |
+| `email`, `dadosContato/contato/emailContato` | `email` |
+| `telefone`, `dadosContato/contato/telContato` | `telefone` |
+| `faturamentoAnual` | `faturamento_anual` |
+| `minAprovacao` | `minimo_assinantes` |
+| `endereco`, `numEndereco`, `compEndereco`, `cep`, `bairro`, `uf`, `cidade` | `endereco.*` (`logradouro` ← `endereco`, `numero` ← `numEndereco`, `estado` ← `uf`) |
+| `partesRelacionadas/parteRelacionada` | `partes_relacionadas[]` (`nome` ← `nomeParteRelacionada`, `cpf` ← `cnpjCpfParteRelacionada`) |
+| `representantes/representante` | fallback de partes se não houver `partesRelacionadas` |
+| `avalistas/avalista` | `avalistas[]` |
+| `contasCorrente/contaCorrente` | `contas_desembolso[]` (`tipo_conta: conta_corrente`, `codigo_banco` ← `banco`, `numero_conta` ← `contaCorrente`) |
+| `padrao` (conta) | ignorado |
+
+**Resposta (HTTP 200):** `{ error, message, data: { fund_id, total, created, failed, results[] } }`. Cada item em `results` traz `success`, `documento`, `nome` e, se ok, `cedente_id` + objeto completo; se falhou, `message`. Importação parcial retorna `error: "true"` com `created > 0`.
+
+**Exemplo multipart (curl):**
+
+```bash
+curl -X POST 'http://localhost:8000/cedente/import/xml' \
+  -H 'User: 1' -H 'Authorization: SEU_TOKEN' \
+  -F 'fund_id=1' \
+  -F 'xml=@cadastro-cedente.xml'
+```
 
 Detalhes de schemas, códigos de resposta, `operationId` (útil para codegen) e exemplos estão no **YAML**.
 
@@ -173,6 +219,131 @@ Employee autenticado pode ter um papel em `cedente_role`: `preenchimento`, `aval
 ### Administrador
 
 - Sem as restrições acima (CRUD + avaliação + validação de arquivos).
+- **Somente o papel id `3`** (não o nome `Administrador`) pode cadastrar e alterar usuários do módulo (`POST /cedente/employee/save`, `PUT /cedente/employee/edit` e `GET /cedentes/roles`).
+
+### Cadastro e edição de usuário do módulo (do zero)
+
+Este fluxo **não** usa o `POST /employee/save` legado nem gera e-mail `@thinkideias.com.br` / `@carmel`. O admin cadastra a pessoa **neste endpoint**, com e-mail e senha escolhidos, função e fundos — sem chamado interno.
+
+**Quem pode chamar:** `cedente_role.id === 3`. Outro papel → HTTP **403**.
+
+| Método | Rota | Uso |
+|--------|------|-----|
+| POST | `/cedente/employee/save` | Criar employee + user + função + fundos |
+| PUT | `/cedente/employee/edit` | Alterar nome, e-mail, senha, função e/ou fundos |
+| GET | `/cedentes/roles` | Combo de funções (`id`, `code`, `name`) |
+
+**Campos do POST (criar) — todos no JSON:**
+
+| Campo | Obrigatório | Descrição |
+|-------|-------------|-----------|
+| `name` | sim | Nome do employee |
+| `email` | sim | E-mail de login (qualquer domínio válido; **não** é gerado) |
+| `password` | sim | Senha de login (mínimo 6 caracteres). Aceita alias `senha` |
+| `cedente_role_id` | sim | **Id** da função: 1 preenchimento, 2 avalista/aprovador, 3 administrador |
+| `fund_ids` / `all_funds` | não | Ver tabela de fundos abaixo. Omitir = todos os fundos |
+| `department` / `position` | não | Só se o front enviar |
+
+**Campos do PUT (editar):** `id` obrigatório. Os demais só atualizam se enviados. Fundos só mudam se vier `all_funds`, `fund_ids` ou `fundos`. Se o employee ainda não tiver user, envie `email` e `password` juntos.
+
+**Funções canônicas (use o id, nunca o name):**
+
+| id | code | name na API |
+|----|------|-------------|
+| 1 | `preenchimento` | Preenchimento de formulario |
+| 2 | `avalista` | Aprovador |
+| 3 | `administrador` | Administrador |
+
+**Fundos:**
+
+| Payload | Efeito |
+|---------|--------|
+| `"all_funds": true` | Acesso a **todos** os fundos (nenhuma linha em `fund_employee`) |
+| `"fund_ids": "todos"` ou `"fundos": "todos"` | Idem |
+| `"fund_ids": []` ou omitir fundos no **POST** | Idem |
+| `"fund_ids": [1, 2]` | Só esses fundos |
+| `"fundos": [{ "id": 1 }, { "id": 2 }]` | Equivalente |
+
+#### POST — exemplo (fundos específicos)
+
+```json
+{
+  "name": "Maria Silva",
+  "email": "maria.silva@empresa.com",
+  "password": "SenhaForte1",
+  "cedente_role_id": 1,
+  "fund_ids": [1, 2]
+}
+```
+
+#### POST — exemplo (todos os fundos)
+
+```json
+{
+  "name": "João Pereira",
+  "email": "joao.pereira@empresa.com",
+  "password": "SenhaForte1",
+  "cedente_role_id": 2,
+  "all_funds": true
+}
+```
+
+#### PUT — exemplo (troca função, e-mail, senha e fundos)
+
+```json
+{
+  "id": 42,
+  "name": "Maria Silva Souza",
+  "email": "maria.souza@empresa.com",
+  "password": "NovaSenha2",
+  "cedente_role_id": 3,
+  "fund_ids": [1]
+}
+```
+
+#### PUT — exemplo (só nome e todos os fundos)
+
+```json
+{
+  "id": 42,
+  "name": "Maria Silva Souza",
+  "all_funds": true
+}
+```
+
+**Resposta de sucesso (HTTP 200):**
+
+```json
+{
+  "error": "false",
+  "message": "Funcionario cadastrado com sucesso",
+  "data": {
+    "id": 42,
+    "name": "Maria Silva",
+    "image": "sem-foto.jpg",
+    "department_id": null,
+    "position_id": null,
+    "user": {
+      "id": 55,
+      "email": "maria.silva@empresa.com"
+    },
+    "cedente_role": {
+      "id": 1,
+      "code": "preenchimento",
+      "name": "Preenchimento de formulario"
+    },
+    "funds": [
+      { "id": 1, "name": "Fundo Alpha", "code": "FA", "type": "FIDC" },
+      { "id": 2, "name": "Fundo Beta", "code": "FB", "type": "FIDC" }
+    ],
+    "all_funds": false
+  }
+}
+```
+
+Quando `all_funds` é `true`, `funds` vem `[]`. A senha **não** volta na resposta.
+
+O login desses usuários é o mesmo `POST /login` (`email` + `password` enviados no cadastro).
 
 ### Status automático
 

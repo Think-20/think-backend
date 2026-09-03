@@ -8,6 +8,7 @@ use App\Http\Services\CedenteAvaliacaoService;
 use App\Http\Services\CedenteFileService;
 use App\Http\Services\CedentePermissionService;
 use App\Http\Services\CedenteService;
+use App\Http\Services\CedenteXmlImportService;
 use Exception;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -208,6 +209,54 @@ class CedenteController extends Controller
             'error' => 'false',
             'message' => 'Cedente cadastrado com sucesso',
             'data' => CedenteService::toApiArray($cedente),
+        ]);
+    }
+
+    /**
+     * POST /cedente/import/xml — importa cadastroCedente/cedentes/cedente em lote.
+     * fund_id obrigatorio (form/json/query); XML via multipart (xml/file), JSON (xml) ou corpo raw.
+     */
+    public static function importXml(Request $request)
+    {
+        try {
+            $fundId = $request->input('fund_id', $request->query('fund_id'));
+            if ($fundId === null || $fundId === '') {
+                throw new InvalidArgumentException('fund_id e obrigatorio');
+            }
+            CedenteService::resolveFundId(['fund_id' => $fundId]);
+
+            $xml = CedenteXmlImportService::extractXmlFromRequest($request);
+            $summary = CedenteXmlImportService::import($xml, (int) $fundId);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
+        } catch (QueryException $e) {
+            Log::error('Cedente import XML QueryException: ' . $e->getMessage(), ['exception' => $e]);
+
+            $message = 'Erro ao importar no banco de dados';
+            if (config('app.debug')) {
+                $message .= ': ' . $e->getMessage();
+            }
+
+            return response()->json(['error' => 'true', 'message' => $message], 400);
+        } catch (Exception $e) {
+            Log::error('Cedente import XML: ' . $e->getMessage(), ['exception' => $e]);
+
+            return response()->json([
+                'error' => 'true',
+                'message' => 'Erro ao importar XML: ' . $e->getMessage(),
+            ], 400);
+        }
+
+        $allOk = $summary['failed'] === 0;
+
+        return response()->json([
+            'error' => $allOk ? 'false' : 'true',
+            'message' => $allOk
+                ? 'Importacao concluida com sucesso'
+                : ($summary['created'] > 0
+                    ? 'Importacao parcial: ' . $summary['created'] . ' criado(s), ' . $summary['failed'] . ' falha(s)'
+                    : 'Nenhum cedente importado'),
+            'data' => $summary,
         ]);
     }
 

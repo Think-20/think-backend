@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Employee;
-use App\JobActivity;
+use App\CedenteRole;
+use App\Http\Services\CedentePermissionService;
 use Illuminate\Http\Request;
 use Response;
 use Exception;
 use DB;
+use InvalidArgumentException;
 
 class EmployeeController extends Controller
 {
@@ -82,6 +84,88 @@ class EmployeeController extends Controller
             'message' => $message,
             'status' => $status,
         ]), 200);
+    }
+
+    /**
+     * Lista papeis de cedente (id/code/name) para o formulario de cadastro.
+     * Somente administrador (cedente_role.id = 3).
+     */
+    public static function cedenteRoles()
+    {
+        try {
+            CedentePermissionService::assertCanRegisterEmployee();
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 403);
+        }
+
+        $roles = CedenteRole::orderBy('id', 'asc')->get()->map(function (CedenteRole $role) {
+            return $role->toApiArray();
+        })->values();
+
+        return response()->json([
+            'error' => 'false',
+            'data' => $roles,
+        ]);
+    }
+
+    /**
+     * Cria employee + user do modulo de cedentes, atrelando fundo(s) e funcao por id.
+     * Somente administrador (cedente_role.id = 3).
+     */
+    public static function saveCedente(Request $request)
+    {
+        try {
+            CedentePermissionService::assertCanRegisterEmployee();
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 403);
+        }
+
+        try {
+            $employee = Employee::insertForCedente($request->all());
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'true',
+                'message' => 'Um erro desconhecido ocorreu ao cadastrar: ' . $e->getMessage(),
+            ], 400);
+        }
+
+        return response()->json([
+            'error' => 'false',
+            'message' => 'Funcionario cadastrado com sucesso',
+            'data' => $employee->toCedenteModuleArray(),
+        ]);
+    }
+
+    /**
+     * Altera employee do modulo de cedentes (nome, email, senha, funcao, fundos).
+     * Somente administrador (cedente_role.id = 3).
+     */
+    public static function editCedente(Request $request)
+    {
+        try {
+            CedentePermissionService::assertCanRegisterEmployee();
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 403);
+        }
+
+        try {
+            $employee = Employee::editForCedente($request->all());
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'true',
+                'message' => 'Um erro desconhecido ocorreu ao atualizar: ' . $e->getMessage(),
+            ], 400);
+        }
+
+        return response()->json([
+            'error' => 'false',
+            'message' => 'Funcionario alterado com sucesso',
+            'data' => $employee->toCedenteModuleArray(),
+        ]);
     }
 
     public static function edit(Request $request)

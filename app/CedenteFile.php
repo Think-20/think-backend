@@ -2,6 +2,7 @@
 
 namespace App;
 
+use App\Http\Services\FileStorageService;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -33,6 +34,8 @@ class CedenteFile extends Model
         'type',
         'document_type',
         'valido',
+        'storage_disk',
+        'storage_key',
     ];
 
     protected $casts = [
@@ -97,28 +100,71 @@ class CedenteFile extends Model
     }
 
     /**
-     * Raiz dos uploads: FILES_FOLDER no .env (caminho absoluto, sem barra final),
-     * ou fallback storage/app/files (mesmo padrão sugerido para demais arquivos do sistema).
+     * Raiz dos uploads legados: FILES_FOLDER/cedente-files (plano).
      */
     public static function storageDir()
     {
-        $base = env('FILES_FOLDER');
-        if ($base === null || trim((string) $base) === '') {
-            $base = storage_path('app' . DIRECTORY_SEPARATOR . 'files');
-        } else {
-            $base = rtrim((string) $base, '/\\');
+        return FileStorageService::localRoot() . DIRECTORY_SEPARATOR . 'cedente-files';
+    }
+
+    /**
+     * Disco efetivo do registro (local ou s3).
+     *
+     * @return string
+     */
+    public function resolvedStorageDisk()
+    {
+        $disk = isset($this->storage_disk) ? strtolower(trim((string) $this->storage_disk)) : '';
+
+        return $disk === FileStorageService::DISK_S3 ? FileStorageService::DISK_S3 : FileStorageService::DISK_LOCAL;
+    }
+
+    /**
+     * Chave relativa para FileStorageService.
+     *
+     * @return string
+     */
+    public function resolvedStorageKey()
+    {
+        if (! empty($this->storage_key)) {
+            return (string) $this->storage_key;
         }
 
-        return $base . DIRECTORY_SEPARATOR . 'cedente-files';
+        return FileStorageService::cedenteLegacyLocalKey($this->name);
     }
 
     public function absolutePath()
     {
-        return self::storageDir() . DIRECTORY_SEPARATOR . $this->name;
+        return FileStorageService::localAbsolutePath($this->resolvedStorageKey());
     }
 
     /**
-     * Caminho absoluto do arquivo fisico ativo (nao soft-deleted).
+     * Conteudo binario (local legado ou S3).
+     *
+     * @return string
+     * @throws Exception
+     */
+    public function readBinary()
+    {
+        return FileStorageService::get($this->resolvedStorageKey(), $this->resolvedStorageDisk());
+    }
+
+    /**
+     * @param int $id cedente_file.id
+     * @return string conteudo binario
+     */
+    public static function readBinaryById($id)
+    {
+        $file = static::find((int) $id);
+        if (! $file) {
+            throw new Exception('O arquivo solicitado nao existe.');
+        }
+
+        return $file->readBinary();
+    }
+
+    /**
+     * Caminho absoluto local (compat download legado) ou temp file para S3.
      *
      * @param int $id cedente_file.id
      * @return string
@@ -130,12 +176,22 @@ class CedenteFile extends Model
             throw new Exception('O arquivo solicitado nao existe.');
         }
 
-        $path = $file->absolutePath();
-        if (! is_file($path)) {
-            throw new Exception('Arquivo fisico nao encontrado.');
+        if ($file->resolvedStorageDisk() === FileStorageService::DISK_LOCAL) {
+            $path = $file->absolutePath();
+            if (! is_file($path)) {
+                throw new Exception('Arquivo fisico nao encontrado.');
+            }
+
+            return $path;
         }
 
-        return $path;
+        $binary = $file->readBinary();
+        $temp = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'cedente-file-' . (int) $id . '-' . uniqid('', true);
+        if (file_put_contents($temp, $binary) === false) {
+            throw new Exception('Falha ao preparar download temporario.');
+        }
+
+        return $temp;
     }
 
     /**
@@ -162,8 +218,9 @@ class CedenteFile extends Model
         $added = 0;
 
         foreach ($files as $file) {
-            $absolute = $file->absolutePath();
-            if (! is_file($absolute)) {
+            try {
+                $binary = $file->readBinary();
+            } catch (\Exception $e) {
                 continue;
             }
 
@@ -187,7 +244,7 @@ class CedenteFile extends Model
             $safeLabel = preg_replace('/[^a-zA-Z0-9_\- ]+/', '', $label);
             $zipPath = trim($safeLabel) . '/' . $entryName;
 
-            $zip->addFile($absolute, $zipPath);
+            $zip->addFromString($zipPath, $binary);
             $added++;
         }
 
@@ -203,33 +260,18 @@ class CedenteFile extends Model
 
     public function deletePhysicalFile()
     {
-        $path = $this->absolutePath();
-        if (is_file($path)) {
-            @unlink($path);
-        }
+        FileStorageService::delete($this->resolvedStorageKey(), $this->resolvedStorageDisk());
     }
 
     /**
-     * Grava bytes no disco e persiste o registro (transação deve envolver o chamador).
+     * Grava bytes e persiste o registro (transacao deve envolver o chamador).
+     * Novos uploads usam CEDENTE_FILES_DISK (local ou s3).
      *
      * @param string $binary
      * @return static
      */
     public static function storeFromBinary($cedenteId, $documentType, $originalName, $binary, $extension = null)
     {
-        $dir = self::storageDir();
-        if (! is_dir($dir)) {
-            try {
-                mkdir($dir, 0755, true);
-            } catch (Exception $e) {
-                @shell_exec('sudo mkdir -p ' . escapeshellarg($dir));
-            }
-        }
-
-        if (! is_dir($dir)) {
-            throw new Exception('Nao foi possivel criar o diretorio de arquivos do cedente');
-        }
-
         $ext = $extension;
         if ($ext === null || $ext === '') {
             $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
@@ -239,11 +281,10 @@ class CedenteFile extends Model
         }
 
         $storedName = sha1($cedenteId . $documentType . microtime(true) . mt_rand()) . '.' . $ext;
+        $storageKey = FileStorageService::cedenteStorageKey($cedenteId, $storedName);
+        $disk = FileStorageService::cedenteDefaultDisk();
 
-        $fullPath = $dir . DIRECTORY_SEPARATOR . $storedName;
-        if (file_put_contents($fullPath, $binary) === false) {
-            throw new Exception('Falha ao gravar arquivo no disco');
-        }
+        $stored = FileStorageService::put($storageKey, $binary, $disk);
 
         $row = new self([
             'cedente_id' => $cedenteId,
@@ -252,6 +293,8 @@ class CedenteFile extends Model
             'type' => $ext,
             'document_type' => $documentType,
             'valido' => false,
+            'storage_disk' => $stored['disk'],
+            'storage_key' => $stored['key'],
         ]);
         $row->save();
 

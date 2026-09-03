@@ -11,6 +11,7 @@ use App\CedenteInconsistencia;
 use App\CedenteRestricao;
 use App\ContaDesembolso;
 use App\User;
+use App\Http\Services\CedenteMailService;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -1687,6 +1688,10 @@ class CedenteService
             'new_status' => $newStatus,
             'changes' => $changes,
         ]);
+
+        if ($oldStatus !== null && $oldStatus !== $newStatus) {
+            CedenteMailService::notifyStatusChange((int) $cedenteId, $oldStatus, $newStatus);
+        }
     }
 
     /**

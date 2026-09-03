@@ -12,7 +12,7 @@ info:
     4. Em rotas de cedente, envie sempre **`fund_id`** no JSON (`POST`/`PUT`/`PATCH`) ou na query (`GET`/`DELETE`/download).
 
     O guia completo de integração (status, papéis, payloads, arquivos, avaliação, etc.) está na seção **Guia de integração** no final desta página, após Schemas.
-  version: 1.1.0
+  version: 1.3.0
   contact:
     name: Think Backend
 
@@ -48,11 +48,19 @@ x-frontend-guide:
         | Ação | Preenchimento | Avalista | Administrador |
         |------|---------------|----------|---------------|
         | Criar (`POST /cedente/save`) | Sim | **Não** | Sim |
+        | Importar XML (`POST /cedente/import/xml`) | Sim | **Não** | Sim |
         | Editar formulário (`PUT` / `PATCH`) | Só em `rascunho` ou `inconsistente` | **Não** | Sim |
         | Excluir (`DELETE`) | **Não** | **Não** | Sim |
         | Ver detalhe / listar / histórico / ZIP | Sim | Sim (qualquer status) | Sim |
         | Validar arquivo (`PATCH /cedente/arquivo/validacao`) | **Não** | Sim (exceto `rascunho`) | Sim |
         | Avaliar cedente (`PATCH /cedente/avaliacao`) | **Não** | Sim (exceto `rascunho`) | Sim |
+        | Cadastrar usuário do módulo (`POST /cedente/employee/save`) | **Não** | **Não** | Sim (somente **id 3**) |
+        | Alterar usuário do módulo (`PUT /cedente/employee/edit`) | **Não** | **Não** | Sim (somente **id 3**) |
+        | Listar funções (`GET /cedentes/roles`) | **Não** | **Não** | Sim (somente **id 3**) |
+
+        A checagem de administrador usa **`cedente_role.id === 3`**, nunca o nome/code.
+
+        **Usuários do módulo (do zero):** o admin envia `name`, `email`, `password`, `cedente_role_id` e fundos. **Não** gera `@think` / `@carmel`. Exemplos em `components.examples.EmployeeCedenteCreateFunds`, `EmployeeCedenteCreateAllFunds` e `EmployeeCedenteEdit`.
 
         **Escopo de fundo (sempre):** além do papel, o employee só acessa fundos vinculados em `fund_employee`. Sem vínculos, acessa todos. Sem `fund_id` na requisição → 400.
 
@@ -171,9 +179,16 @@ x-frontend-guide:
     - id: rotas
       title: Rotas (referência rápida)
       content: |
+        ### Usuários do módulo (somente admin id 3)
+
+        - **`GET /cedentes/roles`** — lista `{ id, code, name }` das funções.
+        - **`POST /cedente/employee/save`** — cria employee + user com `email` e `password` do front, `cedente_role_id` e fundos.
+        - **`PUT /cedente/employee/edit`** — altera nome, e-mail, senha, função e/ou fundos (`id` obrigatório).
+
         ### Cadastro
 
         - **`POST /cedente/save`** — criar (completo ou rascunho). Só `fund_id` obrigatório. (preenchimento / admin)
+        - **`POST /cedente/import/xml`** — importar lote a partir de XML `cadastroCedente/cedentes/cedente` (preenchimento / admin). `fund_id` obrigatório; confere `fundo/cnpjFundo` com o fundo selecionado.
         - **`PUT /cedente/edit`** — snapshot completo; listas enviadas **substituem** as anteriores (omitir lista = esvaziar).
         - **`PATCH /cedente/patch`** — parcial; só chaves enviadas mudam. `arquivos`: upsert por `document_type` (não apaga os não enviados).
         - **`DELETE /cedente/remove/{id}`** — exclusão (`fund_id` na query). Somente **admin**.
@@ -200,6 +215,8 @@ tags:
     description: CRUD de cadastro, consultas, listagens e download de arquivos
   - name: Análise
     description: Validação de arquivos e avaliação do avalista/administrador (backoffice)
+  - name: Usuários
+    description: Cadastro de employee do módulo de cedentes (função + fundos). Somente administrador (id 3).
 
 security:
   - userIdHeader: []
@@ -295,6 +312,154 @@ paths:
         "403":
           description: Não autenticado
 
+  /cedentes/roles:
+    get:
+      tags: [Usuários]
+      operationId: listCedenteRoles
+      summary: Listar funções do módulo de cedentes
+      description: |
+        Retorna `{ id, code, name }` de cada linha em `cedente_role`.
+        **Somente administrador** (`cedente_role.id === 3`). Não use o name/code para autorizar.
+      responses:
+        "200":
+          description: Lista de funções
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CedenteRoleListResponse"
+              example:
+                error: "false"
+                data:
+                  - id: 1
+                    code: preenchimento
+                    name: Preenchimento de formulario
+                  - id: 2
+                    code: avalista
+                    name: Aprovador
+                  - id: 3
+                    code: administrador
+                    name: Administrador
+        "403":
+          description: Não é administrador (id 3)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /cedente/employee/save:
+    post:
+      tags: [Usuários]
+      operationId: createCedenteEmployee
+      summary: Cadastrar employee do módulo (função + fundos)
+      description: |
+        Cria do zero `employee` + `user` + função + fundos.
+
+        - **Admin only:** `cedente_role.id === 3` no usuário logado. Caso contrário HTTP 403.
+        - Obrigatórios: `name`, `email`, `password` (mín. 6; alias `senha`), `cedente_role_id` (1, 2 ou 3).
+        - **Não** gera e-mail `@think` / `@carmel` — o front envia o e-mail e a senha de login.
+        - Fundos: `fund_ids: [1, 2]` **ou** `all_funds: true` (omitir / `[]` / `"todos"` = todos).
+        - `department` / `position` opcionais.
+
+        Com isso o usuário já faz `POST /login` e acessa `/cedente*` e `/fund*`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CedenteEmployeeCreateRequest"
+            examples:
+              fundosEspecificos:
+                $ref: "#/components/examples/EmployeeCedenteCreateFunds"
+              todosFundos:
+                $ref: "#/components/examples/EmployeeCedenteCreateAllFunds"
+      responses:
+        "200":
+          description: Employee cadastrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CedenteEmployeeCreateResponse"
+              example:
+                error: "false"
+                message: Funcionario cadastrado com sucesso
+                data:
+                  id: 42
+                  name: Maria Silva
+                  image: sem-foto.jpg
+                  department_id: null
+                  position_id: null
+                  user:
+                    id: 55
+                    email: maria.silva@empresa.com
+                  cedente_role:
+                    id: 1
+                    code: preenchimento
+                    name: Preenchimento de formulario
+                  funds:
+                    - id: 1
+                      name: Fundo Alpha
+                      code: FA
+                      type: FIDC
+                    - id: 2
+                      name: Fundo Beta
+                      code: FB
+                      type: FIDC
+                  all_funds: false
+        "400":
+          description: Validação (nome, role id, fundo inexistente)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Não é administrador (id 3)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /cedente/employee/edit:
+    put:
+      tags: [Usuários]
+      operationId: updateCedenteEmployee
+      summary: Alterar employee do módulo
+      description: |
+        Altera employee já cadastrado no módulo.
+
+        - **Admin only:** `cedente_role.id === 3`. Caso contrário HTTP 403.
+        - `id` obrigatório.
+        - Opcionais: `name`, `email`, `password` (mín. 6), `cedente_role_id`, fundos.
+        - Fundos só mudam se enviar `all_funds`, `fund_ids` ou `fundos`.
+        - Se o employee não tiver user, envie `email` e `password` para criar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CedenteEmployeeEditRequest"
+            examples:
+              edicaoCompleta:
+                $ref: "#/components/examples/EmployeeCedenteEdit"
+      responses:
+        "200":
+          description: Employee alterado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CedenteEmployeeCreateResponse"
+        "400":
+          description: Validação (id, email, senha, fundo)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Não é administrador (id 3)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
   /cedente/save:
     post:
       tags: [Cedente]
@@ -326,6 +491,101 @@ paths:
                 $ref: "#/components/schemas/CedenteSaveOrEditSuccessResponse"
         "400":
           description: Validação ou erro de persistência
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /cedente/import/xml:
+    post:
+      tags: [Cedente]
+      operationId: importCedenteXml
+      summary: Importar cedentes em lote via XML (Daycoval/Fromtis)
+      description: |
+        Lê **`cadastroCedente/cedentes/cedente`** e cria um cedente por nó `<cedente>` via a mesma regra de **`POST /cedente/save`**.
+
+        **`fund_id` obrigatório** (form field, query ou JSON junto com o XML).
+
+        **Envio do XML** (uma das formas):
+        - `multipart/form-data` com campo **`xml`** ou **`file`**
+        - JSON com campo **`xml`** (string)
+        - corpo raw `application/xml` ou `text/xml`
+
+        **Conferência:** se existir `fundo/cnpjFundo` no XML, deve coincidir com o CNPJ do fundo informado em `fund_id`.
+
+        **Mapeamento principal:**
+
+        | XML | Campo API |
+        |-----|-----------|
+        | `dadosContato/contato/nomeContato` (fallback `nome`) | `nome` |
+        | `cnpjCpf` | `documento` |
+        | `endereco`, `numEndereco`, `cep`, `bairro`, `uf`, `cidade` | `endereco` |
+        | `partesRelacionadas/parteRelacionada` | `partes_relacionadas` |
+        | `representantes/representante` | fallback de partes |
+        | `avalistas/avalista` | `avalistas` |
+        | `contasCorrente/contaCorrente` | `contas_desembolso` (`tipo_conta: conta_corrente`) |
+
+        Cadastro completo no XML → status **`pendente`** (mesmas regras de completude). Resposta sempre HTTP 200; `error: "true"` se houve falhas (parcial ou total).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [fund_id, xml]
+              properties:
+                fund_id:
+                  type: integer
+                  minimum: 1
+                xml:
+                  type: string
+                  format: binary
+                  description: Arquivo XML cadastroCedente
+            encoding:
+              xml:
+                contentType: application/xml
+          application/json:
+            schema:
+              type: object
+              required: [fund_id, xml]
+              properties:
+                fund_id:
+                  type: integer
+                  minimum: 1
+                xml:
+                  type: string
+                  description: Conteúdo XML cadastroCedente
+          application/xml:
+            schema:
+              type: string
+              description: Corpo XML; envie fund_id na query (?fund_id=1)
+          text/xml:
+            schema:
+              type: string
+      parameters:
+        - name: fund_id
+          in: query
+          required: false
+          description: Obrigatório quando o XML é enviado como corpo raw (sem form/JSON). Inteiro ≥ 1.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: |
+            Importação processada. `data.results` detalha sucesso/erro por cedente.
+            `error: "false"` apenas se todos foram criados.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CedenteXmlImportResponse"
+              examples:
+                sucesso:
+                  $ref: "#/components/examples/CedenteXmlImportSuccess"
+                parcial:
+                  $ref: "#/components/examples/CedenteXmlImportPartial"
+        "400":
+          description: fund_id/XML inválido ou erro global antes do processamento
           content:
             application/json:
               schema:
@@ -905,6 +1165,196 @@ components:
           enum: ["false"]
         message:
           type: string
+
+    CedenteRoleItem:
+      type: object
+      required: [id, code, name]
+      properties:
+        id:
+          type: integer
+          description: Id canônico (1 preenchimento, 2 avalista/aprovador, 3 administrador)
+          enum: [1, 2, 3]
+        code:
+          type: string
+          enum: [preenchimento, avalista, administrador]
+        name:
+          type: string
+          description: Label amigável. `avalista` (id 2) → `Aprovador`.
+
+    CedenteRoleListResponse:
+      type: object
+      required: [error, data]
+      properties:
+        error:
+          type: string
+          enum: ["false"]
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CedenteRoleItem"
+
+    CedenteEmployeeCreateRequest:
+      type: object
+      required: [name, email, password, cedente_role_id]
+      properties:
+        name:
+          type: string
+          example: Maria Silva
+        email:
+          type: string
+          format: email
+          description: E-mail de login. Qualquer domínio; não é gerado pelo backend.
+          example: maria.silva@empresa.com
+        password:
+          type: string
+          minLength: 6
+          description: Senha de login. Alias aceito `senha`.
+          example: SenhaForte1
+        senha:
+          type: string
+          minLength: 6
+          description: Alias de `password`.
+        cedente_role_id:
+          type: integer
+          description: Id em `cedente_role` (não envie name/code).
+          enum: [1, 2, 3]
+          example: 1
+        cedente_role:
+          type: object
+          description: Alternativa a `cedente_role_id` (`{ "id": 1 }`).
+          properties:
+            id:
+              type: integer
+              enum: [1, 2, 3]
+        all_funds:
+          type: boolean
+          description: true = acesso a todos os fundos (nenhuma linha em `fund_employee`).
+        fund_ids:
+          description: |
+            Array de ids de fundo, ou a string `todos`.
+            Omitir / `[]` / `todos` = todos os fundos.
+          oneOf:
+            - type: array
+              items:
+                type: integer
+            - type: string
+              enum: [todos]
+        fundos:
+          description: Alias de `fund_ids` (aceita `[1,2]`, `[{id:1}]` ou `"todos"`).
+        department:
+          type: object
+          description: Opcional (módulo Think).
+          properties:
+            id:
+              type: integer
+        position:
+          type: object
+          description: Opcional (módulo Think).
+          properties:
+            id:
+              type: integer
+
+    CedenteEmployeeEditRequest:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: integer
+          example: 42
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        senha:
+          type: string
+          minLength: 6
+        cedente_role_id:
+          type: integer
+          enum: [1, 2, 3]
+        cedente_role:
+          type: object
+          properties:
+            id:
+              type: integer
+              enum: [1, 2, 3]
+        all_funds:
+          type: boolean
+        fund_ids:
+          oneOf:
+            - type: array
+              items:
+                type: integer
+            - type: string
+              enum: [todos]
+        fundos: {}
+        department:
+          type: object
+          properties:
+            id:
+              type: integer
+        position:
+          type: object
+          properties:
+            id:
+              type: integer
+
+    CedenteEmployeeCreateResponse:
+      type: object
+      required: [error, message, data]
+      properties:
+        error:
+          type: string
+          enum: ["false"]
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/CedenteEmployeeResource"
+
+    CedenteEmployeeResource:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        image:
+          type: string
+        department_id:
+          type: integer
+          nullable: true
+        position_id:
+          type: integer
+          nullable: true
+        user:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            email:
+              type: string
+        cedente_role:
+          $ref: "#/components/schemas/CedenteRoleItem"
+        funds:
+          type: array
+          description: Vazio quando `all_funds` é true.
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              code:
+                type: string
+              type:
+                type: string
+        all_funds:
+          type: boolean
 
     Address:
       type: object
@@ -1637,6 +2087,62 @@ components:
         data:
           $ref: "#/components/schemas/CedenteDetail"
 
+    CedenteXmlImportResultItem:
+      type: object
+      required: [index, success]
+      properties:
+        index:
+          type: integer
+          description: Índice do cedente no XML (0-based)
+        success:
+          type: boolean
+        documento:
+          type: string
+          nullable: true
+        nome:
+          type: string
+          nullable: true
+        cedente_id:
+          type: integer
+          description: Presente quando success=true
+        status:
+          type: string
+          description: Status após criação (ex. pendente, rascunho)
+        data:
+          $ref: "#/components/schemas/CedenteDetail"
+        message:
+          type: string
+          description: Mensagem de erro quando success=false
+
+    CedenteXmlImportSummary:
+      type: object
+      required: [fund_id, total, created, failed, results]
+      properties:
+        fund_id:
+          type: integer
+        total:
+          type: integer
+        created:
+          type: integer
+        failed:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/CedenteXmlImportResultItem"
+
+    CedenteXmlImportResponse:
+      type: object
+      required: [error, message, data]
+      properties:
+        error:
+          type: string
+          enum: ["false", "true"]
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/CedenteXmlImportSummary"
+
     CedenteListItem:
       type: object
       description: |
@@ -1809,6 +2315,41 @@ components:
           type: integer
 
   examples:
+    EmployeeCedenteCreateFunds:
+      summary: Cadastro com fundos específicos
+      description: |
+        Cria usuário do zero (email/senha do front) com função Preenchimento (id 1)
+        e acesso somente aos fundos 1 e 2. Somente admin (id 3).
+      value:
+        name: Maria Silva
+        email: maria.silva@empresa.com
+        password: SenhaForte1
+        cedente_role_id: 1
+        fund_ids: [1, 2]
+
+    EmployeeCedenteCreateAllFunds:
+      summary: Cadastro com todos os fundos
+      description: |
+        Cria usuário do zero com função Avalista/Aprovador (id 2) e acesso a todos os fundos.
+      value:
+        name: João Pereira
+        email: joao.pereira@empresa.com
+        password: SenhaForte1
+        cedente_role_id: 2
+        all_funds: true
+
+    EmployeeCedenteEdit:
+      summary: Alteração de usuário do módulo
+      description: |
+        Troca nome, e-mail, senha, função e fundos. Campos omitidos permanecem.
+      value:
+        id: 42
+        name: Maria Silva Souza
+        email: maria.souza@empresa.com
+        password: NovaSenha2
+        cedente_role_id: 3
+        fund_ids: [1]
+
     CedenteCreateBody:
       summary: Exemplo de rascunho (só fund_id e nome)
       description: |
@@ -2008,6 +2549,47 @@ components:
         id: 42
         resultado: rejeitado
         observacao: Não atende política de crédito do fundo
+
+    CedenteXmlImportSuccess:
+      summary: Importação totalmente bem-sucedida
+      value:
+        error: "false"
+        message: Importacao concluida com sucesso
+        data:
+          fund_id: 1
+          total: 1
+          created: 1
+          failed: 0
+          results:
+            - index: 0
+              success: true
+              documento: "20449961000195"
+              nome: TRANS NUNES TRANSPORTES LTDA
+              cedente_id: 55
+              status: pendente
+
+    CedenteXmlImportPartial:
+      summary: Importação parcial (1 ok, 1 falha)
+      value:
+        error: "true"
+        message: "Importacao parcial: 1 criado(s), 1 falha(s)"
+        data:
+          fund_id: 1
+          total: 2
+          created: 1
+          failed: 1
+          results:
+            - index: 0
+              success: true
+              documento: "20449961000195"
+              nome: TRANS NUNES TRANSPORTES LTDA
+              cedente_id: 55
+              status: pendente
+            - index: 1
+              success: false
+              documento: "12345678000199"
+              nome: OUTRA EMPRESA LTDA
+              message: cnpjFundo do XML (37569593000111) nao confere com o CNPJ do fund_id 1 (00000000000191)
 
     CedenteGetSuccessExample:
       summary: Exemplo de resposta GET (trecho)

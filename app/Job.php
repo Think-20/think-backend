@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 use DB;
 use DateTime;
 use DateInterval;
+use App\Http\Services\MailService;
 use Exception;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use PHPMailer\PHPMailer\PHPMailer;
 
 class Job extends Model
 {
@@ -1321,108 +1321,36 @@ class Job extends Model
         $email = $data['feedback_user_email'];
         $nome = $data['feedback_user_name'];
         $job_id = $data['job_id'];
-        
-        $mail = new PHPMailer(true);
-        $hash = sha1($data['feedback_user_email'].time());
+        $hash = sha1($data['feedback_user_email'] . time());
 
         $job = Job::where('id', $job_id)->first();
-        
 
         $job->update([
             'feedback_user_name' => $data['feedback_user_name'],
             'feedback_user_email' => $data['feedback_user_email'],
             'feedback_user_phone' => $data['feedback_user_phone'],
-            'feedback_hash' => $hash
+            'feedback_hash' => $hash,
         ]);
-
 
         if (!$email) {
             return response()->json(['error' => 'false', 'message' => 'Sem E-mail do destinatário.']);
         }
 
+        $link = MailService::frontendBaseUrl() . '/external/feedback/' . $job_id . '/' . $hash;
+        $body = 'Olá! 😊<br /><br />'
+            . 'Gostaríamos de expressar nossa gratidão pela confiança e parceria. '
+            . 'Antes de prosseguir, queremos dizer que sua opinião é muito importante para nós. '
+            . 'Solicitamos gentilmente que clique no botão abaixo para responder a algumas perguntas rápidas.';
+
         try {
-            // Configurações do servidor SMTP do Gmail
-            $mail->isSMTP();
-
-            $mail->Host = 'smtp.gmail.com';
-            $mail->SMTPAuth = true;
-            $mail->Username = 'think.ideias.1@gmail.com'; // Seu endereço de e-mail
-            $mail->Password = 'dhqg bibw laok mawt';  // Senha de app gerada no Google
-           
-            //$mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->SMTPSecure = 'tls';
-            
-            $mail->Port = 465;
-            $mail->CharSet = 'UTF-8';
-            
-            $mail->SMTPOptions = array(
-                'ssl' => array(
-                    'verify_peer' => false,
-                    'verify_peer_name' => false,
-                    'allow_self_signed' => true
-                )
-            );
-
-
-            // Remetente e destinatário
-            $mail->setFrom('no-reply@think.com', 'Think');
-            $mail->addAddress($email, $nome); // Adicione o destinatário
-
-            // Conteúdo do e-mail
-            $mail->isHTML(true);
-            $mail->Subject = 'Obrigado pela Parceria!';
-
-            $mail->Body = '<!DOCTYPE html>
-                <html lang="pt-BR">
-                    <head>
-                        <meta charset="UTF-8" />
-                        <title>Agradecimento e Solicitação</title>
-                    </head>
-                    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
-                        <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse; background-color: #ffffff;">
-                        <!-- Cabeçalho -->
-                        <tr>
-                            <td align="center" style="padding: 20px 0; background-color: #0056b3; color: #ffffff;">
-                            <h1 style="margin: 0; font-size: 24px; font-weight: bold;">Obrigado pela Parceria!</h1>
-                            </td>
-                        </tr>
-                        <!-- Corpo -->
-                        <tr>
-                            <td style="padding: 30px; color: #333333; text-align: center; font-size: 16px;">
-                            <p style="margin: 0;">
-                                Olá! 😊<br /><br />
-                                Gostaríamos de expressar nossa gratidão pela confiança e parceria.
-                                Antes de prosseguir, queremos dizer que sua opinião é muito importante para nós.
-                                Solicitamos gentilmente que clique no botão abaixo para responder a algumas perguntas rápidas. 
-                            </p>
-                            <br />
-                            <!-- Botão -->
-                            <table align="center" cellpadding="0" cellspacing="0" border="0">
-                                <tr>
-                                <td align="center" style="background-color: #286ea7; border-radius: 4px;">
-                                    <a href="http://localhost:4200/external/feedback/' . $job_id . '/' . $hash . '" target="_blank" style="display: block; padding: 12px 20px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold; font-family: Arial, sans-serif;">
-                                        Visualizar
-                                    </a>
-                                </td>
-                                </tr>
-                            </table>
-                            </td>
-                        </tr>
-                        <!-- Rodapé -->
-                        <tr>
-                            <td align="center" style="padding: 20px; font-size: 12px; color: #777777; background-color: #f5f5f5;">
-                            Caso tenha alguma dúvida, não hesite em nos contatar.<br />
-                            <strong>Think</strong>
-                            </td>
-                        </tr>
-                        </table>
-                    </body>
-                </html>';
-            
-            // Enviar o e-mail
-            $mail->send();
+            MailService::send([
+                'to' => $email,
+                'to_name' => $nome,
+                'subject' => 'Obrigado pela Parceria!',
+                'body' => MailService::renderHtmlLayout('Obrigado pela Parceria!', $body, $link, 'Visualizar'),
+            ]);
         } catch (Exception $e) {
-            return response()->json(['error' => 'true', 'message' => "Erro ao enviar mensagem: {$mail->ErrorInfo}"]);
+            return response()->json(['error' => 'true', 'message' => 'Erro ao enviar mensagem: ' . $e->getMessage()]);
         }
 
         return response()->json(['error' => 'false', 'message' => 'Email de confirmação enviado ao cliente.']);

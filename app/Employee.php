@@ -10,6 +10,7 @@ use DB;
 use Exception;
 use Illuminate\Support\Facades\DB as FacadesDB;
 use Illuminate\Support\Facades\Hash;
+use InvalidArgumentException;
 
 class Employee extends Model implements NotifierInterface
 {
@@ -105,6 +106,11 @@ class Employee extends Model implements NotifierInterface
         }
 
         $employee->makeVisible('payment');
+        $employee->load(['funds', 'cedenteRoles']);
+        $role = $employee->cedenteRole();
+        $employee->cedente_role = $role ? $role->toApiArray() : null;
+        $employee->all_funds = $employee->funds->isEmpty();
+
         return $employee;
     }
 
@@ -264,6 +270,378 @@ class Employee extends Model implements NotifierInterface
             DB::rollBack();
             throw new \Exception($e->getMessage());
         }
+    }
+
+    /**
+     * Cadastro de employee do modulo de cedentes a partir do zero:
+     * name, email e senha enviados pelo front (sem gerar @think / @carmel),
+     * user, cedente_role por id e fundos.
+     *
+     * @param array $data
+     * @return Employee
+     */
+    public static function insertForCedente(array $data)
+    {
+        $name = isset($data['name']) ? trim((string) $data['name']) : '';
+        if ($name === '') {
+            throw new InvalidArgumentException('name e obrigatorio');
+        }
+
+        $roleId = self::parseCedenteRoleId($data, true);
+        $email = self::parseCedenteEmail($data, true);
+        $password = self::parseCedentePassword($data, true);
+        self::assertCedenteEmailAvailable($email);
+
+        list($allFunds, $fundIds) = self::parseCedenteFundsPayload($data);
+
+        DB::beginTransaction();
+
+        try {
+            $employee = new Employee($data);
+            $employee->name = $name;
+            $employee->department_id = isset($data['department']['id']) ? $data['department']['id'] : null;
+            $employee->position_id = isset($data['position']['id']) ? $data['position']['id'] : null;
+            $employee->updated_by = User::logged()->employee->id;
+            $employee->image = isset($data['image']) ? $data['image'] : 'sem-foto.jpg';
+            $employee->save();
+            $employee->moveFile();
+
+            self::createCedenteUser($employee->id, $email, $password);
+
+            CedenteRole::assignToEmployeeById($employee->id, $roleId);
+            self::syncCedenteFunds($employee, $fundIds, $allFunds);
+
+            DB::commit();
+
+            return $employee->fresh(['user', 'funds', 'cedenteRoles', 'department', 'position']);
+        } catch (InvalidArgumentException $e) {
+            DB::rollBack();
+            throw $e;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw new \Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * Altera employee do modulo de cedentes: nome, email, senha, funcao e/ou fundos.
+     *
+     * @param array $data
+     * @return Employee
+     */
+    public static function editForCedente(array $data)
+    {
+        $id = isset($data['id']) ? (int) $data['id'] : 0;
+        if ($id < 1) {
+            throw new InvalidArgumentException('id e obrigatorio');
+        }
+
+        $employee = Employee::withTrashed()->find($id);
+        if (!$employee) {
+            throw new InvalidArgumentException('Employee nao encontrado');
+        }
+
+        $roleId = self::parseCedenteRoleId($data, false);
+        $email = self::parseCedenteEmail($data, false);
+        $password = self::parseCedentePassword($data, false);
+        $updateFunds = array_key_exists('all_funds', $data)
+            || array_key_exists('fund_ids', $data)
+            || array_key_exists('fundos', $data);
+
+        $allFunds = false;
+        $fundIds = [];
+        if ($updateFunds) {
+            list($allFunds, $fundIds) = self::parseCedenteFundsPayload($data);
+        }
+
+        if ($email !== null) {
+            self::assertCedenteEmailAvailable($email, $employee->id);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            if (isset($data['name']) && trim((string) $data['name']) !== '') {
+                $employee->name = trim((string) $data['name']);
+            }
+            if (array_key_exists('department', $data)) {
+                $employee->department_id = isset($data['department']['id']) ? $data['department']['id'] : null;
+            }
+            if (array_key_exists('position', $data)) {
+                $employee->position_id = isset($data['position']['id']) ? $data['position']['id'] : null;
+            }
+            if (isset($data['image'])) {
+                $employee->image = $data['image'];
+                if ($employee->image != $employee->getImageNameGeneration()) {
+                    $employee->moveFile();
+                }
+            }
+            $employee->updated_by = User::logged()->employee->id;
+            $employee->save();
+
+            $user = $employee->user;
+            if (!$user) {
+                if ($email === null || $password === null) {
+                    throw new InvalidArgumentException('Este employee nao tem usuario. Envie email e password para criar');
+                }
+                self::createCedenteUser($employee->id, $email, $password);
+            } else {
+                if ($email !== null) {
+                    $user->email = $email;
+                }
+                if ($password !== null) {
+                    $user->password = Hash::make($password);
+                }
+                $user->save();
+            }
+
+            if ($roleId !== null) {
+                CedenteRole::assignToEmployeeById($employee->id, $roleId);
+            }
+            if ($updateFunds) {
+                self::syncCedenteFunds($employee, $fundIds, $allFunds);
+            }
+
+            DB::commit();
+
+            return $employee->fresh(['user', 'funds', 'cedenteRoles', 'department', 'position']);
+        } catch (InvalidArgumentException $e) {
+            DB::rollBack();
+            throw $e;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw new \Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * @param array $data
+     * @param bool $required
+     * @return int|null
+     */
+    public static function parseCedenteRoleId(array $data, $required)
+    {
+        $roleId = null;
+        if (isset($data['cedente_role_id'])) {
+            $roleId = (int) $data['cedente_role_id'];
+        } elseif (isset($data['cedente_role']['id'])) {
+            $roleId = (int) $data['cedente_role']['id'];
+        }
+
+        if ($roleId === null || $roleId < 1) {
+            if ($required) {
+                throw new InvalidArgumentException('cedente_role_id e obrigatorio');
+            }
+
+            return null;
+        }
+
+        return $roleId;
+    }
+
+    /**
+     * Email informado pelo front. Nao gera dominio @think / @carmel.
+     *
+     * @param array $data
+     * @param bool $required
+     * @return string|null
+     */
+    public static function parseCedenteEmail(array $data, $required)
+    {
+        if (!array_key_exists('email', $data) || $data['email'] === null || $data['email'] === '') {
+            if ($required) {
+                throw new InvalidArgumentException('email e obrigatorio');
+            }
+
+            return null;
+        }
+
+        $email = strtolower(trim((string) $data['email']));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidArgumentException('email invalido');
+        }
+
+        return $email;
+    }
+
+    /**
+     * @param array $data
+     * @param bool $required
+     * @return string|null
+     */
+    public static function parseCedentePassword(array $data, $required)
+    {
+        if (!array_key_exists('password', $data) && !array_key_exists('senha', $data)) {
+            if ($required) {
+                throw new InvalidArgumentException('password e obrigatorio');
+            }
+
+            return null;
+        }
+
+        $raw = array_key_exists('password', $data) ? $data['password'] : $data['senha'];
+        $password = is_string($raw) ? $raw : (string) $raw;
+        if (trim($password) === '') {
+            if ($required) {
+                throw new InvalidArgumentException('password e obrigatorio');
+            }
+
+            return null;
+        }
+        if (strlen($password) < 6) {
+            throw new InvalidArgumentException('password deve ter no minimo 6 caracteres');
+        }
+
+        return $password;
+    }
+
+    /**
+     * @param string $email
+     * @param int|null $exceptEmployeeId
+     */
+    public static function assertCedenteEmailAvailable($email, $exceptEmployeeId = null)
+    {
+        $query = User::where('email', $email);
+        if ($exceptEmployeeId !== null) {
+            $query->where('employee_id', '!=', (int) $exceptEmployeeId);
+        }
+        if ($query->first()) {
+            throw new InvalidArgumentException('Ja existe um usuario com esse email');
+        }
+    }
+
+    /**
+     * @param int $employeeId
+     * @param string $email
+     * @param string $password
+     * @return User
+     */
+    public static function createCedenteUser($employeeId, $email, $password)
+    {
+        $user = new User();
+        $user->email = $email;
+        $user->password = Hash::make($password);
+        $user->employee_id = $employeeId;
+        $user->save();
+
+        return $user;
+    }
+
+    /**
+     * @param array $data
+     * @return array{0: bool, 1: int[]}
+     */
+    public static function parseCedenteFundsPayload(array $data)
+    {
+        $allFunds = false;
+        if (array_key_exists('all_funds', $data)) {
+            $v = $data['all_funds'];
+            $allFunds = $v === true || $v === 1 || $v === '1' || $v === 'true' || $v === 'todos';
+        }
+
+        $rawFunds = null;
+        if (array_key_exists('fund_ids', $data)) {
+            $rawFunds = $data['fund_ids'];
+        } elseif (array_key_exists('fundos', $data)) {
+            $rawFunds = $data['fundos'];
+        }
+
+        if (is_string($rawFunds) && strtolower(trim($rawFunds)) === 'todos') {
+            $allFunds = true;
+            $rawFunds = null;
+        }
+
+        if ($allFunds) {
+            return [true, []];
+        }
+
+        if ($rawFunds === null) {
+            return [true, []];
+        }
+
+        if (!is_array($rawFunds)) {
+            throw new InvalidArgumentException('fund_ids deve ser um array de ids ou all_funds true');
+        }
+
+        if (count($rawFunds) === 0) {
+            return [true, []];
+        }
+
+        $ids = [];
+        foreach ($rawFunds as $item) {
+            if (is_array($item) && isset($item['id'])) {
+                $ids[] = (int) $item['id'];
+            } else {
+                $ids[] = (int) $item;
+            }
+        }
+        $ids = array_values(array_unique(array_filter($ids, function ($id) {
+            return $id > 0;
+        })));
+
+        if (empty($ids)) {
+            throw new InvalidArgumentException('fund_ids invalido');
+        }
+
+        return [false, $ids];
+    }
+
+    /**
+     * @param Employee $employee
+     * @param int[] $fundIds
+     * @param bool $allFunds
+     */
+    public static function syncCedenteFunds(Employee $employee, array $fundIds, $allFunds)
+    {
+        if ($allFunds) {
+            $employee->funds()->sync([]);
+
+            return;
+        }
+
+        $found = Fund::whereIn('id', $fundIds)->pluck('id')->all();
+        $found = array_map('intval', $found);
+        $missing = array_diff($fundIds, $found);
+        if (!empty($missing)) {
+            throw new InvalidArgumentException('Fundo nao encontrado: ' . implode(', ', $missing));
+        }
+
+        $employee->funds()->sync($fundIds);
+    }
+
+    /**
+     * Payload de employee no modulo de cedentes (user, papel e fundos).
+     *
+     * @return array
+     */
+    public function toCedenteModuleArray()
+    {
+        $this->load(['user', 'funds', 'cedenteRoles', 'department', 'position']);
+        $role = $this->cedenteRole();
+        $funds = $this->funds;
+        $allFunds = $funds->isEmpty();
+
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'image' => $this->image,
+            'department_id' => $this->department_id,
+            'position_id' => $this->position_id,
+            'user' => $this->user ? [
+                'id' => $this->user->id,
+                'email' => $this->user->email,
+            ] : null,
+            'cedente_role' => $role ? $role->toApiArray() : null,
+            'funds' => $allFunds ? [] : $funds->map(function ($fund) {
+                return [
+                    'id' => (int) $fund->id,
+                    'name' => $fund->name,
+                    'code' => $fund->code,
+                    'type' => $fund->type,
+                ];
+            })->values()->all(),
+            'all_funds' => $allFunds,
+        ];
     }
 
     public static function createUser($data, $employeeId) {

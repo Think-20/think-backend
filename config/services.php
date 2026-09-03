@@ -78,4 +78,24 @@ return [
         'timeout' => env('VADU_TIMEOUT', 60),
     ],
 
+    /*
+    | S3 — usado por FileStorageService (cedente e demais modulos).
+    | Aceita AWS_* (padrao Laravel) ou S3_* (legado GoalController).
+    */
+    's3_storage' => [
+        'key' => env('AWS_ACCESS_KEY_ID', env('AWS_KEY', env('S3_KEY'))),
+        'secret' => env('AWS_SECRET_ACCESS_KEY', env('AWS_SECRET', env('S3_SECRET'))),
+        'region' => env('AWS_DEFAULT_REGION', env('AWS_REGION', 'us-east-1')),
+        'bucket' => env('AWS_BUCKET', env('S3_BUCKET_NAME')),
+        'prefix' => env('AWS_PREFIX', env('S3_PREFIX', '')),
+    ],
+
+    /*
+    | Arquivos de cedente: local (FILES_FOLDER) ou s3.
+    | Registros antigos permanecem storage_disk=local ate migracao manual.
+    */
+    'cedente_files' => [
+        'default_disk' => env('CEDENTE_FILES_DISK', 'local'),
+    ],
+
 ];

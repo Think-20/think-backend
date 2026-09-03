@@ -115,13 +115,11 @@ Route::get('/cedente-files/view/{id}', function ($id) {
         abort(404);
     }
 
-    $path = env('FILES_FOLDER') . '/cedente-files/' . $cedenteFile->name;
-
-    if (!File::exists($path)) {
+    try {
+        $fileGet = $cedenteFile->readBinary();
+    } catch (Exception $e) {
         abort(404);
     }
-
-    $fileGet = file_get_contents($path);
 
     $response = Response::make($fileGet, 200);
     $response->header('Content-Type', "*/*");
@@ -443,7 +441,12 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::get('/bank-accounts/get/{id}', 'BankAccountController@get');
     Route::post('/bank-accounts/filter', 'BankAccountController@filter');
 
+    Route::get('/cedentes/roles', 'EmployeeController@cedenteRoles');
+    Route::post('/cedente/employee/save', 'EmployeeController@saveCedente');
+    Route::put('/cedente/employee/edit', 'EmployeeController@editCedente');
+
     Route::post('/cedente/save', 'CedenteController@save');
+    Route::post('/cedente/import/xml', 'CedenteController@importXml');
     Route::put('/cedente/edit', 'CedenteController@edit');
     Route::patch('/cedente/patch', 'CedenteController@patch');
     Route::patch('/cedente/arquivo/validacao', 'CedenteController@validarArquivo');

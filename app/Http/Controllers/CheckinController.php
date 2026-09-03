@@ -6,14 +6,12 @@ use App\Checkin;
 use App\Client;
 use App\Extra;
 use App\ExtraItem;
+use App\Http\Services\MailService;
 use App\Job;
 use Carbon\Carbon;
 use Carbon\CarbonInterval;
 use Exception;
 use Illuminate\Http\Request;
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\OAuth;
-use League\OAuth2\Client\Provider\GenericProvider;
 
 class CheckinController extends Controller
 {
@@ -125,97 +123,36 @@ class CheckinController extends Controller
 
         $checkin = Checkin::getUnique($checkinId);
         $extra = Extra::where('job_id', $checkin->job_id)->first();
-        
-        $mail = new PHPMailer(true);
 
-        $data = random_bytes(16);
-        $data[6] = chr(ord($data[6]) & 0x0f | 0x40); // set version to 0100
-        $data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
-
-        $hash =  vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+        $hash = self::generateUuidHash();
 
         $extra->update([
-            'hash' => $hash
+            'hash' => $hash,
         ]);
 
-        #$client = Client::get($checkin->client_email);
         $email = $checkin->client_email;
-        $nome = "";
+        $nome = '';
 
         if (!$email) {
             return response()->json(['error' => 'false', 'message' => 'Sem E-mail do destinatário.']);
         }
 
+        $link = MailService::frontendBaseUrl() . '/external/extras/' . $checkinId . '/' . $hash;
+        $body = 'Olá! 😊<br /><br />'
+            . 'Gostaríamos de expressar nossa gratidão pela confiança e parceria. Para '
+            . 'prosseguirmos com o próximo passo, solicitamos gentilmente que clique no botão abaixo para visualização dos itens extras.';
+
         try {
-            // Configurações do servidor SMTP do Gmail
-            $mail->isSMTP();
-
-            $mail->Host = 'smtp.gmail.com';
-            $mail->SMTPAuth = true;
-            $mail->Username = 'projectmyjob@gmail.com'; // Seu endereço de e-mail
-            $mail->Password = 'kjvf kout qnvj jfgy';  // Senha de app gerada no Google
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
-            $mail->CharSet = 'UTF-8';
-
-            // Remetente e destinatário
-            $mail->setFrom('myjob@gmail.com', 'My Job');
-            $mail->addAddress($email, $nome); // Adicione o destinatário
-
-            // Conteúdo do e-mail
-            $mail->isHTML(true);
-            $mail->Subject = 'Obrigado pela parceria';
-
-            $mail->Body    = '<!DOCTYPE html>
-                <html lang="pt-BR">
-                <head>
-                    <meta charset="UTF-8" />
-                    <title>Agradecimento e Solicitação</title>
-                </head>
-                <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
-                    <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse; background-color: #ffffff;">
-                    <!-- Cabeçalho -->
-                    <tr>
-                        <td align="center" style="padding: 20px 0; background-color: #0056b3; color: #ffffff;">
-                        <h1 style="margin: 0; font-size: 24px; font-weight: bold;">Obrigado pela Parceria!</h1>
-                        </td>
-                    </tr>
-                    <!-- Corpo -->
-                    <tr>
-                        <td style="padding: 30px; color: #333333; text-align: center; font-size: 16px;">
-                        <p style="margin: 0;">
-                            Olá! 😊<br /><br />
-                            Gostaríamos de expressar nossa gratidão pela confiança e parceria. Para
-                            prosseguirmos com o próximo passo, solicitamos gentilmente que clique no botão abaixo para visualização dos itens extras.
-                        </p>
-                        <br />
-                        <!-- Botão -->
-                        <table align="center" cellpadding="0" cellspacing="0" border="0">
-                            <tr>
-                            <td align="center" style="background-color: #286ea7; border-radius: 4px;">                               
-                            <a href="http://localhost:4200/external/extras/' . $checkinId . '/' . $hash . '" target="_blank" style="display: block; padding: 12px 20px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold; font-family: Arial, sans-serif;">
-                                Visualizar
-                                </a>
-                            </td>
-                            </tr>
-                        </table>
-                        </td>
-                    </tr>
-                    <!-- Rodapé -->
-                    <tr>
-                        <td align="center" style="padding: 20px; font-size: 12px; color: #777777; background-color: #f5f5f5;">
-                        Caso tenha alguma dúvida, não hesite em nos contatar.<br />
-                        <strong>Think</strong>
-                        </td>
-                    </tr>
-                    </table>
-                </body>
-                </html>';
-
-            // Enviar o e-mail
-            $mail->send();
+            MailService::send([
+                'to' => $email,
+                'to_name' => $nome,
+                'from' => env('MAIL_FROM_ADDRESS_MYJOB', env('MAIL_FROM_ADDRESS', 'no-reply@think.com')),
+                'from_name' => env('MAIL_FROM_NAME_MYJOB', 'My Job'),
+                'subject' => 'Obrigado pela parceria',
+                'body' => MailService::renderHtmlLayout('Obrigado pela Parceria!', $body, $link, 'Visualizar'),
+            ]);
         } catch (Exception $e) {
-            return response()->json(['error' => 'true', 'message' => "Erro ao enviar mensagem: {$mail->ErrorInfo}"]);
+            return response()->json(['error' => 'true', 'message' => 'Erro ao enviar mensagem: ' . $e->getMessage()]);
         }
 
         return response()->json(['error' => 'false', 'message' => 'Email de confirmação enviado ao cliente.']);
@@ -227,114 +164,54 @@ class CheckinController extends Controller
 
         $checkin = Checkin::getUnique($checkinId);
         $extra = Extra::where('job_id', $checkin->job_id)->first();
-        
-        $mail = new PHPMailer(true);
 
-        $data = random_bytes(16);
-        $data[6] = chr(ord($data[6]) & 0x0f | 0x40); // set version to 0100
-        $data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
-
-        $hash =  vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+        $hash = self::generateUuidHash();
 
         $extra->update([
-            'hash' => $hash
+            'hash' => $hash,
         ]);
 
-        #$client = Client::get($checkin->client_email);
         $email = $checkin->client_email;
-        $nome = "";
+        $nome = '';
 
         if (!$email) {
             return response()->json(['error' => 'false', 'message' => 'Sem E-mail do destinatário.']);
         }
 
+        $base = MailService::frontendBaseUrl() . '/external/check-in/' . $checkinId . '/' . $hash;
+        $acceptUrl = htmlspecialchars($base . '/1', ENT_QUOTES, 'UTF-8');
+        $refuseUrl = htmlspecialchars($base . '/2', ENT_QUOTES, 'UTF-8');
+        $bodyInner = 'Olá! 😊<br /><br />'
+            . 'Gostaríamos de expressar nossa gratidão pela confiança e parceria. Para '
+            . 'prosseguirmos com o próximo passo, escolha uma das opções abaixo:<br /><br />'
+            . '<a href="' . $acceptUrl . '" target="_blank" style="display:inline-block;padding:12px 20px;background:#28a745;color:#fff;text-decoration:none;border-radius:4px;font-weight:bold;">Aceitar Proposta</a>'
+            . '<br /><br />'
+            . '<a href="' . $refuseUrl . '" target="_blank" style="font-size:12px;">Recusar proposta</a>';
+
         try {
-            // Configurações do servidor SMTP do Gmail
-            $mail->isSMTP();
-
-            $mail->Host = 'smtp.gmail.com';
-            $mail->SMTPAuth = true;
-            
-            $mail->Username = 'think.ideias.1@gmail.com'; // Seu endereço de e-mail
-            $mail->Password = 'dhqg bibw laok mawt';  // Senha de app gerada no Google
-            
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
-
-            $mail->CharSet = 'UTF-8';
-            //$mail = utf8_decode($_POST['mensagem']);
-
-            // Remetente
-            $mail->setFrom('no-reply@think.com', 'Think Support'); // Altere aqui para o e-mail e nome desejado
-
-
-            #$mail->addAddress($checkin->organization_login, $checkin->client_object->name); // Adicione o destinatário
-            $mail->addAddress($email, $nome); // Adicione o destinatário
-
-            // Conteúdo do e-mail
-            $mail->isHTML(true);
-            $mail->Subject = 'Obrigado pela parceria';
-
-            $mail->Body    = '<!DOCTYPE html>
-                <html lang="pt-BR">
-                <head>
-                    <meta charset="UTF-8" />
-                    <title>Agradecimento e Solicitação</title>
-                </head>
-                <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
-                    <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse; background-color: #ffffff;">
-                    <!-- Cabeçalho -->
-                    <tr>
-                        <td align="center" style="padding: 20px 0; background-color: #0056b3; color: #ffffff;">
-                        <h1 style="margin: 0; font-size: 24px; font-weight: bold;">Obrigado pela Parceria!</h1>
-                        </td>
-                    </tr>
-                    <!-- Corpo -->
-                    <tr>
-                        <td style="padding: 30px; color: #333333; text-align: center; font-size: 16px;">
-                        <p style="margin: 0;">
-                            Olá! 😊<br /><br />
-                            Gostaríamos de expressar nossa gratidão pela confiança e parceria. Para
-                            prosseguirmos com o próximo passo, solicitamos gentilmente que clique no botão abaixo para realizar o aceite.
-                        </p>
-                        <br />
-                        <!-- Botão -->
-                        <table align="center" cellpadding="0" cellspacing="0" border="0">
-                            <tr>
-                            <td align="center" style="background-color: #28a745; border-radius: 4px;">
-                                <a href="http://localhost:4200/external/check-in/' . $checkinId . '/' . $hash . '/1" target="_blank" style="display: block; padding: 12px 20px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold; font-family: Arial, sans-serif;">
-                                Aceitar Proposta
-                                </a>
-                            </td>
-                            </tr>
-                            <tr>
-                                <td align="center" style="display: flex;">
-                                <a href="http://localhost:4200/external/check-in/' . $checkinId . '/' . $hash . '/2" target="_blank" style="display: block; font-size: 10px; font-family: Arial, sans-serif; margin: auto; margin-top: 20px;">
-                                    Recusar proposta
-                                </a>
-                                </td>
-                            </tr>
-                        </table>
-                        </td>
-                    </tr>
-                    <!-- Rodapé -->
-                    <tr>
-                        <td align="center" style="padding: 20px; font-size: 12px; color: #777777; background-color: #f5f5f5;">
-                        Caso tenha alguma dúvida, não hesite em nos contatar.<br />
-                        <strong>Think</strong>
-                        </td>
-                    </tr>
-                    </table>
-                </body>
-                </html>';
-
-            // Enviar o e-mail
-            $mail->send();
+            MailService::send([
+                'to' => $email,
+                'to_name' => $nome,
+                'subject' => 'Obrigado pela parceria',
+                'body' => MailService::renderHtmlLayout('Obrigado pela Parceria!', $bodyInner),
+            ]);
         } catch (Exception $e) {
-            return response()->json(['error' => 'true', 'message' => "Erro ao enviar mensagem: {$mail->ErrorInfo}"]);
+            return response()->json(['error' => 'true', 'message' => 'Erro ao enviar mensagem: ' . $e->getMessage()]);
         }
 
         return response()->json(['error' => 'false', 'message' => 'Email de confirmação enviado ao cliente.']);
+    }
+
+    /**
+     * @return string
+     */
+    private static function generateUuidHash()
+    {
+        $data = random_bytes(16);
+        $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+        $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
 
