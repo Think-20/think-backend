@@ -1221,7 +1221,8 @@ components:
           example: 1
         cedente_role:
           type: object
-          description: 'Alternativa a `cedente_role_id` (`{ "id": 1 }`).'
+          description: |
+            Alternativa a `cedente_role_id`. Envie um objeto com o campo `id` (1, 2 ou 3).
           properties:
             id:
               type: integer
@@ -1240,7 +1241,8 @@ components:
             - type: string
               enum: [todos]
         fundos:
-          description: Alias de `fund_ids` (aceita `[1,2]`, `[{id:1}]` ou `"todos"`).
+          description: |
+            Alias de `fund_ids`. Aceita lista de ids, lista de objetos com id, ou a string todos.
         department:
           type: object
           description: Opcional (módulo Think).

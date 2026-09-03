@@ -26,12 +26,11 @@ class SerproApi
         try {
             return self::requestQsa($cnpj, $token);
         } catch (RequestException $e) {
-            if (! self::shouldRefreshToken($e)) {
+            if (! self::shouldRetryWithAlternateToken($e)) {
                 throw new Exception('Erro ao consultar QSA no SERPRO: ' . self::requestExceptionMessage($e));
             }
 
-            // Token invalido/expirado ou sem autorizacao: gera novo via USERNAME/PASSWORD e tenta de novo.
-            $token = self::refreshAccessToken();
+            $token = self::resolveAlternateAccessToken($token);
 
             try {
                 return self::requestQsa($cnpj, $token);
@@ -52,7 +51,8 @@ class SerproApi
     }
 
     /**
-     * Usa token em cache se ainda valido; senao gera novo com Consumer Key/Secret.
+     * OAuth via Consumer Key/Secret. Bearer estatico (SERPRO_BEARER_TOKEN) e fallback
+     * se o POST /token falhar (SSL/fopen no servidor, 401, etc.).
      *
      * @return string
      */
@@ -63,7 +63,41 @@ class SerproApi
             return $cached;
         }
 
-        return self::refreshAccessToken();
+        try {
+            return self::refreshAccessToken();
+        } catch (Exception $e) {
+            $fallback = self::configuredBearerToken();
+            if ($fallback !== '') {
+                return $fallback;
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Em 401/403/900908, tenta o outro meio de autenticacao.
+     *
+     * @param string $currentToken
+     * @return string
+     */
+    private static function resolveAlternateAccessToken($currentToken)
+    {
+        try {
+            $refreshed = self::refreshAccessToken();
+            if ($refreshed !== $currentToken) {
+                return $refreshed;
+            }
+        } catch (Exception $e) {
+            // Tenta bearer estatico abaixo.
+        }
+
+        $bearer = self::configuredBearerToken();
+        if ($bearer !== '' && $bearer !== $currentToken) {
+            return $bearer;
+        }
+
+        throw new Exception('Nao foi possivel renovar o token SERPRO.');
     }
 
     /**
@@ -131,6 +165,16 @@ class SerproApi
     }
 
     /**
+     * @return string
+     */
+    private static function configuredBearerToken()
+    {
+        $token = config('services.serpro.bearer_token');
+
+        return is_string($token) ? trim($token) : '';
+    }
+
+    /**
      * @param string $cnpj
      * @param string $token
      * @return array|null
@@ -194,7 +238,7 @@ class SerproApi
      * @param RequestException $e
      * @return bool
      */
-    private static function shouldRefreshToken(RequestException $e)
+    private static function shouldRetryWithAlternateToken(RequestException $e)
     {
         if (! $e->hasResponse()) {
             return false;
