@@ -6,6 +6,7 @@ use App\Cedente;
 use App\CedenteFile;
 use App\Http\Services\CedenteAvaliacaoService;
 use App\Http\Services\CedenteFileService;
+use App\Http\Services\CedenteMailService;
 use App\Http\Services\CedentePermissionService;
 use App\Http\Services\CedenteService;
 use App\Http\Services\CedenteXmlImportService;
@@ -485,6 +486,38 @@ class CedenteController extends Controller
                 'error' => 'true',
                 'message' => $e->getMessage(),
             ], 404);
+        }
+    }
+
+    /**
+     * POST /testeEmail — envia HTML de aprovacao ou pendencias.
+     * Body: { "email": "...", "tipo": "aprovado"|"pendencias", "cedente_id": opcional }
+     */
+    public function testeEmail(Request $request)
+    {
+        $data = self::decodeRequestPayload($request);
+        $email = isset($data['email']) ? $data['email'] : $request->input('email');
+
+        try {
+            $result = CedenteMailService::sendTestEmail($email, $data);
+            $tipo = isset($result['tipo']) ? $result['tipo'] : 'aprovado';
+
+            return response()->json([
+                'error' => 'false',
+                'message' => ! empty($result['sent'])
+                    ? 'E-mail de teste (' . $tipo . ') enviado'
+                    : 'E-mail nao enviado',
+                'result' => $result,
+            ], ! empty($result['sent']) ? 200 : 400);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
+        } catch (Exception $e) {
+            Log::error('Cedente testeEmail: ' . $e->getMessage(), ['exception' => $e]);
+
+            return response()->json([
+                'error' => 'true',
+                'message' => $e->getMessage(),
+            ], 500);
         }
     }
 }

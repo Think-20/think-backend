@@ -26,20 +26,52 @@ class CedenteAvaliacaoService
         }
 
         if (empty($data['resultado'])) {
-            throw new InvalidArgumentException('Campo resultado e obrigatorio (aprovado, solicitar_correcoes ou rejeitado)');
+            throw new InvalidArgumentException(
+                'Campo resultado e obrigatorio (aprovado, solicitar_correcoes, rejeitado, permitir_inconsistencia_juridica ou rejeitar_inconsistencia_juridica)'
+            );
         }
 
         $resultado = self::normalizeResultado($data['resultado']);
         if ($resultado === null || ! in_array($resultado, Cedente::avaliacaoResultadoValues(), true)) {
-            throw new InvalidArgumentException('Resultado invalido. Use aprovado, solicitar_correcoes ou rejeitado');
+            throw new InvalidArgumentException(
+                'Resultado invalido. Use aprovado, solicitar_correcoes, rejeitado, permitir_inconsistencia_juridica ou rejeitar_inconsistencia_juridica'
+            );
         }
 
         $fundId = CedenteService::resolveFundId($data);
+        $runSerproAfterJuridica = false;
 
-        $cedente = DB::transaction(function () use ($data, $fundId, $resultado) {
+        $cedente = DB::transaction(function () use ($data, $fundId, $resultado, &$runSerproAfterJuridica) {
             $cedente = CedenteService::findCedenteForFund($data['id'], $fundId);
             CedentePermissionService::assertCanAvaliar($cedente);
             $statusAntes = $cedente->status ?: Cedente::STATUS_PENDENTE;
+
+            if ($statusAntes === Cedente::STATUS_INCONSISTENCIA_JURIDICA) {
+                if (! in_array($resultado, [
+                    Cedente::AVALIACAO_PERMITIR_JURIDICA,
+                    Cedente::AVALIACAO_REJEITAR_JURIDICA,
+                ], true)) {
+                    throw new InvalidArgumentException(
+                        'Em inconsistencia juridica use permitir_inconsistencia_juridica ou rejeitar_inconsistencia_juridica'
+                    );
+                }
+
+                $cedente = self::decidirInconsistenciaJuridica($cedente, $data, $resultado, $statusAntes);
+                if ($resultado === Cedente::AVALIACAO_PERMITIR_JURIDICA) {
+                    $runSerproAfterJuridica = true;
+                }
+
+                return $cedente;
+            }
+
+            if (in_array($resultado, [
+                Cedente::AVALIACAO_PERMITIR_JURIDICA,
+                Cedente::AVALIACAO_REJEITAR_JURIDICA,
+            ], true)) {
+                throw new InvalidArgumentException(
+                    'permitir/rejeitar inconsistencia juridica so se aplica quando o status e inconsistencia_juridica'
+                );
+            }
 
             if ($resultado === Cedente::AVALIACAO_APROVADO) {
                 return self::aprovar($cedente, $data, $statusAntes);
@@ -48,12 +80,79 @@ class CedenteAvaliacaoService
             return self::registrarComObservacaoOpcional($cedente, $data, $resultado, $statusAntes);
         });
 
+        // Apos liberar inconsistencia juridica: segue validacao SERPRO (Vadu ja rodou).
+        if ($runSerproAfterJuridica) {
+            CedenteService::continueSerproAfterJuridicaLiberada($cedente);
+            $cedente = $cedente->fresh([
+                'address', 'pessoasVinculadas.address', 'contasDesembolso',
+                'cedenteFiles', 'inconsistencias', 'restricoes',
+            ]);
+        }
+
         // Cedente aprovado localmente: replica automaticamente no WS Daycoval (sem rota propria).
         if ($cedente->status === Cedente::STATUS_APROVADO && DaycovalCedenteService::isEnabled()) {
             DaycovalCedenteService::cadastrarAprovadoSafe($cedente, false);
         }
 
         return $cedente;
+    }
+
+    /**
+     * Decisao do avalista sobre inconsistencia juridica (Vadu).
+     *
+     * @param Cedente $cedente
+     * @param array $data
+     * @param string $resultado
+     * @param string $statusAntes
+     * @return Cedente
+     */
+    private static function decidirInconsistenciaJuridica(Cedente $cedente, array $data, $resultado, $statusAntes)
+    {
+        $observacao = self::normalizeObservacao(isset($data['observacao']) ? $data['observacao'] : null, false);
+
+        if ($resultado === Cedente::AVALIACAO_REJEITAR_JURIDICA) {
+            $cedente->observacao = $observacao;
+            $cedente->status = Cedente::STATUS_CANCELADO;
+            $cedente->save();
+
+            self::recordAvaliacaoAudit(
+                $cedente,
+                Cedente::STATUS_CANCELADO,
+                $statusAntes,
+                [
+                    'descricao' => 'Avalista rejeitou inconsistencia juridica (Vadu); cedente cancelado',
+                    'resultado' => Cedente::AVALIACAO_REJEITAR_JURIDICA,
+                    'observacao' => $observacao,
+                    'travado' => true,
+                ]
+            );
+
+            return $cedente->fresh([
+                'address', 'pessoasVinculadas.address', 'contasDesembolso',
+                'cedenteFiles', 'inconsistencias', 'restricoes',
+            ]);
+        }
+
+        // Permitir: volta a pendente para seguir o fluxo (SERPRO etc.). Restricoes Vadu permanecem no historico.
+        $cedente->observacao = $observacao;
+        $cedente->status = Cedente::STATUS_PENDENTE;
+        $cedente->save();
+
+        self::recordAvaliacaoAudit(
+            $cedente,
+            Cedente::STATUS_PENDENTE,
+            $statusAntes,
+            [
+                'descricao' => 'Avalista permitiu inconsistencia juridica (Vadu); cadastro segue para validacao cadastral',
+                'resultado' => Cedente::AVALIACAO_PERMITIR_JURIDICA,
+                'observacao' => $observacao,
+            ]
+        );
+
+        return $cedente->fresh([
+            'address', 'pessoasVinculadas.address', 'contasDesembolso',
+            'cedenteFiles', 'inconsistencias', 'restricoes',
+        ]);
     }
 
     /**
@@ -96,6 +195,10 @@ class CedenteAvaliacaoService
                 'observacao' => $observacao,
             ]
         );
+
+        CedenteMailService::notifyAprovado($cedente, [
+            'observacao' => $observacao,
+        ]);
 
         return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias', 'restricoes']);
     }
@@ -146,6 +249,13 @@ class CedenteAvaliacaoService
             ]
         );
 
+        if ($resultado === Cedente::AVALIACAO_SOLICITAR_CORRECOES) {
+            $cedente->load('inconsistencias');
+            CedenteMailService::notifyPendencias($cedente, [
+                'observacao' => $observacao,
+            ]);
+        }
+
         return $cedente->fresh(['address', 'pessoasVinculadas.address', 'contasDesembolso', 'cedenteFiles', 'inconsistencias', 'restricoes']);
     }
 
@@ -186,7 +296,14 @@ class CedenteAvaliacaoService
             'rejeitado' => Cedente::AVALIACAO_REJEITADO,
             'solicitar_correcoes' => Cedente::AVALIACAO_SOLICITAR_CORRECOES,
             'inconsistente' => Cedente::AVALIACAO_SOLICITAR_CORRECOES,
+            'inconsistencia_cadastral' => Cedente::AVALIACAO_SOLICITAR_CORRECOES,
             'aprovado' => Cedente::AVALIACAO_APROVADO,
+            'permitir_inconsistencia_juridica' => Cedente::AVALIACAO_PERMITIR_JURIDICA,
+            'permitir_juridica' => Cedente::AVALIACAO_PERMITIR_JURIDICA,
+            'liberar_juridica' => Cedente::AVALIACAO_PERMITIR_JURIDICA,
+            'rejeitar_inconsistencia_juridica' => Cedente::AVALIACAO_REJEITAR_JURIDICA,
+            'rejeitar_juridica' => Cedente::AVALIACAO_REJEITAR_JURIDICA,
+            'recusar_juridica' => Cedente::AVALIACAO_REJEITAR_JURIDICA,
         ];
 
         return isset($aliases[$s]) ? $aliases[$s] : $s;

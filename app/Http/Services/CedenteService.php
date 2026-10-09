@@ -541,6 +541,7 @@ class CedenteService
             'nome' => $cedente->nome,
             'documento' => $cedente->documento,
             'status' => $cedente->status ?: Cedente::STATUS_PENDENTE,
+            'status_label' => Cedente::statusLabel($cedente->status ?: Cedente::STATUS_PENDENTE),
             'sla' => self::formatSlaForApi($cedente->sla),
             'email' => $cedente->email,
             'faturamento_anual' => $cedente->faturamento_anual,
@@ -618,7 +619,7 @@ class CedenteService
 
     /**
      * Linhas de `cedente_restricao` (Vadu) no formato da API.
-     * Restricoes levam o cedente a cancelado e travam mudanca de status.
+     * Restricoes Vadu levam a inconsistencia_juridica (avalista decide).
      *
      * @param Cedente $cedente
      * @return array<int, array<string, mixed>>
@@ -720,8 +721,8 @@ class CedenteService
      */
     private static function auditDescricaoStatusAlterado($statusAnterior, $statusNovo)
     {
-        $de = $statusAnterior ?: '—';
-        $para = $statusNovo ?: '—';
+        $de = $statusAnterior ? Cedente::statusLabel($statusAnterior) : '—';
+        $para = $statusNovo ? Cedente::statusLabel($statusNovo) : '—';
 
         return 'Status alterado de ' . $de . ' para ' . $para;
     }
@@ -1216,19 +1217,25 @@ class CedenteService
         self::runVaduRestricoesAfterPendente($cedente, $statusInicial);
         $cedente->refresh();
 
-        // Travado pela Vadu: nao pede correcao SERPRO em cedente que ja vai ficar cancelado.
-        if (CedenteVaduService::isLockedByRestricao($cedente)
+        // Inconsistencia juridica ou cancelado: nao roda SERPRO agora.
+        if (CedenteVaduService::isAguardandoDecisaoJuridica($cedente)
             || ($cedente->status === Cedente::STATUS_CANCELADO)
+            || CedenteVaduService::isLockedByRestricao($cedente)
         ) {
+            $motivo = CedenteVaduService::isAguardandoDecisaoJuridica($cedente)
+                ? 'inconsistencia_juridica'
+                : 'vadu_cancelado';
             self::recordSystemAudit(
                 $cedente->id,
                 CedenteAudit::EVENT_VALIDACAO_SERPRO,
                 $cedente->status ?: Cedente::STATUS_CANCELADO,
                 $statusInicial,
                 [
-                    'descricao' => 'SERPRO nao consultada: cedente cancelado/travado pela Vadu',
+                    'descricao' => $motivo === 'inconsistencia_juridica'
+                        ? 'SERPRO nao consultada: aguardando decisao do avalista sobre inconsistencia juridica (Vadu)'
+                        : 'SERPRO nao consultada: cedente cancelado por inconsistencia juridica (Vadu)',
                     'skipped' => true,
-                    'motivo' => 'vadu_cancelado',
+                    'motivo' => $motivo,
                 ]
             );
 
@@ -1236,6 +1243,21 @@ class CedenteService
         }
 
         self::runSerproValidationAfterPendente($cedente, $statusInicial);
+    }
+
+    /**
+     * Apos o avalista permitir inconsistencia juridica: roda SERPRO em pendente.
+     *
+     * @param Cedente $cedente
+     */
+    public static function continueSerproAfterJuridicaLiberada(Cedente $cedente)
+    {
+        $cedente->refresh();
+        if (($cedente->status ?: '') !== Cedente::STATUS_PENDENTE) {
+            return;
+        }
+
+        self::runSerproValidationAfterPendente($cedente, Cedente::STATUS_PENDENTE);
     }
 
     /**
@@ -1440,7 +1462,7 @@ class CedenteService
         $statusAlterado = ! empty($vaduResult['status_alterado']);
 
         if ($temRestricao) {
-            $descricao = 'Validacao Vadu concluida com restricao: cedente cancelado e travado';
+            $descricao = 'Validacao Vadu concluida com restricao: inconsistencia juridica (aguarda avalista)';
             if (! empty($detalhes)) {
                 $descricao .= ' (' . implode('; ', array_slice($detalhes, 0, 3)) . ')';
             }
@@ -1470,18 +1492,21 @@ class CedenteService
         );
 
         if ($statusAlterado) {
+            $statusNovo = isset($vaduResult['status_novo'])
+                ? $vaduResult['status_novo']
+                : Cedente::STATUS_INCONSISTENCIA_JURIDICA;
             self::recordSystemAudit(
                 $cedente->id,
                 CedenteAudit::EVENT_STATUS_ALTERADO,
-                Cedente::STATUS_CANCELADO,
+                $statusNovo,
                 isset($vaduResult['status_anterior']) ? $vaduResult['status_anterior'] : $statusInicial,
                 [
                     'descricao' => self::auditDescricaoStatusAlterado(
                         isset($vaduResult['status_anterior']) ? $vaduResult['status_anterior'] : $statusInicial,
-                        Cedente::STATUS_CANCELADO
-                    ) . ' (motivo: restricao Vadu)',
+                        $statusNovo
+                    ) . ' (motivo: restricao Vadu — inconsistencia juridica)',
                     'motivo' => 'restricoes_vadu',
-                    'travado' => true,
+                    'aguarda_avalista' => true,
                 ]
             );
         }

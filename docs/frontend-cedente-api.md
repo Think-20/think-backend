@@ -143,7 +143,7 @@ docker run --rm -p 8080:8080 -e SWAGGER_JSON=/docs/openapi-cedente.yaml \
 | PUT | `/cedente/edit` | Atualiza por `id` (snapshot) | Preenchimento* / Admin |
 | PATCH | `/cedente/patch` | Atualização parcial | Preenchimento* / Admin |
 | PATCH | `/cedente/arquivo/validacao` | Aprovar/recusar arquivo | Avalista / Admin |
-| PATCH | `/cedente/avaliacao` | Aprovar / inconsistente / rejeitar | Avalista / Admin |
+| PATCH | `/cedente/avaliacao` | Aprovar / inconsistência cadastral / rejeitar / decidir jurídica | Avalista / Admin |
 | GET | `/cedentes/get/{id}` | Detalhe | Todos os papéis |
 | GET | `/cedentes/historico/{id}` | Histórico de status | Todos os papéis |
 | GET | `/cedentes/arquivos/download-all/{id}` | ZIP dos arquivos ativos | Todos os papéis |
@@ -151,7 +151,7 @@ docker run --rm -p 8080:8080 -e SWAGGER_JSON=/docs/openapi-cedente.yaml \
 | POST | `/cedentes/status-resumo` | Contagens por status | Todos os papéis |
 | DELETE | `/cedente/remove/{id}` | Exclui cedente | Admin |
 
-\* Preenchimento só edita cedente em **`rascunho`** ou **`inconsistente`**.
+\* Preenchimento só edita cedente em **`rascunho`** ou **`inconsistente`** (Inconsistência Cadastral). Não edita **`inconsistencia_juridica`**.
 
 ### Importação em lote via XML (`POST /cedente/import/xml`)
 
@@ -204,7 +204,8 @@ Employee autenticado pode ter um papel em `cedente_role`: `preenchimento`, `aval
 
 ### Preenchimento
 
-- Pode criar e editar cadastro (formulário completo) em `rascunho` e `inconsistente`.
+- Pode criar e editar cadastro (formulário completo) em `rascunho` e `inconsistente` (Inconsistência Cadastral).
+- **Não** edita `inconsistencia_juridica` (decisão exclusiva do avalista).
 - Pode enviar status `rascunho` / `pendente` / `inconsistente` (com regras de transição).
 - **Não** pode: excluir cedente, avaliar, aprovar/recusar arquivos.
 
@@ -214,7 +215,22 @@ Employee autenticado pode ter um papel em `cedente_role`: `preenchimento`, `aval
 - **Não** edita formulário (`PUT`/`PATCH`/`POST save` bloqueados).
 - Avalia via `PATCH /cedente/avaliacao` (exceto `rascunho`).
 - Valida arquivos via `PATCH /cedente/arquivo/validacao` (exceto `rascunho`).
-- Se o cadastro precisa de correção de dados: observação + `solicitar_correcoes` → status `inconsistente`; o preenchimento corrige os campos.
+- Se o cadastro precisa de correção de dados: observação + `solicitar_correcoes` → `inconsistente` (Inconsistência Cadastral); o preenchimento corrige.
+- Em `inconsistencia_juridica` (Vadu): `permitir_inconsistencia_juridica` (segue SERPRO) ou `rejeitar_inconsistencia_juridica` (→ `cancelado`).
+
+### Avaliação (`PATCH /cedente/avaliacao`)
+
+Corpo: `fund_id`, `id` (cedente), `resultado` (+ campos extras conforme o resultado).
+
+| `resultado` | Quando usar | Campos | Efeito |
+|-------------|-------------|--------|--------|
+| `aprovado` | Análise normal | `limite_aprovado` e `prazo_atualizacao_cadastral` obrigatórios; `observacao` opcional | → `aprovado` |
+| `solicitar_correcoes` | Correção de dados (cadastral) | `observacao` **obrigatória** | → `inconsistente` (Inconsistência Cadastral) |
+| `rejeitado` (alias `recusado`) | Recusar cadastro | `observacao` opcional | → `rejeitado` |
+| `permitir_inconsistencia_juridica` | Só em `inconsistencia_juridica` | `observacao` opcional | → `pendente` + SERPRO |
+| `rejeitar_inconsistencia_juridica` | Só em `inconsistencia_juridica` | `observacao` opcional | → `cancelado` (travado) |
+
+Em `inconsistencia_juridica`, **somente** `permitir_inconsistencia_juridica` e `rejeitar_inconsistencia_juridica` são aceitos.
 
 ### Administrador
 
@@ -354,10 +370,12 @@ O login desses usuários é o mesmo `POST /login` (`email` + `password` enviados
 | Arquivo recusado pelo avalista/admin | `inconsistente` + soft delete do arquivo |
 | Arquivo reenviado e sem inconsistências | volta para `pendente` |
 | Avaliação `aprovado` | `aprovado` + `sla` = hoje + meses |
-| Avaliação `solicitar_correcoes` | `inconsistente` (`observacao` obrigatória + inconsistência `aprovador`) |
+| Avaliação `solicitar_correcoes` | `inconsistente` / Inconsistência Cadastral (`observacao` + inconsistência `aprovador`) |
+| Avaliação `permitir_inconsistencia_juridica` | `pendente` + SERPRO (só se estava `inconsistencia_juridica`) |
+| Avaliação `rejeitar_inconsistencia_juridica` | `cancelado` (travado) |
 | Avaliação `rejeitado` / `recusado` | `rejeitado` (`observacao` opcional) |
 
-Validação **Vadu** (primeiro) e **SERPRO** (depois, se a Vadu não cancelar) rodam automaticamente após promoção a `pendente`. Flags independentes: `VADU_ENABLED` e `SERPRO_ENABLED`.
+Validação **Vadu** (primeiro) e **SERPRO** (depois, se não houver inconsistência jurídica pendente) rodam automaticamente após promoção a `pendente`. Com restrição Vadu → `inconsistencia_juridica` (avalista decide). Flags: `VADU_ENABLED` e `SERPRO_ENABLED`.
 
 ### Arquivos
 

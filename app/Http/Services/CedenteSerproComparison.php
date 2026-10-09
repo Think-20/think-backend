@@ -134,8 +134,33 @@ class CedenteSerproComparison
             return true;
         }
 
-        if ($valorSerpro === null || $valorSerpro === '') {
-            return false;
+        // SERPRO sem valor (null / "" / so espacos): equivale a "vazio".
+        // Antes retornava false sempre e gerava loop (ex. endereco.complemento com
+        // valor_serpro null e front enviando "").
+        if (self::isBlankSerproValue($valorSerpro)) {
+            if (preg_match('/^partes_relacionadas\[/', $campo) || preg_match('/^socios\[/', $campo)) {
+                return false;
+            }
+
+            $current = self::resolveFieldValue($cedente, $campo);
+
+            if ($campo === 'telefone') {
+                return self::normalizePhone($current) === '';
+            }
+            if ($campo === 'email') {
+                return self::normalizeEmail($current) === '';
+            }
+            if ($campo === 'documento') {
+                return self::normalizeDocument($current) === '';
+            }
+            if ($campo === 'endereco.numero') {
+                return self::normalizeAddressNumber($current) === '';
+            }
+            if (strpos($campo, 'endereco.cep') === 0 || substr($campo, -4) === '.cep') {
+                return self::normalizeCep($current) === '';
+            }
+
+            return self::normalizeText($current) === '';
         }
 
         if (preg_match('/^partes_relacionadas\[(\d+)\]\.nome$/', $campo, $matches)) {
@@ -173,6 +198,25 @@ class CedenteSerproComparison
         }
 
         return self::normalizeText($current) === self::normalizeText($valorSerpro);
+    }
+
+    /**
+     * null, "" e strings so com espacos sao o mesmo "sem valor" da SERPRO.
+     *
+     * @param mixed $value
+     * @return bool
+     */
+    private static function isBlankSerproValue($value)
+    {
+        if ($value === null) {
+            return true;
+        }
+
+        if (! is_string($value) && ! is_numeric($value)) {
+            return false;
+        }
+
+        return trim((string) $value) === '';
     }
 
     /**

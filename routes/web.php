@@ -16,6 +16,10 @@ Route::get('/notify-past', function () {
     return (new App\CreateNotifyPastTasks())->test();
 });
 
+// Teste dos e-mails de cedente (aprovacao / pendencias).
+// Body JSON: { "email": "destino@exemplo.com", "tipo": "aprovado"|"pendencias", "cedente_id": opcional }
+Route::post('/testeEmail', 'CedenteController@testeEmail');
+
     //função que Confirma o email
     Route::post('/extra/confirm', 'CheckinController@confirmMailCheckin');
     

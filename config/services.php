@@ -67,7 +67,7 @@ return [
     /*
     | Vadu/CreditBox — restricoes (roda antes da SERPRO; flags independentes).
     | Token master (VADU_TOKEN) -> GET JSONPegarToken -> token temporario -> POST Consulta/{cnpj}
-    | Com restricao o cedente vai para cancelado e fica travado enquanto houver restricao.
+    | Com restricao: status inconsistencia_juridica (avalista permite ou rejeita → cancelado).
     */
     'vadu' => [
         'enabled' => env('VADU_ENABLED', true),

@@ -31,14 +31,15 @@ x-frontend-guide:
         |--------|--------------------------|
         | **`rascunho`** | Cadastro **incompleto**. Pode salvar parcialmente. Editável por **preenchimento** e **admin**. |
         | **`pendente`** | Cadastro **completo**; aguardando análise do **avalista**/admin (arquivos e avaliação). |
-        | **`inconsistente`** | Há pendências (arquivo recusado ou correções pedidas pelo avalista). Preenchimento corrige o cadastro; avalista pode reavaliar / validar arquivos. |
+        | **`inconsistente`** | **Inconsistência Cadastral** — pendências de cadastro (SERPRO, arquivo recusado ou `solicitar_correcoes`). **Preenchimento** corrige. |
+        | **`inconsistencia_juridica`** | **Inconsistência Jurídica** — restrição Vadu. **Preenchimento não edita**; o **avalista** decide `permitir_inconsistencia_juridica` ou `rejeitar_inconsistencia_juridica`. |
         | **`em_avaliacao`** | Em análise pelo time interno (fluxo operacional). |
         | **`aprovado`** | Aprovado pelo avalista/admin. Exiba `limite_aprovado`, `prazo_atualizacao_cadastral` e `sla`. |
         | **`rejeitado`** | Cadastro recusado (`resultado: rejeitado` ou alias `recusado`). Leia **`observacao`** (opcional). |
         | **`vencido`** | Aprovado cujo **`sla`** passou da data atual (atualização automática nas consultas). |
-        | **`cancelado`** | Cadastro cancelado. |
+        | **`cancelado`** | Cadastro cancelado (inclui rejeição da inconsistência jurídica). |
 
-        > **Nota:** o resultado de avaliação `solicitar_correcoes` **persiste** o status como **`inconsistente`** (não existe mais coluna/status `solicitar_correcoes` no workflow atual).
+        > **Nota:** `solicitar_correcoes` persiste status **`inconsistente`** (Inconsistência Cadastral). A API também devolve `status_label` legível.
 
     - id: papeis
       title: Papéis de usuário (preenchimento / avalista / administrador)
@@ -49,7 +50,7 @@ x-frontend-guide:
         |------|---------------|----------|---------------|
         | Criar (`POST /cedente/save`) | Sim | **Não** | Sim |
         | Importar XML (`POST /cedente/import/xml`) | Sim | **Não** | Sim |
-        | Editar formulário (`PUT` / `PATCH`) | Só em `rascunho` ou `inconsistente` | **Não** | Sim |
+        | Editar formulário (`PUT` / `PATCH`) | Só em `rascunho` ou `inconsistente` (cadastral) | **Não** | Sim |
         | Excluir (`DELETE`) | **Não** | **Não** | Sim |
         | Ver detalhe / listar / histórico / ZIP | Sim | Sim (qualquer status) | Sim |
         | Validar arquivo (`PATCH /cedente/arquivo/validacao`) | **Não** | Sim (exceto `rascunho`) | Sim |
@@ -68,9 +69,10 @@ x-frontend-guide:
 
         **Avalista — o que pode alterar:**
         - **Não** edita campos do formulário (nome, endereço, pessoas, contas, etc.).
-        - Usa **`PATCH /cedente/avaliacao`** para mudar status do cedente (`aprovado`, inconsistente via `solicitar_correcoes`, `rejeitado`).
+        - Usa **`PATCH /cedente/avaliacao`** com `resultado`: `aprovado`, `solicitar_correcoes` (→ inconsistência cadastral), `rejeitado`, `permitir_inconsistencia_juridica` ou `rejeitar_inconsistencia_juridica`.
         - Usa **`PATCH /cedente/arquivo/validacao`** para aprovar/recusar cada arquivo.
         - Quando algo do cadastro precisa mudar, coloca observação + `solicitar_correcoes` (status `inconsistente`); o **preenchimento** corrige os campos.
+        - Em `inconsistencia_juridica` (Vadu), só decide com `permitir_inconsistencia_juridica` ou `rejeitar_inconsistencia_juridica` (preenchimento **não** edita).
 
         Usuário **sem** papel de cedente **não** pode avaliar nem validar arquivos (apenas admin/avalista).
 
@@ -96,8 +98,10 @@ x-frontend-guide:
       content: |
         Após promoção para `pendente`, o backend executa (flags independentes):
 
-        1. **Vadu** — grava `restricoes`; com restrição o status vira **`cancelado`** (travado).
-        2. **SERPRO** (QSA) — só se a Vadu não cancelou; compara cadastro com Receita; preenche `inconsistencias` e pode ir para `inconsistente`.
+        1. **Vadu** — grava `restricoes`; com restrição o status vira **`inconsistencia_juridica`** (avalista decide).
+        2. **SERPRO** (QSA) — só se não houver inconsistência jurídica pendente; compara com Receita; pode ir para `inconsistente` (cadastral).
+
+        Decisão jurídica (`PATCH /cedente/avaliacao`): `permitir_inconsistencia_juridica` → `pendente` + SERPRO; `rejeitar_inconsistencia_juridica` → `cancelado` (travado).
 
         Flags: `SERPRO_ENABLED` e `VADU_ENABLED` no `.env` (uma não depende da outra).
     - id: arquivos
@@ -140,7 +144,9 @@ x-frontend-guide:
         | `resultado` | Campos | Efeito |
         |-------------|--------|--------|
         | `aprovado` | **Obrigatórios:** `limite_aprovado`, `prazo_atualizacao_cadastral` (meses ≥ 1). `observacao` opcional | `status → aprovado`; `sla` = hoje + N meses |
-        | `solicitar_correcoes` (ou alias de inconsistente) | `observacao` **obrigatória** | `status → inconsistente` + linha em `inconsistencias` (`campo_inconsistente: aprovador`, `valor_serpro` = observação) |
+        | `solicitar_correcoes` (alias inconsistente/cadastral) | `observacao` **obrigatória** | `status → inconsistente` (Inconsistência Cadastral) + linha em `inconsistencias` |
+        | `permitir_inconsistencia_juridica` | `observacao` opcional | Só em `inconsistencia_juridica` → `pendente` + SERPRO |
+        | `rejeitar_inconsistencia_juridica` | `observacao` opcional | Só em `inconsistencia_juridica` → `cancelado` (travado) |
         | `rejeitado` (alias: `recusado`) | `observacao` **opcional** | `status → rejeitado` |
 
         Após aprovação, cedentes com `sla` vencido passam para **`vencido`** automaticamente (job diário e em `GET` / listagem).
@@ -204,7 +210,7 @@ x-frontend-guide:
         ### Análise (avalista / administrador)
 
         - **`PATCH /cedente/arquivo/validacao`** — aprovar ou recusar um arquivo (`id` = `cedente_file.id`).
-        - **`PATCH /cedente/avaliacao`** — aprovar, solicitar correções (→ inconsistente) ou rejeitar cedente.
+        - **`PATCH /cedente/avaliacao`** — aprovar, solicitar correções (→ inconsistente cadastral), rejeitar, ou decidir inconsistência jurídica (`permitir_inconsistencia_juridica` / `rejeitar_inconsistencia_juridica`).
 
         Itens com o **mesmo CPF** em `partes_relacionadas` e `avalistas` são unificados em um único registro com ambas as flags.
 
@@ -718,7 +724,7 @@ paths:
     patch:
       tags: [Análise]
       operationId: avaliarCedente
-      summary: Avaliação do avalista/admin (aprovar, inconsistente ou rejeitar)
+      summary: Avaliação do avalista/admin (aprovar, inconsistente, rejeitar ou decidir jurídica)
       description: |
         Registra a decisão do **avalista** ou **administrador** sobre o cedente.
         Preenchimento **não** pode avaliar. Avalista **não** avalia cedente em `rascunho`.
@@ -729,16 +735,20 @@ paths:
         |-------|-------------|-----------|
         | `fund_id` | sim | Escopo do fundo |
         | `id` | sim | ID do **cedente** |
-        | `resultado` | sim | `aprovado` \| `solicitar_correcoes` \| `rejeitado` (alias: `recusado`) |
+        | `resultado` | sim | `aprovado` \| `solicitar_correcoes` \| `rejeitado` (alias: `recusado`) \| `permitir_inconsistencia_juridica` \| `rejeitar_inconsistencia_juridica` |
         | `limite_aprovado` | se `aprovado` | Decimal (até 12 dígitos + 2 decimais). Aceita `1500000,50` ou `1500000.50` |
         | `prazo_atualizacao_cadastral` | se `aprovado` | Inteiro ≥ 1 (meses); define o novo `sla` |
-        | `observacao` | se `solicitar_correcoes` | **Obrigatória** para inconsistente; opcional em `aprovado` e `rejeitado` |
+        | `observacao` | se `solicitar_correcoes` | **Obrigatória** para inconsistência cadastral; opcional nos demais resultados |
 
         Efeitos:
 
         - `aprovado` → `status: aprovado`, `sla` = hoje + N meses
-        - `solicitar_correcoes` → `status: inconsistente` + **nova** inconsistência `{ campo_inconsistente: "aprovador", valor_serpro: <observacao> }` (acumula se houver outras). Qualquer correção do preenchimento remove **todas** as linhas `aprovador` e, sem outras pendências, devolve a `pendente`.
+        - `solicitar_correcoes` → `status: inconsistente` (Inconsistência Cadastral) + **nova** inconsistência `{ campo_inconsistente: "aprovador", valor_serpro: <observacao> }` (acumula se houver outras). Qualquer correção do preenchimento remove **todas** as linhas `aprovador` e, sem outras pendências, devolve a `pendente`.
+        - `permitir_inconsistencia_juridica` → **somente** se status atual for `inconsistencia_juridica` → `status: pendente` e dispara SERPRO
+        - `rejeitar_inconsistencia_juridica` → **somente** se status atual for `inconsistencia_juridica` → `status: cancelado` (travado por restrição Vadu)
         - `rejeitado` / `recusado` → `status: rejeitado`
+
+        Em `inconsistencia_juridica`, os únicos `resultado` aceitos são `permitir_inconsistencia_juridica` e `rejeitar_inconsistencia_juridica`.
 
         Eventos no histórico: `avaliacao_registrada` e, se o status mudou, `status_alterado`.
 
@@ -756,6 +766,10 @@ paths:
                 $ref: "#/components/examples/CedenteAvaliacaoSolicitarCorrecoes"
               rejeitado:
                 $ref: "#/components/examples/CedenteAvaliacaoRejeitado"
+              permitirInconsistenciaJuridica:
+                $ref: "#/components/examples/CedenteAvaliacaoPermitirJuridica"
+              rejeitarInconsistenciaJuridica:
+                $ref: "#/components/examples/CedenteAvaliacaoRejeitarJuridica"
       responses:
         "200":
           description: Avaliação registrada
@@ -1754,18 +1768,21 @@ components:
     CedenteCadastroStatus:
       type: string
       description: |
-        Status do cadastro. Referência para o front:
+        Status do cadastro. Referência para o front (`status_label` na API):
         - **`rascunho`** — incompleto; editável por preenchimento/admin.
         - **`pendente`** — completo; aguardando avalista/admin.
-        - **`inconsistente`** — pendências em `inconsistencias` (arquivo recusado ou `solicitar_correcoes`).
+        - **`inconsistente`** — Inconsistência Cadastral (`inconsistencias`); preenchimento corrige.
+        - **`inconsistencia_juridica`** — Inconsistência Jurídica (Vadu); só avalista decide.
         - **`rejeitado`** — recusado pelo avalista/admin; leia `observacao` (opcional).
         - **`aprovado`** — leia `limite_aprovado`, `prazo_atualizacao_cadastral`, `sla`.
         - **`vencido`** — aprovado com SLA expirado.
+        - **`cancelado`** — cancelado (inclui rejeição jurídica).
       enum:
         - rascunho
         - pendente
         - em_avaliacao
         - inconsistente
+        - inconsistencia_juridica
         - aprovado
         - solicitar_correcoes
         - rejeitado
@@ -1775,12 +1792,15 @@ components:
     CedenteAvaliacaoResultado:
       type: string
       description: |
-        `solicitar_correcoes` persiste status **`inconsistente`**.
-        Alias aceito: `recusado` → `rejeitado`.
+        `solicitar_correcoes` → status **`inconsistente`** (cadastral).
+        Em `inconsistencia_juridica`: use `permitir_inconsistencia_juridica` ou `rejeitar_inconsistencia_juridica`.
+        Alias: `recusado` → `rejeitado`; `permitir_juridica` / `rejeitar_juridica`.
       enum:
         - aprovado
         - solicitar_correcoes
         - rejeitado
+        - permitir_inconsistencia_juridica
+        - rejeitar_inconsistencia_juridica
 
     CedenteAvaliacaoRequest:
       type: object
@@ -1799,7 +1819,7 @@ components:
           type: string
           description: |
             Obrigatória para `solicitar_correcoes` (gravada também em `inconsistencias.valor_serpro` com `campo_inconsistente: aprovador`).
-            Opcional para `aprovado` e `rejeitado`.
+            Opcional para `aprovado`, `rejeitado`, `permitir_inconsistencia_juridica` e `rejeitar_inconsistencia_juridica`.
         limite_aprovado:
           type: string
           description: Obrigatório para `aprovado`. Até 12 dígitos antes da vírgula e 2 decimais (ex. `1500000.50`).
@@ -1815,6 +1835,7 @@ components:
         - pendente
         - em_avaliacao
         - inconsistente
+        - inconsistencia_juridica
         - aprovado
         - solicitar_correcoes
         - rejeitado
@@ -1834,6 +1855,11 @@ components:
         inconsistente:
           type: integer
           minimum: 0
+          description: Inconsistencia Cadastral
+        inconsistencia_juridica:
+          type: integer
+          minimum: 0
+          description: Inconsistencia Juridica (Vadu)
         aprovado:
           type: integer
           minimum: 0
@@ -2557,6 +2583,22 @@ components:
         id: 42
         resultado: rejeitado
         observacao: Não atende política de crédito do fundo
+
+    CedenteAvaliacaoPermitirJuridica:
+      summary: Permitir inconsistência jurídica (Vadu)
+      value:
+        fund_id: 1
+        id: 42
+        resultado: permitir_inconsistencia_juridica
+        observacao: Restrição Vadu analisada e liberada pelo avalista
+
+    CedenteAvaliacaoRejeitarJuridica:
+      summary: Rejeitar inconsistência jurídica (Vadu)
+      value:
+        fund_id: 1
+        id: 42
+        resultado: rejeitar_inconsistencia_juridica
+        observacao: Restrição Vadu incompatível com a política do fundo
 
     CedenteXmlImportSuccess:
       summary: Importação totalmente bem-sucedida

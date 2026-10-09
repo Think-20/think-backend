@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Log;
  * Regra atual:
  * - Socio com QualificacaoRepresentanteLegal E NomeRepresentanteLegal preenchidos
  *
- * Com qualquer restricao: status vira cancelado e fica travado (nao pode mudar status).
+ * Com qualquer restricao: status vira inconsistencia_juridica (avalista decide
+ * permitir ou rejeitar). So apos rejeitar o status vai para cancelado e trava.
  */
 class CedenteVaduService
 {
@@ -31,7 +32,8 @@ class CedenteVaduService
     }
 
     /**
-     * Cedente com ao menos uma restricao Vadu fica permanentemente travado.
+     * Travamento definitivo: cancelado apos rejeicao da inconsistencia juridica (Vadu).
+     * Em inconsistencia_juridica o avalista ainda pode decidir (permitir/rejeitar).
      *
      * @param Cedente $cedente
      * @return bool
@@ -42,13 +44,28 @@ class CedenteVaduService
             return false;
         }
 
+        if (($cedente->status ?: '') !== Cedente::STATUS_CANCELADO) {
+            return false;
+        }
+
         return CedenteRestricao::where('cedente_id', (int) $cedente->id)
             ->where('fonte', 'vadu')
             ->exists();
     }
 
     /**
-     * Consulta Vadu, substitui restricoes (fonte=vadu) e cancela o cedente se houver restricao.
+     * Aguardando decisao do avalista sobre restricao Vadu.
+     *
+     * @param Cedente $cedente
+     * @return bool
+     */
+    public static function isAguardandoDecisaoJuridica(Cedente $cedente)
+    {
+        return ($cedente->status ?: '') === Cedente::STATUS_INCONSISTENCIA_JURIDICA;
+    }
+
+    /**
+     * Consulta Vadu, substitui restricoes (fonte=vadu) e marca inconsistencia juridica.
      *
      * @return array{
      *   consulted: bool,
@@ -120,11 +137,14 @@ class CedenteVaduService
         $statusAlterado = false;
         $statusNovo = null;
 
-        if (! empty($saved) && $statusAnterior !== Cedente::STATUS_CANCELADO) {
-            $cedente->status = Cedente::STATUS_CANCELADO;
+        if (! empty($saved)
+            && $statusAnterior !== Cedente::STATUS_CANCELADO
+            && $statusAnterior !== Cedente::STATUS_INCONSISTENCIA_JURIDICA
+        ) {
+            $cedente->status = Cedente::STATUS_INCONSISTENCIA_JURIDICA;
             $cedente->save();
             $statusAlterado = true;
-            $statusNovo = Cedente::STATUS_CANCELADO;
+            $statusNovo = Cedente::STATUS_INCONSISTENCIA_JURIDICA;
         }
 
         return [

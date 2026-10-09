@@ -150,6 +150,13 @@ class CedentePermissionService
         }
 
         $statusAtual = $cedente->status ?: Cedente::STATUS_PENDENTE;
+
+        if ($statusAtual === Cedente::STATUS_INCONSISTENCIA_JURIDICA) {
+            throw new InvalidArgumentException(
+                self::MSG_SEM_PERMISSAO . '. Inconsistencia juridica aguarda decisao do avalista; preenchimento nao altera este cadastro'
+            );
+        }
+
         $editaveis = [
             Cedente::STATUS_RASCUNHO,
             Cedente::STATUS_INCONSISTENTE,
@@ -157,7 +164,7 @@ class CedentePermissionService
 
         if (!in_array($statusAtual, $editaveis, true)) {
             throw new InvalidArgumentException(
-                self::MSG_SEM_PERMISSAO . '. Usuario de preenchimento so pode alterar cedentes em rascunho ou inconsistente (status atual: ' . $statusAtual . ')'
+                self::MSG_SEM_PERMISSAO . '. Usuario de preenchimento so pode alterar cedentes em rascunho ou inconsistencia cadastral (status atual: ' . $statusAtual . ')'
             );
         }
 
@@ -185,14 +192,14 @@ class CedentePermissionService
             if ($statusAtual === Cedente::STATUS_INCONSISTENTE
                 && !in_array($requested, [Cedente::STATUS_PENDENTE, Cedente::STATUS_INCONSISTENTE], true)) {
                 throw new InvalidArgumentException(
-                    self::MSG_SEM_PERMISSAO . '. Em inconsistente so e permitido enviar pendente ou inconsistente'
+                    self::MSG_SEM_PERMISSAO . '. Em inconsistencia cadastral so e permitido enviar pendente ou inconsistente'
                 );
             }
         }
     }
 
     /**
-     * Cedente com restricao Vadu permanece em cancelado e nao pode mudar de status.
+     * Cedente cancelado apos rejeicao da inconsistencia juridica (Vadu) nao muda de status.
      *
      * @param Cedente $cedente
      */
@@ -200,7 +207,7 @@ class CedentePermissionService
     {
         if (CedenteVaduService::isLockedByRestricao($cedente)) {
             throw new InvalidArgumentException(
-                'Cedente cancelado por restricao Vadu e nao pode ter o status alterado'
+                'Cedente cancelado por inconsistencia juridica (Vadu) e nao pode ter o status alterado'
             );
         }
     }
@@ -346,6 +353,8 @@ class CedentePermissionService
             'em_avaliacao' => Cedente::STATUS_EM_AVALIACAO,
             'inconsistencia' => Cedente::STATUS_INCONSISTENTE,
             'inconsistencias' => Cedente::STATUS_INCONSISTENTE,
+            'inconsistencia_cadastral' => Cedente::STATUS_INCONSISTENTE,
+            'inconsistencia_juridica' => Cedente::STATUS_INCONSISTENCIA_JURIDICA,
             'recusado' => Cedente::STATUS_REJEITADO,
             'rejeitado' => Cedente::STATUS_REJEITADO,
         ];

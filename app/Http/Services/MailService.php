@@ -244,27 +244,68 @@ class MailService
     }
 
     /**
+     * SMTP igual ao fluxo de jobs/tasks que ja funcionava localmente.
+     *
+     * Prioridade:
+     * 1) MAIL_* (config/mail.php) — jobs feedback, check-in, cedente
+     * 2) PHP_MAIL_* — legado Task::sendMailTask (Gmail), se MAIL_USERNAME estiver vazio
+     *
      * @param PHPMailer $mail
      */
     private static function configureSmtp(PHPMailer $mail)
     {
         $mail->isSMTP();
-        $mail->Host = (string) config('mail.host', 'smtp.mailgun.org');
-        $mail->Port = (int) config('mail.port', 587);
-        $mail->CharSet = 'UTF-8';
 
-        $username = config('mail.username');
-        $password = config('mail.password');
-        $mail->SMTPAuth = $username !== null && $username !== '' && $username !== 'null';
+        $username = self::credentialString(config('mail.username'));
+        $password = self::credentialString(config('mail.password'));
+        $host = self::credentialString(config('mail.host'));
+        $port = (int) config('mail.port', 587);
+        $encryption = self::credentialString(config('mail.encryption'));
+        $charset = 'UTF-8';
+        $smtpAuth = $username !== '';
 
-        if ($mail->SMTPAuth) {
-            $mail->Username = (string) $username;
-            $mail->Password = (string) $password;
+        // Fallback para as vars antigas do modulo de jobs/tasks (Task.php).
+        if ($username === '') {
+            $username = self::credentialString(env('PHP_MAIL_USERNAME'));
+            $password = self::credentialString(env('PHP_MAIL_PASSWORD'));
+            $phpHost = self::credentialString(env('PHP_MAIL_HOST'));
+            if ($phpHost !== '') {
+                $host = $phpHost;
+            }
+            $phpPort = env('PHP_MAIL_PORT');
+            if ($phpPort !== null && $phpPort !== '') {
+                $port = (int) $phpPort;
+            }
+            // Nome historico com typo no Task.php: PHP_MAIL_SMTP_SECURY
+            $encryption = self::credentialString(env('PHP_MAIL_SMTP_SECURY'));
+            $authFlag = env('PHP_MAIL_SMTP_AUTH');
+            if ($authFlag !== null && $authFlag !== '') {
+                $smtpAuth = filter_var($authFlag, FILTER_VALIDATE_BOOLEAN);
+            } else {
+                $smtpAuth = $username !== '';
+            }
+            $phpCharset = self::credentialString(env('PHP_MAIL_CHARSET'));
+            if ($phpCharset !== '') {
+                $charset = $phpCharset;
+            }
         }
 
-        $encryption = config('mail.encryption');
-        if ($encryption !== null && $encryption !== '' && $encryption !== 'null') {
-            $mail->SMTPSecure = (string) $encryption;
+        if ($host === '') {
+            $host = 'smtp.mailgun.org';
+        }
+
+        $mail->Host = $host;
+        $mail->Port = $port > 0 ? $port : 587;
+        $mail->CharSet = $charset;
+        $mail->SMTPAuth = $smtpAuth || $username !== '';
+
+        if ($mail->SMTPAuth) {
+            $mail->Username = $username;
+            $mail->Password = $password;
+        }
+
+        if ($encryption !== '') {
+            $mail->SMTPSecure = $encryption;
         }
     }
 
@@ -361,5 +402,26 @@ class MailService
         }
 
         return (bool) $value;
+    }
+
+    /**
+     * Normaliza credenciais do .env (trim; trata "null" literal como vazio).
+     * Aspas no .env (ex.: MAIL_PASSWORD="abc def") sao removidas pelo Dotenv — ok.
+     *
+     * @param mixed $value
+     * @return string
+     */
+    private static function credentialString($value)
+    {
+        if (! is_string($value) && ! is_numeric($value)) {
+            return '';
+        }
+
+        $text = trim((string) $value);
+        if ($text === '' || strtolower($text) === 'null') {
+            return '';
+        }
+
+        return $text;
     }
 }

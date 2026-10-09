@@ -9,7 +9,12 @@ class Cedente extends Model
     public const STATUS_RASCUNHO = 'rascunho';
     public const STATUS_PENDENTE = 'pendente';
     public const STATUS_EM_AVALIACAO = 'em_avaliacao';
+    /** Inconsistencia cadastral (SERPRO / correcoes do avalista / arquivo). Preenchimento corrige. */
     public const STATUS_INCONSISTENTE = 'inconsistente';
+    /** Alias semantico de STATUS_INCONSISTENTE (label: Inconsistencia Cadastral). */
+    public const STATUS_INCONSISTENCIA_CADASTRAL = 'inconsistente';
+    /** Restricao Vadu aguardando decisao do avalista (nao e o preenchimento quem corrige). */
+    public const STATUS_INCONSISTENCIA_JURIDICA = 'inconsistencia_juridica';
     public const STATUS_APROVADO = 'aprovado';
     /**
      * @deprecated Resultado de avaliacao legado como status.
@@ -51,6 +56,12 @@ class Cedente extends Model
 
     public const AVALIACAO_REJEITADO = 'rejeitado';
 
+    /** Avalista libera a inconsistencia juridica (Vadu) e o fluxo segue (ex.: SERPRO). */
+    public const AVALIACAO_PERMITIR_JURIDICA = 'permitir_inconsistencia_juridica';
+
+    /** Avalista nao aceita a inconsistencia juridica → cancelado. */
+    public const AVALIACAO_REJEITAR_JURIDICA = 'rejeitar_inconsistencia_juridica';
+
     /**
      * @return string[]
      */
@@ -60,7 +71,42 @@ class Cedente extends Model
             self::AVALIACAO_APROVADO,
             self::AVALIACAO_SOLICITAR_CORRECOES,
             self::AVALIACAO_REJEITADO,
+            self::AVALIACAO_PERMITIR_JURIDICA,
+            self::AVALIACAO_REJEITAR_JURIDICA,
         ];
+    }
+
+    /**
+     * Labels amigaveis dos status (API / e-mail / front).
+     *
+     * @return array<string, string>
+     */
+    public static function statusLabels()
+    {
+        return [
+            self::STATUS_RASCUNHO => 'Rascunho',
+            self::STATUS_PENDENTE => 'Pendente',
+            self::STATUS_EM_AVALIACAO => 'Em avaliacao',
+            self::STATUS_INCONSISTENTE => 'Inconsistencia Cadastral',
+            self::STATUS_INCONSISTENCIA_JURIDICA => 'Inconsistencia Juridica',
+            self::STATUS_APROVADO => 'Aprovado',
+            self::STATUS_REJEITADO => 'Rejeitado',
+            self::STATUS_VENCIDO => 'Vencido',
+            self::STATUS_CANCELADO => 'Cancelado',
+            self::STATUS_SOLICITAR_CORRECOES => 'Inconsistencia Cadastral',
+        ];
+    }
+
+    /**
+     * @param string|null $status
+     * @return string
+     */
+    public static function statusLabel($status)
+    {
+        $status = $status ?: self::STATUS_PENDENTE;
+        $labels = self::statusLabels();
+
+        return isset($labels[$status]) ? $labels[$status] : $status;
     }
 
     protected $casts = [
@@ -89,6 +135,7 @@ class Cedente extends Model
         return [
             self::STATUS_RASCUNHO,
             self::STATUS_INCONSISTENTE,
+            self::STATUS_INCONSISTENCIA_JURIDICA,
             self::STATUS_CANCELADO,
             self::STATUS_SOLICITAR_CORRECOES,
             self::STATUS_REJEITADO,
@@ -264,6 +311,7 @@ class Cedente extends Model
             self::STATUS_PENDENTE,
             self::STATUS_EM_AVALIACAO,
             self::STATUS_INCONSISTENTE,
+            self::STATUS_INCONSISTENCIA_JURIDICA,
             self::STATUS_APROVADO,
             self::STATUS_REJEITADO,
             self::STATUS_VENCIDO,
