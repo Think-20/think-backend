@@ -460,6 +460,94 @@ class Job extends Model
         $query->where('status_id', '=', $status);
     }
 
+    /**
+     * Parametro de direcao: orderDirection ou order (asc|desc).
+     *
+     * @param array $params
+     * @return string|null
+     */
+    private static function resolveOrderDirectionParam(array $params)
+    {
+        if (isset($params['orderDirection']) && $params['orderDirection'] !== '') {
+            return $params['orderDirection'];
+        }
+        if (isset($params['order']) && $params['order'] !== '') {
+            return $params['order'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Normaliza orderBy da listagem: created_at|criacao ou alfabetica|nome|name.
+     * Sem valor / desconhecido → alfabetica (default da listagem).
+     *
+     * @param mixed $orderBy
+     * @return string created_at|alfabetica
+     */
+    private static function normalizeListOrderBy($orderBy)
+    {
+        $by = strtolower(trim((string) $orderBy));
+
+        if (in_array($by, ['created_at', 'criacao', 'criação', 'creation'], true)) {
+            return 'created_at';
+        }
+
+        // alfabetica, nome, name, event, vazio ou valor desconhecido
+        return 'alfabetica';
+    }
+
+    /**
+     * Direcao: asc|desc. Sem param → asc (default da listagem).
+     *
+     * @param string $normalizedOrderBy
+     * @param mixed $orderDirection
+     * @return string
+     */
+    private static function normalizeListOrderDirection($normalizedOrderBy, $orderDirection)
+    {
+        if ($orderDirection !== null && $orderDirection !== '') {
+            $dir = strtolower(trim((string) $orderDirection));
+
+            return $dir === 'desc' ? 'desc' : 'asc';
+        }
+
+        return 'asc';
+    }
+
+    /**
+     * Ordenacao de POST /jobs/filter e /my-jobs/filter.
+     * - created_at: data de criacao
+     * - alfabetica: nome exibido (fantasy_name/not_client + event)
+     * Default: alfabetica asc.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param mixed $orderBy
+     * @param mixed $orderDirection
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public static function applyListOrdering($query, $orderBy = 'alfabetica', $orderDirection = null)
+    {
+        $by = self::normalizeListOrderBy($orderBy);
+        $dir = self::normalizeListOrderDirection($by, $orderDirection);
+
+        if ($by === 'alfabetica') {
+            $query->leftJoin('client as order_client', 'order_client.id', '=', 'job.client_id');
+            $query->orderByRaw(
+                'LOWER(TRIM(COALESCE(NULLIF(order_client.fantasy_name, \'\'), NULLIF(job.not_client, \'\'), \'\'))) ' . $dir
+            );
+            $query->orderByRaw('LOWER(TRIM(COALESCE(job.event, \'\'))) ' . $dir);
+            $query->orderBy('job.id', $dir);
+
+            return $query;
+        }
+
+        $query->orderBy('job.created_at', $dir);
+        $query->orderBy('job.id', $dir);
+
+        return $query;
+    }
+
     public static function filter($params)
     {
         $iniDate = isset($params['iniDate']) ? $params['iniDate'] : null;
@@ -467,7 +555,8 @@ class Job extends Model
         $jobActivities = isset($params['job_activities']) ? $params['job_activities'] : null;
         $jobActivitiesMode = isset($params['job_activities_mode']) ? $params['job_activities_mode'] : 'IN';
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
-        $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'created_at';
+        $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'alfabetica';
+        $orderDirection = self::resolveOrderDirectionParam($params);
         $initialDate = isset($params['initial_date']) ? substr($params['initial_date'], 0, 10) : null;
         $finalDate = isset($params['final_date']) ? substr($params['final_date'], 0, 10) : null;
         $status = isset($params['status']) ? $params['status'] : null;
@@ -536,9 +625,7 @@ class Job extends Model
             $jobs->distinct('job.id');
         }
 
-        if ($orderBy == 'created_at') {
-            $jobs->orderBy('job.created_at', 'DESC');
-        }
+        self::applyListOrdering($jobs, $orderBy, $orderDirection);
 
         if (!is_null($initialDate)) {
             $jobs->whereHas('creation.items', function ($query) use ($initialDate) {
@@ -790,7 +877,8 @@ class Job extends Model
         $jobActivities = isset($params['job_activities']) ? $params['job_activities'] : null;
         $jobActivitiesMode = isset($params['job_activities_mode']) ? $params['job_activities_mode'] : 'IN';
         $finDate = isset($params['finDate']) ? $params['finDate'] : null;
-        $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'created_at';
+        $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'alfabetica';
+        $orderDirection = self::resolveOrderDirectionParam($params);
         $status = isset($params['status']) ? $params['status'] : null;
         $clientName = isset($params['clientName']) ? $params['clientName'] : null;
         $attendanceId = isset($params['attendance']['id']) ? $params['attendance']['id'] : null;
@@ -850,9 +938,7 @@ class Job extends Model
             $jobs->distinct('job.id');
         }
 
-        if ($orderBy == 'created_at') {
-            $jobs->orderBy('job.created_at', 'DESC');
-        }
+        self::applyListOrdering($jobs, $orderBy, $orderDirection);
 
         if ($paginate) {
             $paginate = $jobs->paginate(50);
