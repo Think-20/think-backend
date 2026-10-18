@@ -134,7 +134,7 @@ class Client extends Model implements Contactable
     {
         $createdAt = $client->created_at;
         $client->data_cadastro = $createdAt
-            ? (is_object($createdAt) ? $createdAt->format('d/m/Y H:i:s') : (string) $createdAt)
+            ? (is_object($createdAt) ? $createdAt->format('d/m/Y') : date('d/m/Y', strtotime((string) $createdAt)))
             : null;
         // created_at ja vem no JSON do model; reforca acesso lazy das relacoes comuns
     }
