@@ -81,8 +81,8 @@ class ClientController extends Controller
         return Client::get($id);
     }
 
-    public static function all() {
-        return Client::list();
+    public static function all(Request $request) {
+        return Client::list($request->all());
     }
 
     public static function filter(Request $request) {

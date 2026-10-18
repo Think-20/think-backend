@@ -41,17 +41,119 @@ class Client extends Model implements Contactable
         return true;
     }
 
-    public static function list()
+    /**
+     * Parametro de direcao: orderDirection ou order (asc|desc).
+     *
+     * @param array $params
+     * @return string|null
+     */
+    private static function resolveOrderDirectionParam(array $params)
     {
-        $clients = Client::select()
-            ->orderBy('fantasy_name', 'asc')
-            ->paginate(20);
+        if (isset($params['orderDirection']) && $params['orderDirection'] !== '') {
+            return $params['orderDirection'];
+        }
+        if (isset($params['order']) && $params['order'] !== '') {
+            return $params['order'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Normaliza orderBy: created_at|criacao ou alfabetica|nome|name|fantasy_name.
+     * Sem valor / desconhecido → alfabetica.
+     *
+     * @param mixed $orderBy
+     * @return string created_at|alfabetica
+     */
+    private static function normalizeListOrderBy($orderBy)
+    {
+        $by = strtolower(trim((string) $orderBy));
+
+        if (in_array($by, ['created_at', 'criacao', 'criação', 'creation', 'data_cadastro'], true)) {
+            return 'created_at';
+        }
+
+        return 'alfabetica';
+    }
+
+    /**
+     * Direcao: asc|desc. Sem param → asc.
+     *
+     * @param string $normalizedOrderBy
+     * @param mixed $orderDirection
+     * @return string
+     */
+    private static function normalizeListOrderDirection($normalizedOrderBy, $orderDirection)
+    {
+        if ($orderDirection !== null && $orderDirection !== '') {
+            $dir = strtolower(trim((string) $orderDirection));
+
+            return $dir === 'desc' ? 'desc' : 'asc';
+        }
+
+        return 'asc';
+    }
+
+    /**
+     * Ordenacao de POST /clients/all e /clients/filter.
+     * - alfabetica: fantasy_name + name
+     * - created_at: data de cadastro
+     * Default: alfabetica asc.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param mixed $orderBy
+     * @param mixed $orderDirection
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public static function applyListOrdering($query, $orderBy = 'alfabetica', $orderDirection = null)
+    {
+        $by = self::normalizeListOrderBy($orderBy);
+        $dir = self::normalizeListOrderDirection($by, $orderDirection);
+
+        if ($by === 'alfabetica') {
+            $query->orderByRaw('LOWER(TRIM(COALESCE(fantasy_name, \'\'))) ' . $dir);
+            $query->orderByRaw('LOWER(TRIM(COALESCE(name, \'\'))) ' . $dir);
+            $query->orderBy('id', $dir);
+
+            return $query;
+        }
+
+        $query->orderBy('created_at', $dir);
+        $query->orderBy('id', $dir);
+
+        return $query;
+    }
+
+    /**
+     * Garante data de cadastro visivel na listagem.
+     *
+     * @param Client $client
+     */
+    private static function appendCadastroFields(Client $client)
+    {
+        $createdAt = $client->created_at;
+        $client->data_cadastro = $createdAt
+            ? (is_object($createdAt) ? $createdAt->format('d/m/Y H:i:s') : (string) $createdAt)
+            : null;
+        // created_at ja vem no JSON do model; reforca acesso lazy das relacoes comuns
+    }
+
+    public static function list(array $params = [])
+    {
+        $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'alfabetica';
+        $orderDirection = self::resolveOrderDirectionParam($params);
+
+        $query = Client::select();
+        self::applyListOrdering($query, $orderBy, $orderDirection);
+        $clients = $query->paginate(20);
 
         foreach ($clients as $client) {
             $client->employee;
             $client->type;
             $client->comission;
             $client->status;
+            self::appendCadastroFields($client);
         }
 
         return [
@@ -235,6 +337,8 @@ class Client extends Model implements Contactable
         $rate = isset($data['rate']) ? $data['rate'] : null;
         $dt_ini = isset($data['dt_ini']) ? $data['dt_ini'] : null;
         $dt_fim = isset($data['dt_fim']) ? $data['dt_fim'] : null;
+        $orderBy = isset($data['orderBy']) ? $data['orderBy'] : 'alfabetica';
+        $orderDirection = self::resolveOrderDirectionParam($data);
 
         $query = Client::select();
 
@@ -281,7 +385,7 @@ class Client extends Model implements Contactable
             $query->where('employee_id', $user->employee->id);            
         }*/
 
-        $query->orderBy('fantasy_name', 'asc');
+        self::applyListOrdering($query, $orderBy, $orderDirection);
         $clients = $query->paginate(20);
 
         foreach ($clients as $client) {
@@ -289,6 +393,7 @@ class Client extends Model implements Contactable
             $client->type;
             $client->comission;
             $client->status;
+            self::appendCadastroFields($client);
         }
 
         return [
@@ -497,17 +602,21 @@ class Client extends Model implements Contactable
     }
 
     # My clients #
-    public static function listMyClient()
+    public static function listMyClient(array $params = [])
     {
-        $clients = Client::where('employee_id', '=', User::logged()->employee->id)
-            ->orderBy('fantasy_name', 'asc')
-            ->paginate(20);
+        $orderBy = isset($params['orderBy']) ? $params['orderBy'] : 'alfabetica';
+        $orderDirection = self::resolveOrderDirectionParam($params);
+
+        $query = Client::where('employee_id', '=', User::logged()->employee->id);
+        self::applyListOrdering($query, $orderBy, $orderDirection);
+        $clients = $query->paginate(20);
 
         foreach ($clients as $client) {
             $client->employee;
             $client->type;
             $client->comission;
             $client->status;
+            self::appendCadastroFields($client);
         }
 
         return [
