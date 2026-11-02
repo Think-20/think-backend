@@ -99,4 +99,12 @@ return [
         'default_disk' => env('CEDENTE_FILES_DISK', 'local'),
     ],
 
+    /*
+    | Arquivos de cotista: local (FILES_FOLDER) ou s3.
+    | Sem COTISTA_FILES_DISK, usa o mesmo disco de cedente.
+    */
+    'cotista_files' => [
+        'default_disk' => env('COTISTA_FILES_DISK', env('CEDENTE_FILES_DISK', 'local')),
+    ],
+
 ];

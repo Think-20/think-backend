@@ -1,0 +1,952 @@
+openapi: 3.0.3
+info:
+  title: Cadastro cotista - API de Cotistas
+  description: |
+    API de **cadastro de cotista**. Usa os mesmos papéis e fundos do cedente.
+
+    Serpro e Vadu **não** são chamados nesta versão. O único campo obrigatório do formulário é `fund_id`.
+    Na aprovação, informe `prazo_atualizacao_cadastral` (meses). Não há limite de crédito.
+
+    1. Faça **POST /login** e guarde `token` e `user.id`.
+    2. **Authorize**: header `User` = id, `Authorization` = token **sem** `Bearer `.
+    3. Envie `fund_id` em toda rota de cotista.
+  version: 1.0.0
+  contact:
+    name: Think Backend
+
+servers:
+  - url: http://54.85.29.32:8000
+    description: API Think Backend (ambiente padrão)
+
+x-frontend-guide:
+  title: Guia de integração — cotista
+  description: Regras de negócio do cadastro de cotista. Serpro e Vadu não rodam nesta versão.
+  sections:
+    - id: status
+      title: Status do cadastro
+      content: |
+        | Status | Significado |
+        |--------|-------------|
+        | `rascunho` | Salvo sem envio. Editável por preenchimento e admin. |
+        | `pendente` | Enviado para análise (`enviar: true` ou `status: pendente`). SLA de dias úteis (mesma env do cedente). |
+        | `inconsistente` | Correção do aprovador ou arquivo recusado. Preenchimento corrige e reenvia. |
+        | `aprovado` | Aprovado. Exiba `prazo_atualizacao_cadastral` e `sla`. |
+        | `rejeitado` | Recusado. |
+        | `vencido` | Aprovado com `sla` vencida. |
+        | `inconsistencia_juridica` | Reservado para Vadu. Nada grava esse valor agora. |
+
+        Não existe `limite_aprovado`.
+
+    - id: papeis
+      title: Papéis (os mesmos do cedente)
+      content: |
+        | Ação | Preenchimento | Avalista | Administrador |
+        |------|---------------|----------|---------------|
+        | Criar | Sim | Não | Sim |
+        | Editar formulário | Só `rascunho` ou `inconsistente` | Não | Sim |
+        | Excluir | Não | Não | Sim |
+        | Ver / listar / histórico / download | Sim | Sim | Sim |
+        | Validar arquivo | Não | Sim (exceto rascunho) | Sim |
+        | Avaliar | Não | Sim (exceto rascunho) | Sim |
+
+        Escopo de fundo igual ao cedente (`fund_employee`). Sem vínculo, o employee vê todos os fundos.
+
+    - id: envio
+      title: Rascunho e envio
+      content: |
+        Os campos do formulário **não são obrigatórios** por enquanto, além de `fund_id`.
+
+        Sem `enviar: true` (e sem `status: pendente`), o cadastro permanece `rascunho`.
+        Com `enviar: true`, vai para `pendente`. A checagem futura fica em `CotistaService::isCadastroCompleto`.
+
+        `PUT /cotista/edit` substitui referências, contas, patrimônio, participações e suitability.
+        Lista omitida fica vazia. `operador: null` remove o operador; omitir `operador` não apaga.
+        `PATCH /cotista/patch` altera só as chaves enviadas.
+
+        Serpro e Vadu não são chamados depois do envio.
+
+    - id: arquivos
+      title: Documentos
+      content: |
+        | document_type | Documento |
+        |---------------|-----------|
+        | 1 | Documento de identificação |
+        | 2 | Comprovante de endereço |
+
+        Envio em `arquivos[]` com `document_type`, `original_name` e `content_base64` (ou `base64`). Limite 20MB.
+        Não bloqueiam o envio para `pendente`. Arquivo novo nasce `valido: false`.
+        Recusa (`PATCH /cotista/arquivo/validacao` com `valido: false`) muda o cotista para `inconsistente`.
+
+    - id: suitability
+      title: Suitability
+      content: |
+        Sete perguntas fixas, quatro opções cada. Grave `suitability.respostas` com `pergunta` (1–7) e `opcao` (1–4).
+        `perfil` é opcional. Sem perfil informado e sem regra de pontuação, a API grava `perfil: null`.
+        A regra futura fica em `CotistaSuitability::atribuirPerfil`.
+
+security:
+  - userIdHeader: []
+    authTokenHeader: []
+
+tags:
+  - name: Cotista
+  - name: Análise
+
+paths:
+  /cotista/save:
+    post:
+      tags: [Cotista]
+      operationId: cotistaSave
+      summary: Cria cotista em rascunho ou envia para análise
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CotistaWrite'
+            examples:
+              cadastro:
+                $ref: '#/components/examples/CotistaCreateBody'
+              rascunho:
+                $ref: '#/components/examples/CotistaCreateBodyRascunho'
+      responses:
+        '200':
+          description: Cotista criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CotistaEnvelope'
+        '400':
+          description: Erro de validação ou permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cotista/edit:
+    put:
+      tags: [Cotista]
+      operationId: cotistaEdit
+      summary: Atualização completa (substitui as listas)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CotistaWrite'
+      responses:
+        '200':
+          description: Cotista atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CotistaEnvelope'
+        '400':
+          description: Erro de validação ou permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cotista/patch:
+    patch:
+      tags: [Cotista]
+      operationId: cotistaPatch
+      summary: Atualização parcial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CotistaWrite'
+      responses:
+        '200':
+          description: Cotista atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CotistaEnvelope'
+        '400':
+          description: Erro de validação ou permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cotista/avaliacao:
+    patch:
+      tags: [Análise]
+      operationId: cotistaAvaliar
+      summary: Aprovar, solicitar correções ou rejeitar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CotistaAvaliacaoRequest'
+      responses:
+        '200':
+          description: Avaliação registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CotistaEnvelope'
+        '400':
+          description: Erro de validação ou permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cotista/arquivo/validacao:
+    patch:
+      tags: [Análise]
+      operationId: cotistaValidarArquivo
+      summary: Aprova ou recusa um arquivo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CotistaArquivoValidacaoRequest'
+      responses:
+        '200':
+          description: Validação registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CotistaEnvelope'
+        '400':
+          description: Erro de validação ou permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cotista/remove/{id}:
+    delete:
+      tags: [Cotista]
+      operationId: cotistaRemove
+      summary: Exclui o cotista
+      parameters:
+        - $ref: '#/components/parameters/CotistaId'
+        - $ref: '#/components/parameters/FundIdQuery'
+      responses:
+        '200':
+          description: Excluído
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cotistas/all:
+    post:
+      tags: [Cotista]
+      operationId: cotistasAll
+      summary: Lista paginada do fundo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CotistaListRequest'
+      responses:
+        '200':
+          description: Página de cotistas e resumo de status
+        '400':
+          description: Fundo inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cotistas/status-resumo:
+    post:
+      tags: [Cotista]
+      operationId: cotistasStatusResumo
+      summary: Contagem por status
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fund_id]
+              properties:
+                fund_id:
+                  type: integer
+      responses:
+        '200':
+          description: Resumo
+        '400':
+          description: Fundo inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cotistas/get/{id}:
+    get:
+      tags: [Cotista]
+      operationId: cotistaGet
+      summary: Detalhe
+      parameters:
+        - $ref: '#/components/parameters/CotistaId'
+        - $ref: '#/components/parameters/FundIdQuery'
+      responses:
+        '200':
+          description: Cotista
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CotistaEnvelope'
+        '404':
+          description: Não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cotistas/historico/{id}:
+    get:
+      tags: [Cotista]
+      operationId: cotistaHistorico
+      summary: Histórico de auditoria
+      parameters:
+        - $ref: '#/components/parameters/CotistaId'
+        - $ref: '#/components/parameters/FundIdQuery'
+      responses:
+        '200':
+          description: Eventos
+        '404':
+          description: Não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cotistas/arquivos/download/{id}:
+    get:
+      tags: [Cotista]
+      operationId: cotistaDownloadArquivo
+      summary: Download de um arquivo (id = cotista_file.id)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/FundIdQuery'
+      responses:
+        '200':
+          description: Binário
+        '404':
+          description: Não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cotistas/arquivos/download-all/{id}:
+    get:
+      tags: [Cotista]
+      operationId: cotistaDownloadAll
+      summary: ZIP dos arquivos ativos
+      parameters:
+        - $ref: '#/components/parameters/CotistaId'
+        - $ref: '#/components/parameters/FundIdQuery'
+      responses:
+        '200':
+          description: application/zip
+        '404':
+          description: Não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    userIdHeader:
+      type: apiKey
+      in: header
+      name: User
+      description: ID numérico do usuário (`user.id` do login).
+    authTokenHeader:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token do login, sem prefixo Bearer.
+
+  parameters:
+    CotistaId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    FundIdQuery:
+      name: fund_id
+      in: query
+      required: true
+      schema:
+        type: integer
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: 'true'
+        message:
+          type: string
+
+    MessageResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: 'false'
+        message:
+          type: string
+
+    Address:
+      type: object
+      properties:
+        cep:
+          type: string
+        logradouro:
+          type: string
+          description: Alias aceito na entrada `endereco`.
+        numero:
+          type: string
+          description: Alias aceito na entrada `n`.
+        complemento:
+          type: string
+        bairro:
+          type: string
+        cidade:
+          type: string
+        estado:
+          type: string
+          description: UF. Alias aceito na entrada `uf`.
+        pais:
+          type: string
+
+    CotistaReferencia:
+      type: object
+      properties:
+        nome_completo:
+          type: string
+        nacionalidade:
+          type: string
+        telefone:
+          type: string
+
+    CotistaConta:
+      type: object
+      required: [banco, agencia, numero_conta, tipo_conta]
+      properties:
+        banco:
+          type: string
+        agencia:
+          type: string
+        numero_conta:
+          type: string
+        tipo_conta:
+          type: string
+          enum: [poupanca, investimentos]
+
+    CotistaItemPatrimonial:
+      type: object
+      properties:
+        categoria:
+          type: string
+        descricao:
+          type: string
+        valor_atual:
+          type: number
+
+    CotistaParticipacao:
+      type: object
+      properties:
+        razao_social:
+          type: string
+        cnpj:
+          type: string
+        nacionalidade:
+          type: string
+        percentual_capital:
+          type: number
+        instituicao_financeira:
+          type: boolean
+        giin:
+          type: string
+
+    CotistaOperador:
+      type: object
+      nullable: true
+      properties:
+        opera_conta_propria:
+          type: boolean
+        autoriza_ordens_procurador:
+          type: boolean
+        nome_completo:
+          type: string
+        cpf:
+          type: string
+        data_nascimento:
+          type: string
+          format: date
+        descricao_poderes:
+          type: string
+        e_ppe:
+          type: boolean
+        ppe_cargo:
+          type: string
+        relacionamento_ppe:
+          type: boolean
+        ppe_relacionada_cargo:
+          type: string
+        ppe_relacionada_nome:
+          type: string
+        ppe_relacionada_cpf:
+          type: string
+        ppe_relacionada_nacionalidade:
+          type: string
+        endereco:
+          $ref: '#/components/schemas/Address'
+
+    SuitabilityResposta:
+      type: object
+      required: [pergunta, opcao]
+      properties:
+        pergunta:
+          type: integer
+          minimum: 1
+          maximum: 7
+        opcao:
+          type: integer
+          minimum: 1
+          maximum: 4
+
+    CotistaSuitability:
+      type: object
+      nullable: true
+      properties:
+        perfil:
+          type: string
+          nullable: true
+          description: Se omitido, a API deixa nulo até existir regra de pontuação.
+        respostas:
+          type: array
+          items:
+            $ref: '#/components/schemas/SuitabilityResposta'
+
+    CotistaArquivoInput:
+      type: object
+      required: [document_type, original_name]
+      properties:
+        document_type:
+          type: integer
+          enum: [1, 2]
+          description: 1 identificação, 2 comprovante de endereço.
+        original_name:
+          type: string
+        content_base64:
+          type: string
+        base64:
+          type: string
+        type:
+          type: string
+          description: Extensão opcional.
+
+    CotistaWrite:
+      type: object
+      required: [fund_id]
+      properties:
+        id:
+          type: integer
+          description: Obrigatório em edit, patch, avaliação e validação de arquivo do cotista.
+        fund_id:
+          type: integer
+        enviar:
+          type: boolean
+          description: true promove rascunho ou inconsistente para pendente.
+        status:
+          type: string
+        nome_completo:
+          type: string
+        cpf:
+          type: string
+        tin:
+          type: string
+        nome_mae:
+          type: string
+        sexo:
+          type: string
+        local_nascimento:
+          type: string
+        data_nascimento:
+          type: string
+          format: date
+        estado_civil:
+          type: string
+        regime_casamento:
+          type: string
+        nome_conjuge:
+          type: string
+        cpf_conjuge:
+          type: string
+        numero_dependentes:
+          type: integer
+        nacionalidade:
+          type: string
+        possui_outra_nacionalidade:
+          type: boolean
+        outras_nacionalidades:
+          type: string
+        tipo_documento:
+          type: string
+        numero_documento:
+          type: string
+        data_emissao_documento:
+          type: string
+          format: date
+        orgao_emissor:
+          type: string
+        uf_pais_emissor:
+          type: string
+        tempo_residencia:
+          type: string
+        endereco_correspondencia:
+          type: string
+          enum: [residencial, comercial]
+        endereco_residencial:
+          $ref: '#/components/schemas/Address'
+        endereco_comercial:
+          $ref: '#/components/schemas/Address'
+        autorizacao_residencia_outros_paises:
+          type: boolean
+        paises_residencia:
+          type: string
+        possui_outro_domicilio_fiscal:
+          type: boolean
+        outros_domicilios_fiscais:
+          type: string
+        telefone:
+          type: string
+        celular:
+          type: string
+        email:
+          type: string
+        us_person:
+          type: boolean
+        natureza_ocupacao:
+          type: string
+        instituicao_trabalho:
+          type: string
+        cnpj_empregador:
+          type: string
+        telefone_comercial:
+          type: string
+        profissao:
+          type: string
+        cargo:
+          type: string
+        email_comercial:
+          type: string
+        referencias:
+          type: array
+          items:
+            $ref: '#/components/schemas/CotistaReferencia'
+        contas:
+          type: array
+          items:
+            $ref: '#/components/schemas/CotistaConta'
+        itens_patrimoniais:
+          type: array
+          items:
+            $ref: '#/components/schemas/CotistaItemPatrimonial'
+        codigo_operacional_cvm:
+          type: string
+        rde_cademp:
+          type: string
+        pais_origem:
+          type: string
+        representante_brasil:
+          type: string
+        representante_coresponsavel:
+          type: string
+        custodiante:
+          type: string
+        administrador_carteira:
+          type: string
+        situacao:
+          type: string
+          enum: [isento, nao_isento]
+        participacoes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CotistaParticipacao'
+        proposito_cambio:
+          type: boolean
+        proposito_aplicacoes:
+          type: boolean
+        proposito_intermediacao:
+          type: boolean
+        proposito_credito:
+          type: boolean
+        proposito_acessorias:
+          type: boolean
+        proposito_outros:
+          type: string
+        e_ppe:
+          type: boolean
+        ppe_cargo:
+          type: string
+        relacionamento_ppe:
+          type: boolean
+        ppe_relacionada_cargo:
+          type: string
+        ppe_relacionada_nome:
+          type: string
+        ppe_relacionada_cpf:
+          type: string
+        ppe_relacionada_nacionalidade:
+          type: string
+        operador:
+          $ref: '#/components/schemas/CotistaOperador'
+        suitability:
+          $ref: '#/components/schemas/CotistaSuitability'
+        arquivos:
+          type: array
+          items:
+            $ref: '#/components/schemas/CotistaArquivoInput'
+
+    CotistaAvaliacaoRequest:
+      type: object
+      required: [fund_id, id, resultado]
+      properties:
+        fund_id:
+          type: integer
+        id:
+          type: integer
+        resultado:
+          type: string
+          enum: [aprovado, solicitar_correcoes, rejeitado]
+        observacao:
+          type: string
+          description: Obrigatória em solicitar_correcoes.
+        prazo_atualizacao_cadastral:
+          type: integer
+          description: Meses. Obrigatório quando resultado é aprovado.
+
+    CotistaArquivoValidacaoRequest:
+      type: object
+      required: [fund_id, id, valido]
+      properties:
+        fund_id:
+          type: integer
+        id:
+          type: integer
+          description: cotista_file.id
+        valido:
+          type: boolean
+        motivo:
+          type: string
+
+    CotistaListRequest:
+      type: object
+      required: [fund_id]
+      properties:
+        fund_id:
+          type: integer
+        per_page:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+
+    CotistaEnvelope:
+      type: object
+      properties:
+        error:
+          type: string
+          example: 'false'
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/CotistaWrite'
+
+  examples:
+    CotistaCreateBodyRascunho:
+      summary: Rascunho (só fund_id e nome)
+      description: Sem `enviar`, o cadastro fica em `rascunho`.
+      value:
+        fund_id: 1
+        nome_completo: Ana Costa
+
+    CotistaCreateBody:
+      summary: Objeto de cadastro de cotista
+      description: |
+        Body de `POST /cotista/save`. Só `fund_id` é obrigatório.
+        `enviar: true` manda para análise (`pendente`). Sem `enviar`, fica `rascunho`.
+        `content_base64` abaixo é só um PDF mínimo de teste (`aGVsbG8=`).
+      value:
+        fund_id: 1
+        enviar: true
+        nome_completo: Ana Paula Costa
+        cpf: "12345678901"
+        tin: null
+        nome_mae: Maria Costa
+        sexo: Feminino
+        local_nascimento: São Paulo/SP
+        data_nascimento: "1990-05-15"
+        estado_civil: Casada
+        regime_casamento: Comunhao parcial de bens
+        nome_conjuge: Carlos Costa
+        cpf_conjuge: "98765432100"
+        numero_dependentes: 2
+        nacionalidade: Brasileira
+        possui_outra_nacionalidade: true
+        outras_nacionalidades: Italiana, Portuguesa
+        tipo_documento: RG
+        numero_documento: "123456789"
+        data_emissao_documento: "2015-03-20"
+        orgao_emissor: SSP
+        uf_pais_emissor: SP
+        tempo_residencia: 5 anos
+        endereco_correspondencia: residencial
+        endereco_residencial:
+          cep: "01310100"
+          logradouro: Av. Paulista
+          numero: "1000"
+          complemento: Apto 12
+          bairro: Bela Vista
+          cidade: São Paulo
+          estado: SP
+          pais: Brasil
+        endereco_comercial:
+          cep: "04538133"
+          logradouro: Av. Brigadeiro Faria Lima
+          numero: "3477"
+          complemento: Conjunto 101
+          bairro: Itaim Bibi
+          cidade: São Paulo
+          estado: SP
+          pais: Brasil
+        autorizacao_residencia_outros_paises: false
+        paises_residencia: null
+        possui_outro_domicilio_fiscal: false
+        outros_domicilios_fiscais: null
+        telefone: "+55 11 3333-4444"
+        celular: "+55 11 98888-7777"
+        email: ana.costa@exemplo.com
+        us_person: false
+        natureza_ocupacao: Assalariada
+        instituicao_trabalho: Empresa Exemplo LTDA
+        cnpj_empregador: "12345678000199"
+        telefone_comercial: "+55 11 3333-5555"
+        profissao: Economista
+        cargo: Analista
+        email_comercial: ana.costa@empresa.com
+        referencias:
+          - nome_completo: João da Silva
+            nacionalidade: Brasileira
+            telefone: "+55 11 97777-6666"
+        contas:
+          - banco: "001 - Banco do Brasil"
+            agencia: "1234"
+            numero_conta: "56789-0"
+            tipo_conta: poupanca
+          - banco: "341 - Itaú"
+            agencia: "4321"
+            numero_conta: "998877-6"
+            tipo_conta: investimentos
+        itens_patrimoniais:
+          - categoria: Imovel
+            descricao: Apartamento residencial
+            valor_atual: 850000.00
+        codigo_operacional_cvm: "12345"
+        rde_cademp: "987654"
+        pais_origem: Brasil
+        representante_brasil: Pedro Almeida
+        representante_coresponsavel: Lucia Almeida
+        custodiante: Custodiante Exemplo
+        administrador_carteira: Administrador Exemplo
+        situacao: nao_isento
+        participacoes:
+          - razao_social: Participacao Exemplo LTDA
+            cnpj: "11222333000181"
+            nacionalidade: Brasileira
+            percentual_capital: 25.50
+            instituicao_financeira: false
+            giin: null
+        proposito_cambio: false
+        proposito_aplicacoes: true
+        proposito_intermediacao: false
+        proposito_credito: false
+        proposito_acessorias: false
+        proposito_outros: null
+        e_ppe: false
+        ppe_cargo: null
+        relacionamento_ppe: false
+        ppe_relacionada_cargo: null
+        ppe_relacionada_nome: null
+        ppe_relacionada_cpf: null
+        ppe_relacionada_nacionalidade: null
+        operador:
+          opera_conta_propria: true
+          autoriza_ordens_procurador: false
+          nome_completo: null
+          cpf: null
+          data_nascimento: null
+          descricao_poderes: null
+          e_ppe: false
+          ppe_cargo: null
+          relacionamento_ppe: false
+          ppe_relacionada_cargo: null
+          ppe_relacionada_nome: null
+          ppe_relacionada_cpf: null
+          ppe_relacionada_nacionalidade: null
+          endereco: null
+        suitability:
+          perfil: null
+          respostas:
+            - pergunta: 1
+              opcao: 2
+            - pergunta: 2
+              opcao: 1
+            - pergunta: 3
+              opcao: 4
+            - pergunta: 4
+              opcao: 3
+            - pergunta: 5
+              opcao: 2
+            - pergunta: 6
+              opcao: 1
+            - pergunta: 7
+              opcao: 3
+        arquivos:
+          - document_type: 1
+            original_name: documento-identificacao.pdf
+            type: pdf
+            content_base64: aGVsbG8=
+          - document_type: 2
+            original_name: comprovante-endereco.pdf
+            type: pdf
+            content_base64: aGVsbG8=

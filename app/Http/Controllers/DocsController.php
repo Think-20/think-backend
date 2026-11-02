@@ -23,4 +23,24 @@ class DocsController extends Controller
     {
         return view('swagger-cedente');
     }
+
+    /**
+     * Serve a especificacao OpenAPI da API de cotista.
+     */
+    public function openapiCotistaYaml()
+    {
+        $path = base_path('docs/openapi-cotista.yaml');
+
+        return response()->file($path, [
+            'Content-Type' => 'text/yaml; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * Pagina Swagger UI da API de cotista.
+     */
+    public function swaggerCotistaUi()
+    {
+        return view('swagger-cotista');
+    }
 }

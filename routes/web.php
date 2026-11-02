@@ -11,6 +11,8 @@ Route::post('/logout', 'UserController@logout')->name('logout');
 
 Route::get('/docs/cedente/openapi.yaml', 'DocsController@openapiCedenteYaml');
 Route::get('/docs/cedente', 'DocsController@swaggerCedenteUi')->name('docs.cedente.swagger');
+Route::get('/docs/cotista/openapi.yaml', 'DocsController@openapiCotistaYaml');
+Route::get('/docs/cotista', 'DocsController@swaggerCotistaUi')->name('docs.cotista.swagger');
 
 Route::get('/notify-past', function () {
     return (new App\CreateNotifyPastTasks())->test();
@@ -121,6 +123,24 @@ Route::get('/cedente-files/view/{id}', function ($id) {
 
     try {
         $fileGet = $cedenteFile->readBinary();
+    } catch (Exception $e) {
+        abort(404);
+    }
+
+    $response = Response::make($fileGet, 200);
+    $response->header('Content-Type', "*/*");
+
+    return $response;
+});
+
+Route::get('/cotista-files/view/{id}', function ($id) {
+    $cotistaFile = App\CotistaFile::find($id);
+    if (!$cotistaFile) {
+        abort(404);
+    }
+
+    try {
+        $fileGet = $cotistaFile->readBinary();
     } catch (Exception $e) {
         abort(404);
     }
@@ -462,6 +482,19 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::get('/cedentes/historico/{id}', 'CedenteController@historico');
     Route::get('/cedentes/arquivos/download/{id}', 'CedenteController@downloadArquivo');
     Route::get('/cedentes/arquivos/download-all/{id}', 'CedenteController@downloadAllArquivos');
+
+    Route::post('/cotista/save', 'CotistaController@save');
+    Route::put('/cotista/edit', 'CotistaController@edit');
+    Route::patch('/cotista/patch', 'CotistaController@patch');
+    Route::patch('/cotista/arquivo/validacao', 'CotistaController@validarArquivo');
+    Route::patch('/cotista/avaliacao', 'CotistaController@avaliar');
+    Route::delete('/cotista/remove/{id}', 'CotistaController@remove');
+    Route::post('/cotistas/all', 'CotistaController@all');
+    Route::post('/cotistas/status-resumo', 'CotistaController@statusResumo');
+    Route::get('/cotistas/get/{id}', 'CotistaController@get');
+    Route::get('/cotistas/historico/{id}', 'CotistaController@historico');
+    Route::get('/cotistas/arquivos/download/{id}', 'CotistaController@downloadArquivo');
+    Route::get('/cotistas/arquivos/download-all/{id}', 'CotistaController@downloadAllArquivos');
 
     Route::post('/tag/save', 'TagController@save');
     Route::put('/tag/edit', 'TagController@edit');

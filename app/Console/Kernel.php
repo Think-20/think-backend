@@ -27,6 +27,7 @@ class Kernel extends ConsoleKernel
         // Cedente: aprovados com SLA vencido → status vencido
         $schedule->call(function () {
             \App\Http\Services\CedenteService::markExpiredApprovedAsVencido();
+            \App\Http\Services\CotistaService::markExpiredApprovedAsVencido();
         })->dailyAt('00:05');
     }
 

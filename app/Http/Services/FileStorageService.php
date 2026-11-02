@@ -32,6 +32,20 @@ class FileStorageService
     }
 
     /**
+     * Disco padrao para novos arquivos de cotista.
+     * COTISTA_FILES_DISK, com fallback para o disco de cedente.
+     *
+     * @return string local|s3
+     */
+    public static function cotistaDefaultDisk()
+    {
+        $fallback = config('services.cedente_files.default_disk', self::DISK_LOCAL);
+        $disk = strtolower(trim((string) config('services.cotista_files.default_disk', $fallback)));
+
+        return $disk === self::DISK_S3 ? self::DISK_S3 : self::DISK_LOCAL;
+    }
+
+    /**
      * @return bool
      */
     public static function isS3Configured()
@@ -139,6 +153,18 @@ class FileStorageService
     public static function cedenteStorageKey($cedenteId, $storedName)
     {
         return 'cedente-files/' . (int) $cedenteId . '/' . ltrim((string) $storedName, '/');
+    }
+
+    /**
+     * Chave S3/local padrao para arquivo de cotista.
+     *
+     * @param int $cotistaId
+     * @param string $storedName
+     * @return string
+     */
+    public static function cotistaStorageKey($cotistaId, $storedName)
+    {
+        return 'cotista-files/' . (int) $cotistaId . '/' . ltrim((string) $storedName, '/');
     }
 
     /**
