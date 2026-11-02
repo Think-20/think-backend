@@ -15,7 +15,6 @@ class CreateCotistaTables extends Migration
     {
         Schema::create('cotista', function (Blueprint $table) {
             $table->increments('id');
-            $table->unsignedInteger('fund_id')->nullable();
 
             $table->string('nome_completo')->nullable();
             $table->string('cpf', 32)->nullable();
@@ -90,7 +89,6 @@ class CreateCotistaTables extends Migration
 
             $table->foreign('endereco_residencial_id')->references('id')->on('address')->onDelete('set null');
             $table->foreign('endereco_comercial_id')->references('id')->on('address')->onDelete('set null');
-            $table->index('fund_id');
             $table->index('status');
             $table->index('cpf');
             $table->index('sla');

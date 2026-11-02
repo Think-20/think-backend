@@ -2,14 +2,14 @@ openapi: 3.0.3
 info:
   title: Cadastro cotista - API de Cotistas
   description: |
-    API de **cadastro de cotista**. Usa os mesmos papéis e fundos do cedente.
+    API de **cadastro de cotista**. Usa os mesmos papéis do cedente. Não há fundo: todos os cotistas ficam na mesma lista.
 
-    Serpro e Vadu **não** são chamados nesta versão. O único campo obrigatório do formulário é `fund_id`.
+    Serpro e Vadu **não** são chamados nesta versão. Nenhum campo do formulário é obrigatório.
     Na aprovação, informe `prazo_atualizacao_cadastral` (meses). Não há limite de crédito.
 
     1. Faça **POST /login** e guarde `token` e `user.id`.
     2. **Authorize**: header `User` = id, `Authorization` = token **sem** `Bearer `.
-    3. Envie `fund_id` em toda rota de cotista.
+    3. Não envie `fund_id`. A listagem é única.
   version: 1.0.0
   contact:
     name: Think Backend
@@ -49,12 +49,12 @@ x-frontend-guide:
         | Validar arquivo | Não | Sim (exceto rascunho) | Sim |
         | Avaliar | Não | Sim (exceto rascunho) | Sim |
 
-        Escopo de fundo igual ao cedente (`fund_employee`). Sem vínculo, o employee vê todos os fundos.
+        Não há escopo de fundo. Quem tem papel de cotista vê a mesma lista.
 
     - id: envio
       title: Rascunho e envio
       content: |
-        Os campos do formulário **não são obrigatórios** por enquanto, além de `fund_id`.
+        Os campos do formulário **não são obrigatórios** por enquanto. Não existe `fund_id`.
 
         Sem `enviar: true` (e sem `status: pendente`), o cadastro permanece `rascunho`.
         Com `enviar: true`, vai para `pendente`. A checagem futura fica em `CotistaService::isCadastroCompleto`.
@@ -230,7 +230,6 @@ paths:
       summary: Exclui o cotista
       parameters:
         - $ref: '#/components/parameters/CotistaId'
-        - $ref: '#/components/parameters/FundIdQuery'
       responses:
         '200':
           description: Excluído
@@ -255,7 +254,7 @@ paths:
     post:
       tags: [Cotista]
       operationId: cotistasAll
-      summary: Lista paginada do fundo
+      summary: Lista paginada de todos os cotistas
       requestBody:
         required: true
         content:
@@ -266,7 +265,7 @@ paths:
         '200':
           description: Página de cotistas e resumo de status
         '400':
-          description: Fundo inválido
+          description: Sem permissão
           content:
             application/json:
               schema:
@@ -283,15 +282,11 @@ paths:
           application/json:
             schema:
               type: object
-              required: [fund_id]
-              properties:
-                fund_id:
-                  type: integer
       responses:
         '200':
           description: Resumo
         '400':
-          description: Fundo inválido
+          description: Sem permissão
           content:
             application/json:
               schema:
@@ -304,7 +299,6 @@ paths:
       summary: Detalhe
       parameters:
         - $ref: '#/components/parameters/CotistaId'
-        - $ref: '#/components/parameters/FundIdQuery'
       responses:
         '200':
           description: Cotista
@@ -326,7 +320,6 @@ paths:
       summary: Histórico de auditoria
       parameters:
         - $ref: '#/components/parameters/CotistaId'
-        - $ref: '#/components/parameters/FundIdQuery'
       responses:
         '200':
           description: Eventos
@@ -348,7 +341,6 @@ paths:
           required: true
           schema:
             type: integer
-        - $ref: '#/components/parameters/FundIdQuery'
       responses:
         '200':
           description: Binário
@@ -366,7 +358,6 @@ paths:
       summary: ZIP dos arquivos ativos
       parameters:
         - $ref: '#/components/parameters/CotistaId'
-        - $ref: '#/components/parameters/FundIdQuery'
       responses:
         '200':
           description: application/zip
@@ -397,13 +388,6 @@ components:
       required: true
       schema:
         type: integer
-    FundIdQuery:
-      name: fund_id
-      in: query
-      required: true
-      schema:
-        type: integer
-
   schemas:
     ErrorResponse:
       type: object
@@ -576,13 +560,10 @@ components:
 
     CotistaWrite:
       type: object
-      required: [fund_id]
       properties:
         id:
           type: integer
           description: Obrigatório em edit, patch, avaliação e validação de arquivo do cotista.
-        fund_id:
-          type: integer
         enviar:
           type: boolean
           description: true promove rascunho ou inconsistente para pendente.
@@ -739,10 +720,8 @@ components:
 
     CotistaAvaliacaoRequest:
       type: object
-      required: [fund_id, id, resultado]
+      required: [id, resultado]
       properties:
-        fund_id:
-          type: integer
         id:
           type: integer
         resultado:
@@ -757,10 +736,8 @@ components:
 
     CotistaArquivoValidacaoRequest:
       type: object
-      required: [fund_id, id, valido]
+      required: [id, valido]
       properties:
-        fund_id:
-          type: integer
         id:
           type: integer
           description: cotista_file.id
@@ -771,10 +748,7 @@ components:
 
     CotistaListRequest:
       type: object
-      required: [fund_id]
       properties:
-        fund_id:
-          type: integer
         per_page:
           type: integer
           minimum: 1
@@ -794,20 +768,18 @@ components:
 
   examples:
     CotistaCreateBodyRascunho:
-      summary: Rascunho (só fund_id e nome)
+      summary: Rascunho (só o nome)
       description: Sem `enviar`, o cadastro fica em `rascunho`.
       value:
-        fund_id: 1
         nome_completo: Ana Costa
 
     CotistaCreateBody:
       summary: Objeto de cadastro de cotista
       description: |
-        Body de `POST /cotista/save`. Só `fund_id` é obrigatório.
+        Body de `POST /cotista/save`. Nenhum campo é obrigatório. Não existe `fund_id`.
         `enviar: true` manda para análise (`pendente`). Sem `enviar`, fica `rascunho`.
         `content_base64` abaixo é só um PDF mínimo de teste (`aGVsbG8=`).
       value:
-        fund_id: 1
         enviar: true
         nome_completo: Ana Paula Costa
         cpf: "12345678901"

@@ -48,38 +48,24 @@ class CotistaService
     }
 
     /**
-     * @param array $data
-     * @return int
+     * Lista unica de cotistas. Nao ha fundo neste modulo.
+     *
+     * @return array<string, int>
      */
-    public static function resolveFundId(array $data)
+    public static function statusResumo()
     {
-        $raw = isset($data['fund_id']) ? $data['fund_id'] : null;
-        if ($raw === null || $raw === '') {
-            throw new InvalidArgumentException('fund_id e obrigatorio');
-        }
-
-        $id = (int) $raw;
-        if ($id < 1) {
-            throw new InvalidArgumentException('fund_id invalido');
-        }
-
-        CotistaPermissionService::assertCanAccessFund($id);
-
-        return $id;
+        return Cotista::cadastroStatusResumo();
     }
 
     /**
      * @param int $cotistaId
-     * @param int $fundId
      * @return Cotista
      */
-    public static function findCotistaForFund($cotistaId, $fundId)
+    public static function findCotista($cotistaId)
     {
-        CotistaPermissionService::assertCanAccessFund($fundId);
-
-        $cotista = Cotista::forFund($fundId)->find((int) $cotistaId);
+        $cotista = Cotista::query()->find((int) $cotistaId);
         if (! $cotista) {
-            throw new InvalidArgumentException('Cotista nao encontrado para este fundo');
+            throw new InvalidArgumentException('Cotista nao encontrado');
         }
 
         return $cotista;
@@ -92,12 +78,10 @@ class CotistaService
     public static function create(array $data)
     {
         $data = self::normalizePayload($data);
-        $fundId = self::resolveFundId($data);
-        CotistaPermissionService::assertCanCreate($fundId);
+        CotistaPermissionService::assertCanCreate();
 
-        return DB::transaction(function () use ($data, $fundId) {
+        return DB::transaction(function () use ($data) {
             $cotista = new Cotista();
-            $cotista->fund_id = $fundId;
             $cotista->status = Cotista::STATUS_RASCUNHO;
             self::applyScalars($cotista, $data, false);
             $cotista->save();
@@ -140,7 +124,6 @@ class CotistaService
                         'descricao' => 'Cadastro criado e enviado para analise',
                         'nome_completo' => $cotista->nome_completo,
                         'cpf' => $cotista->cpf,
-                        'fund_id' => $cotista->fund_id,
                     ]
                 );
                 self::runAutomaticValidationsAfterPendente($cotista, null);
@@ -155,7 +138,6 @@ class CotistaService
                         'descricao' => 'Cadastro criado em rascunho',
                         'nome_completo' => $cotista->nome_completo,
                         'cpf' => $cotista->cpf,
-                        'fund_id' => $cotista->fund_id,
                     ]
                 );
             }
@@ -179,8 +161,7 @@ class CotistaService
                 throw new InvalidArgumentException('ID do cotista e obrigatorio para atualizacao');
             }
 
-            $fundId = self::resolveFundId($data);
-            $cotista = self::findCotistaForFund($data['id'], $fundId);
+            $cotista = self::findCotista($data['id']);
             CotistaPermissionService::assertCanUpdate($cotista, $data);
             $cotista->load(Cotista::apiRelations());
 
@@ -238,8 +219,7 @@ class CotistaService
                 throw new InvalidArgumentException('ID do cotista e obrigatorio para atualizacao');
             }
 
-            $fundId = self::resolveFundId($data);
-            $cotista = self::findCotistaForFund($data['id'], $fundId);
+            $cotista = self::findCotista($data['id']);
             CotistaPermissionService::assertCanUpdate($cotista, $data);
             $cotista->load(Cotista::apiRelations());
 
@@ -292,12 +272,11 @@ class CotistaService
 
     /**
      * @param int $id
-     * @param int $fundId
      * @return bool
      */
-    public static function deleteById($id, $fundId)
+    public static function deleteById($id)
     {
-        $cotista = self::findCotistaForFund($id, $fundId);
+        $cotista = self::findCotista($id);
         CotistaPermissionService::assertCanDelete($cotista);
 
         return DB::transaction(function () use ($cotista) {
@@ -324,31 +303,27 @@ class CotistaService
     }
 
     /**
-     * Nesta versao o unico requisito para sair de rascunho e fund_id.
-     * Os demais campos ficam concentrados aqui para serem exigidos depois.
+     * Nenhum campo do formulario e obrigatorio nesta versao.
+     * Os requisitos futuros ficam concentrados aqui.
      *
      * @param Cotista $cotista
      * @return bool
      */
     public static function isCadastroCompleto(Cotista $cotista)
     {
-        return ! empty($cotista->fund_id);
+        return true;
     }
 
     /**
-     * @param int|null $fundId
      * @return int
      */
-    public static function markExpiredApprovedAsVencido($fundId = null)
+    public static function markExpiredApprovedAsVencido()
     {
         $hoje = date('Y-m-d');
-        $query = Cotista::where('status', Cotista::STATUS_APROVADO)
+        $query = Cotista::query()
+            ->where('status', Cotista::STATUS_APROVADO)
             ->whereNotNull('sla')
             ->where('sla', '<', $hoje);
-
-        if ($fundId !== null) {
-            $query->forFund((int) $fundId);
-        }
 
         $count = 0;
         foreach ($query->get() as $cotista) {
@@ -386,7 +361,6 @@ class CotistaService
 
         return [
             'id' => $cotista->id,
-            'fund_id' => $cotista->fund_id,
             'nome_completo' => $cotista->nome_completo,
             'cpf' => $cotista->cpf,
             'tin' => $cotista->tin,
@@ -1544,7 +1518,7 @@ class CotistaService
             : array_keys($depois);
 
         foreach ($keys as $key) {
-            if (in_array($key, ['id', 'fund_id', 'payload', 'cotista', 'enviar', 'historico', 'inconsistencias'], true)) {
+            if (in_array($key, ['id', 'payload', 'cotista', 'enviar', 'historico', 'inconsistencias'], true)) {
                 continue;
             }
             if ($key === 'arquivos') {

@@ -1,6 +1,6 @@
 # API de cadastro de cotista
 
-Mesmo grupo de usuários do cedente (`cedente_role_employee` e `fund_employee`). Serpro e Vadu **não** são chamados nesta versão. O único campo obrigatório do formulário é `fund_id`. Na aprovação, o aprovador informa `prazo_atualizacao_cadastral` (meses).
+Mesmo grupo de usuários do cedente (`cedente_role_employee`). Não há fundo: todos os cotistas ficam na mesma lista. Serpro e Vadu **não** são chamados nesta versão. Nenhum campo do formulário é obrigatório. Na aprovação, o aprovador informa `prazo_atualizacao_cadastral` (meses).
 
 ## Documentação OpenAPI (Swagger)
 
@@ -8,13 +8,13 @@ Mesmo grupo de usuários do cedente (`cedente_role_employee` e `fund_employee`).
 
 Com a aplicação rodando: **`/docs/cotista`** (YAML em **`/docs/cotista/openapi.yaml`**).
 
-Login, headers `User` e `Authorization` (token sem `Bearer`) e escopo de fundo são os mesmos do cedente. Papéis: `preenchimento`, `avalista` (aprovador) e `administrador`.
+Login e headers `User` e `Authorization` (token sem `Bearer`) são os mesmos do cedente. Papéis: `preenchimento`, `avalista` (aprovador) e `administrador`. A lista não filtra por fundo.
 
 ## Rotas
 
 | Método | Rota | Descrição | Quem |
 |--------|------|-----------|------|
-| POST | `/cotista/save` | Cria cotista (`fund_id` no JSON) | Preenchimento / Admin |
+| POST | `/cotista/save` | Cria cotista | Preenchimento / Admin |
 | PUT | `/cotista/edit` | Atualiza por `id` (snapshot das listas) | Preenchimento* / Admin |
 | PATCH | `/cotista/patch` | Atualização parcial | Preenchimento* / Admin |
 | PATCH | `/cotista/arquivo/validacao` | Aprovar/recusar arquivo | Avalista / Admin |
@@ -28,8 +28,6 @@ Login, headers `User` e `Authorization` (token sem `Bearer`) e escopo de fundo s
 | DELETE | `/cotista/remove/{id}` | Exclui | Admin |
 
 \* Preenchimento só edita `rascunho` ou `inconsistente`.
-
-`fund_id` vai no JSON em POST/PUT/PATCH e na query (`?fund_id=`) em GET/DELETE.
 
 ## Status
 
@@ -47,11 +45,10 @@ Não há `limite_aprovado`. Serpro e Vadu não rodam; o método `runAutomaticVal
 
 ## Objeto de cadastro (`POST /cotista/save`)
 
-O mesmo JSON aparece no Swagger em **`/docs/cotista`**, exemplo **Objeto de cadastro de cotista** da rota `POST /cotista/save`. Só `fund_id` é obrigatório. `enviar: true` manda para `pendente`; sem isso o cadastro fica `rascunho`.
+O mesmo JSON aparece no Swagger em **`/docs/cotista`**, exemplo **Objeto de cadastro de cotista** da rota `POST /cotista/save`. Nenhum campo é obrigatório. Não envie `fund_id`. `enviar: true` manda para `pendente`; sem isso o cadastro fica `rascunho`.
 
 ```json
 {
-  "fund_id": 1,
   "enviar": true,
   "nome_completo": "Ana Paula Costa",
   "cpf": "12345678901",

@@ -12,7 +12,7 @@ use InvalidArgumentException;
 class CotistaAvaliacaoService
 {
     /**
-     * @param array $data fund_id, id, resultado, observacao, prazo_atualizacao_cadastral
+     * @param array $data id, resultado, observacao, prazo_atualizacao_cadastral
      * @return Cotista
      */
     public static function registrar(array $data)
@@ -36,10 +36,8 @@ class CotistaAvaliacaoService
             );
         }
 
-        $fundId = CotistaService::resolveFundId($data);
-
-        return DB::transaction(function () use ($data, $fundId, $resultado) {
-            $cotista = CotistaService::findCotistaForFund($data['id'], $fundId);
+        return DB::transaction(function () use ($data, $resultado) {
+            $cotista = CotistaService::findCotista($data['id']);
             CotistaPermissionService::assertCanAvaliar($cotista);
             $statusAntes = $cotista->status ?: Cotista::STATUS_PENDENTE;
 

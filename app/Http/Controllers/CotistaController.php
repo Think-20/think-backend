@@ -43,20 +43,6 @@ class CotistaController extends Controller
     }
 
     /**
-     * @param Request $request
-     * @return array
-     */
-    private static function payloadWithFund(Request $request)
-    {
-        $data = self::decodeRequestPayload($request);
-        if (! isset($data['fund_id']) && $request->query('fund_id') !== null) {
-            $data['fund_id'] = $request->query('fund_id');
-        }
-
-        return $data;
-    }
-
-    /**
      * @param string $action
      * @param \Closure $callback
      * @param string $successMessage
@@ -96,21 +82,19 @@ class CotistaController extends Controller
     public static function all(Request $request)
     {
         try {
-            $data = self::payloadWithFund($request);
-            $fundId = CotistaService::resolveFundId($data);
-            CotistaPermissionService::assertCanView($fundId);
+            CotistaPermissionService::assertCanView();
         } catch (InvalidArgumentException $e) {
             return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
         }
 
-        CotistaService::markExpiredApprovedAsVencido($fundId);
+        CotistaService::markExpiredApprovedAsVencido();
 
         $perPage = (int) $request->input('per_page', 20);
         if ($perPage < 1 || $perPage > 100) {
             $perPage = 20;
         }
 
-        $paginator = Cotista::forFund($fundId)
+        $paginator = Cotista::query()
             ->with(Cotista::apiRelations())
             ->orderBy('id', 'desc')
             ->paginate($perPage);
@@ -120,35 +104,30 @@ class CotistaController extends Controller
         });
 
         return response()->json(array_merge($paginator->toArray(), [
-            'fund_id' => $fundId,
-            'cadastro_status_resumo' => Cotista::cadastroStatusResumo($fundId),
+            'cadastro_status_resumo' => CotistaService::statusResumo(),
         ]));
     }
 
-    public static function statusResumo(Request $request)
+    public static function statusResumo()
     {
         try {
-            $data = self::payloadWithFund($request);
-            $fundId = CotistaService::resolveFundId($data);
-            CotistaPermissionService::assertCanView($fundId);
+            CotistaPermissionService::assertCanView();
         } catch (InvalidArgumentException $e) {
             return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
         }
 
         return response()->json([
             'error' => 'false',
-            'data' => Cotista::cadastroStatusResumo($fundId),
+            'data' => CotistaService::statusResumo(),
         ]);
     }
 
-    public static function get(Request $request, $id)
+    public static function get($id)
     {
         try {
-            $data = self::payloadWithFund($request);
-            $fundId = CotistaService::resolveFundId($data);
-            CotistaPermissionService::assertCanView($fundId);
-            CotistaService::markExpiredApprovedAsVencido($fundId);
-            $cotista = Cotista::forFund($fundId)->with(Cotista::apiRelations())->find($id);
+            CotistaPermissionService::assertCanView();
+            CotistaService::markExpiredApprovedAsVencido();
+            $cotista = Cotista::query()->with(Cotista::apiRelations())->find($id);
             if (! $cotista) {
                 return response()->json(['error' => 'true', 'message' => 'Cotista nao encontrado'], 404);
             }
@@ -162,13 +141,11 @@ class CotistaController extends Controller
         ]);
     }
 
-    public static function historico(Request $request, $id)
+    public static function historico($id)
     {
         try {
-            $data = self::payloadWithFund($request);
-            $fundId = CotistaService::resolveFundId($data);
-            CotistaPermissionService::assertCanView($fundId);
-            $cotista = CotistaService::findCotistaForFund($id, $fundId);
+            CotistaPermissionService::assertCanView();
+            $cotista = CotistaService::findCotista($id);
         } catch (InvalidArgumentException $e) {
             $status = strpos($e->getMessage(), 'nao encontrado') !== false ? 404 : 400;
 
@@ -177,7 +154,6 @@ class CotistaController extends Controller
 
         return response()->json([
             'error' => 'false',
-            'fund_id' => (int) $cotista->fund_id,
             'data' => CotistaService::historicoToApiArray($cotista),
         ]);
     }
@@ -203,12 +179,10 @@ class CotistaController extends Controller
         }, 'Cotista atualizado com sucesso');
     }
 
-    public static function remove(Request $request, $id)
+    public static function remove($id)
     {
         try {
-            $data = self::payloadWithFund($request);
-            $fundId = CotistaService::resolveFundId($data);
-            if (! CotistaService::deleteById($id, $fundId)) {
+            if (! CotistaService::deleteById($id)) {
                 return response()->json(['error' => 'true', 'message' => 'Cotista ' . $id . ' nao encontrado'], 404);
             }
         } catch (InvalidArgumentException $e) {
@@ -251,22 +225,18 @@ class CotistaController extends Controller
     }
 
     /**
-     * GET /cotistas/arquivos/download/{id}?fund_id=
+     * GET /cotistas/arquivos/download/{id}
      */
-    public static function downloadArquivo(Request $request, $id)
+    public static function downloadArquivo($id)
     {
         try {
-            $data = self::payloadWithFund($request);
-            $fundId = CotistaService::resolveFundId($data);
-            CotistaPermissionService::assertCanDownloadArquivos($fundId);
+            CotistaPermissionService::assertCanDownloadArquivos();
 
             $file = CotistaFile::with('cotista')->find((int) $id);
             if (! $file || ! $file->cotista) {
                 return response()->json(['error' => 'true', 'message' => 'Arquivo nao encontrado'], 404);
             }
-            if ((int) $file->cotista->fund_id !== (int) $fundId) {
-                return response()->json(['error' => 'true', 'message' => 'Arquivo nao pertence ao fundo informado'], 404);
-            }
+            CotistaService::findCotista($file->cotista_id);
 
             $path = CotistaFile::downloadFile($id);
             $mime = function_exists('mime_content_type') ? mime_content_type($path) : 'application/octet-stream';
@@ -289,15 +259,13 @@ class CotistaController extends Controller
     }
 
     /**
-     * GET /cotistas/arquivos/download-all/{id}?fund_id=
+     * GET /cotistas/arquivos/download-all/{id}
      */
-    public static function downloadAllArquivos(Request $request, $id)
+    public static function downloadAllArquivos($id)
     {
         try {
-            $data = self::payloadWithFund($request);
-            $fundId = CotistaService::resolveFundId($data);
-            CotistaPermissionService::assertCanDownloadArquivos($fundId);
-            CotistaService::findCotistaForFund($id, $fundId);
+            CotistaPermissionService::assertCanDownloadArquivos();
+            CotistaService::findCotista($id);
 
             $zipPath = CotistaFile::downloadAllFiles($id);
             $contents = file_get_contents($zipPath);

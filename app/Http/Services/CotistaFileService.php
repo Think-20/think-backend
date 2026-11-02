@@ -15,7 +15,7 @@ class CotistaFileService
     /**
      * Aprova ou recusa um arquivo do cotista.
      *
-     * @param array $data fund_id, id (cotista_file), valido, motivo
+     * @param array $data id (cotista_file), valido, motivo
      * @return Cotista
      */
     public static function setValidacao(array $data)
@@ -35,16 +35,15 @@ class CotistaFileService
             throw new InvalidArgumentException('Campo valido deve ser true ou false');
         }
 
-        $fundId = CotistaService::resolveFundId($data);
         $fileId = (int) $data['id'];
 
-        return DB::transaction(function () use ($fundId, $fileId, $valido, $data) {
+        return DB::transaction(function () use ($fileId, $valido, $data) {
             $file = CotistaFile::with('cotista')->find($fileId);
             if (! $file || $file->cotista_id === null) {
                 throw new InvalidArgumentException('Arquivo do cotista nao encontrado');
             }
 
-            $cotista = CotistaService::findCotistaForFund($file->cotista_id, $fundId);
+            $cotista = CotistaService::findCotista($file->cotista_id);
             CotistaPermissionService::assertCanValidarArquivo($cotista);
 
             if ($valido) {

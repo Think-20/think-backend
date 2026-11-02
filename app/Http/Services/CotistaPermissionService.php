@@ -6,30 +6,19 @@ use App\Cotista;
 use InvalidArgumentException;
 
 /**
- * Mesmos papeis e fundos do modulo de cedente (cedente_role_employee e fund_employee).
+ * Mesmos papeis do modulo de cedente (cedente_role_employee).
+ * Cotista nao tem fundo: a lista e unica.
  *
  * - 1 preenchimento: cria/edita rascunho e inconsistente; nao avalia nem valida arquivo.
  * - 2 avalista (aprovador): visualiza; avalia e valida arquivo; nao edita formulario.
- * - 3 administrador: sem restricao de papel (ainda respeita fundo).
+ * - 3 administrador: sem restricao de papel.
  */
 class CotistaPermissionService
 {
     const MSG_SEM_PERMISSAO = 'Voce nao tem permissao para realizar esta acao';
 
-    public static function assertCanAccessFund($fundId)
+    public static function assertCanCreate()
     {
-        CedentePermissionService::assertCanAccessFund($fundId);
-    }
-
-    /**
-     * @param int|null $fundId
-     */
-    public static function assertCanCreate($fundId = null)
-    {
-        if ($fundId !== null) {
-            self::assertCanAccessFund($fundId);
-        }
-
         if (CedentePermissionService::isAvalista()) {
             throw new InvalidArgumentException(
                 self::MSG_SEM_PERMISSAO . '. Usuario avalista nao pode criar cotistas'
@@ -43,8 +32,6 @@ class CotistaPermissionService
      */
     public static function assertCanUpdate(Cotista $cotista, array $data)
     {
-        self::assertCanAccessFund($cotista->fund_id);
-
         if (CedentePermissionService::isAvalista()) {
             throw new InvalidArgumentException(
                 self::MSG_SEM_PERMISSAO . '. Usuario avalista nao pode editar os dados do cadastro. Use avaliacao e validacao de arquivos'
@@ -109,10 +96,6 @@ class CotistaPermissionService
      */
     public static function assertCanDelete($cotista = null)
     {
-        if ($cotista instanceof Cotista) {
-            self::assertCanAccessFund($cotista->fund_id);
-        }
-
         if (CedentePermissionService::isPreenchimento()) {
             throw new InvalidArgumentException(self::MSG_SEM_PERMISSAO . '. Usuario de preenchimento nao pode excluir cotistas');
         }
@@ -127,10 +110,6 @@ class CotistaPermissionService
      */
     public static function assertCanAvaliar($cotista = null)
     {
-        if ($cotista instanceof Cotista) {
-            self::assertCanAccessFund($cotista->fund_id);
-        }
-
         if (CedentePermissionService::isPreenchimento()) {
             throw new InvalidArgumentException(self::MSG_SEM_PERMISSAO . '. Usuario de preenchimento nao pode avaliar cotistas');
         }
@@ -156,10 +135,6 @@ class CotistaPermissionService
      */
     public static function assertCanValidarArquivo($cotista = null)
     {
-        if ($cotista instanceof Cotista) {
-            self::assertCanAccessFund($cotista->fund_id);
-        }
-
         if (CedentePermissionService::isPreenchimento()) {
             throw new InvalidArgumentException(
                 self::MSG_SEM_PERMISSAO . '. Usuario de preenchimento nao pode aprovar ou recusar arquivos'
@@ -182,20 +157,12 @@ class CotistaPermissionService
         }
     }
 
-    /**
-     * @param int $fundId
-     */
-    public static function assertCanDownloadArquivos($fundId)
+    public static function assertCanDownloadArquivos()
     {
-        self::assertCanAccessFund($fundId);
     }
 
-    /**
-     * @param int $fundId
-     */
-    public static function assertCanView($fundId)
+    public static function assertCanView()
     {
-        self::assertCanAccessFund($fundId);
     }
 
     /**

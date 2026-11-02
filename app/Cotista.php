@@ -37,7 +37,6 @@ class Cotista extends Model
     protected $table = 'cotista';
 
     protected $fillable = [
-        'fund_id',
         'nome_completo',
         'cpf',
         'tin',
@@ -271,11 +270,6 @@ class Cotista extends Model
         return self::computeSlaDeadline($fromDate);
     }
 
-    public function fund()
-    {
-        return $this->belongsTo(Fund::class, 'fund_id');
-    }
-
     public function enderecoResidencial()
     {
         return $this->belongsTo(Address::class, 'endereco_residencial_id');
@@ -284,16 +278,6 @@ class Cotista extends Model
     public function enderecoComercial()
     {
         return $this->belongsTo(Address::class, 'endereco_comercial_id');
-    }
-
-    /**
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param int $fundId
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeForFund($query, $fundId)
-    {
-        return $query->where('fund_id', (int) $fundId);
     }
 
     public function referencias()
@@ -365,19 +349,13 @@ class Cotista extends Model
     }
 
     /**
-     * @param int|null $fundId
      * @return array<string, int>
      */
-    public static function cadastroStatusCounts($fundId = null)
+    public static function cadastroStatusCounts()
     {
         $counts = array_fill_keys(self::cadastroStatusValues(), 0);
 
-        $query = self::query();
-        if ($fundId !== null) {
-            $query->forFund($fundId);
-        }
-
-        $rows = $query
+        $rows = self::query()
             ->selectRaw('status, COUNT(*) as aggregate')
             ->groupBy('status')
             ->get();
@@ -396,19 +374,12 @@ class Cotista extends Model
     }
 
     /**
-     * @param int|null $fundId
-     * @return array<string, int|null>
+     * @return array<string, int>
      */
-    public static function cadastroStatusResumo($fundId = null)
+    public static function cadastroStatusResumo()
     {
-        $query = self::query();
-        if ($fundId !== null) {
-            $query->forFund($fundId);
-        }
-
-        return array_merge(self::cadastroStatusCounts($fundId), [
-            'total' => (int) $query->count(),
-            'fund_id' => $fundId !== null ? (int) $fundId : null,
+        return array_merge(self::cadastroStatusCounts(), [
+            'total' => (int) self::query()->count(),
         ]);
     }
 
@@ -431,7 +402,6 @@ class Cotista extends Model
             'suitability.respostas',
             'inconsistencias',
             'audits.user.employee',
-            'fund',
         ];
     }
 }
