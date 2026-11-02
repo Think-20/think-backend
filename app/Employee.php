@@ -398,6 +398,11 @@ class Employee extends Model implements NotifierInterface
 
             if ($roleId !== null) {
                 CedenteRole::assignToEmployeeById($employee->id, $roleId);
+                $user = $employee->user()->first();
+                if ($user && ! $user->acesso_cedente) {
+                    $user->acesso_cedente = true;
+                    $user->save();
+                }
             }
             if ($updateFunds) {
                 self::syncCedenteFunds($employee, $fundIds, $allFunds);
@@ -692,6 +697,7 @@ class Employee extends Model implements NotifierInterface
         $user->email = $email;
         $user->password = Hash::make($password);
         $user->employee_id = $employeeId;
+        $user->acesso_cedente = true;
         $user->save();
 
         return $user;
@@ -825,6 +831,7 @@ class Employee extends Model implements NotifierInterface
         $user->email = $email;
         $user->password = Hash::make($email);
         $user->employee_id = $employeeId;
+        $user->acesso_job = true;
         $user->save();
     }
 

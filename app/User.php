@@ -16,7 +16,14 @@ class User extends Model
     protected $table = 'user';
 
     protected $fillable = [
-        'id', 'email', 'password', 'employee_id', 'lastAccess', 'token'
+        'id', 'email', 'password', 'employee_id', 'lastAccess', 'token',
+        'acesso_job', 'acesso_cedente', 'acesso_cotista',
+    ];
+
+    protected $casts = [
+        'acesso_job' => 'boolean',
+        'acesso_cedente' => 'boolean',
+        'acesso_cotista' => 'boolean',
     ];
 
     protected $hidden = [
