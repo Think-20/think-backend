@@ -81,7 +81,7 @@ class CotistaMailService
         $portalUrl = isset($options['portal_url']) ? trim((string) $options['portal_url']) : self::portalUrl($cotista->id);
         $safeNome = htmlspecialchars($nome, ENT_QUOTES, 'UTF-8');
         $details = self::buildDetailsTable([
-            'CPF' => $cotista->cpf,
+            'Documento' => $cotista->documento,
             'Validade cadastral' => self::formatSla($cotista->sla),
             'Observacao' => $observacao,
         ]);
@@ -154,7 +154,7 @@ class CotistaMailService
                 O cadastro de cotista precisa de <strong style="color: #b36b00;">ajustes</strong> antes de seguir.
             </p>
             ' . self::buildDetailsTable([
-                'CPF' => $cotista->cpf,
+                'Documento' => $cotista->documento,
                 'Orientacao do analista' => $observacao,
             ]) . self::buildInconsistenciasList($inconsistencias);
 
@@ -236,7 +236,7 @@ class CotistaMailService
             ' . self::buildDetailsTable([
                 'Status anterior' => $oldLabel,
                 'Status atual' => $newLabel,
-                'CPF' => $cotista->cpf,
+                'Documento' => $cotista->documento,
                 'Observacao' => $observacao,
             ]);
 

@@ -47,11 +47,14 @@ Não há `limite_aprovado`. Serpro e Vadu não rodam; o método `runAutomaticVal
 
 O mesmo JSON aparece no Swagger em **`/docs/cotista`**, exemplo **Objeto de cadastro de cotista** da rota `POST /cotista/save`. Nenhum campo é obrigatório. Não envie `fund_id`. `enviar: true` manda para `pendente`; sem isso o cadastro fica `rascunho`.
 
+`tipo_pessoa` é `fisica` ou `juridica`. `documento` é o CPF ou o CNPJ desse cotista. `cpf_conjuge` e o `cpf` do operador continuam sendo CPF.
+
 ```json
 {
   "enviar": true,
   "nome_completo": "Ana Paula Costa",
-  "cpf": "12345678901",
+  "tipo_pessoa": "fisica",
+  "documento": "12345678901",
   "tin": null,
   "nome_mae": "Maria Costa",
   "sexo": "Feminino",

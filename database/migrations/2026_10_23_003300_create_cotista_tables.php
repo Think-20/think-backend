@@ -17,7 +17,8 @@ class CreateCotistaTables extends Migration
             $table->increments('id');
 
             $table->string('nome_completo')->nullable();
-            $table->string('cpf', 32)->nullable();
+            $table->string('tipo_pessoa', 16)->nullable();
+            $table->string('documento', 32)->nullable();
             $table->string('tin', 32)->nullable();
             $table->string('nome_mae')->nullable();
             $table->string('sexo', 32)->nullable();
@@ -90,7 +91,7 @@ class CreateCotistaTables extends Migration
             $table->foreign('endereco_residencial_id')->references('id')->on('address')->onDelete('set null');
             $table->foreign('endereco_comercial_id')->references('id')->on('address')->onDelete('set null');
             $table->index('status');
-            $table->index('cpf');
+            $table->index('documento');
             $table->index('sla');
         });
 

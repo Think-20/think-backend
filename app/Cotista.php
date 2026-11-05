@@ -34,11 +34,15 @@ class Cotista extends Model
     public const SITUACAO_ISENTO = 'isento';
     public const SITUACAO_NAO_ISENTO = 'nao_isento';
 
+    public const TIPO_PESSOA_FISICA = 'fisica';
+    public const TIPO_PESSOA_JURIDICA = 'juridica';
+
     protected $table = 'cotista';
 
     protected $fillable = [
         'nome_completo',
-        'cpf',
+        'tipo_pessoa',
+        'documento',
         'tin',
         'nome_mae',
         'sexo',

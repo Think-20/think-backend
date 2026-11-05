@@ -571,8 +571,13 @@ components:
           type: string
         nome_completo:
           type: string
-        cpf:
+        tipo_pessoa:
           type: string
+          enum: [fisica, juridica]
+          description: Pessoa física ou jurídica. Aceita também pf, pj, pessoa_fisica e pessoa_juridica.
+        documento:
+          type: string
+          description: CPF quando tipo_pessoa é fisica, CNPJ quando é juridica.
         tin:
           type: string
         nome_mae:
@@ -782,7 +787,8 @@ components:
       value:
         enviar: true
         nome_completo: Ana Paula Costa
-        cpf: "12345678901"
+        tipo_pessoa: fisica
+        documento: "12345678901"
         tin: null
         nome_mae: Maria Costa
         sexo: Feminino

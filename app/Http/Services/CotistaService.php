@@ -40,8 +40,8 @@ class CotistaService
         if (isset($data['nome_completo']) && is_string($data['nome_completo'])) {
             $data['nome_completo'] = trim($data['nome_completo']);
         }
-        if (isset($data['cpf'])) {
-            $data['cpf'] = is_string($data['cpf']) ? trim($data['cpf']) : trim((string) $data['cpf']);
+        if (isset($data['documento'])) {
+            $data['documento'] = is_string($data['documento']) ? trim($data['documento']) : trim((string) $data['documento']);
         }
 
         return $data;
@@ -123,7 +123,8 @@ class CotistaService
                     [
                         'descricao' => 'Cadastro criado e enviado para analise',
                         'nome_completo' => $cotista->nome_completo,
-                        'cpf' => $cotista->cpf,
+                        'tipo_pessoa' => $cotista->tipo_pessoa,
+                        'documento' => $cotista->documento,
                     ]
                 );
                 self::runAutomaticValidationsAfterPendente($cotista, null);
@@ -137,7 +138,8 @@ class CotistaService
                     [
                         'descricao' => 'Cadastro criado em rascunho',
                         'nome_completo' => $cotista->nome_completo,
-                        'cpf' => $cotista->cpf,
+                        'tipo_pessoa' => $cotista->tipo_pessoa,
+                        'documento' => $cotista->documento,
                     ]
                 );
             }
@@ -362,7 +364,8 @@ class CotistaService
         return [
             'id' => $cotista->id,
             'nome_completo' => $cotista->nome_completo,
-            'cpf' => $cotista->cpf,
+            'tipo_pessoa' => $cotista->tipo_pessoa,
+            'documento' => $cotista->documento,
             'tin' => $cotista->tin,
             'nome_mae' => $cotista->nome_mae,
             'sexo' => $cotista->sexo,
@@ -661,7 +664,8 @@ class CotistaService
     {
         return [
             'nome_completo' => 'string',
-            'cpf' => 'string',
+            'tipo_pessoa' => 'tipo_pessoa',
+            'documento' => 'string',
             'tin' => 'string',
             'nome_mae' => 'string',
             'sexo' => 'string',
@@ -795,6 +799,24 @@ class CotistaService
                 return $aliases[$value];
             }
             throw new InvalidArgumentException('situacao invalida (use isento ou nao_isento)');
+        }
+
+        if ($type === 'tipo_pessoa') {
+            $value = self::normalizeToken($raw);
+            $value = str_replace(['á', 'í'], ['a', 'i'], $value);
+            $aliases = [
+                'fisica' => Cotista::TIPO_PESSOA_FISICA,
+                'pf' => Cotista::TIPO_PESSOA_FISICA,
+                'pessoa_fisica' => Cotista::TIPO_PESSOA_FISICA,
+                'juridica' => Cotista::TIPO_PESSOA_JURIDICA,
+                'pj' => Cotista::TIPO_PESSOA_JURIDICA,
+                'pessoa_juridica' => Cotista::TIPO_PESSOA_JURIDICA,
+            ];
+            if (isset($aliases[$value])) {
+                return $aliases[$value];
+            }
+
+            throw new InvalidArgumentException('tipo_pessoa invalido (use fisica ou juridica)');
         }
 
         $text = is_string($raw) ? trim($raw) : trim((string) $raw);
