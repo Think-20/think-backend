@@ -4,6 +4,7 @@ namespace App\Http\Services;
 
 use App\Cedente;
 use App\CedenteRole;
+use App\Employee;
 use App\Fund;
 use App\User;
 use InvalidArgumentException;
@@ -333,6 +334,58 @@ class CedentePermissionService
                 self::MSG_SEM_PERMISSAO . '. Apenas administrador pode cadastrar ou alterar usuarios do modulo de cedentes'
             );
         }
+    }
+
+    /**
+     * Cadastro por modulo (POST /employee/register e POST /cedente/employee/save).
+     *
+     * Sem login: somente cotista + papel preenchimento (cedente_role.id = 1).
+     * Logado e administrador (id 3): cedente (qualquer papel), cotista avalista ou
+     * administrador, usuario job, e qualquer outro preenchimento/administrador.
+     *
+     * Confere o token. O header User sozinho nao autoriza.
+     *
+     * @param string $modulo job|cedente|cotista
+     * @param int|null $roleId
+     */
+    public static function assertCanRegisterEmployeeFor($modulo, $roleId)
+    {
+        if (Employee::registrationIsPublic($modulo, $roleId)) {
+            return;
+        }
+
+        if (!self::requestIsAuthenticated()) {
+            throw new InvalidArgumentException(
+                'E necessario estar logado como administrador para cadastrar este tipo de usuario'
+            );
+        }
+
+        if (!self::isAdministrador()) {
+            throw new InvalidArgumentException(
+                self::MSG_SEM_PERMISSAO . '. Apenas administrador pode cadastrar este tipo de usuario'
+            );
+        }
+    }
+
+    /**
+     * @return bool
+     */
+    public static function requestIsAuthenticated()
+    {
+        $request = request();
+        $userId = empty($request->header('User')) ? $request->input('user_id') : (int) $request->header('User');
+        $token = empty($request->header('Authorization')) ? $request->input('access_token') : $request->header('Authorization');
+
+        if (empty($userId) || $token === null || $token === '') {
+            return false;
+        }
+
+        $user = User::find($userId);
+        if (!$user) {
+            return false;
+        }
+
+        return User::tokenCompare((string) $token, $user);
     }
 
     /**

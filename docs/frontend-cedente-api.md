@@ -239,26 +239,41 @@ Em `inconsistencia_juridica`, **somente** `permitir_inconsistencia_juridica` e `
 
 ### Cadastro e edição de usuário do módulo (do zero)
 
-Este fluxo **não** usa o `POST /employee/save` legado nem gera e-mail `@thinkideias.com.br` / `@carmel`. O admin cadastra a pessoa **neste endpoint**, com e-mail e senha escolhidos, função e fundos — sem chamado interno.
+Este fluxo **não** usa o `POST /employee/save` legado do jobs (aquele continua gerando e-mail `@thinkideias.com.br` e marcando `modulo: job`). Aqui o front envia e-mail, senha, `modulo` e, quando couber, a função.
 
-**Quem pode chamar:** `cedente_role.id === 3`. Outro papel → HTTP **403**.
+Há três módulos, gravados em `employee.modulo`: `job`, `cedente` e `cotista`. O front envia esse tipo no body (`modulo`; também aceita `module`, `tipo`, `tipo_usuario` ou `user_type`).
+
+**Quem pode cadastrar**
+
+| `modulo` | Papel | Quem pode |
+|----------|--------|-----------|
+| `cotista` | `cedente_role_id: 1` (preenchimento) | Qualquer pessoa, **sem login** |
+| `cotista` | `2` avalista ou `3` administrador | Admin logado (`cedente_role.id === 3`) |
+| `cedente` | `1`, `2` ou `3` | Admin logado |
+| `job` | não enviar | Admin logado |
+
+Usuário de preenchimento (de cedente) e usuário administrador também só podem ser cadastrados por um admin logado. Sem login, ou logado sem ser admin, a API responde HTTP **403**.
 
 | Método | Rota | Uso |
 |--------|------|-----|
-| POST | `/cedente/employee/save` | Criar employee + user + função + fundos |
-| PUT | `/cedente/employee/edit` | Alterar nome, e-mail, senha, função e/ou fundos |
-| GET | `/cedentes/roles` | Combo de funções (`id`, `code`, `name`) |
+| POST | `/employee/register` | Criar employee. `modulo` obrigatório. Cotista preenchimento é público |
+| POST | `/cedente/employee/save` | O mesmo cadastro. Sem `modulo`, assume `cedente` e exige admin |
+| PUT | `/cedente/employee/edit` | Alterar nome, e-mail, senha, função, `modulo` e/ou fundos |
+| GET | `/cedentes/roles` | Combo de funções (`id`, `code`, `name`). Somente admin logado |
 
 **Campos do POST (criar) — todos no JSON:**
 
 | Campo | Obrigatório | Descrição |
 |-------|-------------|-----------|
+| `modulo` | sim em `/employee/register` | `job`, `cedente` ou `cotista`. Gravado em `employee.modulo` |
 | `name` | sim | Nome do employee |
 | `email` | sim | E-mail de login (qualquer domínio válido; **não** é gerado) |
 | `password` | sim | Senha de login (mínimo 6 caracteres). Aceita alias `senha` |
-| `cedente_role_id` | sim | **Id** da função: 1 preenchimento, 2 avalista/aprovador, 3 administrador |
-| `fund_ids` / `all_funds` | não | Ver tabela de fundos abaixo. Omitir = todos os fundos |
-| `department` / `position` | não | Só se o front enviar |
+| `cedente_role_id` | sim para cedente e cotista | **Id** da função: 1 preenchimento, 2 avalista/aprovador, 3 administrador. Não enviar em `job` |
+| `fund_ids` / `all_funds` | não | Só no módulo `cedente`. Ver tabela de fundos abaixo. Omitir = todos os fundos |
+| `department` / `position` | não | Ignorados no cadastro público de cotista preenchimento |
+
+No login, `employee.modulo` volta junto com `cedente_role`.
 
 **Campos do PUT (editar):** `id` obrigatório. Os demais só atualizam se enviados. Fundos só mudam se vier `all_funds`, `fund_ids` ou `fundos`. Se o employee ainda não tiver user, envie `email` e `password` juntos.
 
@@ -280,13 +295,28 @@ Este fluxo **não** usa o `POST /employee/save` legado nem gera e-mail `@thinkid
 | `"fund_ids": [1, 2]` | Só esses fundos |
 | `"fundos": [{ "id": 1 }, { "id": 2 }]` | Equivalente |
 
-#### POST — exemplo (fundos específicos)
+#### POST `/employee/register` — cotista de preenchimento (sem login)
+
+```json
+{
+  "name": "Ana Costa",
+  "email": "ana.costa@empresa.com",
+  "password": "SenhaForte1",
+  "modulo": "cotista",
+  "cedente_role_id": 1
+}
+```
+
+Essa chamada **não** envia header `User` nem `Authorization`.
+
+#### POST — cedente com fundos específicos (admin logado)
 
 ```json
 {
   "name": "Maria Silva",
   "email": "maria.silva@empresa.com",
   "password": "SenhaForte1",
+  "modulo": "cedente",
   "cedente_role_id": 1,
   "fund_ids": [1, 2]
 }
@@ -299,6 +329,7 @@ Este fluxo **não** usa o `POST /employee/save` legado nem gera e-mail `@thinkid
   "name": "João Pereira",
   "email": "joao.pereira@empresa.com",
   "password": "SenhaForte1",
+  "modulo": "cedente",
   "cedente_role_id": 2,
   "all_funds": true
 }
@@ -336,6 +367,7 @@ Este fluxo **não** usa o `POST /employee/save` legado nem gera e-mail `@thinkid
   "data": {
     "id": 42,
     "name": "Maria Silva",
+    "modulo": "cedente",
     "image": "sem-foto.jpg",
     "department_id": null,
     "position_id": null,

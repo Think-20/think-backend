@@ -10,6 +10,8 @@ Com a aplicação rodando: **`/docs/cotista`** (YAML em **`/docs/cotista/openapi
 
 Login e headers `User` e `Authorization` (token sem `Bearer`) são os mesmos do cedente. Papéis: `preenchimento`, `avalista` (aprovador) e `administrador`. A lista não filtra por fundo.
 
+O tipo do usuário fica em `employee.modulo` (`job`, `cedente` ou `cotista`). **Cotista de preenchimento** (`modulo: cotista` e `cedente_role_id: 1`) pode ser cadastrado por qualquer pessoa, sem login, em `POST /employee/register`. Cotista avalista ou administrador, qualquer cedente e usuário job só por administrador logado. Contrato e exemplos: **`/docs/cedente`**.
+
 ## Rotas
 
 | Método | Rota | Descrição | Quem |

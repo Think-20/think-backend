@@ -9,6 +9,11 @@ Route::post('/login', 'UserController@login')->name('login');
 Route::get('/check-token', 'UserController@checkToken')->name('checkToken');
 Route::post('/logout', 'UserController@logout')->name('logout');
 
+// Cotista preenchimento (modulo=cotista, cedente_role_id=1) e publico.
+// Cedente, job e os demais papeis exigem administrador logado (checagem no controller).
+Route::post('/employee/register', 'EmployeeController@register');
+Route::post('/cedente/employee/save', 'EmployeeController@saveCedente');
+
 Route::get('/docs/cedente/openapi.yaml', 'DocsController@openapiCedenteYaml');
 Route::get('/docs/cedente', 'DocsController@swaggerCedenteUi')->name('docs.cedente.swagger');
 Route::get('/docs/cotista/openapi.yaml', 'DocsController@openapiCotistaYaml');
@@ -466,7 +471,6 @@ Route::group(['middleware' => ['auth.api', 'permission']], function () {
     Route::post('/bank-accounts/filter', 'BankAccountController@filter');
 
     Route::get('/cedentes/roles', 'EmployeeController@cedenteRoles');
-    Route::post('/cedente/employee/save', 'EmployeeController@saveCedente');
     Route::put('/cedente/employee/edit', 'EmployeeController@editCedente');
 
     Route::post('/cedente/save', 'CedenteController@save');

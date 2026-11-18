@@ -51,6 +51,15 @@ x-frontend-guide:
 
         Não há escopo de fundo. Quem tem papel de cotista vê a mesma lista.
 
+        **Cadastro do usuário cotista** (`employee.modulo = cotista`), em `POST /employee/register`:
+
+        | Papel | Quem cadastra |
+        |-------|----------------|
+        | Preenchimento (`cedente_role_id: 1`) | Qualquer pessoa, **sem login** |
+        | Avalista (`2`) ou administrador (`3`) | Somente administrador **logado** (id 3) |
+
+        Cedente (qualquer papel) e usuário job também só por admin logado. O contrato completo está em **`/docs/cedente`**, rota `POST /employee/register`.
+
     - id: envio
       title: Rascunho e envio
       content: |

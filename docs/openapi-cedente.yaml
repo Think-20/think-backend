@@ -12,7 +12,7 @@ info:
     4. Em rotas de cedente, envie sempre **`fund_id`** no JSON (`POST`/`PUT`/`PATCH`) ou na query (`GET`/`DELETE`/download).
 
     O guia completo de integração (status, papéis, payloads, arquivos, avaliação, etc.) está na seção **Guia de integração** no final desta página, após Schemas.
-  version: 1.3.0
+  version: 1.4.0
   contact:
     name: Think Backend
 
@@ -55,13 +55,19 @@ x-frontend-guide:
         | Ver detalhe / listar / histórico / ZIP | Sim | Sim (qualquer status) | Sim |
         | Validar arquivo (`PATCH /cedente/arquivo/validacao`) | **Não** | Sim (exceto `rascunho`) | Sim |
         | Avaliar cedente (`PATCH /cedente/avaliacao`) | **Não** | Sim (exceto `rascunho`) | Sim |
-        | Cadastrar usuário do módulo (`POST /cedente/employee/save`) | **Não** | **Não** | Sim (somente **id 3**) |
+        | Cadastrar **cotista preenchimento** (`modulo: cotista` + `cedente_role_id: 1`) | **Sim, sem login** | **Sim, sem login** | Sim |
+        | Cadastrar **cedente** (qualquer papel) | **Não** | **Não** | Sim (somente **id 3**, logado) |
+        | Cadastrar **cotista avalista ou administrador** | **Não** | **Não** | Sim (somente **id 3**, logado) |
+        | Cadastrar usuário **job** | **Não** | **Não** | Sim (somente **id 3**, logado) |
+        | Cadastrar usuário de **preenchimento** (cedente) ou **administrador** | **Não** | **Não** | Sim (somente **id 3**, logado) |
         | Alterar usuário do módulo (`PUT /cedente/employee/edit`) | **Não** | **Não** | Sim (somente **id 3**) |
         | Listar funções (`GET /cedentes/roles`) | **Não** | **Não** | Sim (somente **id 3**) |
 
         A checagem de administrador usa **`cedente_role.id === 3`**, nunca o nome/code.
 
-        **Usuários do módulo (do zero):** o admin envia `name`, `email`, `password`, `cedente_role_id` e fundos. **Não** gera `@think` / `@carmel`. Exemplos em `components.examples.EmployeeCedenteCreateFunds`, `EmployeeCedenteCreateAllFunds` e `EmployeeCedenteEdit`.
+        **Usuários do módulo (do zero):** o front envia `name`, `email`, `password`, `modulo` (`job`, `cedente` ou `cotista`) e, nos módulos cedente/cotista, `cedente_role_id`. **Não** gera `@think` / `@carmel`. O valor fica na coluna `employee.modulo`. Exemplos em `components.examples.EmployeeCotistaPreenchimentoPublic`, `EmployeeCedenteCreateFunds`, `EmployeeCedenteCreateAllFunds` e `EmployeeCedenteEdit`.
+
+        **Quem pode cadastrar:** qualquer pessoa (sem header `User` / `Authorization`) pode criar **somente** cotista de preenchimento (`modulo: cotista` e `cedente_role_id: 1`). Todo o resto — cedente de qualquer papel, cotista avalista (id 2), cotista administrador (id 3), usuário job, preenchimento de cedente e administrador — exige usuário **logado** com `cedente_role.id === 3`. Sem token nesses casos → HTTP 403.
 
         **Escopo de fundo (sempre):** além do papel, o employee só acessa fundos vinculados em `fund_employee`. Sem vínculos, acessa todos. Sem `fund_id` na requisição → 400.
 
@@ -185,11 +191,21 @@ x-frontend-guide:
     - id: rotas
       title: Rotas (referência rápida)
       content: |
-        ### Usuários do módulo (somente admin id 3)
+        ### Usuários (job, cedente e cotista)
 
-        - **`GET /cedentes/roles`** — lista `{ id, code, name }` das funções.
-        - **`POST /cedente/employee/save`** — cria employee + user com `email` e `password` do front, `cedente_role_id` e fundos.
-        - **`PUT /cedente/employee/edit`** — altera nome, e-mail, senha, função e/ou fundos (`id` obrigatório).
+        O tipo do usuário é o campo **`modulo`** (`job` | `cedente` | `cotista`), gravado em `employee.modulo`. O papel (`cedente_role_id` 1, 2 ou 3) é outro campo: obrigatório em cedente e cotista; não se envia em job.
+
+        - **`POST /employee/register`** — cadastro. `modulo` **obrigatório**. Cotista + `cedente_role_id: 1` **sem login**. Demais combinações: admin logado (id 3).
+        - **`POST /cedente/employee/save`** — o mesmo cadastro. Se `modulo` vier vazio, o backend assume `cedente` (compatível com o front antigo) e exige admin.
+        - **`PUT /cedente/employee/edit`** — altera nome, e-mail, senha, função, `modulo` e/ou fundos (`id` obrigatório). Somente admin logado.
+        - **`GET /cedentes/roles`** — lista `{ id, code, name }` das funções. Somente admin logado.
+
+        | `modulo` | `cedente_role_id` | Quem cadastra |
+        |----------|-------------------|---------------|
+        | `cotista` | `1` preenchimento | Qualquer pessoa, sem login |
+        | `cotista` | `2` avalista ou `3` administrador | Admin logado |
+        | `cedente` | `1`, `2` ou `3` | Admin logado |
+        | `job` | não enviar | Admin logado |
 
         ### Cadastro
 
@@ -222,7 +238,10 @@ tags:
   - name: Análise
     description: Validação de arquivos e avaliação do avalista/administrador (backoffice)
   - name: Usuários
-    description: Cadastro de employee do módulo de cedentes (função + fundos). Somente administrador (id 3).
+    description: |
+      Cadastro de employee nos módulos `job`, `cedente` e `cotista` (`employee.modulo`).
+      Cotista de preenchimento (`modulo=cotista` + `cedente_role_id=1`) é público.
+      Cedente (qualquer papel), cotista avalista/administrador e job exigem administrador logado (id 3).
 
 security:
   - userIdHeader: []
@@ -352,21 +371,114 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
 
+  /employee/register:
+    post:
+      tags: [Usuários]
+      operationId: registerEmployee
+      summary: Cadastrar employee (job, cedente ou cotista)
+      description: |
+        Cria `employee` + `user` e grava **`employee.modulo`** com o tipo enviado no body.
+
+        **`modulo` é obrigatório** nesta rota: `job`, `cedente` ou `cotista`
+        (aliases aceitos no JSON: `module`, `tipo`, `tipo_usuario`, `user_type`).
+
+        | `modulo` | Papel | Autenticação |
+        |----------|--------|----------------|
+        | `cotista` | `cedente_role_id: 1` (preenchimento) | **Nenhuma.** Não envie `User` nem `Authorization`. |
+        | `cotista` | `2` avalista ou `3` administrador | Admin logado (`cedente_role.id === 3`) |
+        | `cedente` | `1`, `2` ou `3` | Admin logado |
+        | `job` | não enviar papel | Admin logado |
+
+        Sem login fora do cotista preenchimento → HTTP **403**.
+        Logado sem ser administrador → HTTP **403**.
+
+        - Obrigatórios: `name`, `email`, `password` (mín. 6; alias `senha`), `modulo`.
+        - `cedente_role_id` obrigatório para `cedente` e `cotista` (1, 2 ou 3). Não use o name/code para autorizar.
+        - **Não** gera e-mail `@think` / `@carmel`.
+        - Fundos (`fund_ids` / `all_funds`) só se aplicam a `modulo: cedente`. Cotista e job ignoram fundo.
+        - No cadastro público de cotista preenchimento, `department`, `position`, `payment` e fundos enviados pelo cliente são ignorados.
+
+        Depois do cadastro o usuário entra com `POST /login`. A resposta de login traz `employee.modulo`.
+      security:
+        - {}
+        - userIdHeader: []
+          authTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeRegisterRequest"
+            examples:
+              cotistaPreenchimento:
+                $ref: "#/components/examples/EmployeeCotistaPreenchimentoPublic"
+              cotistaAdministrador:
+                $ref: "#/components/examples/EmployeeCotistaAdmin"
+              cedente:
+                $ref: "#/components/examples/EmployeeCedenteCreateFunds"
+              job:
+                $ref: "#/components/examples/EmployeeJobCreate"
+      responses:
+        "200":
+          description: Employee cadastrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CedenteEmployeeCreateResponse"
+              example:
+                error: "false"
+                message: Funcionario cadastrado com sucesso
+                data:
+                  id: 42
+                  name: Ana Costa
+                  modulo: cotista
+                  image: sem-foto.jpg
+                  department_id: 2
+                  position_id: 3
+                  user:
+                    id: 55
+                    email: ana.costa@empresa.com
+                  cedente_role:
+                    id: 1
+                    code: preenchimento
+                    name: Preenchimento de formulario
+                  funds: []
+                  all_funds: false
+        "400":
+          description: Validação (modulo, nome, e-mail, papel, senha)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: |
+            Tipo que não é cotista preenchimento, sem login ou sem papel de administrador (id 3).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
   /cedente/employee/save:
     post:
       tags: [Usuários]
       operationId: createCedenteEmployee
-      summary: Cadastrar employee do módulo (função + fundos)
+      summary: Cadastrar employee (alias; modulo padrão cedente)
       description: |
-        Cria do zero `employee` + `user` + função + fundos.
+        Mesmo handler de `POST /employee/register`.
 
-        - **Admin only:** `cedente_role.id === 3` no usuário logado. Caso contrário HTTP 403.
-        - Obrigatórios: `name`, `email`, `password` (mín. 6; alias `senha`), `cedente_role_id` (1, 2 ou 3).
-        - **Não** gera e-mail `@think` / `@carmel` — o front envia o e-mail e a senha de login.
-        - Fundos: `fund_ids: [1, 2]` **ou** `all_funds: true` (omitir / `[]` / `"todos"` = todos).
-        - `department` / `position` opcionais.
+        - Se o body **não** trouxer `modulo`, o backend grava `cedente` (compatível com o front que já usa esta rota) e **exige administrador logado**.
+        - Se vier `modulo: cotista` e `cedente_role_id: 1`, o cadastro é **público** (sem login), igual a `/employee/register`.
+        - `modulo: job`, `modulo: cedente` ou cotista com papel 2/3 exigem admin logado (id 3). Caso contrário HTTP 403.
+        - Obrigatórios: `name`, `email`, `password` (mín. 6; alias `senha`). `cedente_role_id` obrigatório quando o módulo não é `job`.
+        - **Não** gera e-mail `@think` / `@carmel`.
+        - Fundos: `fund_ids: [1, 2]` **ou** `all_funds: true` (omitir / `[]` / `"todos"` = todos). Só no módulo cedente.
+        - `department` / `position` opcionais (ignorados no cadastro público de cotista preenchimento).
 
-        Com isso o usuário já faz `POST /login` e acessa `/cedente*` e `/fund*`.
+        Prefira `POST /employee/register` e envie `modulo` sempre.
+      security:
+        - {}
+        - userIdHeader: []
+          authTokenHeader: []
       requestBody:
         required: true
         content:
@@ -378,6 +490,8 @@ paths:
                 $ref: "#/components/examples/EmployeeCedenteCreateFunds"
               todosFundos:
                 $ref: "#/components/examples/EmployeeCedenteCreateAllFunds"
+              cotistaPreenchimento:
+                $ref: "#/components/examples/EmployeeCotistaPreenchimentoPublic"
       responses:
         "200":
           description: Employee cadastrado
@@ -391,6 +505,7 @@ paths:
                 data:
                   id: 42
                   name: Maria Silva
+                  modulo: cedente
                   image: sem-foto.jpg
                   department_id: null
                   position_id: null
@@ -432,9 +547,9 @@ paths:
       description: |
         Altera employee já cadastrado no módulo.
 
-        - **Admin only:** `cedente_role.id === 3`. Caso contrário HTTP 403.
+        - **Admin only:** `cedente_role.id === 3` e usuário logado. Caso contrário HTTP 403.
         - `id` obrigatório.
-        - Opcionais: `name`, `email`, `password` (mín. 6), `cedente_role_id`, fundos.
+        - Opcionais: `name`, `email`, `password` (mín. 6), `modulo` (`job`, `cedente`, `cotista`), `cedente_role_id`, fundos.
         - Fundos só mudam se enviar `all_funds`, `fund_ids` ou `fundos`.
         - Se o employee não tiver user, envie `email` e `password` para criar.
       requestBody:
@@ -1132,6 +1247,7 @@ components:
             Inclui **`cedente_role`**: objeto `{ id, code, name }` quando existe vínculo em
             `cedente_role_employee`; **`null`** quando não há papel (front trata como admin de cedente).
             Também espelhado em `employee.cedente_role`.
+            **`employee.modulo`** é o tipo do usuário: `job`, `cedente` ou `cotista`.
             Codes: `preenchimento` | `avalista` | `administrador`.
             Para `code: avalista` (id 2), o `name` retornado na API é sempre **`Aprovador`**.
           type: object
@@ -1207,10 +1323,71 @@ components:
           items:
             $ref: "#/components/schemas/CedenteRoleItem"
 
+    EmployeeRegisterRequest:
+      type: object
+      required: [name, email, password, modulo]
+      description: |
+        Body de `POST /employee/register`. `cedente_role_id` é obrigatório quando `modulo` é `cedente` ou `cotista`.
+      properties:
+        name:
+          type: string
+          example: Ana Costa
+        email:
+          type: string
+          format: email
+          example: ana.costa@empresa.com
+        password:
+          type: string
+          minLength: 6
+          example: SenhaForte1
+        senha:
+          type: string
+          minLength: 6
+          description: Alias de `password`.
+        modulo:
+          $ref: "#/components/schemas/EmployeeModulo"
+        cedente_role_id:
+          type: integer
+          description: |
+            Obrigatório para `cedente` e `cotista`. Não enviar em `job`.
+            1 preenchimento (cotista com 1 é público), 2 avalista, 3 administrador.
+          enum: [1, 2, 3]
+          example: 1
+        cedente_role:
+          type: object
+          description: Alternativa a `cedente_role_id`. Objeto com `id`.
+          properties:
+            id:
+              type: integer
+              enum: [1, 2, 3]
+        all_funds:
+          type: boolean
+          description: "Somente modulo cedente. Ignorado em cotista e job."
+        fund_ids:
+          description: "Somente modulo cedente."
+          oneOf:
+            - type: array
+              items:
+                type: integer
+            - type: string
+              enum: [todos]
+        fundos: {}
+
+    EmployeeModulo:
+      type: string
+      description: |
+        Tipo do usuário, gravado em `employee.modulo`.
+        Aliases de campo no JSON: `modulo`, `module`, `tipo`, `tipo_usuario`, `user_type`.
+        Aliases de valor: `jobs`, `cedentes`, `cotistas`.
+      enum: [job, cedente, cotista]
+      example: cotista
+
     CedenteEmployeeCreateRequest:
       type: object
       required: [name, email, password, cedente_role_id]
       properties:
+        modulo:
+          $ref: "#/components/schemas/EmployeeModulo"
         name:
           type: string
           example: Maria Silva
@@ -1230,7 +1407,9 @@ components:
           description: Alias de `password`.
         cedente_role_id:
           type: integer
-          description: Id em `cedente_role` (não envie name/code).
+          description: |
+            Id em `cedente_role` (não envie name/code).
+            Obrigatório para cedente e cotista. Omitir `modulo` nesta rota grava `cedente`.
           enum: [1, 2, 3]
           example: 1
         cedente_role:
@@ -1277,6 +1456,8 @@ components:
         id:
           type: integer
           example: 42
+        modulo:
+          $ref: "#/components/schemas/EmployeeModulo"
         name:
           type: string
         email:
@@ -1337,6 +1518,8 @@ components:
           type: integer
         name:
           type: string
+        modulo:
+          $ref: "#/components/schemas/EmployeeModulo"
         image:
           type: string
         department_id:
@@ -2349,15 +2532,50 @@ components:
           type: integer
 
   examples:
-    EmployeeCedenteCreateFunds:
-      summary: Cadastro com fundos específicos
+    EmployeeCotistaPreenchimentoPublic:
+      summary: Cotista de preenchimento (público, sem login)
       description: |
-        Cria usuário do zero (email/senha do front) com função Preenchimento (id 1)
-        e acesso somente aos fundos 1 e 2. Somente admin (id 3).
+        Qualquer pessoa pode chamar `POST /employee/register` **sem** headers `User` e `Authorization`.
+        Só esta combinação é pública: `modulo: cotista` e `cedente_role_id: 1`.
+      value:
+        name: Ana Costa
+        email: ana.costa@empresa.com
+        password: SenhaForte1
+        modulo: cotista
+        cedente_role_id: 1
+
+    EmployeeCotistaAdmin:
+      summary: Cotista administrador (somente admin logado)
+      description: |
+        Papel 2 (avalista) e 3 (administrador) de cotista, assim como qualquer preenchimento de cedente,
+        só podem ser cadastrados por um administrador já logado (`cedente_role.id === 3`).
+      value:
+        name: Carlos Admin
+        email: carlos.admin@empresa.com
+        password: SenhaForte1
+        modulo: cotista
+        cedente_role_id: 3
+
+    EmployeeJobCreate:
+      summary: Usuário do módulo job (somente admin logado)
+      description: |
+        Não envie `cedente_role_id`. Exige administrador logado.
+      value:
+        name: Paulo Jobs
+        email: paulo.jobs@empresa.com
+        password: SenhaForte1
+        modulo: job
+
+    EmployeeCedenteCreateFunds:
+      summary: Cadastro de cedente com fundos específicos
+      description: |
+        Cria usuário do zero (email/senha do front) no módulo cedente, função Preenchimento (id 1)
+        e acesso somente aos fundos 1 e 2. Somente admin logado (id 3).
       value:
         name: Maria Silva
         email: maria.silva@empresa.com
         password: SenhaForte1
+        modulo: cedente
         cedente_role_id: 1
         fund_ids: [1, 2]
 
@@ -2369,6 +2587,7 @@ components:
         name: João Pereira
         email: joao.pereira@empresa.com
         password: SenhaForte1
+        modulo: cedente
         cedente_role_id: 2
         all_funds: true
 

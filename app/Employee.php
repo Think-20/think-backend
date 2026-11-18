@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use DateTime;
 use DB;
 use Exception;
+use App\Http\Services\CedentePermissionService;
 use Illuminate\Support\Facades\DB as FacadesDB;
 use Illuminate\Support\Facades\Hash;
 use InvalidArgumentException;
@@ -15,6 +16,10 @@ use InvalidArgumentException;
 class Employee extends Model implements NotifierInterface
 {
     use SoftDeletes;
+
+    const MODULO_JOB = 'job';
+    const MODULO_CEDENTE = 'cedente';
+    const MODULO_COTISTA = 'cotista';
 
     protected $table = 'employee';
 
@@ -257,7 +262,9 @@ class Employee extends Model implements NotifierInterface
             $employee = new Employee($data);
             $employee->department_id = isset($data['department']['id']) ? $data['department']['id'] : null;
             $employee->position_id = isset($data['position']['id']) ? $data['position']['id'] : null;
-            $employee->updated_by = User::logged()->employee->id;
+            $logged = User::logged();
+            $employee->updated_by = ($logged && $logged->employee) ? $logged->employee->id : null;
+            $employee->modulo = self::MODULO_JOB;
             $employee->image = isset($data['image']) ? $data['image'] : 'sem-foto.jpg';
             $employee->save();
             $employee->moveFile();
@@ -287,26 +294,50 @@ class Employee extends Model implements NotifierInterface
             throw new InvalidArgumentException('name e obrigatorio');
         }
 
-        $roleId = self::parseCedenteRoleId($data, true);
+        $modulo = self::parseModulo($data, self::MODULO_CEDENTE);
+        $roleId = null;
+        if ($modulo !== self::MODULO_JOB) {
+            $roleId = self::parseCedenteRoleId($data, true);
+        }
         $email = self::parseCedenteEmail($data, true);
         $password = self::parseCedentePassword($data, true);
         self::assertCedenteEmailAvailable($email);
 
-        list($allFunds, $fundIds) = self::parseCedenteFundsPayload($data);
+        $allFunds = true;
+        $fundIds = [];
+        if ($modulo === self::MODULO_CEDENTE) {
+            list($allFunds, $fundIds) = self::parseCedenteFundsPayload($data);
+        }
 
         DB::beginTransaction();
 
         try {
             $employee = new Employee();
             $employee->name = $name;
+            $employee->modulo = $modulo;
             self::applyCedenteEmployeeDefaults($employee, $data);
+            $hadUpdater = !empty($employee->updated_by);
+            if (!$hadUpdater) {
+                $fallbackId = self::query()->orderBy('id', 'asc')->value('id');
+                if ($fallbackId) {
+                    $employee->updated_by = (int) $fallbackId;
+                }
+            }
             $employee->save();
+            if (!$hadUpdater) {
+                $employee->updated_by = $employee->id;
+                $employee->save();
+            }
             $employee->moveFile();
 
-            self::createCedenteUser($employee->id, $email, $password);
+            self::createCedenteUser($employee->id, $email, $password, $modulo);
 
-            CedenteRole::assignToEmployeeById($employee->id, $roleId);
-            self::syncCedenteFunds($employee, $fundIds, $allFunds);
+            if ($roleId !== null) {
+                CedenteRole::assignToEmployeeById($employee->id, $roleId);
+            }
+            if ($modulo === self::MODULO_CEDENTE) {
+                self::syncCedenteFunds($employee, $fundIds, $allFunds);
+            }
 
             DB::commit();
 
@@ -355,6 +386,8 @@ class Employee extends Model implements NotifierInterface
             self::assertCedenteEmailAvailable($email, $employee->id);
         }
 
+        $modulo = self::payloadHasModulo($data) ? self::parseModulo($data, null) : null;
+
         DB::beginTransaction();
 
         try {
@@ -377,6 +410,9 @@ class Employee extends Model implements NotifierInterface
                     $employee->moveFile();
                 }
             }
+            if ($modulo !== null) {
+                $employee->modulo = $modulo;
+            }
             $employee->updated_by = User::logged()->employee->id;
             $employee->save();
 
@@ -385,7 +421,12 @@ class Employee extends Model implements NotifierInterface
                 if ($email === null || $password === null) {
                     throw new InvalidArgumentException('Este employee nao tem usuario. Envie email e password para criar');
                 }
-                self::createCedenteUser($employee->id, $email, $password);
+                self::createCedenteUser(
+                    $employee->id,
+                    $email,
+                    $password,
+                    $employee->modulo ?: self::MODULO_CEDENTE
+                );
             } else {
                 if ($email !== null) {
                     $user->email = $email;
@@ -399,7 +440,19 @@ class Employee extends Model implements NotifierInterface
             if ($roleId !== null) {
                 CedenteRole::assignToEmployeeById($employee->id, $roleId);
                 $user = $employee->user()->first();
-                if ($user && ! $user->acesso_cedente) {
+            }
+            if ($modulo !== null) {
+                $user = $employee->user()->first();
+                if ($user) {
+                    self::applyModuleAccessFlags($user, $modulo);
+                    $user->save();
+                }
+            } elseif ($roleId !== null && $user) {
+                $flagModulo = $employee->modulo ?: self::MODULO_CEDENTE;
+                if ($flagModulo === self::MODULO_COTISTA && ! $user->acesso_cotista) {
+                    $user->acesso_cotista = true;
+                    $user->save();
+                } elseif ($flagModulo !== self::MODULO_COTISTA && ! $user->acesso_cedente) {
                     $user->acesso_cedente = true;
                     $user->save();
                 }
@@ -429,8 +482,14 @@ class Employee extends Model implements NotifierInterface
     {
         $roleId = null;
         if (isset($data['cedente_role_id'])) {
+            if (!is_numeric($data['cedente_role_id'])) {
+                throw new InvalidArgumentException('cedente_role_id invalido');
+            }
             $roleId = (int) $data['cedente_role_id'];
         } elseif (isset($data['cedente_role']['id'])) {
+            if (!is_numeric($data['cedente_role']['id'])) {
+                throw new InvalidArgumentException('cedente_role_id invalido');
+            }
             $roleId = (int) $data['cedente_role']['id'];
         }
 
@@ -667,7 +726,96 @@ class Employee extends Model implements NotifierInterface
         $employee->image = (isset($data['image']) && trim((string) $data['image']) !== '')
             ? $data['image']
             : 'sem-foto.jpg';
-        $employee->updated_by = User::logged()->employee->id;
+        $logged = CedentePermissionService::requestIsAuthenticated() ? User::logged() : null;
+        $employee->updated_by = ($logged && $logged->employee) ? $logged->employee->id : null;
+    }
+
+    /**
+     * Cotista com papel preenchimento (id 1) pode ser cadastrado sem login.
+     * Qualquer outro modulo ou papel exige administrador logado.
+     *
+     * @param string $modulo
+     * @param int|null $roleId
+     * @return bool
+     */
+    public static function registrationIsPublic($modulo, $roleId)
+    {
+        return $modulo === self::MODULO_COTISTA
+            && (int) $roleId === CedenteRole::ID_PREENCHIMENTO;
+    }
+
+    /**
+     * @param array $data
+     * @return bool
+     */
+    public static function payloadHasModulo(array $data)
+    {
+        foreach (array('modulo', 'module', 'tipo', 'tipo_usuario', 'user_type') as $key) {
+            if (array_key_exists($key, $data) && $data[$key] !== null && $data[$key] !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Modulo enviado pelo front: job, cedente ou cotista.
+     * Aliases aceitos: modulo, module, tipo, tipo_usuario, user_type.
+     *
+     * @param array $data
+     * @param string|null $default null = obrigatorio
+     * @return string
+     */
+    public static function parseModulo(array $data, $default)
+    {
+        $raw = null;
+        foreach (array('modulo', 'module', 'tipo', 'tipo_usuario', 'user_type') as $key) {
+            if (array_key_exists($key, $data) && $data[$key] !== null && $data[$key] !== '') {
+                $raw = $data[$key];
+                break;
+            }
+        }
+
+        if ($raw === null) {
+            if ($default === null) {
+                throw new InvalidArgumentException('modulo e obrigatorio (job, cedente ou cotista)');
+            }
+
+            return $default;
+        }
+
+        $modulo = strtolower(trim((string) $raw));
+        $aliases = array(
+            'jobs' => self::MODULO_JOB,
+            'cedente' => self::MODULO_CEDENTE,
+            'cedentes' => self::MODULO_CEDENTE,
+            'cotista' => self::MODULO_COTISTA,
+            'cotistas' => self::MODULO_COTISTA,
+        );
+        if (isset($aliases[$modulo])) {
+            $modulo = $aliases[$modulo];
+        }
+
+        $allowed = array(self::MODULO_JOB, self::MODULO_CEDENTE, self::MODULO_COTISTA);
+        if (!in_array($modulo, $allowed, true)) {
+            throw new InvalidArgumentException('modulo invalido. Use job, cedente ou cotista');
+        }
+
+        return $modulo;
+    }
+
+    /**
+     * Liga a flag de acesso do modulo e desliga as outras.
+     *
+     * @param User $user
+     * @param string $modulo
+     */
+    public static function applyModuleAccessFlags(User $user, $modulo)
+    {
+        $user->acesso_job = $modulo === self::MODULO_JOB;
+        $user->acesso_cedente = $modulo === self::MODULO_CEDENTE;
+        $user->acesso_cotista = $modulo === self::MODULO_COTISTA;
     }
 
     /**
@@ -691,13 +839,13 @@ class Employee extends Model implements NotifierInterface
      * @param string $password
      * @return User
      */
-    public static function createCedenteUser($employeeId, $email, $password)
+    public static function createCedenteUser($employeeId, $email, $password, $modulo = self::MODULO_CEDENTE)
     {
         $user = new User();
         $user->email = $email;
         $user->password = Hash::make($password);
         $user->employee_id = $employeeId;
-        $user->acesso_cedente = true;
+        self::applyModuleAccessFlags($user, $modulo);
         $user->save();
 
         return $user;
@@ -797,9 +945,22 @@ class Employee extends Model implements NotifierInterface
         $funds = $this->funds;
         $allFunds = $funds->isEmpty();
 
+        $modulo = $this->modulo ?: self::MODULO_JOB;
+        $fundsPayload = ($modulo === self::MODULO_CEDENTE && !$allFunds)
+            ? $funds->map(function ($fund) {
+                return [
+                    'id' => (int) $fund->id,
+                    'name' => $fund->name,
+                    'code' => $fund->code,
+                    'type' => $fund->type,
+                ];
+            })->values()->all()
+            : [];
+
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'modulo' => $modulo,
             'image' => $this->image,
             'department_id' => $this->department_id,
             'position_id' => $this->position_id,
@@ -808,15 +969,8 @@ class Employee extends Model implements NotifierInterface
                 'email' => $this->user->email,
             ] : null,
             'cedente_role' => $role ? $role->toApiArray() : null,
-            'funds' => $allFunds ? [] : $funds->map(function ($fund) {
-                return [
-                    'id' => (int) $fund->id,
-                    'name' => $fund->name,
-                    'code' => $fund->code,
-                    'type' => $fund->type,
-                ];
-            })->values()->all(),
-            'all_funds' => $allFunds,
+            'funds' => $fundsPayload,
+            'all_funds' => $modulo === self::MODULO_CEDENTE ? $allFunds : false,
         ];
     }
 
@@ -904,7 +1058,7 @@ class Employee extends Model implements NotifierInterface
 
         return [
             'date' => (new DateTime($lastData->updated_at))->format('d/m/Y'),
-            'employee' => $lastData->updatedBy->name
+            'employee' => $lastData->updatedBy ? $lastData->updatedBy->name : null
         ];
     }
 

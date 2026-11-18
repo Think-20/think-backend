@@ -109,19 +109,66 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Cria employee + user do modulo de cedentes, atrelando fundo(s) e funcao por id.
-     * Somente administrador (cedente_role.id = 3).
+     * Cadastro por modulo. `modulo` e obrigatorio.
+     * Cotista + preenchimento (cedente_role_id 1) nao exige login.
+     * Cedente (qualquer papel), cotista avalista/administrador e job exigem admin logado.
+     */
+    public static function register(Request $request)
+    {
+        return self::saveModuleEmployee($request->all(), true);
+    }
+
+    /**
+     * Alias de register. Sem `modulo` no body, assume cedente (compativel com o front atual).
+     * A mesma regra de permissao vale: cotista preenchimento e publico; o resto so admin.
      */
     public static function saveCedente(Request $request)
     {
+        return self::saveModuleEmployee($request->all(), false);
+    }
+
+    /**
+     * @param array $data
+     * @param bool $moduloRequired
+     * @return \Illuminate\Http\JsonResponse
+     */
+    private static function saveModuleEmployee(array $data, $moduloRequired)
+    {
         try {
-            CedentePermissionService::assertCanRegisterEmployee();
+            $modulo = Employee::parseModulo($data, $moduloRequired ? null : Employee::MODULO_CEDENTE);
+            $roleId = null;
+            if ($modulo !== Employee::MODULO_JOB) {
+                $roleId = Employee::parseCedenteRoleId($data, true);
+            }
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
+        }
+
+        try {
+            CedentePermissionService::assertCanRegisterEmployeeFor($modulo, $roleId);
         } catch (InvalidArgumentException $e) {
             return response()->json(['error' => 'true', 'message' => $e->getMessage()], 403);
         }
 
+        if (Employee::registrationIsPublic($modulo, $roleId)) {
+            unset(
+                $data['department'],
+                $data['department_id'],
+                $data['position'],
+                $data['position_id'],
+                $data['payment'],
+                $data['fund_ids'],
+                $data['fundos'],
+                $data['all_funds'],
+                $data['schedule_active'],
+                $data['image']
+            );
+        }
+
+        $data['modulo'] = $modulo;
+
         try {
-            $employee = Employee::insertForCedente($request->all());
+            $employee = Employee::insertForCedente($data);
         } catch (InvalidArgumentException $e) {
             return response()->json(['error' => 'true', 'message' => $e->getMessage()], 400);
         } catch (Exception $e) {
