@@ -81,9 +81,59 @@ class MailService
         $from = self::resolveFrom($params);
         $isHtml = ! array_key_exists('is_html', $params) || (bool) $params['is_html'];
 
+        $modes = [null];
+        // Se STARTTLS (587) quebrar o contexto SSL do PHP-FPM, tenta SMTPS (465).
+        if (self::shouldTrySmtpsFallback()) {
+            $modes[] = 'smtps465';
+        }
+
+        $lastException = null;
+        foreach ($modes as $mode) {
+            try {
+                $mail = self::buildMailer($params, $from, $recipients, $isHtml, $mode);
+                $mail->send();
+
+                return ['sent' => true];
+            } catch (Exception $e) {
+                $lastException = $e;
+                Log::warning('MailService: falha ao enviar e-mail', [
+                    'subject' => $subject,
+                    'to' => array_column($recipients, 'email'),
+                    'mode' => $mode === null ? 'default' : $mode,
+                    'php' => PHP_VERSION,
+                    'sapi' => PHP_SAPI,
+                    'openssl' => defined('OPENSSL_VERSION_TEXT') ? OPENSSL_VERSION_TEXT : null,
+                    'message' => $e->getMessage(),
+                ]);
+
+                if ($mode === null && self::isSslContextFailure($e) && in_array('smtps465', $modes, true)) {
+                    continue;
+                }
+
+                break;
+            }
+        }
+
+        throw new Exception(
+            'Erro ao enviar e-mail: ' . ($lastException ? $lastException->getMessage() : 'falha desconhecida'),
+            0,
+            $lastException
+        );
+    }
+
+    /**
+     * @param array $params
+     * @param array{email: string, name: string} $from
+     * @param array<int, array{email: string, name: string}> $recipients
+     * @param bool $isHtml
+     * @param string|null $mode
+     * @return PHPMailer
+     */
+    private static function buildMailer(array $params, array $from, array $recipients, $isHtml, $mode = null)
+    {
         $mail = new PHPMailer(true);
         $mail->setSMTPInstance(new TlsSmtp());
-        self::configureSmtp($mail);
+        self::configureSmtp($mail, $mode);
 
         $mail->setFrom($from['email'], $from['name']);
         self::addAddresses($mail, $recipients, 'addAddress');
@@ -104,8 +154,8 @@ class MailService
         }
 
         $mail->isHTML($isHtml);
-        $mail->Subject = $subject;
-        $mail->Body = $body;
+        $mail->Subject = trim((string) (isset($params['subject']) ? $params['subject'] : ''));
+        $mail->Body = isset($params['body']) ? (string) $params['body'] : '';
 
         if ($isHtml && ! empty($params['alt_body'])) {
             $mail->AltBody = (string) $params['alt_body'];
@@ -113,19 +163,30 @@ class MailService
             $mail->AltBody = '';
         }
 
-        try {
-            $mail->send();
-        } catch (Exception $e) {
-            Log::warning('MailService: falha ao enviar e-mail', [
-                'subject' => $subject,
-                'to' => array_column($recipients, 'email'),
-                'message' => $e->getMessage(),
-            ]);
+        return $mail;
+    }
 
-            throw new Exception('Erro ao enviar e-mail: ' . $e->getMessage(), 0, $e);
-        }
+    /**
+     * @param \Exception $e
+     * @return bool
+     */
+    private static function isSslContextFailure($e)
+    {
+        $message = $e->getMessage();
 
-        return ['sent' => true];
+        return stripos($message, 'SSL context creation failure') !== false
+            || stripos($message, 'Could not connect to SMTP host') !== false;
+    }
+
+    /**
+     * @return bool
+     */
+    private static function shouldTrySmtpsFallback()
+    {
+        $port = (int) env('PHP_MAIL_PORT', config('mail.port', 587));
+        $encryption = strtolower(self::credentialString(env('PHP_MAIL_SMTP_SECURY', config('mail.encryption'))));
+
+        return $port === 587 || $encryption === 'tls' || $encryption === '';
     }
 
     /**
@@ -253,8 +314,9 @@ class MailService
      * 2) PHP_MAIL_* — legado Task::sendMailTask (Gmail), se MAIL_USERNAME estiver vazio
      *
      * @param PHPMailer $mail
+     * @param string|null $mode null = env padrao; smtps465 = ssl:// host na porta 465
      */
-    private static function configureSmtp(PHPMailer $mail)
+    private static function configureSmtp(PHPMailer $mail, $mode = null)
     {
         $mail->isSMTP();
 
@@ -296,10 +358,16 @@ class MailService
             $host = 'smtp.mailgun.org';
         }
 
+        if ($mode === 'smtps465') {
+            $port = 465;
+            $encryption = PHPMailer::ENCRYPTION_SMTPS;
+        }
+
         $mail->Host = $host;
         $mail->Port = $port > 0 ? $port : 587;
         $mail->CharSet = $charset;
         $mail->SMTPAuth = $smtpAuth || $username !== '';
+        $mail->SMTPOptions = self::smtpStreamOptions();
 
         if ($mail->SMTPAuth) {
             $mail->Username = $username;
@@ -309,6 +377,59 @@ class MailService
         if ($encryption !== '') {
             $mail->SMTPSecure = $encryption;
         }
+    }
+
+    /**
+     * Contexto SSL usado no connect e no STARTTLS.
+     *
+     * @return array
+     */
+    private static function smtpStreamOptions()
+    {
+        $ssl = [
+            'crypto_method' => self::preferredTlsCryptoMethod(),
+        ];
+
+        $cafile = self::credentialString(env('MAIL_CAFILE', ini_get('openssl.cafile') ?: ''));
+        if ($cafile === '' || ! is_readable($cafile)) {
+            foreach ([
+                '/etc/ssl/certs/ca-certificates.crt',
+                '/etc/pki/tls/certs/ca-bundle.crt',
+                '/etc/ssl/cert.pem',
+            ] as $candidate) {
+                if (is_readable($candidate)) {
+                    $cafile = $candidate;
+                    break;
+                }
+            }
+        }
+
+        if ($cafile !== '' && is_readable($cafile)) {
+            $ssl['cafile'] = $cafile;
+        }
+
+        return ['ssl' => $ssl];
+    }
+
+    /**
+     * @return int
+     */
+    public static function preferredTlsCryptoMethod()
+    {
+        if (defined('STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT')) {
+            $method = STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+            if (defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT')) {
+                $method |= STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
+            }
+
+            return $method;
+        }
+
+        if (defined('STREAM_CRYPTO_METHOD_ANY_CLIENT')) {
+            return STREAM_CRYPTO_METHOD_ANY_CLIENT;
+        }
+
+        return STREAM_CRYPTO_METHOD_TLS_CLIENT;
     }
 
     /**
@@ -429,9 +550,10 @@ class MailService
 }
 
 /**
- * PHPMailer 6.9 ainda monta STARTTLS com STREAM_CRYPTO_METHOD_TLS_CLIENT
- * (legado). Em OpenSSL novo isso gera "SSL context creation failure".
- * Aqui usa so TLS 1.2 + 1.3, a combinacao que o Gmail aceita.
+ * STARTTLS alinhado ao teste que funcionou no servidor:
+ * usa o crypto_method do contexto SSL da conexao (SMTPOptions).
+ * Sem terceiro argumento em stream_socket_enable_crypto, o PHP herda
+ * o contexto e evita "SSL context creation failure" em alguns PHP-FPM.
  */
 class TlsSmtp extends SMTP
 {
@@ -442,49 +564,11 @@ class TlsSmtp extends SMTP
         }
 
         set_error_handler([$this, 'errorHandler']);
-        $crypto_ok = false;
-        foreach (self::tlsCryptoMethods() as $crypto_method) {
-            $crypto_ok = stream_socket_enable_crypto(
-                $this->smtp_conn,
-                true,
-                $crypto_method
-            );
-            if ($crypto_ok) {
-                break;
-            }
-        }
+        // Sem 3o argumento: herda crypto_method do SMTPOptions da conexao.
+        // Depois do STARTTLS so ha uma chance; retentar no mesmo socket nao ajuda.
+        $crypto_ok = stream_socket_enable_crypto($this->smtp_conn, true);
         restore_error_handler();
 
         return (bool) $crypto_ok;
-    }
-
-    /**
-     * @return int[]
-     */
-    private static function tlsCryptoMethods()
-    {
-        $methods = [];
-
-        // Preferencia: TLS 1.2 + 1.3 (sem TLS_CLIENT legado).
-        if (defined('STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT')) {
-            $modern = STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
-            if (defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT')) {
-                $modern |= STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
-            }
-            $methods[] = $modern;
-            $methods[] = STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
-        }
-
-        if (defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT')) {
-            $methods[] = STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
-        }
-
-        if (defined('STREAM_CRYPTO_METHOD_ANY_CLIENT')) {
-            $methods[] = STREAM_CRYPTO_METHOD_ANY_CLIENT;
-        }
-
-        $methods[] = STREAM_CRYPTO_METHOD_TLS_CLIENT;
-
-        return array_values(array_unique($methods));
     }
 }
