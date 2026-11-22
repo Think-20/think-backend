@@ -1782,7 +1782,12 @@ class CedenteService
             'changes' => $changes,
         ]);
 
-        if ($oldStatus !== null && $oldStatus !== $newStatus) {
+        // So dispara e-mail no evento status_alterado.
+        // Fluxos de edit/validacao gravam tambem cedente_atualizado / validacao_*;
+        // se notificar em todo evento com status diferente, o e-mail sai duplicado.
+        if ($event === CedenteAudit::EVENT_STATUS_ALTERADO
+            && $oldStatus !== null
+            && $oldStatus !== $newStatus) {
             CedenteMailService::notifyStatusChange((int) $cedenteId, $oldStatus, $newStatus);
         }
     }
