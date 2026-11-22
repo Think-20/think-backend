@@ -429,10 +429,9 @@ class MailService
 }
 
 /**
- * PHPMailer 6.9 ainda negocia STARTTLS sem TLS 1.3.
- * No OpenSSL novo o Gmail recusa esse aperto de mao e o erro vira
- * "Could not connect to SMTP host". Esta classe usa a combinacao que
- * conectou em producao: TLS_CLIENT + TLS 1.2 + TLS 1.3.
+ * PHPMailer 6.9 ainda monta STARTTLS com STREAM_CRYPTO_METHOD_TLS_CLIENT
+ * (legado). Em OpenSSL novo isso gera "SSL context creation failure".
+ * Aqui usa so TLS 1.2 + 1.3, a combinacao que o Gmail aceita.
  */
 class TlsSmtp extends SMTP
 {
@@ -442,22 +441,50 @@ class TlsSmtp extends SMTP
             return false;
         }
 
-        $crypto_method = STREAM_CRYPTO_METHOD_TLS_CLIENT;
-        if (defined('STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT')) {
-            $crypto_method |= STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
-        }
-        if (defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT')) {
-            $crypto_method |= STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
-        }
-
         set_error_handler([$this, 'errorHandler']);
-        $crypto_ok = stream_socket_enable_crypto(
-            $this->smtp_conn,
-            true,
-            $crypto_method
-        );
+        $crypto_ok = false;
+        foreach (self::tlsCryptoMethods() as $crypto_method) {
+            $crypto_ok = stream_socket_enable_crypto(
+                $this->smtp_conn,
+                true,
+                $crypto_method
+            );
+            if ($crypto_ok) {
+                break;
+            }
+        }
         restore_error_handler();
 
         return (bool) $crypto_ok;
+    }
+
+    /**
+     * @return int[]
+     */
+    private static function tlsCryptoMethods()
+    {
+        $methods = [];
+
+        // Preferencia: TLS 1.2 + 1.3 (sem TLS_CLIENT legado).
+        if (defined('STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT')) {
+            $modern = STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+            if (defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT')) {
+                $modern |= STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
+            }
+            $methods[] = $modern;
+            $methods[] = STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+        }
+
+        if (defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT')) {
+            $methods[] = STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
+        }
+
+        if (defined('STREAM_CRYPTO_METHOD_ANY_CLIENT')) {
+            $methods[] = STREAM_CRYPTO_METHOD_ANY_CLIENT;
+        }
+
+        $methods[] = STREAM_CRYPTO_METHOD_TLS_CLIENT;
+
+        return array_values(array_unique($methods));
     }
 }
