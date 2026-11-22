@@ -65,7 +65,7 @@ x-frontend-guide:
 
         A checagem de administrador usa **`cedente_role.id === 3`**, nunca o nome/code.
 
-        **Usuários do módulo (do zero):** o front envia `name`, `email`, `password`, `modulo` (`job`, `cedente` ou `cotista`) e, nos módulos cedente/cotista, `cedente_role_id`. **Não** gera `@think` / `@carmel`. O valor fica na coluna `employee.modulo`. Exemplos em `components.examples.EmployeeCotistaPreenchimentoPublic`, `EmployeeCedenteCreateFunds`, `EmployeeCedenteCreateAllFunds` e `EmployeeCedenteEdit`.
+        **Usuários do módulo:** o front envia `name`, `email`, `password`, `modulo` (`job`, `cedente` ou `cotista`) e, nos módulos cedente/cotista, `cedente_role_id`. O valor fica na coluna `employee.modulo`. Exemplos em `components.examples.EmployeeCotistaPreenchimentoPublic`, `EmployeeCedenteCreateFunds`, `EmployeeCedenteCreateAllFunds` e `EmployeeCedenteEdit`.
 
         **Quem pode cadastrar:** qualquer pessoa (sem header `User` / `Authorization`) pode criar **somente** cotista de preenchimento (`modulo: cotista` e `cedente_role_id: 1`). Todo o resto — cedente de qualquer papel, cotista avalista (id 2), cotista administrador (id 3), usuário job, preenchimento de cedente e administrador — exige usuário **logado** com `cedente_role.id === 3`. Sem token nesses casos → HTTP 403.
 
@@ -394,7 +394,6 @@ paths:
 
         - Obrigatórios: `name`, `email`, `password` (mín. 6; alias `senha`), `modulo`.
         - `cedente_role_id` obrigatório para `cedente` e `cotista` (1, 2 ou 3). Não use o name/code para autorizar.
-        - **Não** gera e-mail `@think` / `@carmel`.
         - Fundos (`fund_ids` / `all_funds`) só se aplicam a `modulo: cedente`. Cotista e job ignoram fundo.
         - No cadastro público de cotista preenchimento, `department`, `position`, `payment` e fundos enviados pelo cliente são ignorados.
 
@@ -470,7 +469,6 @@ paths:
         - Se vier `modulo: cotista` e `cedente_role_id: 1`, o cadastro é **público** (sem login), igual a `/employee/register`.
         - `modulo: job`, `modulo: cedente` ou cotista com papel 2/3 exigem admin logado (id 3). Caso contrário HTTP 403.
         - Obrigatórios: `name`, `email`, `password` (mín. 6; alias `senha`). `cedente_role_id` obrigatório quando o módulo não é `job`.
-        - **Não** gera e-mail `@think` / `@carmel`.
         - Fundos: `fund_ids: [1, 2]` **ou** `all_funds: true` (omitir / `[]` / `"todos"` = todos). Só no módulo cedente.
         - `department` / `position` opcionais (ignorados no cadastro público de cotista preenchimento).
 
@@ -1394,7 +1392,7 @@ components:
         email:
           type: string
           format: email
-          description: E-mail de login. Qualquer domínio; não é gerado pelo backend.
+          description: E-mail de login.
           example: maria.silva@empresa.com
         password:
           type: string
@@ -1438,13 +1436,13 @@ components:
             Alias de `fund_ids`. Aceita lista de ids, lista de objetos com id, ou a string todos.
         department:
           type: object
-          description: Opcional (módulo Think).
+          description: Opcional.
           properties:
             id:
               type: integer
         position:
           type: object
-          description: Opcional (módulo Think).
+          description: Opcional.
           properties:
             id:
               type: integer

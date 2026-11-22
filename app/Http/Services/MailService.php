@@ -6,6 +6,7 @@ use Exception;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
 
 /**
  * Envio de e-mail centralizado (jobs, cedentes e demais modulos).
@@ -81,6 +82,7 @@ class MailService
         $isHtml = ! array_key_exists('is_html', $params) || (bool) $params['is_html'];
 
         $mail = new PHPMailer(true);
+        $mail->setSMTPInstance(new TlsSmtp());
         self::configureSmtp($mail);
 
         $mail->setFrom($from['email'], $from['name']);
@@ -423,5 +425,39 @@ class MailService
         }
 
         return $text;
+    }
+}
+
+/**
+ * PHPMailer 6.9 ainda negocia STARTTLS sem TLS 1.3.
+ * No OpenSSL novo o Gmail recusa esse aperto de mao e o erro vira
+ * "Could not connect to SMTP host". Esta classe usa a combinacao que
+ * conectou em producao: TLS_CLIENT + TLS 1.2 + TLS 1.3.
+ */
+class TlsSmtp extends SMTP
+{
+    public function startTLS()
+    {
+        if (!$this->sendCommand('STARTTLS', 'STARTTLS', 220)) {
+            return false;
+        }
+
+        $crypto_method = STREAM_CRYPTO_METHOD_TLS_CLIENT;
+        if (defined('STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT')) {
+            $crypto_method |= STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+        }
+        if (defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT')) {
+            $crypto_method |= STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
+        }
+
+        set_error_handler([$this, 'errorHandler']);
+        $crypto_ok = stream_socket_enable_crypto(
+            $this->smtp_conn,
+            true,
+            $crypto_method
+        );
+        restore_error_handler();
+
+        return (bool) $crypto_ok;
     }
 }

@@ -239,7 +239,7 @@ Em `inconsistencia_juridica`, **somente** `permitir_inconsistencia_juridica` e `
 
 ### Cadastro e edição de usuário do módulo (do zero)
 
-Este fluxo **não** usa o `POST /employee/save` legado do jobs (aquele continua gerando e-mail `@thinkideias.com.br` e marcando `modulo: job`). Aqui o front envia e-mail, senha, `modulo` e, quando couber, a função.
+O front envia e-mail, senha, `modulo` e, quando couber, a função.
 
 Há três módulos, gravados em `employee.modulo`: `job`, `cedente` e `cotista`. O front envia esse tipo no body (`modulo`; também aceita `module`, `tipo`, `tipo_usuario` ou `user_type`).
 
@@ -267,7 +267,7 @@ Usuário de preenchimento (de cedente) e usuário administrador também só pode
 |-------|-------------|-----------|
 | `modulo` | sim em `/employee/register` | `job`, `cedente` ou `cotista`. Gravado em `employee.modulo` |
 | `name` | sim | Nome do employee |
-| `email` | sim | E-mail de login (qualquer domínio válido; **não** é gerado) |
+| `email` | sim | E-mail de login |
 | `password` | sim | Senha de login (mínimo 6 caracteres). Aceita alias `senha` |
 | `cedente_role_id` | sim para cedente e cotista | **Id** da função: 1 preenchimento, 2 avalista/aprovador, 3 administrador. Não enviar em `job` |
 | `fund_ids` / `all_funds` | não | Só no módulo `cedente`. Ver tabela de fundos abaixo. Omitir = todos os fundos |
