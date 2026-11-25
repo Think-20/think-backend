@@ -42,6 +42,7 @@ class Cedente extends Model
         'minimo_assinantes',
         'address_id',
         'sistema_financeiro_nacional',
+        'is_sale',
         'telefone',
         'observacao',
         'limite_aprovado',
@@ -111,6 +112,7 @@ class Cedente extends Model
 
     protected $casts = [
         'sistema_financeiro_nacional' => 'boolean',
+        'is_sale' => 'boolean',
     ];
 
     protected $dates = [

@@ -122,6 +122,7 @@ class CedenteService
                 'minimo_assinantes' => self::normalizeOptionalUInt(isset($data['minimo_assinantes']) ? $data['minimo_assinantes'] : null),
                 'address_id' => $addressId,
                 'sistema_financeiro_nacional' => !empty($data['sistema_financeiro_nacional']),
+                'is_sale' => !empty($data['is_sale']),
                 'telefone' => isset($data['telefone']) ? $data['telefone'] : null,
                 'status' => Cedente::STATUS_RASCUNHO,
             ]);
@@ -209,6 +210,9 @@ class CedenteService
                 'faturamento_anual' => self::normalizeOptionalDecimal(isset($data['faturamento_anual']) ? $data['faturamento_anual'] : null),
                 'minimo_assinantes' => self::normalizeOptionalUInt(isset($data['minimo_assinantes']) ? $data['minimo_assinantes'] : null),
                 'sistema_financeiro_nacional' => !empty($data['sistema_financeiro_nacional']),
+                'is_sale' => array_key_exists('is_sale', $data)
+                    ? !empty($data['is_sale'])
+                    : (bool) $cedente->is_sale,
                 'telefone' => isset($data['telefone']) ? $data['telefone'] : null,
             ];
             if (array_key_exists('status', $data)) {
@@ -287,6 +291,10 @@ class CedenteService
 
             if (array_key_exists('sistema_financeiro_nacional', $data)) {
                 $cedente->sistema_financeiro_nacional = !empty($data['sistema_financeiro_nacional']);
+            }
+
+            if (array_key_exists('is_sale', $data)) {
+                $cedente->is_sale = !empty($data['is_sale']);
             }
 
             if (array_key_exists('status', $data)) {
@@ -547,6 +555,7 @@ class CedenteService
             'faturamento_anual' => $cedente->faturamento_anual,
             'minimo_assinantes' => $cedente->minimo_assinantes,
             'sistema_financeiro_nacional' => (bool) $cedente->sistema_financeiro_nacional,
+            'is_sale' => (bool) $cedente->is_sale,
             'telefone' => $cedente->telefone,
             'observacao' => $cedente->observacao,
             'limite_aprovado' => $cedente->limite_aprovado !== null ? (string) $cedente->limite_aprovado : null,
@@ -1105,6 +1114,11 @@ class CedenteService
         }
         if (! $hasParte) {
             return false;
+        }
+
+        // Venda (is_sale): contas de desembolso nao sao obrigatorias.
+        if ($cedente->is_sale) {
+            return true;
         }
 
         $allowed = array_keys(ContaDesembolso::tiposConta());
@@ -1679,6 +1693,7 @@ class CedenteService
             'limite_aprovado' => $cedente->limite_aprovado,
             'prazo_atualizacao_cadastral' => $cedente->prazo_atualizacao_cadastral,
             'sistema_financeiro_nacional' => (bool) $cedente->sistema_financeiro_nacional,
+            'is_sale' => (bool) $cedente->is_sale,
             'status' => $cedente->status ?: Cedente::STATUS_PENDENTE,
             'endereco' => $cedente->address ? $cedente->address->toArray() : null,
             'partes_relacionadas' => $partes,

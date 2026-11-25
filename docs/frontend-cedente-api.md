@@ -412,6 +412,7 @@ Validação **Vadu** (primeiro) e **SERPRO** (depois, se não houver inconsistê
 ### Arquivos
 
 - **Nenhum arquivo é obrigatório** para o cedente sair de `rascunho` e ir para `pendente` — só os campos preenchíveis obrigatórios.
+- **`is_sale`** (boolean, default `false`): indica se o cadastro é uma venda. Com `is_sale: true`, **`contas_desembolso` não são obrigatórias** para ir a `pendente`. Com `false`, continua exigindo ao menos 1 conta válida.
 - Recusa → soft delete (some da lista `arquivos` na API; permanece no banco/histórico).
 - Download: `GET /cedentes/arquivos/download-all/{id}?fund_id=` → ZIP só com arquivos ativos.
 

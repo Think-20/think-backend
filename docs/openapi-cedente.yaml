@@ -92,8 +92,10 @@ x-frontend-guide:
         | Cedente | `fund_id`, `nome`, `documento` |
         | Endereço | `cep`, `logradouro`, `numero`, `bairro`, `estado`, `cidade` |
         | Partes relacionadas | Ao menos **1** item em `partes_relacionadas` com `nome` |
-        | Contas de desembolso | Ao menos **1** conta com `tipo_conta`, `codigo_banco`, `agencia`, `numero_conta` |
+        | Contas de desembolso | Ao menos **1** conta com `tipo_conta`, `codigo_banco`, `agencia`, `numero_conta` — **exceto** se `is_sale: true` (venda), quando a conta **não** é obrigatória |
         | Documentos | **Nenhum arquivo é obrigatório** para promoção a `pendente` (podem ser enviados depois) |
+
+        Campo **`is_sale`** (boolean, default `false`): indica se o cadastro é uma venda. Com `true`, contas de desembolso não entram na regra de completude.
 
         Quando **todos** os campos preenchíveis obrigatórios acima estiverem ok, o status passa automaticamente para **`pendente`** (com SLA de dias úteis) e dispara validações **Vadu** e **SERPRO** (independentes; Vadu primeiro).
 
@@ -1795,6 +1797,13 @@ components:
         sistema_financeiro_nacional:
           type: boolean
           default: false
+        is_sale:
+          type: boolean
+          default: false
+          description: |
+            Indica se o cadastro é uma venda ("É uma venda").
+            Com `true`, contas de desembolso **não** são obrigatórias para ir a `pendente`.
+            Com `false` (padrão), continua exigindo ao menos 1 conta válida.
         telefone:
           type: string
           nullable: true
@@ -1864,6 +1873,9 @@ components:
           nullable: true
         sistema_financeiro_nacional:
           type: boolean
+        is_sale:
+          type: boolean
+          description: Indica se o cadastro é uma venda.
         telefone:
           type: string
           nullable: true
@@ -2225,6 +2237,9 @@ components:
           nullable: true
         sistema_financeiro_nacional:
           type: boolean
+        is_sale:
+          type: boolean
+          description: Indica se o cadastro é uma venda ("É uma venda").
         telefone:
           type: string
           nullable: true
@@ -2389,6 +2404,9 @@ components:
           nullable: true
         sistema_financeiro_nacional:
           type: boolean
+        is_sale:
+          type: boolean
+          description: Indica se o cadastro é uma venda.
         telefone:
           type: string
           nullable: true
@@ -2623,6 +2641,7 @@ components:
         faturamento_anual: 1500000.5
         minimo_assinantes: 2
         sistema_financeiro_nacional: true
+        is_sale: false
         telefone: "1133334444"
         endereco:
           cep: "01310100"
