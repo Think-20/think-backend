@@ -33,6 +33,10 @@ class Cedente extends Model
 
     protected $table = 'cedente';
 
+    protected $attributes = [
+        'is_sale' => false,
+    ];
+
     protected $fillable = [
         'fund_id',
         'nome',
